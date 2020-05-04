@@ -1,0 +1,8 @@
+#goal definition
+sensor_msgs/NavSatFix gps_coord
+sensor_msgs/NavSatFix optimal_gps_coord
+bool use_optimal
+---
+#result definition
+---
+#feedback

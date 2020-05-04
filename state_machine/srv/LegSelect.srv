@@ -1,0 +1,5 @@
+
+---
+int16 leg_number
+int16[] aruco_ids
+sensor_msgs/NavSatFix gps_coord

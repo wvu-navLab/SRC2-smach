@@ -1,0 +1,20 @@
+<launch>
+  <!-- Top level state machine -->
+  <node name="urc_state_machine" pkg="state_machine" type="urc_state_machine.py" output="screen" required="true"/>
+
+  <!-- Nodes implementing action servers -->
+  <node name="approach_marker_action_server" pkg="state_machine" type="approach_marker_action_server.py" required="true"/>
+  <node name="circle_marker_action_server" pkg="state_machine" type="circle_marker_action_server.py" required="true"/>
+  <node name="comms_loss_action_server" pkg="state_machine" type="comms_loss_action_server.py" required="true"/>
+  <node name="gps_loss_action_server" pkg="state_machine" type="gps_loss_action_server.py" required="true"/>
+  <node name="gps_nav_action_server" pkg="state_machine" type="gps_nav_action_server.py" required="true"/>
+  <node name="obav_action_server" pkg="state_machine" type="obav_action_server.py" required="true"/>
+  <node name="optimal_search_action_server" pkg="state_machine" type="optimal_search_action_server.py" required="true"/>
+  <node name="signal_completion_action_server" pkg="state_machine" type="signal_completion_action_server.py" required="true"/>
+  <node name="tele_op_action_server" pkg="state_machine" type="tele_op_action_server.py" required="true"/>
+
+  <!-- Nodes implementing services -->
+  <node name="init_srv" pkg="state_machine" type="init_srv.py" required="true"/>
+  <node name="leg_select_srv" pkg="state_machine" type="leg_select_srv.py" output="screen" required="true"/>
+  <node name="shutdown_srv" pkg="state_machine" type="shutdown_srv.py" required="true"/>
+</launch>
