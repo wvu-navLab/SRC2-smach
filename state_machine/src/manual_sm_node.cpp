@@ -31,8 +31,6 @@ int SM_MODE = 0;
     PLANNER         4
 */
 
-
-
 bool poseStampedCompare(geometry_msgs::PoseStamped p1, geometry_msgs::PoseStamped p2)
 {
 
@@ -120,6 +118,7 @@ int main(int argc, char **argv)
   double wait_time;
   nh.getParam("/reset_model_delay",wait_time);
 
+  ros::Subscriber mode_sub = nh.subscribe("sm_mode",1,mode_callback);
   ros::Subscriber planner_sub = nh.subscribe("planner_goal",1,planner_callback);
   ros::Subscriber localization_sub = nh.subscribe("localization_goal",1,localization_callback);
   ros::Subscriber alignment_sub = nh.subscribe("alignment_goal",1,alignment_callback);
