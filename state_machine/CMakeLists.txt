@@ -144,6 +144,12 @@ target_link_libraries(state_machine_node ${catkin_LIBRARIES})
 add_dependencies(state_machine_node
   ${catkin_LIBRARIES}
 )
+
+add_executable(manual_sm_node src/manual_sm_node.cpp)
+target_link_libraries(manual_sm_node ${catkin_LIBRARIES})
+add_dependencies(manual_sm_node
+  ${catkin_LIBRARIES}
+)
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
 ## target back to the shorter version for ease of user use

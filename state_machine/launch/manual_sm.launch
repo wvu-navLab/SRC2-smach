@@ -1,0 +1,6 @@
+<launch>
+
+
+	<node ns="scout_1" pkg="state_machine" name="manual_sm_node" type="manual_sm_node" respawn="true"/>
+
+</launch>
