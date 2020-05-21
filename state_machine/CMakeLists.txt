@@ -16,6 +16,8 @@ find_package(catkin REQUIRED
   roslib
   message_generation
   message_runtime
+  motion_control
+  #driving_tools
 )
 
 ## System dependencies are found with CMake's conventions

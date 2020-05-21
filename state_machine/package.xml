@@ -57,6 +57,8 @@
   <buildtool_depend>roslib</buildtool_depend>
   <buildtool_depend>message_generation</buildtool_depend>
   <buildtool_depend>message_runtime</buildtool_depend>
+  <buildtool_depend>motion_control</buildtool_depend>
+  <buildtool_depend>driving_tools</buildtool_depend>
 
   <build_depend>catkin</build_depend>
   <build_depend>srcp2_msgs</build_depend>
@@ -67,6 +69,8 @@
   <build_depend>roslib</build_depend>
   <build_depend>message_generation</build_depend>
   <build_depend>message_runtime</build_depend>
+  <build_depend>motion_control</build_depend>
+  <build_depend>driving_tools</build_depend>
 
   <exec_depend>catkin</exec_depend>
   <exec_depend>srcp2_msgs</exec_depend>
@@ -77,6 +81,8 @@
   <exec_depend>roslib</exec_depend>
   <exec_depend>message_generation</exec_depend>
   <exec_depend>message_runtime</exec_depend>
+  <exec_depend>motion_control</exec_depend>
+  <exec_depend>driving_tools</exec_depend>
 
   <!-- The export tag contains other, unspecified, tags -->
   <export>

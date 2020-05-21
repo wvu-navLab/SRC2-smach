@@ -12,12 +12,17 @@ Performs low level state machine action items for SRC2.
 #include <srcp2_msgs/ResetModelSrv.h>
 #include <srcp2_msgs/BrakeRoverSrv.h>
 
+#include <motion_control/JointGroup.h>
+#include "driving_tools/Stop.h"
+
 #include <iostream>
 
 //flags for when systems  receive update or are given a go ahead
-bool PLANNER_FLAG = false, LOCALIZATION_FLAG = false, ALIGNMENT_FLAG = false, EXCAVATOR_FLAG = false, RESET_FLAG = false, SYSTEM_FAILURE_FLAG = false;
+bool PLANNER_FLAG = false, LOCALIZATION_FLAG = false, ALIGNMENT_FLAG = false, EXCAVATOR_FLAG = false, RESET_FLAG = false, SYSTEM_FAILURE_FLAG = false, ARM_FLAG = false;
 
 geometry_msgs::PoseStamped PREVIOUS_GOAL, PLANNER_GOAL, LOCALIZATION_GOAL, EXCAVATOR_GOAL, ALIGNMENT_GOAL;
+
+motion_control::JointGroup ARM_GOAL;
 
 int SM_MODE = 0;
 
@@ -44,6 +49,16 @@ bool poseStampedCompare(geometry_msgs::PoseStamped p1, geometry_msgs::PoseStampe
   bool check_8 = p1.pose.orientation.w == p2.pose.orientation.w;
 
   return check_1 && check_2 && check_3 && check_4 && check_5 && check_6 && check_7 && check_8;
+}
+
+void arm_callback(const motion_control::JointGroupConstPtr &msg)
+{
+  ARM_GOAL = *msg;
+}
+
+void arm_on_callback(const std_msgs::BoolConstPtr &msg)
+{
+  ARM_FLAG = msg->data;
 }
 
 void mode_callback(const std_msgs::Int8ConstPtr &msg)
@@ -125,19 +140,25 @@ int main(int argc, char **argv)
   //ros::Subscriber excavation_sub = nh.Subscribe(excavation_goal,1,excavation_callback);
   ros::Subscriber reset_sub = nh.subscribe("hard_reset",1,reset_callback);
   ros::Subscriber failure_sub = nh.subscribe("system_failure",1,failure_callback);
+  ros::Subscriber arm_sub = nh.subscribe("arm_goal",1,arm_callback);
+  ros::Subscriber arm_on_sub = nh.subscribe("arm_on",1,arm_on_callback);
 
   ros::Publisher goal_pub = nh.advertise<geometry_msgs::PoseStamped>("move_base_simple/goal",1);
+  ros::Publisher arm_goal_pub = nh.advertise<motion_control::JointGroup>("jointAngles",1);
   //ros::Publisher arm_goal_pub = nh.advertise<>();
 
   ros::ServiceClient reset_client = nh.serviceClient<srcp2_msgs::ResetModelSrv>("reset_model");
   ros::ServiceClient brake_client = nh.serviceClient<srcp2_msgs::BrakeRoverSrv>("brake_rover");
 
+  ros::ServiceClient arm_brake_client = nh.serviceClient<driving_tools::Stop>("stop");
 
   // Start loop and initialize other values*************************************
   bool goal_update = false;
   bool brake_flag = false;
   srcp2_msgs::ResetModelSrv reset_srv;
   srcp2_msgs::BrakeRoverSrv brake_srv;
+  driving_tools::Stop arm_brake_srv;
+  arm_brake_srv.request.enableStop = true;
   ros::Rate rate(.5);
 
   ros::Time temp_dur;
@@ -171,6 +192,8 @@ int main(int argc, char **argv)
     PREVIOUS_GOAL.pose.orientation.y = 0;
     PREVIOUS_GOAL.pose.orientation.z = 0;
     PREVIOUS_GOAL.pose.orientation.w = 0;
+
+
 
   } else if(SM_MODE == -1)
   {// RESET ********************************************************************
@@ -250,6 +273,15 @@ int main(int argc, char **argv)
     PREVIOUS_GOAL = overall_goal;
   }
   goal_update = false;
+
+  if(SM_MODE == -2 || SM_MODE == -1 || SM_MODE == 0)
+  {
+      arm_brake_client.call(brake_srv);
+
+  } else if (ARM_FLAG)
+  {
+    arm_goal_pub.publish(ARM_GOAL);
+  }
 
   rate.sleep();
   ros::spinOnce();
