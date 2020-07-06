@@ -5,19 +5,16 @@ Runs the round 1 state machine for the SRC2 competition
 @version 1.0 7/5/2020
 */
 
-#include <ros/ros.h>
+#include <state_machine/sm_rd1.hpp>
+
 
 int main(int argc, char **argv)
 {
-
-  // Initialize ROS, Subs, and Pubs *******************************************
-ros::init(argc, argv, "state_machine_rd1_node");
-
-ros::NodeHandle nh;
-
-
-
-
+  ros::init(argc, argv, "state_machine_rd1_node");
+  SmRd1 obj;
+  obj.run();
 
   return 0;
 }
+
+
