@@ -16,32 +16,34 @@ SmRd1::SmRd1()
 
 void SmRd1::run()
 {
-  ros::Rate loop_rate(20); // Hz
+  ros::Rate loop_rate(2); // Hz
   while(ros::ok())
   {
     // Debug prints +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-    //ROS_INFO_THROTTLE(1,"flag_localized_base: %i",flag_localized_base); 
-    //ROS_INFO_THROTTLE(1,"flag_have_true_pose: %i",flag_have_true_pose);
-    //ROS_INFO_THROTTLE(1,"flag_waypoint_unreachable: %i",flag_waypoint_unreachable);
-    //ROS_INFO_THROTTLE(1,"flag_arrived_at_waypoint: %i",flag_arrived_at_waypoint);
-    //ROS_INFO_THROTTLE(1,"flag_volatile_detected: %i",flag_volatile_detected);
-    //ROS_INFO_THROTTLE(1,"flag_localizing_volatile: %i",flag_localizing_volatile);
-    //ROS_INFO_THROTTLE(1,"flag_volatile_recorded: %i",flag_volatile_recorded);
-    //ROS_INFO_THROTTLE(1,"flag_volatile_unreachable: %i",flag_volatile_unreachable);
-    //ROS_INFO_THROTTLE(1,"flag_localization_failure: %i",flag_localization_failure);
-    //ROS_INFO_THROTTLE(1,"flag_brake_engaged: %i",flag_brake_engaged);
-    //ROS_INFO_THROTTLE(1,"flag_fallthrough_condition: %i",flag_fallthrough_condition);
+    ROS_INFO("flag_localized_base: %i",flag_localized_base); 
+    ROS_INFO("flag_have_true_pose: %i",flag_have_true_pose);
+    ROS_INFO("flag_waypoint_unreachable: %i",flag_waypoint_unreachable);
+    ROS_INFO("flag_arrived_at_waypoint: %i",flag_arrived_at_waypoint);
+    ROS_INFO("flag_volatile_detected: %i",flag_volatile_detected);
+    ROS_INFO("flag_localizing_volatile: %i",flag_localizing_volatile);
+    ROS_INFO("flag_volatile_recorded: %i",flag_volatile_recorded);
+    ROS_INFO("flag_volatile_unreachable: %i",flag_volatile_unreachable);
+    ROS_INFO("flag_localization_failure: %i",flag_localization_failure);
+    ROS_INFO("flag_brake_engaged: %i",flag_brake_engaged);
+    ROS_INFO("flag_fallthrough_condition: %i",flag_fallthrough_condition);
     //---------------------------------------------------------------------------------------------------------------------
 
 
     // Conditional flag logic +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-    if(flag_volatile_detected && !flag_localizing_volatile && !flag_localization_failure && !flag_have_true_pose)
+    if(flag_volatile_detected && !flag_localizing_volatile && !flag_localization_failure && flag_have_true_pose)
     {
       flag_arrived_at_waypoint = true;
+      flag_waypoint_unreachable = false;
     }
     if(flag_localization_failure && !flag_recovering_localization)
     {
       flag_arrived_at_waypoint = true;
+      flag_waypoint_unreachable = false;
     }
     //---------------------------------------------------------------------------------------------------------------------
 
@@ -53,7 +55,7 @@ void SmRd1::run()
     {
       state_to_exec.at(_initialize) = 1;
     }
-    else if(flag_arrived_at_waypoint && (flag_localization_failure || flag_recovering_localization))
+    else if((flag_arrived_at_waypoint || flag_waypoint_unreachable) && (flag_localization_failure || flag_recovering_localization))
     {
       state_to_exec.at(_lost) = 1;
     }
@@ -61,7 +63,7 @@ void SmRd1::run()
     {
       state_to_exec.at(_planning) = 1;
     }
-    else if((!flag_arrived_at_waypoint && !flag_waypoint_unreachable) && (!flag_volatile_detected || flag_localizing_volatile) && !flag_brake_engaged)
+    else if((!flag_arrived_at_waypoint && !flag_waypoint_unreachable) && !flag_brake_engaged)
     {
       state_to_exec.at(_traverse) = 1;
     }
@@ -130,25 +132,26 @@ void SmRd1::run()
 // State function definitions ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 void SmRd1::stateInitialize()
 {
-  ROS_INFO_THROTTLE(1,"Initialize!\n");
+  ROS_INFO("Initialize!\n");
   flag_arrived_at_waypoint = false;
   flag_waypoint_unreachable = false;
 }
 
 void SmRd1::statePlanning()
 {
-  ROS_INFO_THROTTLE(1,"Planning!\n");
+  ROS_INFO("Planning!\n");
   flag_arrived_at_waypoint = false;
   flag_waypoint_unreachable = false;
 }
 
 void SmRd1::stateTraverse()
 {
-  ROS_INFO_THROTTLE(1,"Traverse!\n");
+  ROS_INFO("Traverse!\n");
   if(flag_localized_base && !flag_have_true_pose)
   {
     flag_have_true_pose = true;
     flag_arrived_at_waypoint = true;
+    flag_waypoint_unreachable = false;
   }
   if(flag_volatile_recorded)
   {
@@ -156,17 +159,19 @@ void SmRd1::stateTraverse()
     flag_localizing_volatile = false;
     flag_volatile_recorded = false;
     flag_arrived_at_waypoint = true;
+    flag_waypoint_unreachable = false;
   }
   if(flag_recovering_localization && !flag_localization_failure)
   {
     flag_arrived_at_waypoint = true;
+    flag_waypoint_unreachable = false;
     flag_recovering_localization = false;
   }
 }
 
 void SmRd1::stateVolatileHandler()
 {
-  ROS_INFO_THROTTLE(1,"VolatileHandler!\n");
+  ROS_INFO("VolatileHandler!\n");
   flag_arrived_at_waypoint = false;
   flag_waypoint_unreachable = false;
   flag_localizing_volatile = true;
@@ -174,7 +179,7 @@ void SmRd1::stateVolatileHandler()
 
 void SmRd1::stateLost()
 {
-  ROS_INFO_THROTTLE(1,"Lost!\n");
+  ROS_INFO("Lost!\n");
   flag_recovering_localization = true;
   flag_localizing_volatile = false;
   flag_arrived_at_waypoint = false;
