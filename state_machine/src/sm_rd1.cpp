@@ -142,7 +142,7 @@ void SmRd1::stateInitialize()
 
   // Get True Pose
   pose_update::PoseUpdate srv;
-  srv.request.start = true;
+  srv.request.start  = true;
   bool success = true_pose_client.call(srv);
   ROS_INFO_STREAM("Get true pose:" << success);
 

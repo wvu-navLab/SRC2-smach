@@ -6,6 +6,9 @@
   <!-- scout_driving_tools launch file -->
   <include file="$(find gazebo_truth_odom)/launch/scout_gazebo_truth_odom.launch"/>
 
+  <!-- scout_driving_tools launch file -->
+  <include file="$(find pose_update)/launch/scout_pose_update.launch"/>]
+
   <!-- scout_motion_control launch file -->
   <include file="$(find driving_control)/launch/scout_driving_control.launch"/>
 
