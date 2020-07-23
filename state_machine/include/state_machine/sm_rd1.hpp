@@ -2,6 +2,14 @@
 #include <vector>
 #include <algorithm>
 #include <std_msgs/Bool.h>
+#include <std_msgs/Int64.h>
+#include <pose_update/PoseUpdate.h>
+
+#define INIT_STATE 0
+#define TRAV_STATE 1
+#define PLAN_STATE 2
+#define VOLH_STATE 3
+#define LOST_STATE 4
 
 class SmRd1
 {
@@ -29,12 +37,15 @@ public:
 
   // ROS objects
   ros::NodeHandle nh;
+  ros::Publisher sm_state_pub;
   ros::Subscriber localized_base_sub;
   ros::Subscriber waypoint_unreachable_sub;
   ros::Subscriber arrived_at_waypoint_sub;
   ros::Subscriber volatile_detected_sub;
   ros::Subscriber volatile_recorded_sub;
   ros::Subscriber localization_failure_sub;
+
+  ros::ServiceClient true_pose_client;
 
   // Methods ---------------------------------------------------------------------------------------------------------------------------- 
   SmRd1(); // Constructor

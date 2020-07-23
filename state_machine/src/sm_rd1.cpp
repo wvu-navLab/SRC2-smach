@@ -4,14 +4,18 @@ SmRd1::SmRd1()
 {
   // Initialize ROS, Subs, and Pubs *******************************************
   // Publishers
-  
+  sm_state_pub = nh.advertise<std_msgs::Int64>("state_machine/state", 10);
+
   // Subscribers
-  localized_base_sub = nh.subscribe("localized_base", 1, &SmRd1::localizedBaseCallback, this);
-  waypoint_unreachable_sub = nh.subscribe("waypoint_unreachable", 1, &SmRd1::waypointUnreachableCallback, this);
-  arrived_at_waypoint_sub = nh.subscribe("arrived_at_waypoint", 1, &SmRd1::arrivedAtWaypointCallback, this);
-  volatile_detected_sub = nh.subscribe("volatile_detected", 1, &SmRd1::volatileDetectedCallback, this);
-  volatile_recorded_sub = nh.subscribe("volatile_recorded", 1, &SmRd1::volatileRecordedCallback, this);
-  localization_failure_sub = nh.subscribe("localization_failure", 1, &SmRd1::localizationFailureCallback, this);
+  localized_base_sub = nh.subscribe("state_machine/localized_base", 1, &SmRd1::localizedBaseCallback, this);
+  waypoint_unreachable_sub = nh.subscribe("state_machine/waypoint_unreachable", 1, &SmRd1::waypointUnreachableCallback, this);
+  arrived_at_waypoint_sub = nh.subscribe("state_machine/arrived_at_waypoint", 1, &SmRd1::arrivedAtWaypointCallback, this);
+  volatile_detected_sub = nh.subscribe("state_machine/volatile_detected", 1, &SmRd1::volatileDetectedCallback, this);
+  volatile_recorded_sub = nh.subscribe("state_machine/volatile_recorded", 1, &SmRd1::volatileRecordedCallback, this);
+  localization_failure_sub = nh.subscribe("state_machine/localization_failure", 1, &SmRd1::localizationFailureCallback, this);
+
+  // Clients
+  true_pose_client = nh.serviceClient<pose_update::PoseUpdate>("localization/true_pose_update");
 }
 
 void SmRd1::run()
@@ -34,7 +38,7 @@ void SmRd1::run()
     //---------------------------------------------------------------------------------------------------------------------
 
 
-    // Conditional flag logic +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+    // Conditional flag logic (Preemptive conditions) +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     if(flag_volatile_detected && !flag_localizing_volatile && !flag_localization_failure && flag_have_true_pose)
     {
       flag_arrived_at_waypoint = true;
@@ -135,6 +139,16 @@ void SmRd1::stateInitialize()
   ROS_INFO("Initialize!\n");
   flag_arrived_at_waypoint = false;
   flag_waypoint_unreachable = false;
+
+  // Get True Pose
+  pose_update::PoseUpdate srv;
+  srv.request.start = true;
+  bool success = true_pose_client.call(srv);
+  ROS_INFO_STREAM("Get true pose:" << success);
+
+  std_msgs::Int64 state_msg;
+  state_msg.data = INIT_STATE;
+  sm_state_pub.publish(state_msg);
 }
 
 void SmRd1::statePlanning()
@@ -142,6 +156,10 @@ void SmRd1::statePlanning()
   ROS_INFO("Planning!\n");
   flag_arrived_at_waypoint = false;
   flag_waypoint_unreachable = false;
+  
+  std_msgs::Int64 state_msg;
+  state_msg.data = PLAN_STATE;
+  sm_state_pub.publish(state_msg);
 }
 
 void SmRd1::stateTraverse()
@@ -167,6 +185,10 @@ void SmRd1::stateTraverse()
     flag_waypoint_unreachable = false;
     flag_recovering_localization = false;
   }
+  
+  std_msgs::Int64 state_msg;
+  state_msg.data = TRAV_STATE;
+  sm_state_pub.publish(state_msg);
 }
 
 void SmRd1::stateVolatileHandler()
@@ -175,6 +197,10 @@ void SmRd1::stateVolatileHandler()
   flag_arrived_at_waypoint = false;
   flag_waypoint_unreachable = false;
   flag_localizing_volatile = true;
+  
+  std_msgs::Int64 state_msg;
+  state_msg.data = VOLH_STATE;
+  sm_state_pub.publish(state_msg);
 }
 
 void SmRd1::stateLost()
@@ -184,6 +210,10 @@ void SmRd1::stateLost()
   flag_localizing_volatile = false;
   flag_arrived_at_waypoint = false;
   flag_waypoint_unreachable = false;
+  
+  std_msgs::Int64 state_msg;
+  state_msg.data = LOST_STATE;
+  sm_state_pub.publish(state_msg);
 }
 //------------------------------------------------------------------------------------------------------------------------
 

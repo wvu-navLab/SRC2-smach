@@ -1,8 +1,0 @@
-<?xml version="1.0"?>
-<launch>
-
-  <group ns="scout_1">
-    <node name="state_machine" pkg="state_machine" type="sm_rd1_node" output="screen"/>
-  </group>
-
-</launch>

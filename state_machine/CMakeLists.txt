@@ -13,6 +13,7 @@ find_package(catkin REQUIRED COMPONENTS
   message_runtime
   roslib
   std_msgs
+  pose_update
 )
 
 ## System dependencies are found with CMake's conventions
@@ -107,7 +108,7 @@ find_package(catkin REQUIRED COMPONENTS
 catkin_package(
  INCLUDE_DIRS include
 #  LIBRARIES state_machine
-#  CATKIN_DEPENDS other_catkin_pkg
+  CATKIN_DEPENDS pose_update
 #  DEPENDS system_lib
 )
 
