@@ -1,4 +1,4 @@
-<launch> 
+<launch>
 
   <!-- scout_motion_control launch file -->
   <include file="$(find state_machine)/launch/scout_state_machine_rd1.launch"/>
@@ -14,5 +14,8 @@
 
   <!-- scout_driving_tools launch file -->
   <include file="$(find waypoint_nav)/launch/scout_waypoint_nav.launch"/>
+
+  <!-- dead_reckoning launch file -->
+  <include file="$(find rover_deadreckoning)/launch/rover_dead_reckoning.launch"/>
 
 </launch>
