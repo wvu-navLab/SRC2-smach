@@ -24,7 +24,7 @@ void SmRd1::run()
   while(ros::ok())
   {
     // Debug prints +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-    ROS_INFO("flag_localized_base: %i",flag_localized_base); 
+    ROS_INFO("flag_localized_base: %i",flag_localized_base);
     ROS_INFO("flag_have_true_pose: %i",flag_have_true_pose);
     ROS_INFO("flag_waypoint_unreachable: %i",flag_waypoint_unreachable);
     ROS_INFO("flag_arrived_at_waypoint: %i",flag_arrived_at_waypoint);
@@ -63,7 +63,7 @@ void SmRd1::run()
     {
       state_to_exec.at(_lost) = 1;
     }
-    else if((flag_arrived_at_waypoint || flag_waypoint_unreachable) && !flag_volatile_detected && !flag_localizing_volatile && !flag_brake_engaged) 
+    else if((flag_arrived_at_waypoint || flag_waypoint_unreachable) && !flag_volatile_detected && !flag_localizing_volatile && !flag_brake_engaged)
     {
       state_to_exec.at(_planning) = 1;
     }
@@ -127,7 +127,7 @@ void SmRd1::run()
       ROS_WARN("State fallthough, flag_fallthrough_condition = %i, state_to_exec_count = %i",flag_fallthrough_condition, state_to_exec_count);
     }
     // -------------------------------------------------------------------------------------------------------------------
-    
+
     ros::spinOnce();
     loop_rate.sleep();
   }
@@ -156,7 +156,7 @@ void SmRd1::statePlanning()
   ROS_INFO("Planning!\n");
   flag_arrived_at_waypoint = false;
   flag_waypoint_unreachable = false;
-  
+
   std_msgs::Int64 state_msg;
   state_msg.data = PLAN_STATE;
   sm_state_pub.publish(state_msg);
@@ -185,7 +185,7 @@ void SmRd1::stateTraverse()
     flag_waypoint_unreachable = false;
     flag_recovering_localization = false;
   }
-  
+
   std_msgs::Int64 state_msg;
   state_msg.data = TRAV_STATE;
   sm_state_pub.publish(state_msg);
@@ -197,7 +197,7 @@ void SmRd1::stateVolatileHandler()
   flag_arrived_at_waypoint = false;
   flag_waypoint_unreachable = false;
   flag_localizing_volatile = true;
-  
+
   std_msgs::Int64 state_msg;
   state_msg.data = VOLH_STATE;
   sm_state_pub.publish(state_msg);
@@ -210,7 +210,7 @@ void SmRd1::stateLost()
   flag_localizing_volatile = false;
   flag_arrived_at_waypoint = false;
   flag_waypoint_unreachable = false;
-  
+
   std_msgs::Int64 state_msg;
   state_msg.data = LOST_STATE;
   sm_state_pub.publish(state_msg);
@@ -219,9 +219,17 @@ void SmRd1::stateLost()
 
 
 // Callbacks +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-void SmRd1::localizedBaseCallback(const std_msgs::Bool::ConstPtr& msg)
+// void SmRd1::localizedBaseCallback(const std_msgs::Bool::ConstPtr& msg)
+void SmRd1::localizedBaseCallback(const std_msgs::Int64::ConstPtr& msg)
 {
   flag_localized_base = msg->data;
+  if (flag_localized_base) {
+    ROS_INFO("Initial Localization Successful = %i",flag_localized_base);
+
+  }
+  else{
+    ROS_INFO("Waiting for Initial Localization  = %i",flag_localized_base);
+  }
 }
 
 void SmRd1::waypointUnreachableCallback(const std_msgs::Bool::ConstPtr& msg)
