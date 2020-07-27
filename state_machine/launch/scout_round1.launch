@@ -22,5 +22,10 @@
   <!-- scout_waypoint_gen launch file -->
   <include file="$(find waypoint_gen)/launch/scout_waypoint_gen.launch"/>
 
+  <!-- scout_waypoint_gen launch file -->
+  <include file="$(find volatile_handler)/launch/volatile_handler.launch"/>
+
+
+
 
 </launch>

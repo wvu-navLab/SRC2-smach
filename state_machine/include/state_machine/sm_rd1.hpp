@@ -13,8 +13,6 @@
 #include <driving_tools/CirculateBaseStation.h>
 #include <driving_tools/RotateInPlace.h>
 #include <volatile_handler/VolatileReport.h>
-#include <srcp2_msgs/Qual1ScoreSrv.h>
-#include <nav_msgs/Odometry.h>
 
 class SmRd1
 {
@@ -50,7 +48,6 @@ public:
   ros::Subscriber volatile_detected_sub;
   ros::Subscriber volatile_recorded_sub;
   ros::Subscriber localization_failure_sub;
-  ros::Subscriber localization_sub;
 
   ros::ServiceClient clt_true_pose_;
   ros::ServiceClient clt_wp_gen_;
@@ -59,9 +56,6 @@ public:
   ros::ServiceClient clt_vh_report_;
   ros::ServiceClient clt_stop_;
   ros::ServiceClient clt_vol_report_;
-  ros::ServiceClient clt_vol_detected_;
-
-  double x_, y_;
 
   // Methods ----------------------------------------------------------------------------------------------------------------------------
   SmRd1(); // Constructor
@@ -81,5 +75,4 @@ public:
   void volatileDetectedCallback(const std_msgs::Bool::ConstPtr& msg);
   void volatileRecordedCallback(const std_msgs::Bool::ConstPtr& msg);
   void localizationFailureCallback(const std_msgs::Bool::ConstPtr& msg);
-  void localizationCallback(const nav_msgs::Odometry::ConstPtr& msg);
 };
