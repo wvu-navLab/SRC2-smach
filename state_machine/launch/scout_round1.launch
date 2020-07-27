@@ -16,6 +16,6 @@
   <include file="$(find waypoint_nav)/launch/scout_waypoint_nav.launch"/>
 
   <!-- dead_reckoning launch file -->
-  <include file="$(find rover_deadreckoning)/launch/rover_dead_reckoning.launch"/>
+  <!-- <include file="$(find rover_deadreckoning)/launch/rover_dead_reckoning.launch"/> -->
 
 </launch>

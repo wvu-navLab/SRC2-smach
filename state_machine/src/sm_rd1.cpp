@@ -206,7 +206,8 @@ void SmRd1::statePlanning()
 
   // Get True Pose
   waypoint_nav::DriveToGoal srv_wp_nav;
-  srv_wp_nav.request.goal  = goal_pose;
+  srv_wp_nav.request.start = true;
+  srv_wp_nav.request.goal = goal_pose;
   if (clt_wp_nav_.call(srv_wp_nav))
   {
     ROS_INFO_STREAM("Success? "<< srv_wp_nav.response.success);
