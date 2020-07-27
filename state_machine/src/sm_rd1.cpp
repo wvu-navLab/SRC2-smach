@@ -17,9 +17,10 @@ SmRd1::SmRd1()
   // Clients
   clt_true_pose_ = nh.serviceClient<pose_update::PoseUpdate>("localization/true_pose_update");
   clt_wp_gen_ = nh.serviceClient<waypoint_gen::GenerateWaypoint>("navigation/generate_goal");
-  clt_wp_nav_ = nh.serviceClient<waypoint_nav::DriveToGoal>("navigation/send_goal");
+  clt_wp_nav_set_goal_ = nh.serviceClient<waypoint_nav::SetGoal>("navigation/set_goal");
+  clt_wp_nav_interrupt_ = nh.serviceClient<waypoint_nav::Interrupt>("navigation/interrupt");
   clt_stop_ = nh.serviceClient<driving_tools::Stop>("driving/stop");
-  clt_vol_report_ = nh.serviceClient<volatile_handler::VolatileReport>("volatile/report");
+  // clt_vol_report_ = nh.serviceClient<volatile_handler::VolatileReport>("volatile/report");
 }
 
 void SmRd1::run()
@@ -206,10 +207,10 @@ void SmRd1::statePlanning()
   } 
 
   // Get True Pose
-  waypoint_nav::DriveToGoal srv_wp_nav;
+  waypoint_nav::SetGoal srv_wp_nav;
   srv_wp_nav.request.start = true;
   srv_wp_nav.request.goal = goal_pose;
-  if (clt_wp_nav_.call(srv_wp_nav))
+  if (clt_wp_nav_set_goal_.call(srv_wp_nav))
   {
     ROS_INFO_STREAM("Success? "<< srv_wp_nav.response.success);
   }

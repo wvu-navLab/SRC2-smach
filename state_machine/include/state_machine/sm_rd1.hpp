@@ -6,7 +6,8 @@
 #include <geometry_msgs/Pose.h>
 #include <pose_update/PoseUpdate.h>
 #include <waypoint_gen/GenerateWaypoint.h>
-#include <waypoint_nav/DriveToGoal.h>
+#include <waypoint_nav/SetGoal.h>
+#include <waypoint_nav/Interrupt.h>
 #include <driving_tools/Stop.h>
 #include <driving_tools/MoveForward.h>
 #include <driving_tools/CirculateBaseStation.h>
@@ -49,9 +50,11 @@ public:
 
   ros::ServiceClient clt_true_pose_;
   ros::ServiceClient clt_wp_gen_;
-  ros::ServiceClient clt_wp_nav_;
+  ros::ServiceClient clt_wp_nav_set_goal_;
+  ros::ServiceClient clt_wp_nav_interrupt_;
   ros::ServiceClient clt_vh_report_;
   ros::ServiceClient clt_stop_;
+  // ros::ServiceClient clt_vol_report_;
 
   // Methods ----------------------------------------------------------------------------------------------------------------------------
   SmRd1(); // Constructor
