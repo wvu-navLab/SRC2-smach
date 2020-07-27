@@ -13,12 +13,13 @@ find_package(catkin REQUIRED COMPONENTS
   message_runtime
   roslib
   std_msgs
-  geometry_msgs 
+  geometry_msgs
   pose_update
   driving_tools
   volatile_handler
   waypoint_nav
   waypoint_gen
+  srcp2_msgs
 )
 
 ## System dependencies are found with CMake's conventions

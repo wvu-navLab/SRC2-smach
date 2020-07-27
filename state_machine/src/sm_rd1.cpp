@@ -13,6 +13,7 @@ SmRd1::SmRd1()
   volatile_detected_sub = nh.subscribe("state_machine/volatile_detected", 1, &SmRd1::volatileDetectedCallback, this);
   volatile_recorded_sub = nh.subscribe("state_machine/volatile_recorded", 1, &SmRd1::volatileRecordedCallback, this);
   localization_failure_sub = nh.subscribe("state_machine/localization_failure", 1, &SmRd1::localizationFailureCallback, this);
+  localization_sub = nh.subscribe("localization/odometry/sensor_fusion", 1, &SmRd1::localizationCallback, this);
 
   // Clients
   clt_true_pose_ = nh.serviceClient<pose_update::PoseUpdate>("localization/true_pose_update");
@@ -21,6 +22,7 @@ SmRd1::SmRd1()
   clt_wp_nav_interrupt_ = nh.serviceClient<waypoint_nav::Interrupt>("navigation/interrupt");
   clt_stop_ = nh.serviceClient<driving_tools::Stop>("driving/stop");
   clt_vol_report_ = nh.serviceClient<volatile_handler::VolatileReport>("volatile/report");
+  clt_vol_detected_ = nh.serviceClient<srcp2_msgs::Qual1ScoreSrv>("/vol_detected_service");
 }
 
 void SmRd1::run()
@@ -132,6 +134,19 @@ void SmRd1::run()
       ROS_WARN("State fallthough, flag_fallthrough_condition = %i, state_to_exec_count = %i",flag_fallthrough_condition, state_to_exec_count);
     }
     // -------------------------------------------------------------------------------------------------------------------
+
+    volatile_handler::VolatileReport srv_vol_rep;
+    srv_vol_rep.request.start = true;
+    if (clt_vol_detected_.call(srv_vol_rep))
+    {
+      ROS_INFO_STREAM("Volatile Accepted? "<< srv_vol_rep.response.success);
+      flag_volatile_detected = srv_vol_rep.response.success;
+
+    }
+    else
+    {
+      ROS_ERROR("Failed to call service Report");
+    }
 
     ros::spinOnce();
     loop_rate.sleep();
@@ -253,10 +268,12 @@ void SmRd1::stateTraverse()
   std_msgs::Int64 state_msg;
   state_msg.data = _traverse;
   sm_state_pub.publish(state_msg);
+
 }
 
 void SmRd1::stateVolatileHandler()
 {
+<<<<<<< HEAD
 
   // Break
   driving_tools::Stop srv_stop;
@@ -278,6 +295,53 @@ void SmRd1::stateVolatileHandler()
   std_msgs::Int64 state_msg;
   state_msg.data = _volatile_handler;
   sm_state_pub.publish(state_msg);
+=======
+  // Turn on brake
+   driving_tools::Stop srv_stop;
+   srv_stop.request.enableStop  = true;
+   if (clt_stop_.call(srv_stop))
+   {
+     ROS_INFO_STREAM("Success? "<< srv_stop.response.success);
+   }
+   else
+   {
+     ROS_ERROR("Failed to call service Stop");
+   }
+   // Reporting service
+   srcp2_msgs::Qual1ScoreSrv srv_vol_det;
+   srv_vol_det.request.pose.x = x_;
+   srv_vol_det.request.pose.y = y_;
+   srv_vol_det.request.vol_type = "temp";
+
+   if (clt_vol_detected_.call(srv_vol_det))
+   {
+     ROS_INFO_STREAM("Volatile Accepted? "<< srv_vol_det.response.result);
+
+   }
+   else
+   {
+     ROS_ERROR("Failed to call service DetectionSrv");
+   }
+   // Turn off brake
+   srv_stop.request.enableStop  = false;
+   if (clt_stop_.call(srv_stop))
+   {
+     ROS_INFO_STREAM("Success? "<< srv_stop.response.success);
+   }
+   else
+   {
+     ROS_ERROR("Failed to call service Start");
+   }
+
+   ROS_INFO("VolatileHandler!\n");
+   //flag_arrived_at_waypoint = false;
+   flag_waypoint_unreachable = false;
+   //flag_localizing_volatile = true;
+   flag_arrived_at_waypoint = true; // This is temporary for hackathon, since volatile reporting doesn't have all info and doesn't command a waypoint yet.
+   std_msgs::Int64 state_msg;
+   state_msg.data = _volatile_handler;
+   sm_state_pub.publish(state_msg);
+>>>>>>> 25726d9ade955573bb8001a931334ec30b584556
 }
 
 void SmRd1::stateLost()
@@ -344,5 +408,10 @@ void SmRd1::volatileRecordedCallback(const std_msgs::Bool::ConstPtr& msg)
 void SmRd1::localizationFailureCallback(const std_msgs::Bool::ConstPtr& msg)
 {
   flag_localization_failure = msg->data;
+}
+void SmRd1::localizationCallback(const nav_msgs::Odometry::ConstPtr& msg)
+{
+  x_ = msg->pose.pose.position.x;
+  y_ = msg->pose.pose.position.y;
 }
 //------------------------------------------------------------------------------------------------------------------------
