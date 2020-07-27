@@ -16,6 +16,7 @@ find_package(catkin REQUIRED COMPONENTS
   geometry_msgs 
   pose_update
   driving_tools
+  volatile_handler
   waypoint_nav
   waypoint_gen
 )
@@ -112,7 +113,7 @@ find_package(catkin REQUIRED COMPONENTS
 catkin_package(
  INCLUDE_DIRS include
 #  LIBRARIES state_machine
-  CATKIN_DEPENDS std_msgs geometry_msgs pose_update driving_tools waypoint_nav waypoint_gen
+  CATKIN_DEPENDS std_msgs geometry_msgs pose_update driving_tools volatile_handler waypoint_nav waypoint_gen
 #  DEPENDS system_lib
 )
 
