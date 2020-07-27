@@ -15,7 +15,9 @@ SmRd1::SmRd1()
   localization_failure_sub = nh.subscribe("state_machine/localization_failure", 1, &SmRd1::localizationFailureCallback, this);
 
   // Clients
-  true_pose_client = nh.serviceClient<pose_update::PoseUpdate>("localization/true_pose_update");
+  clt_true_pose_ = nh.serviceClient<pose_update::PoseUpdate>("localization/true_pose_update");
+  clt_wp_gen_ = nh.serviceClient<waypoint_gen::GenerateWaypoint>("navigation/generate_goal");
+  clt_wp_nav_ = nh.serviceClient<waypoint_nav::DriveToGoal>("navigation/send_goal");
 }
 
 void SmRd1::run()
@@ -147,7 +149,7 @@ void SmRd1::stateInitialize()
   ROS_INFO_STREAM("Get true pose:" << success);
 
   std_msgs::Int64 state_msg;
-  state_msg.data = INIT_STATE;
+  state_msg.data = _initialize;
   sm_state_pub.publish(state_msg);
 }
 
@@ -157,14 +159,37 @@ void SmRd1::statePlanning()
   flag_arrived_at_waypoint = false;
   flag_waypoint_unreachable = false;
   
+  // Generate Goal
+  waypoint_gen::GenerateWaypoint srv;
+  srv.request.start  = true;
+  bool success = true_pose_client.call(srv);
+  if (client.call(srv))
+  {
+    ROS_INFO("Success? ", srv.response.success);
+    goal_pose_ = srv.response.goal;
+  }
+  else
+  {
+    ROS_ERROR("Failed to call service add_two_ints");
+    return 1;
+  } 
+
   std_msgs::Int64 state_msg;
-  state_msg.data = PLAN_STATE;
+  state_msg.data = _planning;
   sm_state_pub.publish(state_msg);
 }
 
 void SmRd1::stateTraverse()
 {
   ROS_INFO("Traverse!\n");
+
+  // Get True Pose
+  waypoint_nav::DriveToGoal srv;
+  srv.request.start = true;
+  srv.request.goal  = goal_pose_;
+  bool success = true_pose_client.call(srv);
+  ROS_INFO_STREAM("Get true pose:" << success);
+
   if(flag_localized_base && !flag_have_true_pose)
   {
     flag_have_true_pose = true;
@@ -187,19 +212,28 @@ void SmRd1::stateTraverse()
   }
   
   std_msgs::Int64 state_msg;
-  state_msg.data = TRAV_STATE;
+  state_msg.data = _traverse;
   sm_state_pub.publish(state_msg);
 }
 
 void SmRd1::stateVolatileHandler()
 {
+
+  // Get True Pose
+  pose_update::PoseUpdate srv;
+  srv.request.start  = true;
+  bool success = true_pose_client.call(srv);
+  ROS_INFO_STREAM("Get true pose:" << success);
+
+
+
   ROS_INFO("VolatileHandler!\n");
   flag_arrived_at_waypoint = false;
   flag_waypoint_unreachable = false;
   flag_localizing_volatile = true;
   
   std_msgs::Int64 state_msg;
-  state_msg.data = VOLH_STATE;
+  state_msg.data = _volatile_handler;
   sm_state_pub.publish(state_msg);
 }
 
@@ -212,7 +246,7 @@ void SmRd1::stateLost()
   flag_waypoint_unreachable = false;
   
   std_msgs::Int64 state_msg;
-  state_msg.data = LOST_STATE;
+  state_msg.data = _lost;
   sm_state_pub.publish(state_msg);
 }
 //------------------------------------------------------------------------------------------------------------------------

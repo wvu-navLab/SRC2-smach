@@ -5,12 +5,6 @@
 #include <std_msgs/Int64.h>
 #include <pose_update/PoseUpdate.h>
 
-#define INIT_STATE 0
-#define TRAV_STATE 1
-#define PLAN_STATE 2
-#define VOLH_STATE 3
-#define LOST_STATE 4
-
 class SmRd1
 {
 public:
@@ -45,7 +39,9 @@ public:
   ros::Subscriber volatile_recorded_sub;
   ros::Subscriber localization_failure_sub;
 
-  ros::ServiceClient true_pose_client;
+  ros::ServiceClient clt_true_pose_;
+  ros::ServiceClient clt_wp_gen_;
+  ros::ServiceClient clt_wp_nav_;
 
   // Methods ---------------------------------------------------------------------------------------------------------------------------- 
   SmRd1(); // Constructor
