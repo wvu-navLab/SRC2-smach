@@ -18,6 +18,7 @@ SmRd1::SmRd1()
   clt_true_pose_ = nh.serviceClient<pose_update::PoseUpdate>("localization/true_pose_update");
   clt_wp_gen_ = nh.serviceClient<waypoint_gen::GenerateWaypoint>("navigation/generate_goal");
   clt_wp_nav_ = nh.serviceClient<waypoint_nav::DriveToGoal>("navigation/send_goal");
+  clt_stop_ = nh.serviceClient<driving_tools::Stop>("driving/stop");
 }
 
 void SmRd1::run()
@@ -26,7 +27,7 @@ void SmRd1::run()
   while(ros::ok())
   {
     // Debug prints +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-    ROS_INFO("flag_localized_base: %i",flag_localized_base); 
+    ROS_INFO("flag_localized_base: %i",flag_localized_base);
     ROS_INFO("flag_have_true_pose: %i",flag_have_true_pose);
     ROS_INFO("flag_waypoint_unreachable: %i",flag_waypoint_unreachable);
     ROS_INFO("flag_arrived_at_waypoint: %i",flag_arrived_at_waypoint);
@@ -65,7 +66,7 @@ void SmRd1::run()
     {
       state_to_exec.at(_lost) = 1;
     }
-    else if((flag_arrived_at_waypoint || flag_waypoint_unreachable) && !flag_volatile_detected && !flag_localizing_volatile && !flag_brake_engaged) 
+    else if((flag_arrived_at_waypoint || flag_waypoint_unreachable) && !flag_volatile_detected && !flag_localizing_volatile && !flag_brake_engaged)
     {
       state_to_exec.at(_planning) = 1;
     }
@@ -129,7 +130,7 @@ void SmRd1::run()
       ROS_WARN("State fallthough, flag_fallthrough_condition = %i, state_to_exec_count = %i",flag_fallthrough_condition, state_to_exec_count);
     }
     // -------------------------------------------------------------------------------------------------------------------
-    
+
     ros::spinOnce();
     loop_rate.sleep();
   }
@@ -142,11 +143,29 @@ void SmRd1::stateInitialize()
   flag_arrived_at_waypoint = false;
   flag_waypoint_unreachable = false;
 
+  // Break
+  driving_tools::Stop srv_stop;
+  srv_stop.request.enableStop  = true;
+  if (clt_stop_.call(srv_stop))
+  {
+    ROS_INFO_STREAM("Success? "<< srv_stop.response.success);
+  }
+  else
+  {
+    ROS_ERROR("Failed to call service Stop");
+  } 
+
   // Get True Pose
-  pose_update::PoseUpdate srv;
-  srv.request.start  = true;
-  bool success = true_pose_client.call(srv);
-  ROS_INFO_STREAM("Get true pose:" << success);
+  pose_update::PoseUpdate srv_upd_pose;
+  srv_upd_pose.request.start  = true;
+  if (clt_true_pose_.call(srv_upd_pose))
+  {
+    ROS_INFO_STREAM("Success? "<< srv_upd_pose.response.success);
+  }
+  else
+  {
+    ROS_ERROR("Failed to call service Pose Update");
+  } 
 
   std_msgs::Int64 state_msg;
   state_msg.data = _initialize;
@@ -159,19 +178,42 @@ void SmRd1::statePlanning()
   flag_arrived_at_waypoint = false;
   flag_waypoint_unreachable = false;
   
-  // Generate Goal
-  waypoint_gen::GenerateWaypoint srv;
-  srv.request.start  = true;
-  bool success = true_pose_client.call(srv);
-  if (client.call(srv))
+  // Break
+  driving_tools::Stop srv_stop;
+  srv_stop.request.enableStop  = true;
+  if (clt_stop_.call(srv_stop))
   {
-    ROS_INFO("Success? ", srv.response.success);
-    goal_pose_ = srv.response.goal;
+    ROS_INFO_STREAM("Success? "<< srv_stop.response.success);
   }
   else
   {
-    ROS_ERROR("Failed to call service add_two_ints");
-    return 1;
+    ROS_ERROR("Failed to call service Stop");
+  } 
+
+  geometry_msgs::Pose goal_pose;
+  // Generate Goal
+  waypoint_gen::GenerateWaypoint srv_wp_gen;
+  srv_wp_gen.request.start  = true;
+  if (clt_wp_gen_.call(srv_wp_gen))
+  {
+    ROS_INFO_STREAM("Success? "<< srv_wp_gen.response.success);
+    goal_pose = srv_wp_gen.response.goal;
+  }
+  else
+  {
+    ROS_ERROR("Failed to call service Generate Waypoint");
+  } 
+
+  // Get True Pose
+  waypoint_nav::DriveToGoal srv_wp_nav;
+  srv_wp_nav.request.goal  = goal_pose;
+  if (clt_wp_nav_.call(srv_wp_nav))
+  {
+    ROS_INFO_STREAM("Success? "<< srv_wp_nav.response.success);
+  }
+  else
+  {
+    ROS_ERROR("Failed to call service Drive to Waypoint");
   } 
 
   std_msgs::Int64 state_msg;
@@ -182,13 +224,6 @@ void SmRd1::statePlanning()
 void SmRd1::stateTraverse()
 {
   ROS_INFO("Traverse!\n");
-
-  // Get True Pose
-  waypoint_nav::DriveToGoal srv;
-  srv.request.start = true;
-  srv.request.goal  = goal_pose_;
-  bool success = true_pose_client.call(srv);
-  ROS_INFO_STREAM("Get true pose:" << success);
 
   if(flag_localized_base && !flag_have_true_pose)
   {
@@ -210,7 +245,7 @@ void SmRd1::stateTraverse()
     flag_waypoint_unreachable = false;
     flag_recovering_localization = false;
   }
-  
+
   std_msgs::Int64 state_msg;
   state_msg.data = _traverse;
   sm_state_pub.publish(state_msg);
@@ -219,19 +254,23 @@ void SmRd1::stateTraverse()
 void SmRd1::stateVolatileHandler()
 {
 
-  // Get True Pose
-  pose_update::PoseUpdate srv;
-  srv.request.start  = true;
-  bool success = true_pose_client.call(srv);
-  ROS_INFO_STREAM("Get true pose:" << success);
-
-
+  // Break
+  driving_tools::Stop srv_stop;
+  srv_stop.request.enableStop  = true;
+  if (clt_stop_.call(srv_stop))
+  {
+    ROS_INFO_STREAM("Success? "<< srv_stop.response.success);
+  }
+  else
+  {
+    ROS_ERROR("Failed to call service Stop");
+  } 
 
   ROS_INFO("VolatileHandler!\n");
   flag_arrived_at_waypoint = false;
   flag_waypoint_unreachable = false;
   flag_localizing_volatile = true;
-  
+
   std_msgs::Int64 state_msg;
   state_msg.data = _volatile_handler;
   sm_state_pub.publish(state_msg);
@@ -244,7 +283,19 @@ void SmRd1::stateLost()
   flag_localizing_volatile = false;
   flag_arrived_at_waypoint = false;
   flag_waypoint_unreachable = false;
-  
+
+  // Break
+  driving_tools::Stop srv_stop;
+  srv_stop.request.enableStop  = true;
+  if (clt_stop_.call(srv_stop))
+  {
+    ROS_INFO_STREAM("Success? "<< srv_stop.response.success);
+  }
+  else
+  {
+    ROS_ERROR("Failed to call service Stop");
+  } 
+
   std_msgs::Int64 state_msg;
   state_msg.data = _lost;
   sm_state_pub.publish(state_msg);
@@ -253,9 +304,17 @@ void SmRd1::stateLost()
 
 
 // Callbacks +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-void SmRd1::localizedBaseCallback(const std_msgs::Bool::ConstPtr& msg)
+// void SmRd1::localizedBaseCallback(const std_msgs::Bool::ConstPtr& msg)
+void SmRd1::localizedBaseCallback(const std_msgs::Int64::ConstPtr& msg)
 {
   flag_localized_base = msg->data;
+  if (flag_localized_base) {
+    ROS_INFO("Initial Localization Successful = %i",flag_localized_base);
+
+  }
+  else {
+    ROS_INFO("Waiting for Initial Localization  = %i",flag_localized_base);
+  }
 }
 
 void SmRd1::waypointUnreachableCallback(const std_msgs::Bool::ConstPtr& msg)

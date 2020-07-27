@@ -54,6 +54,11 @@
   <buildtool_depend>message_runtime</buildtool_depend>
   <buildtool_depend>roslib</buildtool_depend>
   <buildtool_depend>pose_update</buildtool_depend>
+  <buildtool_depend>waypoint_nav</buildtool_depend>
+  <buildtool_depend>waypoint_gen</buildtool_depend>
+  <buildtool_depend>driving_tools</buildtool_depend>
+  <buildtool_depend>geometry_msgs</buildtool_depend>
+  <buildtool_depend>std_msgs</buildtool_depend>
 
   <build_depend>catkin</build_depend>
   <build_depend>roscpp</build_depend>
@@ -61,6 +66,11 @@
   <build_depend>message_runtime</build_depend>
   <build_depend>roslib</build_depend>
   <build_depend>pose_update</build_depend>
+  <build_depend>waypoint_nav</build_depend>
+  <build_depend>waypoint_gen</build_depend>
+  <build_depend>driving_tools</build_depend>
+  <build_depend>geometry_msgs</build_depend>
+  <build_depend>std_msgs</build_depend>
 
 
   <exec_depend>catkin</exec_depend>
@@ -69,6 +79,11 @@
   <exec_depend>message_runtime</exec_depend>
   <exec_depend>roslib</exec_depend>
   <exec_depend>pose_update</exec_depend>
+  <exec_depend>waypoint_nav</exec_depend>
+  <exec_depend>waypoint_gen</exec_depend>
+  <exec_depend>driving_tools</exec_depend>
+  <exec_depend>geometry_msgs</exec_depend>
+  <exec_depend>std_msgs</exec_depend>
 
 
 

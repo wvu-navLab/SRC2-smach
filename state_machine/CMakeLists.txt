@@ -13,7 +13,11 @@ find_package(catkin REQUIRED COMPONENTS
   message_runtime
   roslib
   std_msgs
+  geometry_msgs 
   pose_update
+  driving_tools
+  waypoint_nav
+  waypoint_gen
 )
 
 ## System dependencies are found with CMake's conventions
@@ -108,7 +112,7 @@ find_package(catkin REQUIRED COMPONENTS
 catkin_package(
  INCLUDE_DIRS include
 #  LIBRARIES state_machine
-  CATKIN_DEPENDS pose_update
+  CATKIN_DEPENDS std_msgs geometry_msgs pose_update driving_tools waypoint_nav waypoint_gen
 #  DEPENDS system_lib
 )
 
@@ -187,11 +191,11 @@ add_executable(state_machine_rd1_node src/sm_rd1_node.cpp)
 # )
 
 ## Mark cpp header files for installation
-# install(DIRECTORY include/${PROJECT_NAME}/
-#   DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
-#   FILES_MATCHING PATTERN "*.h"
-#   PATTERN ".svn" EXCLUDE
-# )
+install(DIRECTORY include/${PROJECT_NAME}/
+  DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
+  FILES_MATCHING PATTERN "*.h"
+  PATTERN ".svn" EXCLUDE
+)
 
 ## Mark other files for installation (e.g. launch and bag files, etc.)
 # install(FILES
