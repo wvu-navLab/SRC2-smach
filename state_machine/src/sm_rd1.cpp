@@ -31,14 +31,14 @@ void SmRd1::run()
     // Debug prints +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     ROS_INFO("flag_localized_base: %i",flag_localized_base);
     ROS_INFO("flag_have_true_pose: %i",flag_have_true_pose);
-    ROS_INFO("flag_waypoint_unreachable: %i",flag_waypoint_unreachable);
+    // ROS_INFO("flag_waypoint_unreachable: %i",flag_waypoint_unreachable);
     ROS_INFO("flag_arrived_at_waypoint: %i",flag_arrived_at_waypoint);
-    ROS_INFO("flag_volatile_detected: %i",flag_volatile_detected);
-    ROS_INFO("flag_localizing_volatile: %i",flag_localizing_volatile);
-    ROS_INFO("flag_volatile_recorded: %i",flag_volatile_recorded);
-    ROS_INFO("flag_volatile_unreachable: %i",flag_volatile_unreachable);
-    ROS_INFO("flag_localization_failure: %i",flag_localization_failure);
-    ROS_INFO("flag_brake_engaged: %i",flag_brake_engaged);
+    // ROS_INFO("flag_volatile_detected: %i",flag_volatile_detected);
+    // ROS_INFO("flag_localizing_volatile: %i",flag_localizing_volatile);
+    // ROS_INFO("flag_volatile_recorded: %i",flag_volatile_recorded);
+    // ROS_INFO("flag_volatile_unreachable: %i",flag_volatile_unreachable);
+    // ROS_INFO("flag_localization_failure: %i",flag_localization_failure);
+    // ROS_INFO("flag_brake_engaged: %i",flag_brake_engaged);
     ROS_INFO("flag_fallthrough_condition: %i",flag_fallthrough_condition);
     //---------------------------------------------------------------------------------------------------------------------
 
@@ -150,24 +150,24 @@ void SmRd1::stateInitialize()
   srv_stop.request.enableStop  = true;
   if (clt_stop_.call(srv_stop))
   {
-    ROS_INFO_STREAM("Success? "<< srv_stop.response.success);
+    // ROS_INFO_STREAM("Success? "<< srv_stop.response.success);
   }
   else
   {
     ROS_ERROR("Failed to call service Stop");
-  } 
+  }
 
   // Get True Pose
   pose_update::PoseUpdate srv_upd_pose;
   srv_upd_pose.request.start  = true;
   if (clt_true_pose_.call(srv_upd_pose))
   {
-    ROS_INFO_STREAM("Success? "<< srv_upd_pose.response.success);
+    // ROS_INFO_STREAM("Success? "<< srv_upd_pose.response.success);
   }
   else
   {
     ROS_ERROR("Failed to call service Pose Update");
-  } 
+  }
 
   std_msgs::Int64 state_msg;
   state_msg.data = _initialize;
@@ -179,32 +179,33 @@ void SmRd1::statePlanning()
   ROS_INFO("Planning!\n");
   flag_arrived_at_waypoint = false;
   flag_waypoint_unreachable = false;
-  
+
   // Break
   driving_tools::Stop srv_stop;
   srv_stop.request.enableStop  = true;
   if (clt_stop_.call(srv_stop))
   {
-    ROS_INFO_STREAM("Success? "<< srv_stop.response.success);
+    // ROS_INFO_STREAM("Success? "<< srv_stop.response.success);
   }
   else
   {
     ROS_ERROR("Failed to call service Stop");
-  } 
+  }
 
   geometry_msgs::Pose goal_pose;
+  ROS_INFO_STREAM("goal pose: " << goal_pose);
   // Generate Goal
   waypoint_gen::GenerateWaypoint srv_wp_gen;
   srv_wp_gen.request.start  = true;
   if (clt_wp_gen_.call(srv_wp_gen))
   {
-    ROS_INFO_STREAM("Success? "<< srv_wp_gen.response.success);
+    // ROS_INFO_STREAM("Success? "<< srv_wp_gen.response.success);
     goal_pose = srv_wp_gen.response.goal;
   }
   else
   {
     ROS_ERROR("Failed to call service Generate Waypoint");
-  } 
+  }
 
   // Get True Pose
   waypoint_nav::SetGoal srv_wp_nav;
@@ -212,12 +213,12 @@ void SmRd1::statePlanning()
   srv_wp_nav.request.goal = goal_pose;
   if (clt_wp_nav_set_goal_.call(srv_wp_nav))
   {
-    ROS_INFO_STREAM("Success? "<< srv_wp_nav.response.success);
+    // ROS_INFO_STREAM("Success? "<< srv_wp_nav.response.success);
   }
   else
   {
     ROS_ERROR("Failed to call service Drive to Waypoint");
-  } 
+  }
 
   std_msgs::Int64 state_msg;
   state_msg.data = _planning;
@@ -267,7 +268,7 @@ void SmRd1::stateVolatileHandler()
   else
   {
     ROS_ERROR("Failed to call service Stop");
-  } 
+  }
 
   ROS_INFO("VolatileHandler!\n");
   flag_arrived_at_waypoint = false;
@@ -297,7 +298,7 @@ void SmRd1::stateLost()
   else
   {
     ROS_ERROR("Failed to call service Stop");
-  } 
+  }
 
   std_msgs::Int64 state_msg;
   state_msg.data = _lost;
