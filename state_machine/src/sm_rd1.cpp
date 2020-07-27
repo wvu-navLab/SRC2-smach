@@ -19,6 +19,7 @@ SmRd1::SmRd1()
   clt_wp_gen_ = nh.serviceClient<waypoint_gen::GenerateWaypoint>("navigation/generate_goal");
   clt_wp_nav_ = nh.serviceClient<waypoint_nav::DriveToGoal>("navigation/send_goal");
   clt_stop_ = nh.serviceClient<driving_tools::Stop>("driving/stop");
+  clt_vol_report_ = nh.serviceClient<volatile_handler::VolatileReport>("volatile/report");
 }
 
 void SmRd1::run()
