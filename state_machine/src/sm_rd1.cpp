@@ -273,29 +273,6 @@ void SmRd1::stateTraverse()
 
 void SmRd1::stateVolatileHandler()
 {
-<<<<<<< HEAD
-
-  // Break
-  driving_tools::Stop srv_stop;
-  srv_stop.request.enableStop  = true;
-  if (clt_stop_.call(srv_stop))
-  {
-    ROS_INFO_STREAM("Success? "<< srv_stop.response.success);
-  }
-  else
-  {
-    ROS_ERROR("Failed to call service Stop");
-  }
-
-  ROS_INFO("VolatileHandler!\n");
-  flag_arrived_at_waypoint = false;
-  flag_waypoint_unreachable = false;
-  flag_localizing_volatile = true;
-
-  std_msgs::Int64 state_msg;
-  state_msg.data = _volatile_handler;
-  sm_state_pub.publish(state_msg);
-=======
   // Turn on brake
    driving_tools::Stop srv_stop;
    srv_stop.request.enableStop  = true;
@@ -341,7 +318,6 @@ void SmRd1::stateVolatileHandler()
    std_msgs::Int64 state_msg;
    state_msg.data = _volatile_handler;
    sm_state_pub.publish(state_msg);
->>>>>>> 25726d9ade955573bb8001a931334ec30b584556
 }
 
 void SmRd1::stateLost()
