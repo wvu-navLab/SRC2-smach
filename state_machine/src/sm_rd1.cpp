@@ -20,7 +20,7 @@ SmRd1::SmRd1()
   clt_wp_nav_set_goal_ = nh.serviceClient<waypoint_nav::SetGoal>("navigation/set_goal");
   clt_wp_nav_interrupt_ = nh.serviceClient<waypoint_nav::Interrupt>("navigation/interrupt");
   clt_stop_ = nh.serviceClient<driving_tools::Stop>("driving/stop");
-  // clt_vol_report_ = nh.serviceClient<volatile_handler::VolatileReport>("volatile/report");
+  clt_vol_report_ = nh.serviceClient<volatile_handler::VolatileReport>("volatile/report");
 }
 
 void SmRd1::run()

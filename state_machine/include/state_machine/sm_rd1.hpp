@@ -12,7 +12,7 @@
 #include <driving_tools/MoveForward.h>
 #include <driving_tools/CirculateBaseStation.h>
 #include <driving_tools/RotateInPlace.h>
-
+#include <volatile_handler/VolatileReport.h>
 class SmRd1
 {
 public:
@@ -54,7 +54,7 @@ public:
   ros::ServiceClient clt_wp_nav_interrupt_;
   ros::ServiceClient clt_vh_report_;
   ros::ServiceClient clt_stop_;
-  // ros::ServiceClient clt_vol_report_;
+  ros::ServiceClient clt_vol_report_;
 
   // Methods ----------------------------------------------------------------------------------------------------------------------------
   SmRd1(); // Constructor
