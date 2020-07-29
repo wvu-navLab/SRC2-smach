@@ -13,7 +13,7 @@ SmRd1::SmRd1()
   volatile_detected_sub = nh.subscribe("state_machine/volatile_detected", 1, &SmRd1::volatileDetectedCallback, this);
   volatile_recorded_sub = nh.subscribe("state_machine/volatile_recorded", 1, &SmRd1::volatileRecordedCallback, this);
   localization_failure_sub = nh.subscribe("state_machine/localization_failure", 1, &SmRd1::localizationFailureCallback, this);
-
+  
   // Clients
   clt_true_pose_ = nh.serviceClient<pose_update::PoseUpdate>("localization/true_pose_update");
   clt_wp_gen_ = nh.serviceClient<waypoint_gen::GenerateWaypoint>("navigation/generate_goal");
@@ -33,12 +33,12 @@ void SmRd1::run()
     ROS_INFO("flag_have_true_pose: %i",flag_have_true_pose);
     // ROS_INFO("flag_waypoint_unreachable: %i",flag_waypoint_unreachable);
     ROS_INFO("flag_arrived_at_waypoint: %i",flag_arrived_at_waypoint);
-    // ROS_INFO("flag_volatile_detected: %i",flag_volatile_detected);
+    ROS_INFO("flag_volatile_detected: %i",flag_volatile_detected);
     // ROS_INFO("flag_localizing_volatile: %i",flag_localizing_volatile);
-    // ROS_INFO("flag_volatile_recorded: %i",flag_volatile_recorded);
+    ROS_INFO("flag_volatile_recorded: %i",flag_volatile_recorded);
     // ROS_INFO("flag_volatile_unreachable: %i",flag_volatile_unreachable);
     // ROS_INFO("flag_localization_failure: %i",flag_localization_failure);
-    // ROS_INFO("flag_brake_engaged: %i",flag_brake_engaged);
+    ROS_INFO("flag_brake_engaged: %i",flag_brake_engaged);
     ROS_INFO("flag_fallthrough_condition: %i",flag_fallthrough_condition);
     //---------------------------------------------------------------------------------------------------------------------
 
@@ -258,6 +258,7 @@ void SmRd1::stateTraverse()
 
 void SmRd1::stateVolatileHandler()
 {
+  ros::Duration(2.0).sleep();
   // Get True Pose
   waypoint_nav::Interrupt srv_wp_nav;
   srv_wp_nav.request.interrupt = true;
@@ -269,13 +270,13 @@ void SmRd1::stateVolatileHandler()
   {
     ROS_ERROR("Failed to call service Interrupt Nav");
   }
-
+  ros::Duration(2.0).sleep();
   // Turn on brake
    driving_tools::Stop srv_stop;
    srv_stop.request.enableStop  = true;
    if (clt_stop_.call(srv_stop))
    {
-     ROS_INFO_STREAM("Success? "<< srv_stop.response.success);
+     ROS_INFO_STREAM("SM: Stopping Enabled? "<< srv_stop.response);
    }
    else
    {
@@ -287,29 +288,51 @@ void SmRd1::stateVolatileHandler()
    srv_vol_rep.request.start = true;
    if (clt_vol_report_.call(srv_vol_rep))
    {
-     ROS_INFO_STREAM("Volatile Accepted? "<< srv_vol_rep.response.success);
+     ROS_INFO_STREAM("SM: Volatile Accepted? "<< srv_vol_rep.response);
+     // flag_volatile_recorded=true;
+     flag_arrived_at_waypoint = false;
+     // srv_wp_nav.request.interrupt = false;
+     // if (clt_wp_nav_interrupt_.call(srv_wp_nav))
+     // {
+     //   ROS_INFO_STREAM("AFTER FOUND VOL I called service interrupt ");
+     // }
+     // else
+     // {
+     //   ROS_ERROR("AFTER FOUDN VOL Failed to call service Interrupt Nav");
+     // }
+     // // Turn off brake
+     // srv_stop.request.enableStop  = false;
+     // if (clt_stop_.call(srv_stop))
+     // {
+     //   ROS_INFO_STREAM("SM: Stopping Disabled? "<< srv_stop.response);
+     // }
+     // else
+     // {
+     //   ROS_ERROR("Failed to call service Start");
+     // }
    }
    else
    {
      ROS_ERROR("Failed to call service Report");
+     // flag_arrived_at_waypoint = true;
    }
 
-   // Turn off brake
-   srv_stop.request.enableStop  = false;
-   if (clt_stop_.call(srv_stop))
-   {
-     ROS_INFO_STREAM("Success? "<< srv_stop.response.success);
-   }
-   else
-   {
-     ROS_ERROR("Failed to call service Start");
-   }
+   // // Turn off brake
+   // srv_stop.request.enableStop  = false;
+   // if (clt_stop_.call(srv_stop))
+   // {
+   //   ROS_INFO_STREAM("SM: Stopping Disabled? "<< srv_stop.response);
+   // }
+   // else
+   // {
+   //   ROS_ERROR("Failed to call service Start");
+   // }
 
    ROS_INFO("VolatileHandler!\n");
    //flag_arrived_at_waypoint = false;
    flag_waypoint_unreachable = false;
    //flag_localizing_volatile = true;
-   flag_arrived_at_waypoint = true; // This is temporary for hackathon, since volatile reporting doesn't have all info and doesn't command a waypoint yet.
+   // flag_arrived_at_waypoint = true; // This is temporary for hackathon, since volatile reporting doesn't have all info and doesn't command a waypoint yet.
    std_msgs::Int64 state_msg;
    state_msg.data = _volatile_handler;
    sm_state_pub.publish(state_msg);
@@ -328,7 +351,7 @@ void SmRd1::stateLost()
   srv_stop.request.enableStop  = true;
   if (clt_stop_.call(srv_stop))
   {
-    ROS_INFO_STREAM("Success? "<< srv_stop.response.success);
+    ROS_INFO_STREAM("SM: Stopping Enabled? "<< srv_stop.response);
   }
   else
   {
@@ -348,7 +371,7 @@ void SmRd1::localizedBaseCallback(const std_msgs::Int64::ConstPtr& msg)
 {
   flag_localized_base = msg->data;
   if (flag_localized_base) {
-    ROS_INFO("Initial Localization Successful = %i",flag_localized_base);
+    ROS_WARN_ONCE("Initial Localization Successful = %i",flag_localized_base);
 
   }
   else {
@@ -374,6 +397,10 @@ void SmRd1::volatileDetectedCallback(const std_msgs::Bool::ConstPtr& msg)
 void SmRd1::volatileRecordedCallback(const std_msgs::Bool::ConstPtr& msg)
 {
   flag_volatile_recorded = msg->data;
+  if (flag_volatile_recorded == true)
+  {
+    flag_volatile_detected = false;
+  }
 }
 
 void SmRd1::localizationFailureCallback(const std_msgs::Bool::ConstPtr& msg)
