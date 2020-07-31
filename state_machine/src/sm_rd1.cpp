@@ -33,7 +33,7 @@ void SmRd1::run()
     ROS_INFO("flag_have_true_pose: %i",flag_have_true_pose);
     // ROS_INFO("flag_waypoint_unreachable: %i",flag_waypoint_unreachable);
     ROS_INFO("flag_arrived_at_waypoint: %i",flag_arrived_at_waypoint);
-    ROS_INFO("flag_volatile_detected: %i",flag_volatile_detected);
+    ROS_INFO("volatile_detected_distance: %f",volatile_detected_distance);
     // ROS_INFO("flag_localizing_volatile: %i",flag_localizing_volatile);
     ROS_INFO("flag_volatile_recorded: %i",flag_volatile_recorded);
     // ROS_INFO("flag_volatile_unreachable: %i",flag_volatile_unreachable);
@@ -44,7 +44,7 @@ void SmRd1::run()
 
 
     // Conditional flag logic (Preemptive conditions) +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-    if(flag_volatile_detected && !flag_localizing_volatile && !flag_localization_failure && flag_have_true_pose)
+    if((volatile_detected_distance>0.0) && !flag_localizing_volatile && !flag_localization_failure && flag_have_true_pose)
     {
       flag_arrived_at_waypoint = true;
       flag_waypoint_unreachable = false;
@@ -68,7 +68,7 @@ void SmRd1::run()
     {
       state_to_exec.at(_lost) = 1;
     }
-    else if((flag_arrived_at_waypoint || flag_waypoint_unreachable) && !flag_volatile_detected && !flag_localizing_volatile && !flag_brake_engaged)
+    else if((flag_arrived_at_waypoint || flag_waypoint_unreachable) && (volatile_detected_distance==-1.0) && !flag_localizing_volatile && !flag_brake_engaged)
     {
       state_to_exec.at(_planning) = 1;
     }
@@ -76,7 +76,7 @@ void SmRd1::run()
     {
       state_to_exec.at(_traverse) = 1;
     }
-    else if((flag_volatile_detected || flag_localizing_volatile) && !flag_brake_engaged)
+    else if(((volatile_detected_distance>0) || flag_localizing_volatile) && !flag_brake_engaged)
     {
       state_to_exec.at(_volatile_handler) = 1;
     }
@@ -237,7 +237,7 @@ void SmRd1::stateTraverse()
   }
   if(flag_volatile_recorded)
   {
-    flag_volatile_detected = false;
+    volatile_detected_distance = -1.0;
     flag_localizing_volatile = false;
     flag_volatile_recorded = false;
     flag_arrived_at_waypoint = true;
@@ -258,6 +258,12 @@ void SmRd1::stateTraverse()
 
 void SmRd1::stateVolatileHandler()
 {
+  if(volatile_detected_distance>1.0){
+	  ROS_INFO(" Not Calling Volatile Report Service Because Not Close Enough %f",volatile_detected_distance);
+	  return;
+
+	  // JNG Question, should some sort of status be published here?
+   }
   ros::Duration(2.0).sleep();
   // Get True Pose
   waypoint_nav::Interrupt srv_wp_nav;
@@ -313,7 +319,7 @@ void SmRd1::stateVolatileHandler()
    }
    else
    {
-     ROS_ERROR("Failed to call service Report");
+     ROS_ERROR("Service Did not Collect Points");
      // flag_arrived_at_waypoint = true;
    }
 
@@ -389,9 +395,9 @@ void SmRd1::arrivedAtWaypointCallback(const std_msgs::Bool::ConstPtr& msg)
   flag_arrived_at_waypoint = msg->data;
 }
 
-void SmRd1::volatileDetectedCallback(const std_msgs::Bool::ConstPtr& msg)
+void SmRd1::volatileDetectedCallback(const std_msgs::Float32::ConstPtr& msg)
 {
-  flag_volatile_detected = msg->data;
+  volatile_detected_distance = msg->data;
 }
 
 void SmRd1::volatileRecordedCallback(const std_msgs::Bool::ConstPtr& msg)
@@ -399,7 +405,7 @@ void SmRd1::volatileRecordedCallback(const std_msgs::Bool::ConstPtr& msg)
   flag_volatile_recorded = msg->data;
   if (flag_volatile_recorded == true)
   {
-    flag_volatile_detected = false;
+   volatile_detected_distance = -1.0;
   }
 }
 

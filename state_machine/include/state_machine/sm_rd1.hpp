@@ -2,6 +2,7 @@
 #include <vector>
 #include <algorithm>
 #include <std_msgs/Bool.h>
+#include <std_msgs/Float32.h>
 #include <std_msgs/Int64.h>
 #include <geometry_msgs/Pose.h>
 #include <pose_update/PoseUpdate.h>
@@ -27,7 +28,7 @@ public:
   bool flag_have_true_pose = false;
   bool flag_waypoint_unreachable = false;
   bool flag_arrived_at_waypoint = true;
-  bool flag_volatile_detected = false;
+  double volatile_detected_distance = -1.0;
   bool flag_localizing_volatile = false;
   bool flag_volatile_recorded = false;
   bool flag_volatile_unreachable = false;
@@ -72,7 +73,7 @@ public:
   void localizedBaseCallback(const std_msgs::Int64::ConstPtr& msg);
   void waypointUnreachableCallback(const std_msgs::Bool::ConstPtr& msg);
   void arrivedAtWaypointCallback(const std_msgs::Bool::ConstPtr& msg);
-  void volatileDetectedCallback(const std_msgs::Bool::ConstPtr& msg);
+  void volatileDetectedCallback(const std_msgs::Float32::ConstPtr& msg);
   void volatileRecordedCallback(const std_msgs::Bool::ConstPtr& msg);
   void localizationFailureCallback(const std_msgs::Bool::ConstPtr& msg);
 };
