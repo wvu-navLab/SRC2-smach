@@ -14,7 +14,7 @@
   <include file="$(find pose_update)/launch/scout_pose_update.launch"/>
 
   <!-- dead_reckoning launch file -->
-  <include file="$(find rover_deadreckoning)/launch/rover_dead_reckoning.launch"/>
+  <include file="$(find rover_deadreckoning)/launch/scout_dead_reckoning.launch"/>
 
   <!-- scout_driving_tools launch file -->
   <include file="$(find waypoint_nav)/launch/scout_waypoint_nav.launch"/>
