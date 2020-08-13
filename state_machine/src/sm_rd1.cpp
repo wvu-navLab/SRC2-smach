@@ -258,12 +258,12 @@ void SmRd1::stateTraverse()
 
 void SmRd1::stateVolatileHandler()
 {
-  if(volatile_detected_distance>1.0){
-	  ROS_INFO(" Not Calling Volatile Report Service Because Not Close Enough %f",volatile_detected_distance);
-	  return;
+  //if(volatile_detected_distance>1.75){
+//	  ROS_INFO(" Not Calling Volatile Report Service Because Not Close Enough %f",volatile_detected_distance);
+//	  return;
 
 	  // JNG Question, should some sort of status be published here?
-   }
+  // }
   ros::Duration(2.0).sleep();
   // Get True Pose
   waypoint_nav::Interrupt srv_wp_nav;
@@ -295,7 +295,7 @@ void SmRd1::stateVolatileHandler()
    if (clt_vol_report_.call(srv_vol_rep))
    {
      ROS_INFO_STREAM("SM: Volatile Accepted? "<< srv_vol_rep.response);
-     // flag_volatile_recorded=true;
+      flag_volatile_recorded=true; //JNG CHANGED THIS TO UNCOMMENT 8/12/20
      flag_arrived_at_waypoint = false;
      // srv_wp_nav.request.interrupt = false;
      // if (clt_wp_nav_interrupt_.call(srv_wp_nav))
@@ -322,17 +322,17 @@ void SmRd1::stateVolatileHandler()
      ROS_ERROR("Service Did not Collect Points");
      // flag_arrived_at_waypoint = true;
    }
-
-   // // Turn off brake
-   // srv_stop.request.enableStop  = false;
-   // if (clt_stop_.call(srv_stop))
-   // {
-   //   ROS_INFO_STREAM("SM: Stopping Disabled? "<< srv_stop.response);
-   // }
-   // else
-   // {
-   //   ROS_ERROR("Failed to call service Start");
-   // }
+/*
+    // Turn off brake
+    srv_stop.request.enableStop  = false;
+    if (clt_stop_.call(srv_stop))
+    {
+      ROS_INFO_STREAM("SM: Stopping Disabled? "<< srv_stop.response);
+    }
+    else
+    {
+      ROS_ERROR("Failed to call service Start");
+    } */
 
    ROS_INFO("VolatileHandler!\n");
    //flag_arrived_at_waypoint = false;
