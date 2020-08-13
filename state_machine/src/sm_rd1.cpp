@@ -76,7 +76,7 @@ void SmRd1::run()
     {
       state_to_exec.at(_traverse) = 1;
     }
-    else if(((volatile_detected_distance>=0) || flag_localizing_volatile) && !flag_brake_engaged)
+    else if(((volatile_detected_distance>=0 && volatile_detected_distance<=1)  || flag_localizing_volatile) && !flag_brake_engaged)
     {
       state_to_exec.at(_volatile_handler) = 1;
     }
