@@ -258,12 +258,12 @@ void SmRd1::stateTraverse()
 
 void SmRd1::stateVolatileHandler()
 {
-  //if(volatile_detected_distance>1.75){
-//	  ROS_INFO(" Not Calling Volatile Report Service Because Not Close Enough %f",volatile_detected_distance);
-//	  return;
+ /* if(volatile_detected_distance>1.0){
+	  ROS_INFO(" Not Calling Volatile Report Service Because Not Close Enough %f",volatile_detected_distance);
+	  return;
 
 	  // JNG Question, should some sort of status be published here?
-  // }
+   }*/
   ros::Duration(2.0).sleep();
   // Get True Pose
   waypoint_nav::Interrupt srv_wp_nav;
