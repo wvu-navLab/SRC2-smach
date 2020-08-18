@@ -263,11 +263,11 @@ void SmRd1::stateVolatileHandler()
   srv_wp_nav.request.interrupt = true;
   if (clt_wp_nav_interrupt_.call(srv_wp_nav))
   {
-    // ROS_INFO_STREAM("Success? "<< srv_wp_nav.response.success);
+    ROS_INFO_STREAM("Called service Interrupt.");
   }
   else
   {
-    ROS_ERROR("Failed to call service Interrupt Nav");
+    ROS_ERROR("Failed to call service Interrupt.");
   }
 
   // Turn on brake
