@@ -29,6 +29,8 @@ public:
   bool flag_waypoint_unreachable = false;
   bool flag_arrived_at_waypoint = true;
   double volatile_detected_distance = -1.0;
+  double min_volatile_detected_distance = 30.0;
+  double prev_volatile_detected_distance = -1.0;
   bool flag_localizing_volatile = false;
   bool flag_volatile_recorded = false;
   bool flag_volatile_unreachable = false;
@@ -36,6 +38,11 @@ public:
   bool flag_recovering_localization = false;
   bool flag_brake_engaged = false;
   bool flag_fallthrough_condition = false;
+
+  ros::Time detection_timer;
+
+  const double VOLATILE_MIN_THRESH = 0.3;
+  const double TIMER_THRESH = 10;
 
   // State vector
   std::vector<int> state_to_exec; // Only one should be true at a time, if multiple are true then a default state should be executed
@@ -56,6 +63,8 @@ public:
   ros::ServiceClient clt_wp_nav_interrupt_;
   ros::ServiceClient clt_vh_report_;
   ros::ServiceClient clt_stop_;
+  ros::ServiceClient clt_rip_;
+  ros::ServiceClient clt_drive_;
   ros::ServiceClient clt_vol_report_;
 
   // Methods ----------------------------------------------------------------------------------------------------------------------------
