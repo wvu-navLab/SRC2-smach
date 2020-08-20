@@ -264,7 +264,7 @@ void SmRd1::stateVolatileHandler()
 
 	  // JNG Question, should some sort of status be published here?
    }*/
-  ros::Duration(1.0).sleep();
+  ros::Duration(2.0).sleep();
   // Get True Pose
   waypoint_nav::Interrupt srv_wp_nav;
   srv_wp_nav.request.interrupt = true;
@@ -276,7 +276,7 @@ void SmRd1::stateVolatileHandler()
   {
     ROS_ERROR("Failed to call service Interrupt Nav");
   }
-  ros::Duration(1.0).sleep();
+  ros::Duration(2.0).sleep();
   // Turn on brake
    driving_tools::Stop srv_stop;
    srv_stop.request.enableStop  = true;
