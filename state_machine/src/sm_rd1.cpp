@@ -7,7 +7,7 @@ SmRd1::SmRd1()
   sm_state_pub = nh.advertise<std_msgs::Int64>("state_machine/state", 10);
 
   // Subscribers
-  localized_base_sub = nh.subscribe("state_machine/localized_base", 1, &SmRd1::localizedBaseCallback, this);
+  localized_base_sub = nh.subscribe("state_machine/localized_base_scout", 1, &SmRd1::localizedBaseCallback, this);
   waypoint_unreachable_sub = nh.subscribe("state_machine/waypoint_unreachable", 1, &SmRd1::waypointUnreachableCallback, this);
   arrived_at_waypoint_sub = nh.subscribe("state_machine/arrived_at_waypoint", 1, &SmRd1::arrivedAtWaypointCallback, this);
   volatile_detected_sub = nh.subscribe("state_machine/volatile_detected", 1, &SmRd1::volatileDetectedCallback, this);
