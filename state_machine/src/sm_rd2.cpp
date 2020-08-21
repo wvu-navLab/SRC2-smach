@@ -6,6 +6,7 @@ SmRd2::SmRd2()
   // Publishers
   sm_state_hauler_pub = nh.advertise<std_msgs::Int64>("/hauler_1/state_machine/state", 10);
   sm_state_excavator_pub = nh.advertise<std_msgs::Int64>("/excavator_1/state_machine/state", 10);
+  manipulation_state_excavator_pub = nh.advertise<std_msgs::Int64>("/excavator_1/manipulation/state", 10);
   // Subscribers
   localized_base_excavator_sub = nh.subscribe("/excavator_1/state_machine/localized_base_excavator", 1, &SmRd2::localizedBaseExcavatorCallback, this);
   waypoint_unreachable_excavator_sub = nh.subscribe("/excavator_1/state_machine/waypoint_unreachable", 1, &SmRd2::waypointUnreachableExcavatorCallback, this);
@@ -13,6 +14,7 @@ SmRd2::SmRd2()
   volatile_detected_excavator_sub = nh.subscribe("/excavator_1/state_machine/volatile_detected_excavator", 1, &SmRd2::volatileDetectedExcavatorCallback, this);
   volatile_recorded_excavator_sub = nh.subscribe("/excavator_1/state_machine/volatile_recorded_excavator", 1, &SmRd2::volatileRecordedExcavatorCallback, this);
   localization_failure_excavator_sub = nh.subscribe("/excavator_1/state_machine/localization_failure_excavator", 1, &SmRd2::localizationFailureExcavatorCallback, this);
+  manipulation_feedback_excavator_sub = nh.subscribe("/excavator_1/manipulation/feedback", 1, &SmRd2::manipulationFeedbackCallback, this);
 
   // Subscribers
   localized_base_hauler_sub = nh.subscribe("/hauler_1/state_machine/localized_base_hauler", 1, &SmRd2::localizedBaseHaulerCallback, this);
