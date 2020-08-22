@@ -20,6 +20,7 @@ find_package(catkin REQUIRED COMPONENTS
   waypoint_nav
   waypoint_gen
   srcp2_msgs
+  nav_msgs
 )
 
 ## System dependencies are found with CMake's conventions
