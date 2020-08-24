@@ -42,12 +42,13 @@ public:
   bool flag_brake_engaged = false;
   bool flag_fallthrough_condition = false;
 
-  ros::Time detection_timer;
+  ros::Time detection_timer, not_detected_timer;
 
   const double VOLATILE_MIN_THRESH = 0.3;
   const double TIMER_THRESH = 15;
+  const double NOT_DETECTED_THRESH = 6;
   int timer_counter = 0;
-  double pitch = 0, roll = 0;
+  double pitch = 0, roll = 0, yaw = 0, yaw_prev = 0;
 
   // State vector
   std::vector<int> state_to_exec; // Only one should be true at a time, if multiple are true then a default state should be executed

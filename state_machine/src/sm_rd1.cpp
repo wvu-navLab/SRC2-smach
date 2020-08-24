@@ -7,7 +7,7 @@ SmRd1::SmRd1()
   sm_state_pub = nh.advertise<std_msgs::Int64>("state_machine/state", 1);
 
   // Subscribers
-  localized_base_sub = nh.subscribe("state_machine/localized_base", 1, &SmRd1::localizedBaseCallback, this);
+  localized_base_sub = nh.subscribe("state_machine/localized_base_scout", 1, &SmRd1::localizedBaseCallback, this);
   waypoint_unreachable_sub = nh.subscribe("state_machine/waypoint_unreachable", 1, &SmRd1::waypointUnreachableCallback, this);
   arrived_at_waypoint_sub = nh.subscribe("state_machine/arrived_at_waypoint", 1, &SmRd1::arrivedAtWaypointCallback, this);
   volatile_detected_sub = nh.subscribe("state_machine/volatile_detected", 1, &SmRd1::volatileDetectedCallback, this);
@@ -27,6 +27,7 @@ SmRd1::SmRd1()
 
 
   detection_timer = ros::Time::now();
+  not_detected_timer = ros::Time::now();
 }
 
 void SmRd1::run()
@@ -328,16 +329,14 @@ void SmRd1::stateVolatileHandler()
           ros::Time timeout = ros::Time::now();
 
           diff = ros::Time::now().toSec() -timeout.toSec();
-          while(step < 2 && !flag_localization_failure && !flag_volatile_recorded && diff < MAX_TIME)
+          double angle_change = 0;
+          while(step < 2 && !flag_localization_failure && !flag_volatile_recorded && diff < MAX_TIME && angle_change < 4*M_PI)
           {
                   ROS_INFO_STREAM("step: " << step);
                   bool isCurrentDistFalse = volatile_detected_distance > 0;
                   bool isPrevDistFalse = prev_volatile_detected_distance > 0;
                   //bool distXOR = ( (isCurrentDistFalse) && (!isPrevDistFalse) );// ||
                   bool distXOR = ( (!isCurrentDistFalse) && (isPrevDistFalse) );
-                  ROS_INFO_STREAM("XOR " << distXOR);
-                  ROS_INFO_STREAM(">min " << (volatile_detected_distance > min_volatile_detected_distance));
-                  ROS_INFO_STREAM(">prev " << (volatile_detected_distance > prev_volatile_detected_distance));
                   bool minDist = fabs(volatile_detected_distance - prev_volatile_detected_distance) > 0.01;
                   //volatile_detected_distance > min_volatile_detected_distance &&
                   if ( volatile_detected_distance > prev_volatile_detected_distance && minDist || distXOR )
@@ -346,10 +345,12 @@ void SmRd1::stateVolatileHandler()
                           {
                                   direction = -1.0;
                                   timeout = ros::Time::now();
+                                  angle_change = 0;
                           } else
                           {
                                   direction = 1.0;
                                   timeout = ros::Time::now();
+                                  angle_change = 0;
                           }
                           ++step;
 
@@ -405,21 +406,21 @@ void SmRd1::stateVolatileHandler()
                   rateVol.sleep();
                   ros::spinOnce();
                   diff = ros::Time::now().toSec() -timeout.toSec();
+                  angle_change += fabs(yaw - yaw_prev);
 
           }
+
           direction = 1.0;
           step = 0;
+          ros::Duration(2.0).sleep();
           timeout = ros::Time::now();
-          while(step < 2 && !flag_localization_failure && !flag_volatile_recorded && diff < MAX_TIME)
+          while(step < 2 && !flag_localization_failure && !flag_volatile_recorded && diff < MAX_TIME && angle_change < 4*M_PI)
           {
                   ROS_INFO_STREAM("step: " << step);
                   bool isCurrentDistFalse = volatile_detected_distance > 0;
                   bool isPrevDistFalse = prev_volatile_detected_distance > 0;
                   //bool distXOR = ( (isCurrentDistFalse) && (!isPrevDistFalse) );// ||
                   bool distXOR = ( (!isCurrentDistFalse) && (isPrevDistFalse) );
-                  ROS_INFO_STREAM("XOR " << distXOR);
-                  ROS_INFO_STREAM(">min " << (volatile_detected_distance > min_volatile_detected_distance));
-                  ROS_INFO_STREAM(">prev " << (volatile_detected_distance > prev_volatile_detected_distance));
                   bool minDist = fabs(volatile_detected_distance - prev_volatile_detected_distance) > 0.01;
                   //volatile_detected_distance > min_volatile_detected_distance &&
                   if ( volatile_detected_distance > prev_volatile_detected_distance && minDist || distXOR )
@@ -453,6 +454,7 @@ void SmRd1::stateVolatileHandler()
 
                           rateVol.sleep();
                           ros::spinOnce();
+
                   }
 
                   ROS_INFO_STREAM("SM: Direction "<< direction);
@@ -494,7 +496,6 @@ void SmRd1::stateVolatileHandler()
                   diff = ros::Time::now().toSec() -timeout.toSec();
 
           }
-
           if (volatile_detected_distance < VOLATILE_MIN_THRESH && volatile_detected_distance > 0)
           {
                   ROS_INFO_STREAM("SM: In Vol Range");
@@ -652,6 +653,7 @@ void SmRd1::volatileDetectedCallback(const std_msgs::Float32::ConstPtr& msg)
           {
                   min_volatile_detected_distance = volatile_detected_distance;
           }
+
   }
 }
 
@@ -662,6 +664,10 @@ void SmRd1::volatileRecordedCallback(const std_msgs::Bool::ConstPtr& msg)
   if (flag_volatile_recorded == true)
   {
           volatile_detected_distance = -1.0;
+  }else
+  {
+    not_detected_timer = ros::Time::now();
+    ROS_INFO_STREAM("NAO" << not_detected_timer.toSec());
   }
 }
 
@@ -672,7 +678,7 @@ void SmRd1::localizationFailureCallback(const std_msgs::Bool::ConstPtr& msg)
 
 void SmRd1::localizationCallback(const nav_msgs::Odometry::ConstPtr& msg)
 {
-  double yaw;
+  yaw_prev = yaw;
   tf2::Quaternion q(msg->pose.pose.orientation.x,
                       msg->pose.pose.orientation.y,
                       msg->pose.pose.orientation.z,
