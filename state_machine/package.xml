@@ -56,10 +56,12 @@
   <buildtool_depend>pose_update</buildtool_depend>
   <buildtool_depend>waypoint_nav</buildtool_depend>
   <buildtool_depend>volatile_handler</buildtool_depend>
+  <buildtool_depend>round2_volatile_handler</buildtool_depend>
   <buildtool_depend>waypoint_gen</buildtool_depend>
   <buildtool_depend>driving_tools</buildtool_depend>
   <buildtool_depend>geometry_msgs</buildtool_depend>
   <buildtool_depend>std_msgs</buildtool_depend>
+  <buildtool_depend>nav_msgs</buildtool_depend>
 
   <build_depend>catkin</build_depend>
   <build_depend>roscpp</build_depend>
@@ -71,8 +73,10 @@
   <build_depend>waypoint_gen</build_depend>
   <build_depend>driving_tools</build_depend>
   <build_depend>volatile_handler</build_depend>
+  <build_depend>round2_volatile_handler</build_depend>
   <build_depend>geometry_msgs</build_depend>
   <build_depend>std_msgs</build_depend>
+  <build_depend>nav_msgs</build_depend>
 
 
   <exec_depend>catkin</exec_depend>
@@ -84,9 +88,11 @@
   <exec_depend>waypoint_nav</exec_depend>
   <exec_depend>waypoint_gen</exec_depend>
   <exec_depend>volatile_handler</exec_depend>
+  <exec_depend>round2_volatile_handler</exec_depend>
   <exec_depend>driving_tools</exec_depend>
   <exec_depend>geometry_msgs</exec_depend>
   <exec_depend>std_msgs</exec_depend>
+  <exec_depend>nav_msgs</exec_depend>
 
 
 

@@ -1,18 +1,18 @@
-#include <state_machine/sm_rd1.hpp>
+#include <state_machine/sm_rd3.hpp>
 
-SmRd1::SmRd1()
+SmRd3::SmRd3()
 {
   // Initialize ROS, Subs, and Pubs *******************************************
   // Publishers
   sm_state_pub = nh.advertise<std_msgs::Int64>("state_machine/state", 10);
 
   // Subscribers
-  localized_base_sub = nh.subscribe("state_machine/localized_base_scout", 1, &SmRd1::localizedBaseCallback, this);
-  waypoint_unreachable_sub = nh.subscribe("state_machine/waypoint_unreachable", 1, &SmRd1::waypointUnreachableCallback, this);
-  arrived_at_waypoint_sub = nh.subscribe("state_machine/arrived_at_waypoint", 1, &SmRd1::arrivedAtWaypointCallback, this);
-  volatile_detected_sub = nh.subscribe("state_machine/volatile_detected", 1, &SmRd1::volatileDetectedCallback, this);
-  volatile_recorded_sub = nh.subscribe("state_machine/volatile_recorded", 1, &SmRd1::volatileRecordedCallback, this);
-  localization_failure_sub = nh.subscribe("state_machine/localization_failure", 1, &SmRd1::localizationFailureCallback, this);
+  localized_base_sub = nh.subscribe("state_machine/localized_base", 1, &SmRd3::localizedBaseCallback, this);
+  waypoint_unreachable_sub = nh.subscribe("state_machine/waypoint_unreachable", 1, &SmRd3::waypointUnreachableCallback, this);
+  arrived_at_waypoint_sub = nh.subscribe("state_machine/arrived_at_waypoint", 1, &SmRd3::arrivedAtWaypointCallback, this);
+  volatile_detected_sub = nh.subscribe("state_machine/volatile_detected", 1, &SmRd3::volatileDetectedCallback, this);
+  volatile_recorded_sub = nh.subscribe("state_machine/volatile_recorded", 1, &SmRd3::volatileRecordedCallback, this);
+  localization_failure_sub = nh.subscribe("state_machine/localization_failure", 1, &SmRd3::localizationFailureCallback, this);
 
   // Clients
   clt_true_pose_ = nh.serviceClient<pose_update::PoseUpdate>("localization/true_pose_update");
@@ -23,7 +23,7 @@ SmRd1::SmRd1()
   clt_vol_report_ = nh.serviceClient<volatile_handler::VolatileReport>("volatile/report");
 }
 
-void SmRd1::run()
+void SmRd3::run()
 {
   ros::Rate loop_rate(2); // Hz
   while(ros::ok())
@@ -139,7 +139,7 @@ void SmRd1::run()
 }
 
 // State function definitions ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-void SmRd1::stateInitialize()
+void SmRd3::stateInitialize()
 {
   ROS_INFO("Initialize!\n");
   flag_arrived_at_waypoint = false;
@@ -174,7 +174,7 @@ void SmRd1::stateInitialize()
   sm_state_pub.publish(state_msg);
 }
 
-void SmRd1::statePlanning()
+void SmRd3::statePlanning()
 {
   ROS_INFO("Planning!\n");
   flag_arrived_at_waypoint = false;
@@ -225,7 +225,7 @@ void SmRd1::statePlanning()
   sm_state_pub.publish(state_msg);
 }
 
-void SmRd1::stateTraverse()
+void SmRd3::stateTraverse()
 {
   ROS_INFO("Traverse!\n");
 
@@ -256,7 +256,7 @@ void SmRd1::stateTraverse()
 
 }
 
-void SmRd1::stateVolatileHandler()
+void SmRd3::stateVolatileHandler()
 {
  /* if(volatile_detected_distance>1.0){
 	  ROS_INFO(" Not Calling Volatile Report Service Because Not Close Enough %f",volatile_detected_distance);
@@ -264,19 +264,19 @@ void SmRd1::stateVolatileHandler()
 
 	  // JNG Question, should some sort of status be published here?
    }*/
-  ros::Duration(2.0).sleep();
+  ros::Duration(1.0).sleep();
   // Get True Pose
   waypoint_nav::Interrupt srv_wp_nav;
   srv_wp_nav.request.interrupt = true;
   if (clt_wp_nav_interrupt_.call(srv_wp_nav))
   {
-    ROS_INFO_STREAM("Called service Interrupt.");
+    ROS_INFO_STREAM("I called service interrupt ");
   }
   else
   {
-    ROS_ERROR("Failed to call service Interrupt.");
+    ROS_ERROR("Failed to call service Interrupt Nav");
   }
-  ros::Duration(2.0).sleep();
+  ros::Duration(1.0).sleep();
   // Turn on brake
    driving_tools::Stop srv_stop;
    srv_stop.request.enableStop  = true;
@@ -294,9 +294,9 @@ void SmRd1::stateVolatileHandler()
    srv_vol_rep.request.start = true;
    if (clt_vol_report_.call(srv_vol_rep))
    {
-      ROS_INFO_STREAM("SM: Volatile Accepted? "<< srv_vol_rep.response);
+     ROS_INFO_STREAM("SM: Volatile Accepted? "<< srv_vol_rep.response);
       flag_volatile_recorded=true; //JNG CHANGED THIS TO UNCOMMENT 8/12/20
-      flag_arrived_at_waypoint = false;
+     flag_arrived_at_waypoint = false;
      // srv_wp_nav.request.interrupt = false;
      // if (clt_wp_nav_interrupt_.call(srv_wp_nav))
      // {
@@ -344,7 +344,7 @@ void SmRd1::stateVolatileHandler()
    sm_state_pub.publish(state_msg);
 }
 
-void SmRd1::stateLost()
+void SmRd3::stateLost()
 {
   ROS_INFO("Lost!\n");
   flag_recovering_localization = true;
@@ -372,8 +372,8 @@ void SmRd1::stateLost()
 
 
 // Callbacks +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-// void SmRd1::localizedBaseCallback(const std_msgs::Bool::ConstPtr& msg)
-void SmRd1::localizedBaseCallback(const std_msgs::Int64::ConstPtr& msg)
+// void SmRd3::localizedBaseCallback(const std_msgs::Bool::ConstPtr& msg)
+void SmRd3::localizedBaseCallback(const std_msgs::Int64::ConstPtr& msg)
 {
   flag_localized_base = msg->data;
   if (flag_localized_base) {
@@ -385,22 +385,22 @@ void SmRd1::localizedBaseCallback(const std_msgs::Int64::ConstPtr& msg)
   }
 }
 
-void SmRd1::waypointUnreachableCallback(const std_msgs::Bool::ConstPtr& msg)
+void SmRd3::waypointUnreachableCallback(const std_msgs::Bool::ConstPtr& msg)
 {
   flag_waypoint_unreachable = msg->data;
 }
 
-void SmRd1::arrivedAtWaypointCallback(const std_msgs::Bool::ConstPtr& msg)
+void SmRd3::arrivedAtWaypointCallback(const std_msgs::Bool::ConstPtr& msg)
 {
   flag_arrived_at_waypoint = msg->data;
 }
 
-void SmRd1::volatileDetectedCallback(const std_msgs::Float32::ConstPtr& msg)
+void SmRd3::volatileDetectedCallback(const std_msgs::Float32::ConstPtr& msg)
 {
   volatile_detected_distance = msg->data;
 }
 
-void SmRd1::volatileRecordedCallback(const std_msgs::Bool::ConstPtr& msg)
+void SmRd3::volatileRecordedCallback(const std_msgs::Bool::ConstPtr& msg)
 {
   flag_volatile_recorded = msg->data;
   if (flag_volatile_recorded == true)
@@ -409,7 +409,7 @@ void SmRd1::volatileRecordedCallback(const std_msgs::Bool::ConstPtr& msg)
   }
 }
 
-void SmRd1::localizationFailureCallback(const std_msgs::Bool::ConstPtr& msg)
+void SmRd3::localizationFailureCallback(const std_msgs::Bool::ConstPtr& msg)
 {
   flag_localization_failure = msg->data;
 }

@@ -1,0 +1,31 @@
+<launch>
+
+
+  <!-- scout_driving_tools launch file -->
+  <include file="$(find gazebo_truth_odom)/launch/scout_gazebo_truth_odom.launch"/>
+
+  <!-- scout_motion_control launch file -->
+  <include file="$(find driving_control)/launch/scout_driving_control_all.launch"/>
+
+  <!-- scout_motion_control launch file -->
+  <include file="$(find state_machine)/launch/scout_state_machine_rd1.launch"/>
+
+  <!-- scout_driving_tools launch file -->
+  <include file="$(find pose_update)/launch/scout_pose_update.launch"/>
+
+  <!-- dead_reckoning launch file -->
+  <include file="$(find rover_deadreckoning)/launch/scout_dead_reckoning.launch"/>
+
+  <!-- scout_driving_tools launch file -->
+  <include file="$(find waypoint_nav)/launch/scout_waypoint_nav.launch"/>
+
+  <!-- scout_waypoint_gen launch file -->
+  <include file="$(find waypoint_gen)/launch/scout_waypoint_gen.launch"/>
+
+  <!-- scout_waypoint_gen launch file -->
+  <include file="$(find volatile_handler)/launch/volatile_handler.launch"/>
+
+
+
+
+</launch>

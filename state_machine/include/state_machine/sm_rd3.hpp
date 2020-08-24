@@ -15,7 +15,7 @@
 #include <driving_tools/RotateInPlace.h>
 #include <volatile_handler/VolatileReport.h>
 
-class SmRd1
+class SmRd3
 {
 public:
   // Members -------------------------------------------------------------------------------------------------------------------------
@@ -59,7 +59,7 @@ public:
   ros::ServiceClient clt_vol_report_;
 
   // Methods ----------------------------------------------------------------------------------------------------------------------------
-  SmRd1(); // Constructor
+  SmRd3(); // Constructor
   void run();
   // State methods
   void stateInitialize();
