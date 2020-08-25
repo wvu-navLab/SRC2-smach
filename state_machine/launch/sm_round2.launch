@@ -9,6 +9,9 @@
   <include file="$(find driving_control)/launch/excavator_driving_control.launch"/>
   <include file="$(find driving_control)/launch/hauler_driving_control.launch"/>
 
+  <!-- excavator manipulator launch files -->
+  <include file="$(find move_excavator)/launch/move_excavator.launch"/>
+
   <!-- excavator and hauler_state machine launch file -->
   <node name="state_machine" pkg="state_machine" type="state_machine_rd2_node" output="screen"/>
   <!-- <include file="$(find state_machine)/launch/excavator_state_machine_rd2.launch"/>

@@ -52,6 +52,8 @@ public:
   bool flag_recovering_localization_excavator = false;
   bool flag_brake_engaged_excavator = false;
   bool flag_fallthrough_condition_excavator = false;
+  bool flag_volatile_dug_excavator = true;
+
 
   // State vector
   std::vector<int> state_to_exec; // Only one should be true at a time, if multiple are true then a default state should be executed
@@ -62,6 +64,7 @@ public:
   ros::Publisher sm_state_hauler_pub;
   ros::Publisher sm_state_excavator_pub;
   ros::Publisher manipulation_state_excavator_pub;
+  ros::Publisher manipulation_volatile_pose_pub;
 
   ros::Subscriber odometry_excavator_sub;
   ros::Subscriber localized_base_hauler_sub;
@@ -126,6 +129,9 @@ public:
   geometry_msgs::Twist current_vel_excavator_;
   geometry_msgs::Pose current_pose_hauler_;
   geometry_msgs::Twist current_vel_hauler_;
+
+  geometry_msgs::Pose goal_pose_;
+
 
   bool first_odom_hauler_ = false;
   bool first_odom_excavator_ = false;
