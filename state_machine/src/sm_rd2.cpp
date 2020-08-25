@@ -12,8 +12,8 @@ SmRd2::SmRd2()
   localized_base_excavator_sub = nh.subscribe("/excavator_1/state_machine/localized_base_excavator", 1, &SmRd2::localizedBaseExcavatorCallback, this);
   waypoint_unreachable_excavator_sub = nh.subscribe("/excavator_1/state_machine/waypoint_unreachable", 1, &SmRd2::waypointUnreachableExcavatorCallback, this);
   arrived_at_waypoint_excavator_sub = nh.subscribe("/excavator_1/state_machine/arrived_at_waypoint", 1, &SmRd2::arrivedAtWaypointExcavatorCallback, this);
-  volatile_detected_excavator_sub = nh.subscribe("/excavator_1/state_machine/volatile_detected_excavator", 1, &SmRd2::volatileDetectedExcavatorCallback, this);
-  volatile_recorded_excavator_sub = nh.subscribe("/excavator_1/state_machine/volatile_recorded_excavator", 1, &SmRd2::volatileRecordedExcavatorCallback, this);
+  // volatile_detected_excavator_sub = nh.subscribe("/excavator_1/state_machine/volatile_detected_excavator", 1, &SmRd2::volatileDetectedExcavatorCallback, this);
+  // volatile_recorded_excavator_sub = nh.subscribe("/excavator_1/state_machine/volatile_recorded_excavator", 1, &SmRd2::volatileRecordedExcavatorCallback, this);
   localization_failure_excavator_sub = nh.subscribe("/excavator_1/state_machine/localization_failure_excavator", 1, &SmRd2::localizationFailureExcavatorCallback, this);
   manipulation_feedback_excavator_sub = nh.subscribe("/excavator_1/manipulation/feedback", 1, &SmRd2::manipulationFeedbackCallback, this);
 
@@ -22,8 +22,8 @@ SmRd2::SmRd2()
   localized_base_hauler_sub = nh.subscribe("/hauler_1/state_machine/localized_base_hauler", 1, &SmRd2::localizedBaseHaulerCallback, this);
   waypoint_unreachable_hauler_sub = nh.subscribe("/hauler_1/state_machine/waypoint_unreachable", 1, &SmRd2::waypointUnreachableHaulerCallback, this);
   arrived_at_waypoint_hauler_sub = nh.subscribe("/hauler_1/state_machine/arrived_at_waypoint", 1, &SmRd2::arrivedAtWaypointHaulerCallback, this);
-  volatile_detected_hauler_sub = nh.subscribe("/hauler_1/state_machine/volatile_detected_hauler", 1, &SmRd2::volatileDetectedHaulerCallback, this);
-  volatile_recorded_hauler_sub = nh.subscribe("/hauler_1/state_machine/volatile_recorded_hauler", 1, &SmRd2::volatileRecordedHaulerCallback, this);
+  // volatile_detected_hauler_sub = nh.subscribe("/hauler_1/state_machine/volatile_detected_hauler", 1, &SmRd2::volatileDetectedHaulerCallback, this);
+  // volatile_recorded_hauler_sub = nh.subscribe("/hauler_1/state_machine/volatile_recorded_hauler", 1, &SmRd2::volatileRecordedHaulerCallback, this);
   localization_failure_hauler_sub = nh.subscribe("/hauler_1/state_machine/localization_failure_hauler", 1, &SmRd2::localizationFailureHaulerCallback, this);
 //////////////////////////////////
 
@@ -85,9 +85,9 @@ void SmRd2::run()
     ROS_INFO("flag_have_true_pose_hauler: %i",flag_have_true_pose_hauler);
     // ROS_INFO("flag_waypoint_unreachable: %i",flag_waypoint_unreachable);
     ROS_INFO("flag_arrived_at_waypoint_hauler: %i",flag_arrived_at_waypoint_hauler);
-    ROS_INFO("volatile_detected_distance_hauler: %f",volatile_detected_distance_hauler);
+    // ROS_INFO("volatile_detected_distance_hauler: %f",volatile_detected_distance_hauler);
     // ROS_INFO("flag_localizing_volatile: %i",flag_localizing_volatile);
-    ROS_INFO("flag_volatile_recorded_hauler: %i",flag_volatile_recorded_hauler);
+    // ROS_INFO("flag_volatile_recorded_hauler: %i",flag_volatile_recorded_hauler);
     // ROS_INFO("flag_volatile_unreachable: %i",flag_volatile_unreachable);
     // ROS_INFO("flag_localization_failure: %i",flag_localization_failure);
     ROS_INFO("flag_brake_engaged_hauler: %i",flag_brake_engaged_hauler);
@@ -279,9 +279,13 @@ void SmRd2::statePlanning()
   // Generate Goal
   round2_volatile_handler::NextVolatileLocation srv_next_vol;
   srv_next_vol.request.rover_position  = current_pose_excavator_;
+  ROS_INFO_STREAM("Rover Pose: "<< current_pose_excavator_);
+
+
   if (clt_next_vol_excavator_.call(srv_next_vol))
   {
-    // ROS_INFO_STREAM("Success? "<< srv_wp_gen.response.success);
+    std::cout << "Calling Next Vol pose" << '\n';
+   ROS_INFO_STREAM("Next Volatile Pose: "<< srv_next_vol.response.vol_position);
     goal_pose = srv_next_vol.response.vol_position;
     vol_type = srv_next_vol.response.type;
   }
@@ -290,13 +294,13 @@ void SmRd2::statePlanning()
     ROS_ERROR("EXCAVATOR Failed to call service Next Volatile Pose");
   }
 
-  // Get True Pose
+  // Set Goal
   waypoint_nav::SetGoal srv_wp_nav;
   srv_wp_nav.request.start = true;
   srv_wp_nav.request.goal = goal_pose;
   if (clt_wp_nav_set_goal_excavator_.call(srv_wp_nav))
   {
-    // ROS_INFO_STREAM("Success? "<< srv_wp_nav.response.success);
+    //s ROS_INFO_STREAM("Success? "<< srv_wp_nav.response.success);
   }
   else
   {
@@ -318,14 +322,14 @@ void SmRd2::stateTraverse()
     flag_arrived_at_waypoint_excavator = true;
     flag_waypoint_unreachable_excavator = false;
   }
-  if(flag_volatile_recorded_excavator)
-  {
-    volatile_detected_distance_excavator = -1.0;
-    flag_localizing_volatile_excavator = false;
-    flag_volatile_recorded_excavator = false;
-    flag_arrived_at_waypoint_excavator = true;
-    flag_waypoint_unreachable_excavator = false;
-  }
+  // if(flag_volatile_recorded_excavator)
+  // {
+  //   volatile_detected_distance_excavator = -1.0;
+  //   flag_localizing_volatile_excavator = false;
+  //   flag_volatile_recorded_excavator = false;
+  //   flag_arrived_at_waypoint_excavator = true;
+  //   flag_waypoint_unreachable_excavator = false;
+  // }
   if(flag_recovering_localization_excavator && !flag_localization_failure_excavator)
   {
     flag_arrived_at_waypoint_excavator = true;
@@ -347,18 +351,18 @@ void SmRd2::stateVolatileHandler()
 
 	  // JNG Question, should some sort of status be published here?
    }*/
-  ros::Duration(2.0).sleep();
-  // Get True Pose
-  waypoint_nav::Interrupt srv_wp_nav;
-  srv_wp_nav.request.interrupt = true;
-  if (clt_wp_nav_interrupt_excavator_.call(srv_wp_nav))
-  {
-    ROS_INFO_STREAM("I called service interrupt ");
-  }
-  else
-  {
-    ROS_ERROR("Failed to call service Interrupt Nav");
-  }
+  // ros::Duration(2.0).sleep();
+  // // Get True Pose
+  // waypoint_nav::Interrupt srv_wp_nav;
+  // srv_wp_nav.request.interrupt = true;
+  // if (clt_wp_nav_interrupt_excavator_.call(srv_wp_nav))
+  // {
+  //   ROS_INFO_STREAM("I called service interrupt ");
+  // }
+  // else
+  // {
+  //   ROS_ERROR("Failed to call service Interrupt Nav");
+  // }
   ros::Duration(2.0).sleep();
   // Turn on brake
    driving_tools::Stop srv_stop;
@@ -490,6 +494,12 @@ void SmRd2::localizedBaseExcavatorCallback(const std_msgs::Int64::ConstPtr& msg)
   }
 }
 
+void SmRd2::manipulationFeedbackCallback(const move_excavator::ExcavationStatus::ConstPtr& msg)
+{
+    isFinished_ = msg->isFinished;
+    collectedMass_ = msg->collectedMass;
+}
+
 void SmRd2::waypointUnreachableExcavatorCallback(const std_msgs::Bool::ConstPtr& msg)
 {
   flag_waypoint_unreachable_excavator = msg->data;
@@ -500,19 +510,19 @@ void SmRd2::arrivedAtWaypointExcavatorCallback(const std_msgs::Bool::ConstPtr& m
   flag_arrived_at_waypoint_excavator = msg->data;
 }
 
-void SmRd2::volatileDetectedExcavatorCallback(const std_msgs::Float32::ConstPtr& msg)
-{
-  volatile_detected_distance_excavator = msg->data;
-}
-
-void SmRd2::volatileRecordedExcavatorCallback(const std_msgs::Bool::ConstPtr& msg)
-{
-  flag_volatile_recorded_excavator = msg->data;
-  if (flag_volatile_recorded_excavator == true)
-  {
-   volatile_detected_distance_excavator = -1.0;
-  }
-}
+// void SmRd2::volatileDetectedExcavatorCallback(const std_msgs::Float32::ConstPtr& msg)
+// {
+//   volatile_detected_distance_excavator = msg->data;
+// }
+//
+// void SmRd2::volatileRecordedExcavatorCallback(const std_msgs::Bool::ConstPtr& msg)
+// {
+//   flag_volatile_recorded_excavator = msg->data;
+//   if (flag_volatile_recorded_excavator == true)
+//   {
+//    volatile_detected_distance_excavator = -1.0;
+//   }
+// }
 
 void SmRd2::localizationFailureExcavatorCallback(const std_msgs::Bool::ConstPtr& msg)
 {
@@ -543,19 +553,19 @@ void SmRd2::arrivedAtWaypointHaulerCallback(const std_msgs::Bool::ConstPtr& msg)
   flag_arrived_at_waypoint_hauler = msg->data;
 }
 
-void SmRd2::volatileDetectedHaulerCallback(const std_msgs::Float32::ConstPtr& msg)
-{
-  volatile_detected_distance_hauler = msg->data;
-}
+// void SmRd2::volatileDetectedHaulerCallback(const std_msgs::Float32::ConstPtr& msg)
+// {
+//   volatile_detected_distance_hauler = msg->data;
+// }
 
-void SmRd2::volatileRecordedHaulerCallback(const std_msgs::Bool::ConstPtr& msg)
-{
-  flag_volatile_recorded_hauler = msg->data;
-  if (flag_volatile_recorded_hauler == true)
-  {
-   volatile_detected_distance_hauler = -1.0;
-  }
-}
+// void SmRd2::volatileRecordedHaulerCallback(const std_msgs::Bool::ConstPtr& msg)
+// {
+//   flag_volatile_recorded_hauler = msg->data;
+//   if (flag_volatile_recorded_hauler == true)
+//   {
+//    volatile_detected_distance_hauler = -1.0;
+//   }
+// }
 
 void SmRd2::localizationFailureHaulerCallback(const std_msgs::Bool::ConstPtr& msg)
 {

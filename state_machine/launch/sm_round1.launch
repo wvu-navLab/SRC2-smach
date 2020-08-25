@@ -25,6 +25,11 @@
   <!-- scout_waypoint_gen launch file -->
   <include file="$(find volatile_handler)/launch/volatile_handler.launch"/>
 
+  <!-- <include file="$(find pcl)/launch/pcl.launch"/>
+
+  <include file="$(find move_base)/launch/move_base.launch"/> -->
+      <!-- https://github.com/wvu-navLab/SRC2-move_base -->
+
 
 
 

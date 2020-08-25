@@ -24,10 +24,11 @@
   <include file="$(find waypoint_nav)/launch/hauler_waypoint_nav.launch"/>
   <include file="$(find waypoint_nav)/launch/excavator_waypoint_nav.launch"/>
   <!-- scout_waypoint_gen launch file -->
-  <include file="$(find waypoint_gen)/launch/hauler_waypoint_gen.launch"/>
-  <include file="$(find waypoint_gen)/launch/excavator_waypoint_gen.launch"/>
+  <!-- <include file="$(find waypoint_gen)/launch/hauler_waypoint_gen.launch"/>
+  <include file="$(find waypoint_gen)/launch/excavator_waypoint_gen.launch"/> -->
   <!-- scout_waypoint_gen launch file -->
   <!-- <include file="$(find volatile_handler)/launch/volatile_handler.launch"/> -->
+  <include file="$(find round2_volatile_handler)/launch/excavator_volatile_handler.launch"/>
 
 
 

@@ -22,6 +22,7 @@ find_package(catkin REQUIRED COMPONENTS
   waypoint_nav
   waypoint_gen
   srcp2_msgs
+  move_excavator
 )
 
 ## System dependencies are found with CMake's conventions
@@ -116,7 +117,7 @@ find_package(catkin REQUIRED COMPONENTS
 catkin_package(
  INCLUDE_DIRS include
 #  LIBRARIES state_machine
-  CATKIN_DEPENDS std_msgs geometry_msgs nav_msgs pose_update driving_tools volatile_handler round2_volatile_handler waypoint_nav waypoint_gen
+  CATKIN_DEPENDS std_msgs geometry_msgs nav_msgs pose_update driving_tools move_excavator volatile_handler round2_volatile_handler waypoint_nav waypoint_gen
 #  DEPENDS system_lib
 )
 

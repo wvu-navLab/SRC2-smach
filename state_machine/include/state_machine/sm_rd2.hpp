@@ -16,6 +16,7 @@
 #include <driving_tools/CirculateBaseStation.h>
 #include <driving_tools/RotateInPlace.h>
 #include <volatile_handler/VolatileReport.h>
+#include <move_excavator/ExcavationStatus.h>
 
 class SmRd2
 {
@@ -30,10 +31,10 @@ public:
   bool flag_have_true_pose_hauler = false;
   bool flag_waypoint_unreachable_hauler = false;
   bool flag_arrived_at_waypoint_hauler = true;
-  double volatile_detected_distance_hauler = -1.0;
-  bool flag_localizing_volatile_hauler = false;
-  bool flag_volatile_recorded_hauler = false;
-  bool flag_volatile_unreachable_hauler = false;
+  // double volatile_detected_distance_hauler = -1.0;
+  // bool flag_localizing_volatile_hauler = false;
+  // bool flag_volatile_recorded_hauler = false;
+  // bool flag_volatile_unreachable_hauler = false;
   bool flag_localization_failure_hauler = false;
   bool flag_recovering_localization_hauler = false;
   bool flag_brake_engaged_hauler = false;
@@ -44,7 +45,7 @@ public:
   bool flag_waypoint_unreachable_excavator = false;
   bool flag_arrived_at_waypoint_excavator = true;
   double volatile_detected_distance_excavator = -1.0;
-  bool flag_localizing_volatile_excavator = false;
+  bool flag_localizing_volatile_excavator = false; // Not used!
   bool flag_volatile_recorded_excavator = false;
   bool flag_volatile_unreachable_excavator = false;
   bool flag_localization_failure_excavator = false;
@@ -57,9 +58,10 @@ public:
 
   // ROS objects
   ros::NodeHandle nh;
-  
+
   ros::Publisher sm_state_hauler_pub;
   ros::Publisher sm_state_excavator_pub;
+  ros::Publisher manipulation_state_excavator_pub;
 
   ros::Subscriber odometry_excavator_sub;
   ros::Subscriber localized_base_hauler_sub;
@@ -76,6 +78,7 @@ public:
   ros::Subscriber volatile_detected_excavator_sub;
   ros::Subscriber volatile_recorded_excavator_sub;
   ros::Subscriber localization_failure_excavator_sub;
+  ros::Subscriber manipulation_feedback_excavator_sub;
 
   ros::ServiceClient clt_true_pose_excavator_;
   ros::ServiceClient clt_next_vol_excavator_;
@@ -107,18 +110,18 @@ public:
   void localizedBaseExcavatorCallback(const std_msgs::Int64::ConstPtr& msg);
   void waypointUnreachableExcavatorCallback(const std_msgs::Bool::ConstPtr& msg);
   void arrivedAtWaypointExcavatorCallback(const std_msgs::Bool::ConstPtr& msg);
-  void volatileDetectedExcavatorCallback(const std_msgs::Float32::ConstPtr& msg);
-  void volatileRecordedExcavatorCallback(const std_msgs::Bool::ConstPtr& msg);
+  // void volatileDetectedExcavatorCallback(const std_msgs::Float32::ConstPtr& msg);
+  // void volatileRecordedExcavatorCallback(const std_msgs::Bool::ConstPtr& msg);
   void localizationFailureExcavatorCallback(const std_msgs::Bool::ConstPtr& msg);
 
   void odometryHaulerCallback(const nav_msgs::Odometry::ConstPtr& msg);
   void localizedBaseHaulerCallback(const std_msgs::Int64::ConstPtr& msg);
   void waypointUnreachableHaulerCallback(const std_msgs::Bool::ConstPtr& msg);
   void arrivedAtWaypointHaulerCallback(const std_msgs::Bool::ConstPtr& msg);
-  void volatileDetectedHaulerCallback(const std_msgs::Float32::ConstPtr& msg);
-  void volatileRecordedHaulerCallback(const std_msgs::Bool::ConstPtr& msg);
+  // void volatileDetectedHaulerCallback(const std_msgs::Float32::ConstPtr& msg);
+  // void volatileRecordedHaulerCallback(const std_msgs::Bool::ConstPtr& msg);
   void localizationFailureHaulerCallback(const std_msgs::Bool::ConstPtr& msg);
-
+  void manipulationFeedbackCallback(const move_excavator::ExcavationStatus::ConstPtr& msg);
   geometry_msgs::Pose current_pose_excavator_;
   geometry_msgs::Twist current_vel_excavator_;
   geometry_msgs::Pose current_pose_hauler_;
@@ -126,4 +129,6 @@ public:
 
   bool first_odom_hauler_ = false;
   bool first_odom_excavator_ = false;
+  bool isFinished_;
+  double collectedMass_;
 };
