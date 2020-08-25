@@ -22,6 +22,7 @@ find_package(catkin REQUIRED COMPONENTS
   waypoint_nav
   waypoint_gen
   srcp2_msgs
+  nav_msgs
   move_excavator
 )
 

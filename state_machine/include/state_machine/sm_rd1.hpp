@@ -14,6 +14,9 @@
 #include <driving_tools/CirculateBaseStation.h>
 #include <driving_tools/RotateInPlace.h>
 #include <volatile_handler/VolatileReport.h>
+#include <nav_msgs/Odometry.h>
+#include <tf2/LinearMath/Quaternion.h>
+#include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 
 class SmRd1
 {
@@ -29,6 +32,8 @@ public:
   bool flag_waypoint_unreachable = false;
   bool flag_arrived_at_waypoint = true;
   double volatile_detected_distance = -1.0;
+  double min_volatile_detected_distance = 30.0;
+  double prev_volatile_detected_distance = -1.0;
   bool flag_localizing_volatile = false;
   bool flag_volatile_recorded = false;
   bool flag_volatile_unreachable = false;
@@ -36,6 +41,14 @@ public:
   bool flag_recovering_localization = false;
   bool flag_brake_engaged = false;
   bool flag_fallthrough_condition = false;
+
+  ros::Time detection_timer, not_detected_timer;
+
+  const double VOLATILE_MIN_THRESH = 0.3;
+  const double TIMER_THRESH = 15;
+  const double NOT_DETECTED_THRESH = 6;
+  int timer_counter = 0;
+  double pitch = 0, roll = 0, yaw = 0, yaw_prev = 0;
 
   // State vector
   std::vector<int> state_to_exec; // Only one should be true at a time, if multiple are true then a default state should be executed
@@ -49,6 +62,7 @@ public:
   ros::Subscriber volatile_detected_sub;
   ros::Subscriber volatile_recorded_sub;
   ros::Subscriber localization_failure_sub;
+  ros::Subscriber localization_sub;
 
   ros::ServiceClient clt_true_pose_;
   ros::ServiceClient clt_wp_gen_;
@@ -56,6 +70,8 @@ public:
   ros::ServiceClient clt_wp_nav_interrupt_;
   ros::ServiceClient clt_vh_report_;
   ros::ServiceClient clt_stop_;
+  ros::ServiceClient clt_rip_;
+  ros::ServiceClient clt_drive_;
   ros::ServiceClient clt_vol_report_;
 
   // Methods ----------------------------------------------------------------------------------------------------------------------------
@@ -76,4 +92,5 @@ public:
   void volatileDetectedCallback(const std_msgs::Float32::ConstPtr& msg);
   void volatileRecordedCallback(const std_msgs::Bool::ConstPtr& msg);
   void localizationFailureCallback(const std_msgs::Bool::ConstPtr& msg);
+  void localizationCallback(const nav_msgs::Odometry::ConstPtr& msg);
 };
