@@ -272,11 +272,12 @@ void SmRd1::stateVolatileHandler()
   srv_wp_nav.request.interrupt = true;
   if (clt_wp_nav_interrupt_.call(srv_wp_nav))
   {
-        ROS_INFO_STREAM("I called service interrupt ");
+    ROS_INFO_STREAM("Called service Interrupt.");
   }
   else
   {
-        ROS_ERROR("Failed to call service Interrupt Nav");
+    ROS_ERROR("Failed to call service Interrupt.");
+
   }
   //ros::Duration(2.0).sleep();
 
@@ -285,6 +286,7 @@ void SmRd1::stateVolatileHandler()
   if (clt_stop_.call(srv_stop))
   {
      ROS_INFO_STREAM("SM: Stopping Enabled? "<< srv_stop.response);
+
   }
   else
   {
@@ -301,6 +303,7 @@ void SmRd1::stateVolatileHandler()
   //{
     srv_vol_rep.request.start = true;
     if (clt_vol_report_.call(srv_vol_rep))
+
     {
             ROS_INFO_STREAM("SM: Volatile Accepted? "<< srv_vol_rep.response);
             flag_volatile_recorded=true; //JNG CHANGED THIS TO UNCOMMENT 8/12/20

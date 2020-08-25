@@ -1,0 +1,9 @@
+loop_rate : 10.0
+odometry_robot_name: "scout_1"
+# imu_topic_name : "/scout_1/imu"
+odometry_dr_topic_name : "/dead_reckoning/odometry"
+odometry_truth_in_topic_name: "/gazebo/model_states"
+odometry_truth_out_topic_name: "/odometry/truth"
+odometry_err_topic_name: "/odometry/error"
+odometry_frame_id : "scout_1_tf/odom"
+odometry_child_frame_id : "scout_1_tf/base_footprint"
