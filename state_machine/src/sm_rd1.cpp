@@ -15,7 +15,7 @@ ac("/move_base", true)
   volatile_recorded_sub = nh.subscribe("state_machine/volatile_recorded", 1, &SmRd1::volatileRecordedCallback, this);
   localization_failure_sub = nh.subscribe("state_machine/localization_failure", 1, &SmRd1::localizationFailureCallback, this);
   localization_sub  = nh.subscribe("localization/odometry/sensor_fusion", 1, &SmRd1::localizationCallback, this);
-
+  
   // Clients
   clt_true_pose_ = nh.serviceClient<pose_update::PoseUpdate>("localization/true_pose_update");
   clt_wp_gen_ = nh.serviceClient<waypoint_gen::GenerateWaypoint>("navigation/generate_goal");
@@ -25,9 +25,12 @@ ac("/move_base", true)
   clt_rip_ = nh.serviceClient<driving_tools::RotateInPlace>("driving/rotate_in_place");
   clt_drive_ = nh.serviceClient<driving_tools::MoveForward>("driving/move_forward");
   clt_vol_report_ = nh.serviceClient<volatile_handler::VolatileReport>("volatile/report");
-
-
-  // MoveBaseClient ac("move_base", true);
+  clt_lights_ = nh.serviceClient<srcp2_msgs::ToggleLightSrv>("toggle_light");
+  clt_brake_ = nh.serviceClient<srcp2_msgs::BrakeRoverSrv>("brake_rover");
+  clt_approach_base_ = nh.serviceClient<src2_object_detection::approach_base_station>("approach_base_station");
+  clt_align_base_ = nh.serviceClient<src2_object_detection::align_base_station>("base_location");
+  clt_localize_base_ = nh.serviceClient<range_to_base::LocationOfBase>("base_location");
+  clt_rover_static_ = nh.serviceClient<sensor_fusion::RoverStatic>("rover_static");
 
   detection_timer = ros::Time::now();
   not_detected_timer = ros::Time::now();
@@ -155,7 +158,31 @@ void SmRd1::stateInitialize()
   flag_arrived_at_waypoint = false;
   flag_waypoint_unreachable = false;
 
-  // Break
+  // Turn on the Lights
+  srcp2_msgs::ToggleLightSrv srv_lights;
+  srv_lights.request.data  = "0.8";
+  if (clt_lights_.call(srv_lights))
+  {
+    // ROS_INFO_STREAM("Success? "<< srv_stop.response.success);
+  }
+  else
+  {
+    ROS_ERROR("Failed to call service ToggleLight");
+  }
+
+  // Approach Base Station
+  src2_object_detection::approach_base_station srv_approach_base;
+  srv_approach_base.request.approach_base_station = true;
+  if (clt_approach_base_.call(srv_approach_base))
+  {
+    // ROS_INFO_STREAM("Success? "<< srv_stop.response.success);
+  }
+  else
+  {
+    ROS_ERROR("Failed to call service ApproachBaseStation");
+  }
+
+  // Break Rover
   driving_tools::Stop srv_stop;
   srv_stop.request.enableStop  = true;
   if (clt_stop_.call(srv_stop))
@@ -177,6 +204,52 @@ void SmRd1::stateInitialize()
   else
   {
     ROS_ERROR("Failed to call service Pose Update");
+  }
+
+  // Start attitude averaging for static rover
+  sensor_fusion::RoverStatic srv_rover_static;
+  srv_rover_static.request.rover_static  = true;
+  if (clt_rover_static_.call(srv_rover_static))
+  {
+    // ROS_INFO_STREAM("Success? "<< srv_upd_pose.response.success);
+  }
+  else
+  {
+    ROS_ERROR("Failed to call service RoverStatic");
+  }
+
+  // Localize Base Station
+  range_to_base::LocationOfBase srv_localize_base;
+  srv_localize_base.request.angle  = 0.0;
+  if (clt_localize_base_.call(srv_localize_base))
+  {
+    // ROS_INFO_STREAM("Success? "<< srv_upd_pose.response.success);
+  }
+  else
+  {
+    ROS_ERROR("Failed to call service LocationOfBase");
+  }
+
+  // Stop attitude averaging for static rover
+  srv_rover_static.request.rover_static  = false;
+  if (clt_rover_static_.call(srv_rover_static))
+  {
+    // ROS_INFO_STREAM("Success? "<< srv_upd_pose.response.success);
+  }
+  else
+  {
+    ROS_ERROR("Failed to call service RoverStatic");
+  }
+
+  // Turn on the Lights
+  srv_lights.request.data  = "0.2";
+  if (clt_lights_.call(srv_lights))
+  {
+    // ROS_INFO_STREAM("Success? "<< srv_stop.response.success);
+  }
+  else
+  {
+    ROS_ERROR("Failed to call service ToggleLight");
   }
 
   std_msgs::Int64 state_msg;

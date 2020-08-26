@@ -19,6 +19,12 @@
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 #include <actionlib/client/simple_action_client.h>
 #include <move_base_msgs/MoveBaseAction.h>
+#include <srcp2_msgs/ToggleLightSrv.h>
+#include <srcp2_msgs/BrakeRoverSrv.h>
+#include <src2_object_detection/approach_base_station.h>
+#include <src2_object_detection/align_base_station.h>
+#include <range_to_base/LocationOfBase.h>
+#include <sensor_fusion/RoverStatic.h>
 
 typedef actionlib::SimpleActionClient<move_base_msgs::MoveBaseAction> MoveBaseClient;
 
@@ -81,6 +87,12 @@ public:
   ros::ServiceClient clt_rip_;
   ros::ServiceClient clt_drive_;
   ros::ServiceClient clt_vol_report_;
+  ros::ServiceClient clt_brake_;
+  ros::ServiceClient clt_lights_;
+  ros::ServiceClient clt_approach_base_;
+  ros::ServiceClient clt_localize_base_;
+  ros::ServiceClient clt_align_base_;
+  ros::ServiceClient clt_rover_static_;
 
   MoveBaseClient ac;
 
