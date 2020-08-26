@@ -358,17 +358,17 @@ void SmRd1::stateVolatileHandler()
 
   ROS_INFO_STREAM("VOL HANDLE STATE");
 
-  waypoint_nav::Interrupt srv_wp_nav;
-  srv_wp_nav.request.interrupt = true;
-  if (clt_wp_nav_interrupt_.call(srv_wp_nav))
-  {
-    ROS_INFO_STREAM("Called service Interrupt.");
-  }
-  else
-  {
-    ROS_ERROR("Failed to call service Interrupt.");
+  // waypoint_nav::Interrupt srv_wp_nav;
+  // srv_wp_nav.request.interrupt = true;
+  // if (clt_wp_nav_interrupt_.call(srv_wp_nav))
+  // {
+  //   ROS_INFO_STREAM("Called service Interrupt.");
+  // }
+  // else
+  // {
+  //   ROS_ERROR("Failed to call service Interrupt.");
 
-  }
+  // }
   //ros::Duration(2.0).sleep();
 
   driving_tools::Stop srv_stop;
@@ -659,15 +659,15 @@ void SmRd1::stateVolatileHandler()
           }
   }
   }
-  srv_wp_nav.request.interrupt = false;
-  if (clt_wp_nav_interrupt_.call(srv_wp_nav))
-  {
-        ROS_INFO_STREAM("I called service interrupt ");
-  }
-  else
-  {
-        ROS_ERROR("Failed to call service Interrupt Nav");
-  }
+  // srv_wp_nav.request.interrupt = false;
+  // if (clt_wp_nav_interrupt_.call(srv_wp_nav))
+  // {
+  //       ROS_INFO_STREAM("I called service interrupt ");
+  // }
+  // else
+  // {
+  //       ROS_ERROR("Failed to call service Interrupt Nav");
+  // }
 
   ROS_INFO("VolatileHandler!\n");
   //flag_arrived_at_waypoint = false;
