@@ -276,25 +276,28 @@ void SmRd1::statePlanning()
   }
 
   geometry_msgs::Pose goal_pose;
-  ROS_INFO_STREAM("goal pose: " << goal_pose);
+  // ROS_INFO_STREAM("goal pose: " << goal_pose);
   // Generate Goal
   waypoint_gen::GenerateWaypoint srv_wp_gen;
   srv_wp_gen.request.start  = true;
   if (clt_wp_gen_.call(srv_wp_gen))
   {
     // ROS_INFO_STREAM("Success? "<< srv_wp_gen.response.success);
+
     goal_pose = srv_wp_gen.response.goal;
   }
   else
   {
     ROS_ERROR("Failed to call service Generate Waypoint");
   }
+  ROS_INFO_STREAM("goal pose: " << goal_pose);
 
   goal_yaw = atan2(goal_pose.position.y - current_pose_.position.y, goal_pose.position.x - current_pose_.position.x);
 
   move_base_msgs::MoveBaseGoal move_base_goal;
   ac.waitForServer();
   setPoseGoal(move_base_goal, goal_pose.position.x, goal_pose.position.y, goal_yaw);
+  ROS_INFO_STREAM("goal pose after SetposeGOAL: " << move_base_goal);
   ac.sendGoal(move_base_goal);
   ac.waitForResult(ros::Duration(0.25));
 
@@ -349,6 +352,9 @@ void SmRd1::stateTraverse()
 
 void SmRd1::stateVolatileHandler()
 {
+  ac.waitForServer();
+  ac.cancelGoal();
+  ac.waitForResult(ros::Duration(0.25));
 
   ROS_INFO_STREAM("VOL HANDLE STATE");
 

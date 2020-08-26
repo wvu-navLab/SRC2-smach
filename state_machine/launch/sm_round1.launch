@@ -30,9 +30,29 @@
 
   <include file="$(find src2_move_base)/launch/move_base.launch"/>
 
+  <!-- inference for base station -->
+  <include file="$(find src2_object_detection)/launch/inference.launch"/>
+
+  <!-- laser tools  -->
+  <include file="$(find laser_tools_src2)/launch/scout_laser_tools_R1.launch"/>
+
+  <!-- homing service -->
+  <include file="$(find range_to_base)/launch/scout_homing_service_R1.launch"/>
+
+  <!-- approach_base_station_service -->
+  <include file="$(find src2_object_detection)/launch/approach_base_station_service.launch"/>
+
+
+
+
+
+
+
   <!-- Sensor Fusion node -->
-  <!-- <include file="$(find sensor_fusion)/launch/scout_sensor_fusion.launch"/> -->
-
-
+<!-- rosrun image_view image_view image:=/BoundingBox/Image -->
+<!-- rosrun range_to_base rangeToBaseService.py -->
+<!-- rosservice call /scout_1/toggle_light "data: '0.2'" -->
+<!-- rosservice call /approach_base_station "approach_base_station:
+  data: true"  -->
 
 </launch>
