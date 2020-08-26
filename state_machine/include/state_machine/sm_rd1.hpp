@@ -17,6 +17,10 @@
 #include <nav_msgs/Odometry.h>
 #include <tf2/LinearMath/Quaternion.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
+#include <actionlib/client/simple_action_client.h>
+#include <move_base_msgs/MoveBaseAction.h>
+
+typedef actionlib::SimpleActionClient<move_base_msgs::MoveBaseAction> MoveBaseClient;
 
 class SmRd1
 {
@@ -42,6 +46,7 @@ public:
   bool flag_brake_engaged = false;
   bool flag_fallthrough_condition = false;
 
+
   ros::Time detection_timer, not_detected_timer;
 
   const double VOLATILE_MIN_THRESH = 0.3;
@@ -49,6 +54,9 @@ public:
   const double NOT_DETECTED_THRESH = 6;
   int timer_counter = 0;
   double pitch = 0, roll = 0, yaw = 0, yaw_prev = 0;
+  double goal_yaw;
+  bool actionDone_ = false;
+  geometry_msgs::Pose current_pose_;
 
   // State vector
   std::vector<int> state_to_exec; // Only one should be true at a time, if multiple are true then a default state should be executed
@@ -74,6 +82,8 @@ public:
   ros::ServiceClient clt_drive_;
   ros::ServiceClient clt_vol_report_;
 
+  MoveBaseClient ac;
+
   // Methods ----------------------------------------------------------------------------------------------------------------------------
   SmRd1(); // Constructor
   void run();
@@ -93,4 +103,10 @@ public:
   void volatileRecordedCallback(const std_msgs::Bool::ConstPtr& msg);
   void localizationFailureCallback(const std_msgs::Bool::ConstPtr& msg);
   void localizationCallback(const nav_msgs::Odometry::ConstPtr& msg);
+
+  void setPoseGoal(move_base_msgs::MoveBaseGoal& poseGoal, double x, double y, double yaw); // m, m, rad
+  void doneCallback(const actionlib::SimpleClientGoalState& state, const move_base_msgs::MoveBaseResultConstPtr& result);
+  void activeCallback();
+  void feedbackCallback(const move_base_msgs::MoveBaseFeedbackConstPtr& feedback);
+
 };

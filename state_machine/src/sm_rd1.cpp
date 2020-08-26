@@ -1,6 +1,7 @@
 #include <state_machine/sm_rd1.hpp>
 
-SmRd1::SmRd1()
+SmRd1::SmRd1() :
+ac("/move_base", true)
 {
   // Initialize ROS, Subs, and Pubs *******************************************
   // Publishers
@@ -25,6 +26,8 @@ SmRd1::SmRd1()
   clt_drive_ = nh.serviceClient<driving_tools::MoveForward>("driving/move_forward");
   clt_vol_report_ = nh.serviceClient<volatile_handler::VolatileReport>("volatile/report");
 
+
+  // MoveBaseClient ac("move_base", true);
 
   detection_timer = ros::Time::now();
   not_detected_timer = ros::Time::now();
@@ -214,18 +217,26 @@ void SmRd1::statePlanning()
     ROS_ERROR("Failed to call service Generate Waypoint");
   }
 
-  // Get True Pose
-  waypoint_nav::SetGoal srv_wp_nav;
-  srv_wp_nav.request.start = true;
-  srv_wp_nav.request.goal = goal_pose;
-  if (clt_wp_nav_set_goal_.call(srv_wp_nav))
-  {
-    // ROS_INFO_STREAM("Success? "<< srv_wp_nav.response.success);
-  }
-  else
-  {
-    ROS_ERROR("Failed to call service Drive to Waypoint");
-  }
+  goal_yaw = atan2(goal_pose.position.y - current_pose_.position.y, goal_pose.position.x - current_pose_.position.x);
+
+  move_base_msgs::MoveBaseGoal move_base_goal;
+  ac.waitForServer();
+  setPoseGoal(move_base_goal, goal_pose.position.x, goal_pose.position.y, goal_yaw);
+  ac.sendGoal(move_base_goal);
+  ac.waitForResult(ros::Duration(0.25));
+
+  // // Get True Pose
+  // waypoint_nav::SetGoal srv_wp_nav;
+  // srv_wp_nav.request.start = true;
+  // srv_wp_nav.request.goal = goal_pose;
+  // if (clt_wp_nav_set_goal_.call(srv_wp_nav))
+  // {
+  //   // ROS_INFO_STREAM("Success? "<< srv_wp_nav.response.success);
+  // }
+  // else
+  // {
+  //   ROS_ERROR("Failed to call service Drive to Waypoint");
+  // }
 
   std_msgs::Int64 state_msg;
   state_msg.data = _planning;
@@ -681,6 +692,8 @@ void SmRd1::localizationFailureCallback(const std_msgs::Bool::ConstPtr& msg)
 
 void SmRd1::localizationCallback(const nav_msgs::Odometry::ConstPtr& msg)
 {
+  current_pose_ = msg->pose.pose;
+
   yaw_prev = yaw;
   tf2::Quaternion q(msg->pose.pose.orientation.x,
                       msg->pose.pose.orientation.y,
@@ -688,5 +701,42 @@ void SmRd1::localizationCallback(const nav_msgs::Odometry::ConstPtr& msg)
                       msg->pose.pose.orientation.w);
   tf2::Matrix3x3(q).getRPY(roll, pitch, yaw);
 }
+
+
+void SmRd1::setPoseGoal(move_base_msgs::MoveBaseGoal &poseGoal, double x, double y, double yaw) // m, m, rad
+{
+    const double pitch = 0.0;
+    const double roll = 0.0;
+    double cy = cos(yaw * 0.5);
+    double sy = sin(yaw * 0.5);
+    double cr = cos(roll * 0.5);
+    double sr = sin(roll * 0.5);
+    double cp = cos(pitch * 0.5);
+    double sp = sin(pitch * 0.5);
+
+    poseGoal.target_pose.header.frame_id = "scout_1_tf/odom";
+    poseGoal.target_pose.pose.position.x = x;
+    poseGoal.target_pose.pose.position.y = y;
+    poseGoal.target_pose.pose.position.z = 0.0;
+    poseGoal.target_pose.pose.orientation.w = cy * cr * cp + sy * sr * sp;
+    poseGoal.target_pose.pose.orientation.x = cy * sr * cp - sy * cr * sp;
+    poseGoal.target_pose.pose.orientation.y = cy * cr * sp + sy * sr * cp;
+    poseGoal.target_pose.pose.orientation.z = sy * cr * cp - cy * sr * sp;
+}
+
+void SmRd1::doneCallback(const actionlib::SimpleClientGoalState& state, const move_base_msgs::MoveBaseResultConstPtr& result)
+{
+    actionDone_ = true;
+    ROS_INFO("goal done");
+}
+void SmRd1::activeCallback()
+{
+    ROS_INFO("goal went active");
+}
+void SmRd1::feedbackCallback(const move_base_msgs::MoveBaseFeedbackConstPtr& feedback)
+{
+    ROS_INFO("got feedback");
+}
+
 
 //------------------------------------------------------------------------------------------------------------------------
