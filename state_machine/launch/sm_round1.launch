@@ -1,14 +1,11 @@
 <launch>
 
 
-  <!-- scout_driving_tools launch file -->
+  <!-- REMOVE BEFORE SUBMISSION scout_driving_tools launch file -->
   <include file="$(find gazebo_truth_odom)/launch/scout_gazebo_truth_odom.launch"/>
 
   <!-- scout_motion_control launch file -->
   <include file="$(find driving_control)/launch/scout_driving_control_all.launch"/>
-
-  <!-- scout_motion_control launch file -->
-  <include file="$(find state_machine)/launch/scout_state_machine_rd1.launch"/>
 
   <!-- scout_driving_tools launch file -->
   <include file="$(find pose_update)/launch/scout_pose_update.launch"/>
@@ -39,8 +36,15 @@
   <!-- homing service -->
   <include file="$(find range_to_base)/launch/scout_homing_service_R1.launch"/>
 
+  <!-- homing service -->
+  <include file="$(find range_to_base)/launch/scout_range_2_base_service_R1.launch"/>
+
   <!-- approach_base_station_service -->
   <include file="$(find src2_object_detection)/launch/approach_base_station_service.launch"/>
+
+
+  <!-- scout_motion_control launch file -->
+  <include file="$(find state_machine)/launch/scout_state_machine_rd1.launch"/>
 
 
 
@@ -49,10 +53,7 @@
 
 
   <!-- Sensor Fusion node -->
-<!-- rosrun image_view image_view image:=/BoundingBox/Image -->
-<!-- rosrun range_to_base rangeToBaseService.py -->
-<!-- rosservice call /scout_1/toggle_light "data: '0.2'" -->
-<!-- rosservice call /approach_base_station "approach_base_station:
-  data: true"  -->
-
+  <!-- rosrun  src2_object_detection inference.py
+  rosrun range_to_base rangeToBaseService.py
+  rosrun src2_object_detection approach_base_station_service.py -->
 </launch>

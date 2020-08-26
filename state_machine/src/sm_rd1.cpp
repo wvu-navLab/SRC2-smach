@@ -15,7 +15,7 @@ ac("/move_base", true)
   volatile_recorded_sub = nh.subscribe("state_machine/volatile_recorded", 1, &SmRd1::volatileRecordedCallback, this);
   localization_failure_sub = nh.subscribe("state_machine/localization_failure", 1, &SmRd1::localizationFailureCallback, this);
   localization_sub  = nh.subscribe("localization/odometry/sensor_fusion", 1, &SmRd1::localizationCallback, this);
-  
+
   // Clients
   clt_true_pose_ = nh.serviceClient<pose_update::PoseUpdate>("localization/true_pose_update");
   clt_wp_gen_ = nh.serviceClient<waypoint_gen::GenerateWaypoint>("navigation/generate_goal");
@@ -172,7 +172,7 @@ void SmRd1::stateInitialize()
 
   // Approach Base Station
   src2_object_detection::approach_base_station srv_approach_base;
-  srv_approach_base.request.approach_base_station = true;
+  srv_approach_base.request.approach_base_station.data= true;
   if (clt_approach_base_.call(srv_approach_base))
   {
     // ROS_INFO_STREAM("Success? "<< srv_stop.response.success);
