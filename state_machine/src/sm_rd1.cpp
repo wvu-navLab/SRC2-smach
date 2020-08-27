@@ -215,6 +215,10 @@ void SmRd1::stateInitialize()
   sensor_fusion::GetTruePose srv_sf_true_pose;
   srv_sf_true_pose.request.start = true;
 
+  while (!clt_sf_true_pose_.waitForExistence())
+  {
+    ROS_ERROR("WAITING FOR TRUE POSE");
+  }
   if (clt_sf_true_pose_.call(srv_sf_true_pose))
   {
     ROS_INFO_STREAM("Success STATUS OF srv_sf_true_pose? "<< srv_sf_true_pose.response.success);
