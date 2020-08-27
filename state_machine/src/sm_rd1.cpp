@@ -163,6 +163,10 @@ void SmRd1::stateInitialize()
   flag_arrived_at_waypoint = false;
   flag_waypoint_unreachable = false;
 
+  // ac.waitForServer();
+  // ac.cancelGoal();
+  // ac.waitForResult(ros::Duration(0.25));
+
   // Turn on the Lights
   srcp2_msgs::ToggleLightSrv srv_lights;
   srv_lights.request.data  = "0.8";
@@ -178,6 +182,10 @@ void SmRd1::stateInitialize()
   // Approach Base Station
   src2_object_detection::approach_base_station srv_approach_base;
   srv_approach_base.request.approach_base_station.data= true;
+  while (!clt_approach_base_.waitForExistence())
+  {
+    ROS_ERROR("WAITING for approach_base");
+  }
   if (clt_approach_base_.call(srv_approach_base))
   {
     // ROS_INFO_STREAM("Success? "<< srv_approach_base.response.success.data);
@@ -274,6 +282,54 @@ void SmRd1::stateInitialize()
   else
   {
     ROS_ERROR("Failed to call service ToggleLight");
+  }
+
+  driving_tools::RotateInPlace srv_turn;
+
+  srv_turn.request.throttle  = 0.2;
+
+
+  if (clt_rip_.call(srv_turn))
+  {
+          ROS_INFO_STREAM("SM: Rotating Enabled? "<< srv_turn.response);
+          ros::Duration(5.0).sleep();
+  }
+  else
+  {
+          ROS_ERROR("Failed to call service Stop");
+  }
+  // Break Rover
+  // driving_tools::Stop srv_stop;
+  srv_stop.request.enableStop  = true;
+  if (clt_stop_.call(srv_stop))
+  {
+    // ROS_INFO_STREAM("Success? "<< srv_stop.response.success);
+  }
+  else
+  {
+    ROS_ERROR("Failed to call service Stop");
+  }
+
+  driving_tools::MoveForward srv_drive;
+  srv_drive.request.throttle  = 0.3;
+  if (clt_drive_.call(srv_drive))
+  {
+          ros::Duration(3.0).sleep();
+          ROS_INFO_STREAM("SM: Drive Enabled? "<< srv_drive.response);
+  }
+  else
+  {
+          ROS_ERROR("Failed to call service Drive");
+  }
+
+  srv_stop.request.enableStop  = true;
+  if (clt_stop_.call(srv_stop))
+  {
+    // ROS_INFO_STREAM("Success? "<< srv_stop.response.success);
+  }
+  else
+  {
+    ROS_ERROR("Failed to call service Stop");
   }
 
   std_msgs::Int64 state_msg;
@@ -434,10 +490,10 @@ void SmRd1::stateVolatileHandler()
 
   double direction = 1.0;
   int count = 0;
-  int max_count = 5;
+  int max_count = 2;
   ros::Rate rateVol(20);
   double diff;
-  const double MAX_TIME = 10;
+  const double MAX_TIME = 2;
   while(count < max_count && !flag_localization_failure && !flag_volatile_recorded)
   {
           ROS_INFO_STREAM("While: " << count);
@@ -673,6 +729,7 @@ void SmRd1::stateVolatileHandler()
                   else
                   {
                           ROS_ERROR("Service Did not Collect Points");
+                          flag_recovering_localization =true;
                   }
           }else
           {
@@ -714,6 +771,11 @@ void SmRd1::stateLost()
   flag_localizing_volatile = false;
   flag_arrived_at_waypoint = false;
   flag_waypoint_unreachable = false;
+
+
+  ac.waitForServer();
+  ac.cancelGoal();
+  ac.waitForResult(ros::Duration(0.25));
 
   // Break
   driving_tools::Stop srv_stop;
@@ -768,6 +830,7 @@ void SmRd1::stateLost()
   if (clt_homing_.call(srv_homing))
   {
     // ROS_INFO_STREAM("Success? "<< srv_upd_pose.response.success);
+    flag_recovering_localization=false;
   }
   else
   {
