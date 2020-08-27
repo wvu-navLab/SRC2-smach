@@ -2,10 +2,16 @@
 
 
   <!-- scout_motion_control launch file -->
-  <include file="$(find driving_control)/launch/scout_driving_control_all.launch"/>
+  <include file="$(find driving_control)/launch/scout_driving_control.launch"/>
 
   <!-- dead_reckoning launch file -->
   <include file="$(find rover_deadreckoning)/launch/scout_dead_reckoning.launch"/>
+
+  <!-- vo_ launch file -->
+  <include file="$(find wvu_vo_ros)/launch/vo_pipelineScout.launch"/>
+
+  <!-- sensor_fusion launch file -->
+  <include file="$(find sensor_fusion)/launch/scout_sensor_fusion.launch"/>
 
   <!-- scout_driving_tools launch file -->
   <include file="$(find waypoint_nav)/launch/scout_waypoint_nav.launch"/>
@@ -40,6 +46,8 @@
 
   <!-- scout_motion_control launch file -->
   <include file="$(find state_machine)/launch/scout_state_machine_rd1.launch"/>
+
+
 
 
 
