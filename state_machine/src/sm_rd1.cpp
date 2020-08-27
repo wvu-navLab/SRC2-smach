@@ -491,10 +491,10 @@ void SmRd1::stateVolatileHandler()
 
   double direction = 1.0;
   int count = 0;
-  int max_count = 2;
+  int max_count = 2; // IT WAS 5 BEFORE
   ros::Rate rateVol(20);
   double diff;
-  const double MAX_TIME = 2;
+  const double MAX_TIME = 2; //IT WAS 10 BEFORE
   while(count < max_count && !flag_localization_failure && !flag_volatile_recorded)
   {
           ROS_INFO_STREAM("While: " << count);
