@@ -64,7 +64,7 @@
   <buildtool_depend>nav_msgs</buildtool_depend>
   <buildtool_depend>move_excavator</buildtool_depend>
   <buildtool_depend>actionlib</buildtool_depend>
-
+  <buildtool_depend>sensor_fusion</buildtool_depend>
 
   <build_depend>catkin</build_depend>
   <build_depend>roscpp</build_depend>
@@ -82,6 +82,7 @@
   <build_depend>nav_msgs</build_depend>
   <build_depend>move_excavator</build_depend>
   <build_depend>actionlib</build_depend>
+  <build_depend>sensor_fusion</build_depend>
 
 
   <exec_depend>catkin</exec_depend>
@@ -100,7 +101,7 @@
   <exec_depend>nav_msgs</exec_depend>
   <exec_depend>move_excavator</exec_depend>
   <exec_depend>actionlib</exec_depend>
-
+  <exec_depend>sensor_fusion</exec_depend>
 
 
   <!-- The export tag contains other, unspecified, tags -->

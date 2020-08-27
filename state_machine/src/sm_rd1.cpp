@@ -18,7 +18,7 @@ ac("/move_base", true)
 
   // Clients
   // clt_true_pose_ = nh.serviceClient<pose_update::PoseUpdate>("localization/true_pose_update");
-  clt_sf_true_pose_ = nh.serviceClient<sensor_fusion::GetTruePose>("true_pose");
+
   clt_wp_gen_ = nh.serviceClient<waypoint_gen::GenerateWaypoint>("navigation/generate_goal");
   clt_wp_nav_set_goal_ = nh.serviceClient<waypoint_nav::SetGoal>("navigation/set_goal");
   clt_wp_nav_interrupt_ = nh.serviceClient<waypoint_nav::Interrupt>("navigation/interrupt");
@@ -29,9 +29,10 @@ ac("/move_base", true)
   clt_lights_ = nh.serviceClient<srcp2_msgs::ToggleLightSrv>("toggle_light");
   clt_brake_ = nh.serviceClient<srcp2_msgs::BrakeRoverSrv>("brake_rover");
   clt_approach_base_ = nh.serviceClient<src2_object_detection::approach_base_station>("approach_base_station");
-  clt_align_base_ = nh.serviceClient<src2_object_detection::align_base_station>("base_location");
-  clt_rover_static_ = nh.serviceClient<sensor_fusion::RoverStatic>("rover_static");
+  clt_align_base_ = nh.serviceClient<src2_object_detection::align_base_station>("base_location"); //We don't need that?
+  clt_rover_static_ = nh.serviceClient<sensor_fusion::RoverStatic>("sensor_fusion/toggle_rover_static");
   clt_homing_ = nh.serviceClient<sensor_fusion::HomingUpdate>("homing");
+  clt_sf_true_pose_ = nh.serviceClient<sensor_fusion::GetTruePose>("true_pose");
 
 
 
@@ -212,12 +213,15 @@ void SmRd1::stateInitialize()
 
   // Update SF with True Pose
   sensor_fusion::GetTruePose srv_sf_true_pose;
+  srv_sf_true_pose.request.start = true;
+
   if (clt_sf_true_pose_.call(srv_sf_true_pose))
   {
-    // ROS_INFO_STREAM("Success? "<< srv_sf_true_pose.response.success);
+    ROS_INFO_STREAM("Success STATUS OF srv_sf_true_pose? "<< srv_sf_true_pose.response.success);
   }
   else
   {
+    ROS_INFO_STREAM("STATUS OF srv_sf_true_pose"<< srv_sf_true_pose.response.success);
     ROS_ERROR("Failed to call service Pose Update");
   }
 
