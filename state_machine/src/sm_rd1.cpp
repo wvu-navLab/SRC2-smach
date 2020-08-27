@@ -28,8 +28,7 @@ ac("/move_base", true)
   clt_vol_report_ = nh.serviceClient<volatile_handler::VolatileReport>("volatile/report");
   clt_lights_ = nh.serviceClient<srcp2_msgs::ToggleLightSrv>("toggle_light");
   clt_brake_ = nh.serviceClient<srcp2_msgs::BrakeRoverSrv>("brake_rover");
-  clt_approach_base_ = nh.serviceClient<src2_object_detection::approach_base_station>("approach_base_station");
-  clt_align_base_ = nh.serviceClient<src2_object_detection::align_base_station>("base_location"); //We don't need that?
+  clt_approach_base_ = nh.serviceClient<src2_object_detection::ApproachBaseStation>("approach_base_station");
   clt_rover_static_ = nh.serviceClient<sensor_fusion::RoverStatic>("sensor_fusion/toggle_rover_static");
   clt_homing_ = nh.serviceClient<sensor_fusion::HomingUpdate>("homing");
   clt_sf_true_pose_ = nh.serviceClient<sensor_fusion::GetTruePose>("true_pose");
@@ -180,7 +179,7 @@ void SmRd1::stateInitialize()
   }
 
   // Approach Base Station
-  src2_object_detection::approach_base_station srv_approach_base;
+  src2_object_detection::ApproachBaseStation srv_approach_base;
   srv_approach_base.request.approach_base_station.data= true;
   while (!clt_approach_base_.waitForExistence())
   {
@@ -802,7 +801,7 @@ void SmRd1::stateLost()
   }
 
   // Approach Base Station
-  src2_object_detection::approach_base_station srv_approach_base;
+  src2_object_detection::ApproachBaseStation srv_approach_base;
   srv_approach_base.request.approach_base_station.data= true;
   if (clt_approach_base_.call(srv_approach_base))
   {

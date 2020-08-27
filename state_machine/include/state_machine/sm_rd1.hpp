@@ -22,9 +22,7 @@
 #include <move_base_msgs/MoveBaseAction.h>
 #include <srcp2_msgs/ToggleLightSrv.h>
 #include <srcp2_msgs/BrakeRoverSrv.h>
-#include <src2_object_detection/approach_base_station.h>
-#include <src2_object_detection/align_base_station.h>
-#include <range_to_base/LocationOfBase.h>
+#include <src2_object_detection/ApproachBaseStation.h>
 #include <sensor_fusion/RoverStatic.h>
 #include <sensor_fusion/GetTruePose.h>
 #include <sensor_fusion/HomingUpdate.h>
@@ -95,9 +93,8 @@ public:
   ros::ServiceClient clt_vol_report_;
   ros::ServiceClient clt_brake_;
   ros::ServiceClient clt_lights_;
-  ros::ServiceClient clt_approach_base_;
   ros::ServiceClient clt_homing_;
-  ros::ServiceClient clt_align_base_;
+  ros::ServiceClient clt_approach_base_;
   ros::ServiceClient clt_rover_static_;
 
   MoveBaseClient ac;

@@ -65,6 +65,7 @@
   <buildtool_depend>move_excavator</buildtool_depend>
   <buildtool_depend>actionlib</buildtool_depend>
   <buildtool_depend>sensor_fusion</buildtool_depend>
+  <buildtool_depend>src2_object_detection</buildtool_depend>
 
   <build_depend>catkin</build_depend>
   <build_depend>roscpp</build_depend>
@@ -83,7 +84,27 @@
   <build_depend>move_excavator</build_depend>
   <build_depend>actionlib</build_depend>
   <build_depend>sensor_fusion</build_depend>
+  <build_depend>src2_object_detection</build_depend>
 
+
+  <build_export_depend>catkin</build_export_depend>
+  <build_export_depend>roscpp</build_export_depend>
+  <build_export_depend>rospy</build_export_depend>
+  <build_export_depend>message_runtime</build_export_depend>
+  <build_export_depend>roslib</build_export_depend>
+  <build_export_depend>pose_update</build_export_depend>
+  <build_export_depend>waypoint_nav</build_export_depend>
+  <build_export_depend>waypoint_gen</build_export_depend>
+  <build_export_depend>driving_tools</build_export_depend>
+  <build_export_depend>volatile_handler</build_export_depend>
+  <build_export_depend>round2_volatile_handler</build_export_depend>
+  <build_export_depend>geometry_msgs</build_export_depend>
+  <build_export_depend>std_msgs</build_export_depend>
+  <build_export_depend>nav_msgs</build_export_depend>
+  <build_export_depend>move_excavator</build_export_depend>
+  <build_export_depend>actionlib</build_export_depend>
+  <build_export_depend>sensor_fusion</build_export_depend>
+  <build_export_depend>src2_object_detection</build_export_depend>
 
   <exec_depend>catkin</exec_depend>
   <exec_depend>roscpp</exec_depend>
@@ -100,8 +121,9 @@
   <exec_depend>std_msgs</exec_depend>
   <exec_depend>nav_msgs</exec_depend>
   <exec_depend>move_excavator</exec_depend>
-  <exec_depend>actionlib</exec_depend>
   <exec_depend>sensor_fusion</exec_depend>
+  <exec_depend>actionlib</exec_depend>
+  <exec_depend>src2_object_detection</exec_depend>
 
 
   <!-- The export tag contains other, unspecified, tags -->
