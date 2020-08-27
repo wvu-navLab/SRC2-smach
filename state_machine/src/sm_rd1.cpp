@@ -17,7 +17,8 @@ ac("/move_base", true)
   localization_sub  = nh.subscribe("localization/odometry/sensor_fusion", 1, &SmRd1::localizationCallback, this);
 
   // Clients
-  clt_true_pose_ = nh.serviceClient<pose_update::PoseUpdate>("localization/true_pose_update");
+  // clt_true_pose_ = nh.serviceClient<pose_update::PoseUpdate>("localization/true_pose_update");
+  clt_sf_true_pose_ = nh.serviceClient<sensor_fusion::GetTruePose>("true_pose");
   clt_wp_gen_ = nh.serviceClient<waypoint_gen::GenerateWaypoint>("navigation/generate_goal");
   clt_wp_nav_set_goal_ = nh.serviceClient<waypoint_nav::SetGoal>("navigation/set_goal");
   clt_wp_nav_interrupt_ = nh.serviceClient<waypoint_nav::Interrupt>("navigation/interrupt");
@@ -29,8 +30,11 @@ ac("/move_base", true)
   clt_brake_ = nh.serviceClient<srcp2_msgs::BrakeRoverSrv>("brake_rover");
   clt_approach_base_ = nh.serviceClient<src2_object_detection::approach_base_station>("approach_base_station");
   clt_align_base_ = nh.serviceClient<src2_object_detection::align_base_station>("base_location");
-  clt_localize_base_ = nh.serviceClient<range_to_base::LocationOfBase>("base_location");
   clt_rover_static_ = nh.serviceClient<sensor_fusion::RoverStatic>("rover_static");
+  clt_homing_ = nh.serviceClient<sensor_fusion::HomingUpdate>("homing");
+
+
+
 
   detection_timer = ros::Time::now();
   not_detected_timer = ros::Time::now();
@@ -175,7 +179,7 @@ void SmRd1::stateInitialize()
   srv_approach_base.request.approach_base_station.data= true;
   if (clt_approach_base_.call(srv_approach_base))
   {
-    // ROS_INFO_STREAM("Success? "<< srv_stop.response.success);
+    // ROS_INFO_STREAM("Success? "<< srv_approach_base.response.success.data);
   }
   else
   {
@@ -194,12 +198,23 @@ void SmRd1::stateInitialize()
     ROS_ERROR("Failed to call service Stop");
   }
 
-  // Get True Pose
-  pose_update::PoseUpdate srv_upd_pose;
-  srv_upd_pose.request.start  = true;
-  if (clt_true_pose_.call(srv_upd_pose))
+  // // Get True Pose
+  // pose_update::PoseUpdate srv_upd_pose;
+  // srv_upd_pose.request.start  = true;
+  // if (clt_true_pose_.call(srv_upd_pose))
+  // {
+  //   // ROS_INFO_STREAM("Success? "<< srv_upd_pose.response.success);
+  // }
+  // else
+  // {
+  //   ROS_ERROR("Failed to call service Pose Update");
+  // }
+
+  // Update SF with True Pose
+  sensor_fusion::GetTruePose srv_sf_true_pose;
+  if (clt_sf_true_pose_.call(srv_sf_true_pose))
   {
-    // ROS_INFO_STREAM("Success? "<< srv_upd_pose.response.success);
+    // ROS_INFO_STREAM("Success? "<< srv_sf_true_pose.response.success);
   }
   else
   {
@@ -211,30 +226,31 @@ void SmRd1::stateInitialize()
   srv_rover_static.request.rover_static  = true;
   if (clt_rover_static_.call(srv_rover_static))
   {
-    // ROS_INFO_STREAM("Success? "<< srv_upd_pose.response.success);
+    // ROS_INFO_STREAM("Success? "<< srv_rover_static.response.success);
   }
   else
   {
     ROS_ERROR("Failed to call service RoverStatic");
   }
 
-  // Localize Base Station
-  range_to_base::LocationOfBase srv_localize_base;
-  srv_localize_base.request.angle  = 0.0;
-  if (clt_localize_base_.call(srv_localize_base))
+  // Homing - Initialize Base Station Landmark
+  sensor_fusion::HomingUpdate srv_homing;
+  srv_homing.request.initializeLandmark = true;
+  if (clt_homing_.call(srv_homing))
   {
-    // ROS_INFO_STREAM("Success? "<< srv_upd_pose.response.success);
+    base_location_ = srv_homing.response.base_location;
+    // ROS_INFO_STREAM("Success? "<< srv_homing.response.success);
   }
   else
   {
-    ROS_ERROR("Failed to call service LocationOfBase");
+    ROS_ERROR("Failed to call service HomingUpdate");
   }
 
   // Stop attitude averaging for static rover
   srv_rover_static.request.rover_static  = false;
   if (clt_rover_static_.call(srv_rover_static))
   {
-    // ROS_INFO_STREAM("Success? "<< srv_upd_pose.response.success);
+    // ROS_INFO_STREAM("Success? "<< srv_rover_static.response.success);
   }
   else
   {
@@ -245,7 +261,7 @@ void SmRd1::stateInitialize()
   srv_lights.request.data  = "0.2";
   if (clt_lights_.call(srv_lights))
   {
-    // ROS_INFO_STREAM("Success? "<< srv_stop.response.success);
+    // ROS_INFO_STREAM("Success? "<< srv_lights.response.success);
   }
   else
   {
@@ -701,6 +717,53 @@ void SmRd1::stateLost()
   else
   {
     ROS_ERROR("Failed to call service Stop");
+  }
+
+  // Turn on the Lights
+  srcp2_msgs::ToggleLightSrv srv_lights;
+  srv_lights.request.data  = "0.8";
+  if (clt_lights_.call(srv_lights))
+  {
+    // ROS_INFO_STREAM("Success? "<< srv_stop.response.success);
+  }
+  else
+  {
+    ROS_ERROR("Failed to call service ToggleLight");
+  }
+
+  // Approach Base Station
+  src2_object_detection::approach_base_station srv_approach_base;
+  srv_approach_base.request.approach_base_station.data= true;
+  if (clt_approach_base_.call(srv_approach_base))
+  {
+    // ROS_INFO_STREAM("Success? "<< srv_stop.response.success);
+  }
+  else
+  {
+    ROS_ERROR("Failed to call service ApproachBaseStation");
+
+    ROS_INFO_STREAM("Defining goal from base location");
+
+    goal_yaw = atan2(base_location_.y - current_pose_.position.y, base_location_.x - current_pose_.position.x);
+
+    move_base_msgs::MoveBaseGoal move_base_goal;
+    ac.waitForServer();
+    setPoseGoal(move_base_goal, base_location_.x, base_location_.y, goal_yaw);
+    ROS_INFO_STREAM("goal pose after SetposeGOAL: " << move_base_goal);
+    ac.sendGoal(move_base_goal);
+    ac.waitForResult(ros::Duration(0.25));
+  }
+
+  // Homing - Measurement Update
+  sensor_fusion::HomingUpdate srv_homing;
+  srv_homing.request.initializeLandmark = false;
+  if (clt_homing_.call(srv_homing))
+  {
+    // ROS_INFO_STREAM("Success? "<< srv_upd_pose.response.success);
+  }
+  else
+  {
+    ROS_ERROR("Failed to call service LocationOfBase");
   }
 
   std_msgs::Int64 state_msg;

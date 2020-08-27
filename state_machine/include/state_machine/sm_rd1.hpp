@@ -5,6 +5,7 @@
 #include <std_msgs/Float32.h>
 #include <std_msgs/Int64.h>
 #include <geometry_msgs/Pose.h>
+#include <geometry_msgs/Point.h>
 #include <pose_update/PoseUpdate.h>
 #include <waypoint_gen/GenerateWaypoint.h>
 #include <waypoint_nav/SetGoal.h>
@@ -25,6 +26,8 @@
 #include <src2_object_detection/align_base_station.h>
 #include <range_to_base/LocationOfBase.h>
 #include <sensor_fusion/RoverStatic.h>
+#include <sensor_fusion/GetTruePose.h>
+#include <sensor_fusion/HomingUpdate.h>
 
 typedef actionlib::SimpleActionClient<move_base_msgs::MoveBaseAction> MoveBaseClient;
 
@@ -63,6 +66,8 @@ public:
   double goal_yaw;
   bool actionDone_ = false;
   geometry_msgs::Pose current_pose_;
+  geometry_msgs::Point base_location_;
+
 
   // State vector
   std::vector<int> state_to_exec; // Only one should be true at a time, if multiple are true then a default state should be executed
@@ -78,7 +83,8 @@ public:
   ros::Subscriber localization_failure_sub;
   ros::Subscriber localization_sub;
 
-  ros::ServiceClient clt_true_pose_;
+  // ros::ServiceClient clt_true_pose_;
+  ros::ServiceClient clt_sf_true_pose_;
   ros::ServiceClient clt_wp_gen_;
   ros::ServiceClient clt_wp_nav_set_goal_;
   ros::ServiceClient clt_wp_nav_interrupt_;
@@ -90,7 +96,7 @@ public:
   ros::ServiceClient clt_brake_;
   ros::ServiceClient clt_lights_;
   ros::ServiceClient clt_approach_base_;
-  ros::ServiceClient clt_localize_base_;
+  ros::ServiceClient clt_homing_;
   ros::ServiceClient clt_align_base_;
   ros::ServiceClient clt_rover_static_;
 
