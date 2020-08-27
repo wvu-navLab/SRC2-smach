@@ -1,14 +1,8 @@
 <launch>
 
 
-  <!-- REMOVE BEFORE SUBMISSION scout_driving_tools launch file -->
-  <include file="$(find gazebo_truth_odom)/launch/scout_gazebo_truth_odom.launch"/>
-
   <!-- scout_motion_control launch file -->
   <include file="$(find driving_control)/launch/scout_driving_control_all.launch"/>
-
-  <!-- scout_driving_tools launch file -->
-  <include file="$(find pose_update)/launch/scout_pose_update.launch"/>
 
   <!-- dead_reckoning launch file -->
   <include file="$(find rover_deadreckoning)/launch/scout_dead_reckoning.launch"/>
@@ -41,7 +35,6 @@
 
   <!-- approach_base_station_service -->
   <include file="$(find src2_object_detection)/launch/approach_base_station_service.launch"/>
-
 
   <!-- scout_motion_control launch file -->
   <include file="$(find state_machine)/launch/scout_state_machine_rd1.launch"/>
