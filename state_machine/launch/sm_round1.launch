@@ -31,10 +31,12 @@
   <include file="$(find range_to_base)/launch/scout_homing_service_R1.launch"/>
 
   <!-- homing service -->
-  <include file="$(find range_to_base)/launch/scout_range_2_base_service_R1.launch"/>
+  <!-- <include file="$(find range_to_base)/launch/scout_range_2_base_service_R1.launch"/> -->
 
   <!-- approach_base_station_service -->
   <include file="$(find src2_object_detection)/launch/approach_base_station_service.launch"/>
+
+  <include file="$(find sensor_fusion)/launch/scout_homing.launch"/>
 
   <!-- scout_motion_control launch file -->
   <include file="$(find state_machine)/launch/scout_state_machine_rd1.launch"/>
