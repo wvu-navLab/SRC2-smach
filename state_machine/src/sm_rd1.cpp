@@ -56,7 +56,7 @@ void SmRd1::run()
     // ROS_INFO("flag_localizing_volatile: %i",flag_localizing_volatile);
     ROS_INFO("flag_volatile_recorded: %i",flag_volatile_recorded);
     // ROS_INFO("flag_volatile_unreachable: %i",flag_volatile_unreachable);
-    // ROS_INFO("flag_localization_failure: %i",flag_localization_failure);
+    ROS_INFO("flag_recovering_localization: %i",flag_localization_failure);
     ROS_INFO("flag_brake_engaged: %i",flag_brake_engaged);
     ROS_INFO("flag_fallthrough_condition: %i",flag_fallthrough_condition);
     //---------------------------------------------------------------------------------------------------------------------
@@ -164,9 +164,6 @@ void SmRd1::stateInitialize()
   flag_arrived_at_waypoint = false;
   flag_waypoint_unreachable = false;
 
-  // ac.waitForServer();
-  // ac.cancelGoal();
-  // ac.waitForResult(ros::Duration(0.25));
 
   // Turn on the Lights
   srcp2_msgs::ToggleLightSrv srv_lights;
@@ -288,8 +285,7 @@ void SmRd1::stateInitialize()
   driving_tools::RotateInPlace srv_turn;
 
   srv_turn.request.throttle  = 0.2;
-
-
+   ros::Duration(1.0).sleep();
   if (clt_rip_.call(srv_turn))
   {
           ROS_INFO_STREAM("SM: Rotating Enabled? "<< srv_turn.response);
@@ -491,10 +487,10 @@ void SmRd1::stateVolatileHandler()
 
   double direction = 1.0;
   int count = 0;
-  int max_count = 2;
+  int max_count = 5;
   ros::Rate rateVol(20);
   double diff;
-  const double MAX_TIME = 2;
+  const double MAX_TIME = 10;
   while(count < max_count && !flag_localization_failure && !flag_volatile_recorded)
   {
           ROS_INFO_STREAM("While: " << count);
