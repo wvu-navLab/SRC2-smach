@@ -187,6 +187,8 @@ void SmRd1::stateInitialize()
   if (clt_approach_base_.call(srv_approach_base))
   {
     // ROS_INFO_STREAM("Success? "<< srv_approach_base.response.success.data);
+
+
   }
   else
   {
@@ -281,6 +283,26 @@ void SmRd1::stateInitialize()
   {
     ROS_ERROR("Failed to call service ToggleLight");
   }
+
+  std_srvs::Empty emptymsg;
+
+
+  ros::service::waitForService("/move_base/clear_costmaps",ros::Duration(2.0));
+  if (ros::service::call("/move_base/clear_costmaps",emptymsg))
+  {
+     ROS_INFO("every costmap layers are cleared except static layer");
+  }
+  else
+  {
+     ROS_INFO("failed calling clear_costmaps service");  
+  }
+  // std_srvs::Empty ccn;
+  //        ros::service::waitForService("clear_costmaps_new",ros::Duration(2.0));
+  //           if (clear_costmaps_client.call(ccn))
+  //           {
+  //               ROS_INFO("every costmap layers are cleared except static layer");
+  //           }
+  //           else ROS_INFO("failed calling clear_costmaps service");
 
   driving_tools::RotateInPlace srv_turn;
 

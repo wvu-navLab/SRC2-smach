@@ -27,6 +27,7 @@ find_package(catkin REQUIRED COMPONENTS
   actionlib
   sensor_fusion
   src2_object_detection
+  std_srvs
 )
 
 ## System dependencies are found with CMake's conventions
@@ -121,7 +122,7 @@ find_package(catkin REQUIRED COMPONENTS
 catkin_package(
  INCLUDE_DIRS include
 #  LIBRARIES state_machine
-  CATKIN_DEPENDS src2_object_detection std_msgs geometry_msgs nav_msgs pose_update sensor_fusion driving_tools actionlib move_excavator volatile_handler round2_volatile_handler waypoint_nav waypoint_gen
+  CATKIN_DEPENDS src2_object_detection std_msgs std_srvs geometry_msgs nav_msgs pose_update sensor_fusion driving_tools actionlib move_excavator volatile_handler round2_volatile_handler waypoint_nav waypoint_gen
 #  DEPENDS system_lib
 )
 
