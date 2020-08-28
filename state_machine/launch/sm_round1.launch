@@ -22,17 +22,7 @@
   <!-- scout_waypoint_gen launch file -->
   <include file="$(find volatile_handler)/launch/volatile_handler.launch"/>
 
-  <!-- inference for base station -->
-  <!-- <include file="$(find src2_object_detection)/launch/inference.launch"/> -->
-
-  <!-- homing service -->
-  <!-- <include file="$(find range_to_base)/launch/scout_range_2_base_service_R1.launch"/> -->
-
-  <!-- approach_base_station_service -->
-  <!-- <include file="$(find src2_object_detection)/launch/approach_base_station_service.launch"/> -->
-
   <include file="$(find src2_object_detection)/launch/object_detection_round1.launch"/>
-
 
   <!-- scout_move_base_things launch file -->
   <include file="$(find src2_move_base)/launch/map_server.launch"/>
