@@ -505,6 +505,7 @@ void SmRd1::stateVolatileHandler()
             ROS_INFO_STREAM("SM: Volatile Accepted? "<< srv_vol_rep.response);
             flag_volatile_recorded=true; //JNG CHANGED THIS TO UNCOMMENT 8/12/20
             flag_arrived_at_waypoint = false;
+	    prev_volatile_detected_distance = 30;
 
     }
     else
@@ -515,28 +516,29 @@ void SmRd1::stateVolatileHandler()
   if ( !flag_volatile_recorded )
   {
 
-  double direction = 1.0;
+	   
+
   int count = 0;
 
   int max_count = 5;
-  ros::Rate rateVol(50);
+  ros::Rate rateVol(10);
   double diff;
   const double MAX_TIME = 10;
    ros::Time serviceWatchDog;
 
   while(count < max_count && !flag_localization_failure && !flag_volatile_recorded)
   {
-          ROS_INFO_STREAM("While: " << count);
+          ROS_INFO_STREAM("While: " << count <<  " " << volatile_detected_distance);
           bool rot_in_place = true;
           int step = 0;
           ros::Time timeout = ros::Time::now();
 
-
+	  double direction =1.0;
           diff = ros::Time::now().toSec() -timeout.toSec();
           double angle_change = 0;
           while(step < 2 && !flag_localization_failure && !flag_volatile_recorded && diff < MAX_TIME && angle_change < 4*M_PI)
           {
-                  ROS_INFO_STREAM("step: " << step);
+                  ROS_INFO_STREAM("step: " << step << " " << volatile_detected_distance);
                   bool isCurrentDistFalse = volatile_detected_distance > 0;
                   bool isPrevDistFalse = prev_volatile_detected_distance > 0;
                   //bool distXOR = ( (isCurrentDistFalse) && (!isPrevDistFalse) );// ||
@@ -617,7 +619,7 @@ void SmRd1::stateVolatileHandler()
                     ros::Duration(2.0).sleep();
                   }
 
-                  rateVol.sleep();
+                 rateVol.sleep();
                   ros::spinOnce();
                   diff = ros::Time::now().toSec() -timeout.toSec();
                   angle_change += fabs(yaw - yaw_prev);
@@ -781,6 +783,7 @@ void SmRd1::stateVolatileHandler()
           }
   }
   }
+  
   // srv_wp_nav.request.interrupt = false;
   // if (clt_wp_nav_interrupt_.call(srv_wp_nav))
   // {
