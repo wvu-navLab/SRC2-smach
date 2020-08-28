@@ -1,5 +1,6 @@
 <launch>
 
+  <include file="$(find gazebo_truth_odom)/launch/scout_gazebo_truth_odom.launch"/>
 
   <!-- scout_motion_control launch file -->
   <include file="$(find driving_control)/launch/scout_driving_control.launch"/>
@@ -17,14 +18,15 @@
   <include file="$(find waypoint_nav)/launch/scout_waypoint_nav.launch"/>
 
   <!-- scout_waypoint_gen launch file -->
-  <include file="$(find waypoint_gen)/launch/scout_waypoint_gen.launch"/>
+  <include file="$(find waypoint_gen)/launch/debug_scout_waypoint_gen.launch"/>
 
-  <!-- scout_volatile handler launch file -->
+  <!-- scout_waypoint_gen launch file -->
   <include file="$(find volatile_handler)/launch/volatile_handler.launch"/>
 
+  <!-- scout_waypoint_gen launch file -->
   <include file="$(find src2_object_detection)/launch/object_detection_round1.launch"/>
 
-  <!-- scout_move_base launch files -->
+  <!-- scout_move_base_things launch file -->
   <include file="$(find src2_move_base)/launch/map_server.launch"/>
   <include file="$(find src2_move_base)/launch/move_base.launch"/>
 
@@ -35,10 +37,19 @@
   <include file="$(find range_to_base)/launch/scout_homing_service_R1.launch"/>
   <include file="$(find sensor_fusion)/launch/scout_homing.launch"/>
 
-  <!-- waypoint checker -->
-  <include file="$(find waypoint_checker)/launch/scout_waypoint_checker.launch"/>
-
-  <!-- state machine for Scout -->
+  <!-- scout_motion_control launch file -->
   <include file="$(find state_machine)/launch/scout_state_machine_rd1.launch"/>
 
+
+
+
+
+
+
+
+
+  <!-- Sensor Fusion node -->
+  <!-- rosrun  src2_object_detection inference.py
+  rosrun range_to_base rangeToBaseService.py
+  rosrun src2_object_detection approach_base_station_service.py -->
 </launch>
