@@ -954,10 +954,6 @@ void SmRd1::localizationCallback(const nav_msgs::Odometry::ConstPtr& msg)
                       msg->pose.pose.orientation.z,
                       msg->pose.pose.orientation.w);
   tf2::Matrix3x3(q).getRPY(roll, pitch, yaw);
-
-
-  double goal_distance = hypot((goal_pose_-current_pose_),)
-  if (goal_pose)
 }
 
 
