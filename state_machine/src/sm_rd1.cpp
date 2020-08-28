@@ -187,6 +187,8 @@ void SmRd1::stateInitialize()
   if (clt_approach_base_.call(srv_approach_base))
   {
     // ROS_INFO_STREAM("Success? "<< srv_approach_base.response.success.data);
+
+
   }
   else
   {
@@ -281,7 +283,9 @@ void SmRd1::stateInitialize()
   {
     ROS_ERROR("Failed to call service ToggleLight");
   }
-
+  std_srvs::Empty emptymsg;
+  ros::service::call("/move_base/clear_costmaps",emptymsg);
+  
   driving_tools::RotateInPlace srv_turn;
 
   srv_turn.request.throttle  = 0.2;
