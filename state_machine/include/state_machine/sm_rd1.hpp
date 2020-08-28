@@ -63,7 +63,7 @@ public:
   double pitch = 0, roll = 0, yaw = 0, yaw_prev = 0;
   double goal_yaw;
   bool actionDone_ = false;
-  geometry_msgs::Pose current_pose_;
+  geometry_msgs::Pose current_pose_, goal_pose_;
   geometry_msgs::Point base_location_;
 
 
@@ -123,5 +123,7 @@ public:
   void doneCallback(const actionlib::SimpleClientGoalState& state, const move_base_msgs::MoveBaseResultConstPtr& result);
   void activeCallback();
   void feedbackCallback(const move_base_msgs::MoveBaseFeedbackConstPtr& feedback);
+  void rotateToHeading(double desired_yaw);
+
 
 };

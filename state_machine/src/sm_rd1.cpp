@@ -234,9 +234,11 @@ void SmRd1::stateInitialize()
   }
   else
   {
-    ROS_INFO_STREAM("STATUS OF srv_sf_true_pose"<< srv_sf_true_pose.response.success);
+    ROS_INFO_STREAM("STATUS OF srv_sf_true_pose" << srv_sf_true_pose.response.success);
     ROS_ERROR("Failed to call service Pose Update");
   }
+
+  rotateToHeading(0.5);
 
   // Start attitude averaging for static rover
   sensor_fusion::RoverStatic srv_rover_static;
@@ -356,7 +358,6 @@ void SmRd1::statePlanning()
     ROS_ERROR("Failed to call service Stop");
   }
 
-  geometry_msgs::Pose goal_pose;
   // ROS_INFO_STREAM("goal pose: " << goal_pose);
   // Generate Goal
   waypoint_gen::GenerateWaypoint srv_wp_gen;
@@ -365,19 +366,19 @@ void SmRd1::statePlanning()
   {
     // ROS_INFO_STREAM("Success? "<< srv_wp_gen.response.success);
 
-    goal_pose = srv_wp_gen.response.goal;
+    goal_pose_ = srv_wp_gen.response.goal;
   }
   else
   {
     ROS_ERROR("Failed to call service Generate Waypoint");
   }
-  ROS_INFO_STREAM("goal pose: " << goal_pose);
+  ROS_INFO_STREAM("goal pose: " << goal_pose_);
 
-  goal_yaw = atan2(goal_pose.position.y - current_pose_.position.y, goal_pose.position.x - current_pose_.position.x);
+  goal_yaw = atan2(goal_pose_.position.y - current_pose_.position.y, goal_pose_.position.x - current_pose_.position.x);
 
   move_base_msgs::MoveBaseGoal move_base_goal;
   ac.waitForServer();
-  setPoseGoal(move_base_goal, goal_pose.position.x, goal_pose.position.y, goal_yaw);
+  setPoseGoal(move_base_goal, goal_pose_.position.x, goal_pose_.position.y, goal_yaw);
   ROS_INFO_STREAM("goal pose after SetposeGOAL: " << move_base_goal);
   ac.sendGoal(move_base_goal);
   ac.waitForResult(ros::Duration(0.25));
@@ -419,6 +420,13 @@ void SmRd1::stateTraverse()
     flag_waypoint_unreachable = false;
   }
   if(flag_recovering_localization && !flag_localization_failure)
+  {
+    flag_arrived_at_waypoint = true;
+    flag_waypoint_unreachable = false;
+    flag_recovering_localization = false;
+  }
+  double distance_to_goal = std::hypot(goal_pose_.position.y - current_pose_.position.y, goal_pose_.position.x - current_pose_.position.x);
+  if (distance_to_goal < 2.0)
   {
     flag_arrived_at_waypoint = true;
     flag_waypoint_unreachable = false;
@@ -914,6 +922,10 @@ void SmRd1::localizationCallback(const nav_msgs::Odometry::ConstPtr& msg)
                       msg->pose.pose.orientation.z,
                       msg->pose.pose.orientation.w);
   tf2::Matrix3x3(q).getRPY(roll, pitch, yaw);
+
+
+  double goal_distance = hypot((goal_pose_-current_pose_),)
+  if (goal_pose)
 }
 
 
@@ -951,6 +963,45 @@ void SmRd1::feedbackCallback(const move_base_msgs::MoveBaseFeedbackConstPtr& fee
 {
     ROS_INFO("got feedback");
 }
+
+void SmRd1::rotateToHeading(double desired_yaw)
+{
+  ros::Rate rateRotateToHeading(20);
+  
+  driving_tools::RotateInPlace srv_turn;
+  srv_turn.request.throttle  = 0.2;
+
+  if (clt_rip_.call(srv_turn))
+  {
+    ROS_INFO_STREAM("SM: Rotating Enabled? "<< srv_turn.response);
+  }
+  else
+  {
+    ROS_ERROR("Failed to call service Stop");
+  }
+
+  double yaw_thres = 0.01;
+  while(fabs(yaw-desired_yaw) < yaw_thres)
+  {
+    rateRotateToHeading.sleep();
+    ros::spinOnce();
+    ROS_INFO("SM: Trying to control yaw.");
+  }
+
+  driving_tools::Stop srv_stop;
+  srv_stop.request.enableStop  = true;
+  if (clt_stop_.call(srv_stop))
+  {
+    ROS_INFO_STREAM("SM: Stopping Enabled? "<< srv_stop.response);
+  }
+  else
+  {
+    ROS_ERROR("Failed to call service Stop");
+  }
+}
+
+
+
 
 
 //------------------------------------------------------------------------------------------------------------------------
