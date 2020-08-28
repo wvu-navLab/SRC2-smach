@@ -27,6 +27,7 @@
 #include <sensor_fusion/GetTruePose.h>
 #include <sensor_fusion/HomingUpdate.h>
 #include <std_srvs/Empty.h>
+#include <waypoint_checker/CheckCollision.h>
 
 typedef actionlib::SimpleActionClient<move_base_msgs::MoveBaseAction> MoveBaseClient;
 
@@ -98,6 +99,7 @@ public:
   ros::ServiceClient clt_homing_;
   ros::ServiceClient clt_approach_base_;
   ros::ServiceClient clt_rover_static_;
+  ros::ServiceClient clt_waypoint_checker_;
 
   MoveBaseClient ac;
 

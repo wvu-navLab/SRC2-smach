@@ -32,7 +32,7 @@ ac("/move_base", true)
   clt_rover_static_ = nh.serviceClient<sensor_fusion::RoverStatic>("sensor_fusion/toggle_rover_static");
   clt_homing_ = nh.serviceClient<sensor_fusion::HomingUpdate>("homing");
   clt_sf_true_pose_ = nh.serviceClient<sensor_fusion::GetTruePose>("true_pose");
-
+  clt_waypoint_checker_ = nh.serviceClient<waypoint_checker::CheckCollision>("waypoint_checker");
   // this is a comment
 
 
@@ -296,7 +296,7 @@ void SmRd1::stateInitialize()
   }
   else
   {
-     ROS_INFO("failed calling clear_costmaps service");  
+     ROS_INFO("failed calling clear_costmaps service");
   }
   // std_srvs::Empty ccn;
   //        ros::service::waitForService("clear_costmaps_new",ros::Duration(2.0));
@@ -380,6 +380,7 @@ void SmRd1::statePlanning()
   // Generate Goal
   waypoint_gen::GenerateWaypoint srv_wp_gen;
   srv_wp_gen.request.start  = true;
+  srv_wp_gen.request.next  = false;
   if (clt_wp_gen_.call(srv_wp_gen))
   {
     // ROS_INFO_STREAM("Success? "<< srv_wp_gen.response.success);
@@ -391,6 +392,39 @@ void SmRd1::statePlanning()
     ROS_ERROR("Failed to call service Generate Waypoint");
   }
   ROS_INFO_STREAM("goal pose: " << goal_pose_);
+
+  // check waypoint
+
+  waypoint_checker::CheckCollision srv_wp_check;
+  bool is_colliding = true;
+  while (is_colliding)
+  {
+    srv_wp_check.request.x  = goal_pose_.position.x;
+    srv_wp_check.request.y = goal_pose_.position.y;
+    if (clt_waypoint_checker_.call(srv_wp_check))
+    {
+      // ROS_INFO_STREAM("Success? "<< srv_wp_gen.response.success);
+      is_colliding = srv_wp_check.response.collision;
+      if(is_colliding)
+      {
+        srv_wp_gen.request.start  = true;
+        srv_wp_gen.request.next  = true;
+        if (clt_wp_gen_.call(srv_wp_gen))
+        {
+          // ROS_INFO_STREAM("Success? "<< srv_wp_gen.response.success);
+          goal_pose_ = srv_wp_gen.response.goal;
+        }
+        else
+        {
+          ROS_ERROR("Failed to call service Generate Waypoint");
+        }
+      }
+    }
+    else
+    {
+      ROS_ERROR("Failed to call service Waypoint checker");
+    }
+  }
 
   goal_yaw = atan2(goal_pose_.position.y - current_pose_.position.y, goal_pose_.position.x - current_pose_.position.x);
 
@@ -516,7 +550,7 @@ void SmRd1::stateVolatileHandler()
   if ( !flag_volatile_recorded )
   {
 
-	   
+
 
   int count = 0;
 
@@ -580,7 +614,7 @@ void SmRd1::stateVolatileHandler()
                   if (volatile_detected_distance < VOLATILE_MIN_THRESH && volatile_detected_distance > 0)
                   {
                     srv_stop.request.enableStop  = true;
-		
+
 		    if (clt_stop_.call(srv_stop))
                     {
                        ROS_INFO_STREAM("SM: Stopping Enabled? "<< srv_stop.response);
@@ -606,13 +640,13 @@ void SmRd1::stateVolatileHandler()
                           }
                           else
                           {
-				  
+
 				  serviceWatchDog =  ros::Time::now();
-				 
+
                                   ROS_ERROR("Service Did not Collect Points");
                                   // flag_arrived_at_waypoint = true;
                           }
-                          
+
                   }
                   if ( volatile_detected_distance > prev_volatile_detected_distance && minDist || distXOR )
                   {
@@ -783,7 +817,7 @@ void SmRd1::stateVolatileHandler()
           }
   }
   }
-  
+
   // srv_wp_nav.request.interrupt = false;
   // if (clt_wp_nav_interrupt_.call(srv_wp_nav))
   // {
@@ -998,7 +1032,7 @@ void SmRd1::feedbackCallback(const move_base_msgs::MoveBaseFeedbackConstPtr& fee
 void SmRd1::rotateToHeading(double desired_yaw)
 {
   ros::Rate rateRotateToHeading(20);
-  
+
   driving_tools::RotateInPlace srv_turn;
   srv_turn.request.throttle  = 0.2;
 
