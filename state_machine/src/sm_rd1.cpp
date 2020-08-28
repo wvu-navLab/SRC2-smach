@@ -56,7 +56,7 @@ void SmRd1::run()
     // ROS_INFO("flag_localizing_volatile: %i",flag_localizing_volatile);
     ROS_INFO("flag_volatile_recorded: %i",flag_volatile_recorded);
     // ROS_INFO("flag_volatile_unreachable: %i",flag_volatile_unreachable);
-    // ROS_INFO("flag_localization_failure: %i",flag_localization_failure);
+    ROS_INFO("flag_recovering_localization: %i",flag_localization_failure);
     ROS_INFO("flag_brake_engaged: %i",flag_brake_engaged);
     ROS_INFO("flag_fallthrough_condition: %i",flag_fallthrough_condition);
     //---------------------------------------------------------------------------------------------------------------------
@@ -164,9 +164,6 @@ void SmRd1::stateInitialize()
   flag_arrived_at_waypoint = false;
   flag_waypoint_unreachable = false;
 
-  // ac.waitForServer();
-  // ac.cancelGoal();
-  // ac.waitForResult(ros::Duration(0.25));
 
   // Turn on the Lights
   srcp2_msgs::ToggleLightSrv srv_lights;
@@ -190,6 +187,8 @@ void SmRd1::stateInitialize()
   if (clt_approach_base_.call(srv_approach_base))
   {
     // ROS_INFO_STREAM("Success? "<< srv_approach_base.response.success.data);
+
+
   }
   else
   {
@@ -287,11 +286,30 @@ void SmRd1::stateInitialize()
     ROS_ERROR("Failed to call service ToggleLight");
   }
 
+  std_srvs::Empty emptymsg;
+
+
+  ros::service::waitForService("/move_base/clear_costmaps",ros::Duration(2.0));
+  if (ros::service::call("/move_base/clear_costmaps",emptymsg))
+  {
+     ROS_INFO("every costmap layers are cleared except static layer");
+  }
+  else
+  {
+     ROS_INFO("failed calling clear_costmaps service");  
+  }
+  // std_srvs::Empty ccn;
+  //        ros::service::waitForService("clear_costmaps_new",ros::Duration(2.0));
+  //           if (clear_costmaps_client.call(ccn))
+  //           {
+  //               ROS_INFO("every costmap layers are cleared except static layer");
+  //           }
+  //           else ROS_INFO("failed calling clear_costmaps service");
+
   driving_tools::RotateInPlace srv_turn;
 
   srv_turn.request.throttle  = 0.2;
-
-
+   ros::Duration(1.0).sleep();
   if (clt_rip_.call(srv_turn))
   {
           ROS_INFO_STREAM("SM: Rotating Enabled? "<< srv_turn.response);
@@ -499,16 +517,20 @@ void SmRd1::stateVolatileHandler()
 
   double direction = 1.0;
   int count = 0;
-  int max_count = 2; // IT WAS 5 BEFORE
-  ros::Rate rateVol(20);
+
+  int max_count = 5;
+  ros::Rate rateVol(50);
   double diff;
-  const double MAX_TIME = 2; //IT WAS 10 BEFORE
+  const double MAX_TIME = 10;
+   ros::Time serviceWatchDog;
+
   while(count < max_count && !flag_localization_failure && !flag_volatile_recorded)
   {
           ROS_INFO_STREAM("While: " << count);
           bool rot_in_place = true;
           int step = 0;
           ros::Time timeout = ros::Time::now();
+
 
           diff = ros::Time::now().toSec() -timeout.toSec();
           double angle_change = 0;
@@ -556,7 +578,8 @@ void SmRd1::stateVolatileHandler()
                   if (volatile_detected_distance < VOLATILE_MIN_THRESH && volatile_detected_distance > 0)
                   {
                     srv_stop.request.enableStop  = true;
-                    if (clt_stop_.call(srv_stop))
+		
+		    if (clt_stop_.call(srv_stop))
                     {
                        ROS_INFO_STREAM("SM: Stopping Enabled? "<< srv_stop.response);
                     }
@@ -565,6 +588,12 @@ void SmRd1::stateVolatileHandler()
                         ROS_ERROR("Failed to call service Stop");
                     }
                           ROS_INFO_STREAM("SM: In Vol Range");
+			   if( serviceWatchDog.isValid()){
+                        	while( (ros::Time::now().toSec() - serviceWatchDog.toSec() ) < 20.0 ){
+                              		ROS_INFO( " Wating to Call Score Service When Valid %f " , (20.0 - ros::Time::now().toSec() - serviceWatchDog.toSec() ) );
+                       		 }
+                   		 }
+
                           srv_vol_rep.request.start = true;
                           if (clt_vol_report_.call(srv_vol_rep))
                           {
@@ -575,10 +604,13 @@ void SmRd1::stateVolatileHandler()
                           }
                           else
                           {
+				  
+				  serviceWatchDog =  ros::Time::now();
+				 
                                   ROS_ERROR("Service Did not Collect Points");
                                   // flag_arrived_at_waypoint = true;
                           }
-
+                          
                   }
                   if ( volatile_detected_distance > prev_volatile_detected_distance && minDist || distXOR )
                   {

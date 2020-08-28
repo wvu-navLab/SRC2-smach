@@ -26,6 +26,7 @@
 #include <sensor_fusion/RoverStatic.h>
 #include <sensor_fusion/GetTruePose.h>
 #include <sensor_fusion/HomingUpdate.h>
+#include <std_srvs/Empty.h>
 
 typedef actionlib::SimpleActionClient<move_base_msgs::MoveBaseAction> MoveBaseClient;
 
@@ -56,7 +57,8 @@ public:
 
   ros::Time detection_timer, not_detected_timer;
 
-  const double VOLATILE_MIN_THRESH = 0.3; // TUNE this
+
+  const double VOLATILE_MIN_THRESH = 0.5;
   const double TIMER_THRESH = 15;
   const double NOT_DETECTED_THRESH = 6;
   int timer_counter = 0;
