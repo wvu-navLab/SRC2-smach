@@ -298,13 +298,6 @@ void SmRd1::stateInitialize()
   {
      ROS_INFO("failed calling clear_costmaps service");
   }
-  // std_srvs::Empty ccn;
-  //        ros::service::waitForService("clear_costmaps_new",ros::Duration(2.0));
-  //           if (clear_costmaps_client.call(ccn))
-  //           {
-  //               ROS_INFO("every costmap layers are cleared except static layer");
-  //           }
-  //           else ROS_INFO("failed calling clear_costmaps service");
 
   driving_tools::RotateInPlace srv_turn;
 
