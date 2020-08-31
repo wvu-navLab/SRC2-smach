@@ -84,6 +84,7 @@ public:
   ros::Subscriber volatile_recorded_sub;
   ros::Subscriber localization_failure_sub;
   ros::Subscriber localization_sub;
+  ros::Subscriber driving_mode_sub;
 
   // ros::ServiceClient clt_true_pose_;
   ros::ServiceClient clt_sf_true_pose_;
@@ -123,6 +124,8 @@ public:
   void volatileRecordedCallback(const std_msgs::Bool::ConstPtr& msg);
   void localizationFailureCallback(const std_msgs::Bool::ConstPtr& msg);
   void localizationCallback(const nav_msgs::Odometry::ConstPtr& msg);
+  void drivingModeCallback(const std_msgs::Int64::ConstPtr& msg);
+  int driving_mode_;
 
   void setPoseGoal(move_base_msgs::MoveBaseGoal& poseGoal, double x, double y, double yaw); // m, m, rad
   void doneCallback(const actionlib::SimpleClientGoalState& state, const move_base_msgs::MoveBaseResultConstPtr& result);

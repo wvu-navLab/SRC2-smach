@@ -15,6 +15,7 @@ ac("/move_base", true)
   volatile_recorded_sub = nh.subscribe("state_machine/volatile_recorded", 1, &SmRd1::volatileRecordedCallback, this);
   localization_failure_sub = nh.subscribe("state_machine/localization_failure", 1, &SmRd1::localizationFailureCallback, this);
   localization_sub  = nh.subscribe("localization/odometry/sensor_fusion", 1, &SmRd1::localizationCallback, this);
+  driving_mode_sub =nh.subscribe("driving/driving_mode",1, &SmRd1::drivingModeCallback, this);
 
   // Clients
   // clt_true_pose_ = nh.serviceClient<pose_update::PoseUpdate>("localization/true_pose_update");
@@ -36,7 +37,7 @@ ac("/move_base", true)
   // this is a comment
 
 
-
+  driving_mode_=0;
 
   detection_timer = ros::Time::now();
   not_detected_timer = ros::Time::now();
@@ -375,10 +376,14 @@ void SmRd1::statePlanning()
   // Generate Goal
   waypoint_gen::GenerateWaypoint srv_wp_gen;
   srv_wp_gen.request.start  = true;
-  if(flag_completed_homing){
+  if(flag_completed_homing ){
     flag_completed_homing=false;
     srv_wp_gen.request.next  = true;
-
+  }
+  else if(flag_waypoint_unreachable)
+  {
+    flag_waypoint_unreachable=false;
+    srv_wp_gen.request.next  = true;
   }
   else{
   srv_wp_gen.request.next  = false;
@@ -473,6 +478,7 @@ void SmRd1::stateTraverse()
 {
   ROS_INFO("Traverse!\n");
 
+
   if(flag_localized_base && !flag_have_true_pose)
   {
     flag_have_true_pose = true;
@@ -506,6 +512,46 @@ void SmRd1::stateTraverse()
 	ROS_INFO(" Reached a Waypoint Designated for Localization Update Type : %f ",waypoint_type_ );
 	flag_localization_failure = true;
 
+    }
+  }
+  if(driving_mode_==4){
+    flag_waypoint_unreachable= true;
+    std_srvs::Empty emptymsg;
+    ROS_ERROR(" Waypoint Unreachable Clearing Cost, Turning, and Sending to Planning" );
+
+    ros::service::waitForService("/move_base/clear_costmaps",ros::Duration(2.0));
+    if (ros::service::call("/move_base/clear_costmaps",emptymsg))
+    {
+       ROS_INFO("every costmap layers are cleared except static layer");
+    }
+    else
+    {
+       ROS_INFO("failed calling clear_costmaps service");
+    }
+
+    driving_tools::RotateInPlace srv_turn;
+
+    srv_turn.request.throttle  = 0.2;
+     ros::Duration(1.0).sleep();
+    if (clt_rip_.call(srv_turn))
+    {
+            ROS_INFO_STREAM("SM: Rotating Enabled? "<< srv_turn.response);
+            ros::Duration(5.0).sleep();
+    }
+    else
+    {
+            ROS_ERROR("Failed to call service Stop");
+    }
+    // Break Rover
+     driving_tools::Stop srv_stop;
+    srv_stop.request.enableStop  = true;
+    if (clt_stop_.call(srv_stop))
+    {
+      // ROS_INFO_STREAM("Success? "<< srv_stop.response.success);
+    }
+    else
+    {
+      ROS_ERROR("Failed to call service Stop");
     }
   }
 
@@ -603,7 +649,7 @@ void SmRd1::stateVolatileHandler()
                   bool isCurrentDistFalse = volatile_detected_distance > 0;
                   bool isPrevDistFalse = prev_volatile_detected_distance > 0;
                   //bool distXOR = ( (isCurrentDistFalse) && (!isPrevDistFalse) );// ||
-                  bool distXOR = ( (!isCurrentDistFalse) && (isPrevDistFalse) );
+                  bool distXOR = ( (!isCurrentDistFalse));// && (isPrevDistFalse) );
                   bool minDist = fabs(volatile_detected_distance - prev_volatile_detected_distance) > 0.01;
                   //volatile_detected_distance > min_volatile_detected_distance &&
                   if ( volatile_detected_distance > prev_volatile_detected_distance && minDist || distXOR )
@@ -698,7 +744,7 @@ void SmRd1::stateVolatileHandler()
                   bool isCurrentDistFalse = volatile_detected_distance > 0;
                   bool isPrevDistFalse = prev_volatile_detected_distance > 0;
                   //bool distXOR = ( (isCurrentDistFalse) && (!isPrevDistFalse) );// ||
-                  bool distXOR = ( (!isCurrentDistFalse) && (isPrevDistFalse) );
+                  bool distXOR = ( (!isCurrentDistFalse));// && (isPrevDistFalse) );
                   bool minDist = fabs(volatile_detected_distance - prev_volatile_detected_distance) > 0.01;
                   //volatile_detected_distance > min_volatile_detected_distance &&
                   if ( volatile_detected_distance > prev_volatile_detected_distance && minDist || distXOR )
@@ -1097,7 +1143,9 @@ void SmRd1::localizationFailureCallback(const std_msgs::Bool::ConstPtr& msg)
 {
   flag_localization_failure = msg->data;
 }
-
+void SmRd1::drivingModeCallback(const std_msgs::Int64::ConstPtr& msg){
+  driving_mode_=msg->data;
+}
 void SmRd1::localizationCallback(const nav_msgs::Odometry::ConstPtr& msg)
 {
   current_pose_ = msg->pose.pose;
