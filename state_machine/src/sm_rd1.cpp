@@ -51,7 +51,7 @@ void SmRd1::run()
     // Debug prints +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     ROS_INFO("flag_localized_base: %i",flag_localized_base);
     ROS_INFO("flag_have_true_pose: %i",flag_have_true_pose);
-    // ROS_INFO("flag_waypoint_unreachable: %i",flag_waypoint_unreachable);
+    ROS_INFO("flag_waypoint_unreachable: %i",flag_waypoint_unreachable);
     ROS_INFO("flag_arrived_at_waypoint: %i",flag_arrived_at_waypoint);
     ROS_INFO("volatile_detected_distance: %f",volatile_detected_distance);
     // ROS_INFO("flag_localizing_volatile: %i",flag_localizing_volatile);
@@ -539,79 +539,79 @@ void SmRd1::stateTraverse()
 
     }
   }
-  if(driving_mode_==4){
-    flag_waypoint_unreachable= true;
-     driving_tools::Stop srv_stop;
-    srv_stop.request.enableStop  = true;
-    if (clt_stop_.call(srv_stop))
-    {
-      ros::Duration(0.5).sleep();
-    }
-    else
-    {
-      ROS_ERROR("Failed to call service Stop");
-    }
-    driving_tools::MoveForward srv_drive;
-    srv_drive.request.throttle  = -0.3;
-    if (clt_drive_.call(srv_drive))
-    {
-            ros::Duration(2.0).sleep();
-            ROS_INFO_STREAM("SM: Backward Drive Enabled? "<< srv_drive.response);
-    }
-    else
-    {
-            ROS_ERROR("Failed to call service Drive");
-    }
-
-    srv_stop.request.enableStop  = true;
-    if (clt_stop_.call(srv_stop))
-    {
-      ros::Duration(0.5).sleep();
-    }
-    else
-    {
-      ROS_ERROR("Failed to call service Stop");
-    }
-
-    driving_tools::RotateInPlace srv_turn;
-
-    srv_turn.request.throttle  = 0.2;
-     ros::Duration(1.0).sleep();
-    if (clt_rip_.call(srv_turn))
-    {
-            ROS_INFO_STREAM("SM: Rotating Enabled? "<< srv_turn.response);
-            ros::Duration(5.0).sleep();
-    }
-    else
-    {
-            ROS_ERROR("Failed to call service Stop");
-    }
-    std_srvs::Empty emptymsg;
-    ROS_ERROR(" Waypoint Unreachable Clearing Cost, Turning, and Sending to Planning" );
-
-    ros::service::waitForService("/move_base/clear_costmaps",ros::Duration(2.0));
-    if (ros::service::call("/move_base/clear_costmaps",emptymsg))
-    {
-       ROS_INFO("every costmap layers are cleared except static layer");
-    }
-    else
-    {
-       ROS_INFO("failed calling clear_costmaps service");
-    }
-
-
-    // Break Rover
-
-    srv_stop.request.enableStop  = true;
-    if (clt_stop_.call(srv_stop))
-    {
-      // ROS_INFO_STREAM("Success? "<< srv_stop.response.success);
-    }
-    else
-    {
-      ROS_ERROR("Failed to call service Stop");
-    }
-  }
+  // if(driving_mode_==4){
+  //   flag_waypoint_unreachable= true;
+  //    driving_tools::Stop srv_stop;
+  //   srv_stop.request.enableStop  = true;
+  //   if (clt_stop_.call(srv_stop))
+  //   {
+  //     ros::Duration(0.5).sleep();
+  //   }
+  //   else
+  //   {
+  //     ROS_ERROR("Failed to call service Stop");
+  //   }
+  //   driving_tools::MoveForward srv_drive;
+  //   srv_drive.request.throttle  = -0.3;
+  //   if (clt_drive_.call(srv_drive))
+  //   {
+  //           ros::Duration(2.0).sleep();
+  //           ROS_INFO_STREAM("SM: Backward Drive Enabled? "<< srv_drive.response);
+  //   }
+  //   else
+  //   {
+  //           ROS_ERROR("Failed to call service Drive");
+  //   }
+  //
+  //   srv_stop.request.enableStop  = true;
+  //   if (clt_stop_.call(srv_stop))
+  //   {
+  //     ros::Duration(0.5).sleep();
+  //   }
+  //   else
+  //   {
+  //     ROS_ERROR("Failed to call service Stop");
+  //   }
+  //
+  //   driving_tools::RotateInPlace srv_turn;
+  //
+  //   srv_turn.request.throttle  = 0.2;
+  //    ros::Duration(1.0).sleep();
+  //   if (clt_rip_.call(srv_turn))
+  //   {
+  //           ROS_INFO_STREAM("SM: Rotating Enabled? "<< srv_turn.response);
+  //           ros::Duration(5.0).sleep();
+  //   }
+  //   else
+  //   {
+  //           ROS_ERROR("Failed to call service Stop");
+  //   }
+  //   std_srvs::Empty emptymsg;
+  //   ROS_ERROR(" Waypoint Unreachable Clearing Cost, Turning, and Sending to Planning" );
+  //
+  //   ros::service::waitForService("/move_base/clear_costmaps",ros::Duration(2.0));
+  //   if (ros::service::call("/move_base/clear_costmaps",emptymsg))
+  //   {
+  //      ROS_INFO("every costmap layers are cleared except static layer");
+  //   }
+  //   else
+  //   {
+  //      ROS_INFO("failed calling clear_costmaps service");
+  //   }
+  //
+  //
+  //   // Break Rover
+  //
+  //   srv_stop.request.enableStop  = true;
+  //   if (clt_stop_.call(srv_stop))
+  //   {
+  //     // ROS_INFO_STREAM("Success? "<< srv_stop.response.success);
+  //   }
+  //   else
+  //   {
+  //     ROS_ERROR("Failed to call service Stop");
+  //   }
+  // }
 
   std_msgs::Int64 state_msg;
   state_msg.data = _traverse;
