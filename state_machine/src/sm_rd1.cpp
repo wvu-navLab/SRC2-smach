@@ -375,8 +375,14 @@ void SmRd1::statePlanning()
   // Generate Goal
   waypoint_gen::GenerateWaypoint srv_wp_gen;
   srv_wp_gen.request.start  = true;
-  srv_wp_gen.request.next  = false;
+  if(flag_completed_homing){
+    flag_completed_homing=false;
+    srv_wp_gen.request.next  = true;
 
+  }
+  else{
+  srv_wp_gen.request.next  = false;
+  }
   if (clt_wp_gen_.call(srv_wp_gen))
   {
     // ROS_INFO_STREAM("Success? "<< srv_wp_gen.response.success);
@@ -824,15 +830,17 @@ void SmRd1::stateVolatileHandler()
                           ROS_INFO_STREAM("SM: Volatile Accepted? "<< srv_vol_rep.response);
                           flag_volatile_recorded=true; //JNG CHANGED THIS TO UNCOMMENT 8/12/20
                           flag_arrived_at_waypoint = false;
+                          volatile_detected_distance = -1.0;
 
                   }
                   else
                   {
                           ROS_ERROR("Service Did not Collect Points");
-                          flag_localization_failure =  true;
                           flag_volatile_recorded=false;
                           flag_arrived_at_waypoint = false;
                           volatile_detected_distance = -1.0;
+                          flag_localization_failure =  true;
+
                   }
           }else
           {
@@ -937,7 +945,8 @@ void SmRd1::stateLost()
   {
     // ROS_INFO_STREAM("Success? "<< srv_upd_pose.response.success);
     flag_localization_failure=false;
-      flag_arrived_at_waypoint = false;
+    flag_arrived_at_waypoint = true;
+    flag_completed_homing = true;
   }
   else
   {
@@ -1053,6 +1062,7 @@ void SmRd1::volatileDetectedCallback(const std_msgs::Float32::ConstPtr& msg)
 {
   if (!timer_counter || ros::Time::now().toSec() - detection_timer.toSec() > TIMER_THRESH)
   {
+          ROS_INFO("Setting Vol Distance Callback %f",msg->data);
           prev_volatile_detected_distance = volatile_detected_distance;
           volatile_detected_distance = msg->data;
 
@@ -1062,6 +1072,9 @@ void SmRd1::volatileDetectedCallback(const std_msgs::Float32::ConstPtr& msg)
                   min_volatile_detected_distance = volatile_detected_distance;
           }
 
+  }
+  else{
+    volatile_detected_distance = -1;
   }
 
 }
