@@ -15,7 +15,7 @@ find_package(catkin REQUIRED COMPONENTS
   std_msgs
   nav_msgs
   geometry_msgs
-  pose_update
+#  pose_update
   driving_tools
   volatile_handler
   round2_volatile_handler
@@ -30,6 +30,8 @@ find_package(catkin REQUIRED COMPONENTS
   std_srvs
   waypoint_checker
 )
+
+find_package(Eigen3 3.3 REQUIRED)
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
@@ -139,37 +141,49 @@ include_directories(
 )
 
 ## Declare a C++ library
+add_library(sm_utils
+  utils/sm_utils.cpp
+)
+
  add_library(sm_rd1
    src/sm_rd1.cpp
  )
- add_library(sm_rd2
-   src/sm_rd2.cpp
- )
-  add_library(sm_rd3
-    src/sm_rd3.cpp
-  )
+ #add_library(sm_rd2
+#   src/sm_rd2.cpp
+#)
+#  add_library(sm_rd3
+#    src/sm_rd3.cpp
+#  )
 ## Add cmake target dependencies of the library
 ## as an example, code may need to be generated before libraries
 ## either from message generation or dynamic reconfigure
+add_dependencies(sm_utils ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+
 add_dependencies(sm_rd1 ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-add_dependencies(sm_rd2 ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-add_dependencies(sm_rd3 ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+#add_dependencies(sm_rd2 ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+#add_dependencies(sm_rd3 ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+target_link_libraries(sm_utils
+  ${catkin_LIBRARIES}
+ )
+
  target_link_libraries(sm_rd1
    ${catkin_LIBRARIES}
   )
- target_link_libraries(sm_rd2
-   ${catkin_LIBRARIES}
-  )
- target_link_libraries(sm_rd3
-   ${catkin_LIBRARIES}
-  )
+ #target_link_libraries(sm_rd2
+  # ${catkin_LIBRARIES}
+#)
+ #target_link_libraries(sm_rd3
+#   ${catkin_LIBRARIES}
+#  )
 ## Declare a C++ executable
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
 # add_executable(${PROJECT_NAME}_node src/state_machine_node.cpp)
+add_executable(utils_test_node utils/utils_test_node.cpp)
+
 add_executable(state_machine_rd1_node src/sm_rd1_node.cpp)
-add_executable(state_machine_rd2_node src/sm_rd2_node.cpp)
-add_executable(state_machine_rd3_node src/sm_rd3_node.cpp)
+#add_executable(state_machine_rd2_node src/sm_rd2_node.cpp)
+#add_executable(state_machine_rd3_node src/sm_rd3_node.cpp)
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
 ## target back to the shorter version for ease of user use
@@ -178,23 +192,30 @@ add_executable(state_machine_rd3_node src/sm_rd3_node.cpp)
 
 ## Add cmake target dependencies of the executable
 ## same as for the library above
+ add_dependencies(utils_test_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+
  add_dependencies(state_machine_rd1_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
- add_dependencies(state_machine_rd2_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
- add_dependencies(state_machine_rd3_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+ #add_dependencies(state_machine_rd2_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+ #add_dependencies(state_machine_rd3_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Specify libraries to link a library or executable target against
+target_link_libraries(utils_test_node
+  ${catkin_LIBRARIES}
+  sm_utils
+)
+
  target_link_libraries(state_machine_rd1_node
    ${catkin_LIBRARIES}
    sm_rd1
  )
- target_link_libraries(state_machine_rd2_node
-   ${catkin_LIBRARIES}
-   sm_rd2
- )
-  target_link_libraries(state_machine_rd3_node
-    ${catkin_LIBRARIES}
-    sm_rd3
-  )
+ #target_link_libraries(state_machine_rd2_node
+#   ${catkin_LIBRARIES}
+#   sm_rd2
+#)
+#  target_link_libraries(state_machine_rd3_node
+#    ${catkin_LIBRARIES}
+#    sm_rd3
+#  )
 #############
 ## Install ##
 #############
