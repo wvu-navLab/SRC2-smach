@@ -1,7 +1,8 @@
 #include <state_machine/sm_rd1.hpp>
 
 SmRd1::SmRd1() :
-ac("/move_base", true)
+ac("/move_base", true),
+move_base_state_(actionlib::SimpleClientGoalState::LOST)
 {
   // Initialize ROS, Subs, and Pubs *******************************************
   // Publishers
@@ -467,7 +468,7 @@ void SmRd1::statePlanning()
   ac.waitForServer();
   setPoseGoal(move_base_goal, goal_pose_.position.x, goal_pose_.position.y, goal_yaw);
   ROS_INFO_STREAM("goal pose after SetposeGOAL: " << move_base_goal);
-  ac.sendGoal(move_base_goal);
+  ac.sendGoal(move_base_goal, boost::bind(&SmRd1::doneCallback, this,_1,_2), boost::bind(&SmRd1::activeCallback, this), boost::bind(&SmRd1::feedbackCallback, this,_1));
   ac.waitForResult(ros::Duration(0.25));
 
   // // Get True Pose
@@ -539,6 +540,10 @@ void SmRd1::stateTraverse()
 
     }
   }
+
+  move_base_state_ = ac.getState();
+  ROS_INFO_STREAM("Para a nossa alegria: "<< move_base_state_.getText());
+  std::cout << "/* message */" << '\n';
   // if(driving_mode_==4){
   //   flag_waypoint_unreachable= true;
   //    driving_tools::Stop srv_stop;
@@ -1038,7 +1043,7 @@ void SmRd1::stateLost()
     ac.waitForServer();
     setPoseGoal(move_base_goal, base_location_.x, base_location_.y, goal_yaw);
     ROS_INFO_STREAM("goal pose after SetposeGOAL: " << move_base_goal);
-    ac.sendGoal(move_base_goal);
+    ac.sendGoal(move_base_goal, boost::bind(&SmRd1::doneCallback, this,_1,_2), boost::bind(&SmRd1::activeCallback, this), boost::bind(&SmRd1::feedbackCallback, this,_1));
     ac.waitForResult(ros::Duration(0.25));
   }
 
@@ -1263,16 +1268,17 @@ void SmRd1::setPoseGoal(move_base_msgs::MoveBaseGoal &poseGoal, double x, double
     poseGoal.target_pose.pose.orientation.z = sy * cr * cp - cy * sr * sp;
 }
 
-void SmRd1::doneCallback(const actionlib::SimpleClientGoalState& state, const move_base_msgs::MoveBaseResultConstPtr& result)
+void SmRd1::doneCallback(const actionlib::SimpleClientGoalState& state, const move_base_msgs::MoveBaseResult::ConstPtr& result)
 {
     actionDone_ = true;
+
     ROS_INFO("goal done");
 }
 void SmRd1::activeCallback()
 {
     ROS_INFO("goal went active");
 }
-void SmRd1::feedbackCallback(const move_base_msgs::MoveBaseFeedbackConstPtr& feedback)
+void SmRd1::feedbackCallback(const move_base_msgs::MoveBaseFeedback::ConstPtr& feedback)
 {
     ROS_INFO("got feedback");
 }

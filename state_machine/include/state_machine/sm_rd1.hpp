@@ -28,6 +28,7 @@
 #include <sensor_fusion/HomingUpdate.h>
 #include <std_srvs/Empty.h>
 #include <waypoint_checker/CheckCollision.h>
+#include <boost/bind.hpp>
 
 typedef actionlib::SimpleActionClient<move_base_msgs::MoveBaseAction> MoveBaseClient;
 
@@ -104,6 +105,7 @@ public:
   ros::ServiceClient clt_waypoint_checker_;
 
   MoveBaseClient ac;
+  actionlib::SimpleClientGoalState move_base_state_;
 
   // Methods ----------------------------------------------------------------------------------------------------------------------------
   SmRd1(); // Constructor
