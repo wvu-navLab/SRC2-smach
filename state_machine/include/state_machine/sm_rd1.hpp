@@ -54,12 +54,12 @@ public:
   bool flag_recovering_localization = false;
   bool flag_brake_engaged = false;
   bool flag_fallthrough_condition = false;
-
+  bool flag_completed_homing = false;
 
   ros::Time detection_timer, not_detected_timer;
 
 
-  const double VOLATILE_MIN_THRESH = 0.5;
+  const double VOLATILE_MIN_THRESH = .5;
   const double TIMER_THRESH = 15;
   const double NOT_DETECTED_THRESH = 6;
   int timer_counter = 0;
@@ -68,6 +68,7 @@ public:
   bool actionDone_ = false;
   geometry_msgs::Pose current_pose_, goal_pose_;
   geometry_msgs::Point base_location_;
+  double waypoint_type_;
 
 
   // State vector
