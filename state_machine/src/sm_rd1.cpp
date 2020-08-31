@@ -346,6 +346,8 @@ void SmRd1::stateInitialize()
     ROS_ERROR("Failed to call service Stop");
   }
 
+// make sure we dont latch to a vol we skipped while homing
+volatile_detected_distance = -1.0;
   std_msgs::Int64 state_msg;
   state_msg.data = _initialize;
   sm_state_pub.publish(state_msg);
@@ -1009,7 +1011,11 @@ void SmRd1::stateLost()
   else
   {
     ROS_ERROR("Failed to call service Stop");
-  }
+
+ }
+    // make sure we dont latch to a vol we skipped while homing
+    volatile_detected_distance = -1.0;
+
 
   //flag_completed_homing = true;
   std_msgs::Int64 state_msg;
