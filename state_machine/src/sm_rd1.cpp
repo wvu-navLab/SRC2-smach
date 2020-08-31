@@ -541,17 +541,36 @@ void SmRd1::stateTraverse()
   }
   if(driving_mode_==4){
     flag_waypoint_unreachable= true;
-    std_srvs::Empty emptymsg;
-    ROS_ERROR(" Waypoint Unreachable Clearing Cost, Turning, and Sending to Planning" );
-
-    ros::service::waitForService("/move_base/clear_costmaps",ros::Duration(2.0));
-    if (ros::service::call("/move_base/clear_costmaps",emptymsg))
+     driving_tools::Stop srv_stop;
+    srv_stop.request.enableStop  = true;
+    if (clt_stop_.call(srv_stop))
     {
-       ROS_INFO("every costmap layers are cleared except static layer");
+      ros::Duration(0.5).sleep();
     }
     else
     {
-       ROS_INFO("failed calling clear_costmaps service");
+      ROS_ERROR("Failed to call service Stop");
+    }
+    driving_tools::MoveForward srv_drive;
+    srv_drive.request.throttle  = -0.3;
+    if (clt_drive_.call(srv_drive))
+    {
+            ros::Duration(2.0).sleep();
+            ROS_INFO_STREAM("SM: Backward Drive Enabled? "<< srv_drive.response);
+    }
+    else
+    {
+            ROS_ERROR("Failed to call service Drive");
+    }
+
+    srv_stop.request.enableStop  = true;
+    if (clt_stop_.call(srv_stop))
+    {
+      ros::Duration(0.5).sleep();
+    }
+    else
+    {
+      ROS_ERROR("Failed to call service Stop");
     }
 
     driving_tools::RotateInPlace srv_turn;
@@ -567,8 +586,22 @@ void SmRd1::stateTraverse()
     {
             ROS_ERROR("Failed to call service Stop");
     }
+    std_srvs::Empty emptymsg;
+    ROS_ERROR(" Waypoint Unreachable Clearing Cost, Turning, and Sending to Planning" );
+
+    ros::service::waitForService("/move_base/clear_costmaps",ros::Duration(2.0));
+    if (ros::service::call("/move_base/clear_costmaps",emptymsg))
+    {
+       ROS_INFO("every costmap layers are cleared except static layer");
+    }
+    else
+    {
+       ROS_INFO("failed calling clear_costmaps service");
+    }
+
+
     // Break Rover
-     driving_tools::Stop srv_stop;
+
     srv_stop.request.enableStop  = true;
     if (clt_stop_.call(srv_stop))
     {
