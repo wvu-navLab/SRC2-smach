@@ -286,18 +286,30 @@ void SmRd1::stateInitialize()
     ROS_ERROR("Failed to call service ToggleLight");
   }
 
-  std_srvs::Empty emptymsg;
-
-
-  ros::service::waitForService("/move_base/clear_costmaps",ros::Duration(2.0));
-  if (ros::service::call("/move_base/clear_costmaps",emptymsg))
+  // Move Backward first
+  driving_tools::MoveForward srv_drive;
+  srv_drive.request.throttle  = -0.3;
+  if (clt_drive_.call(srv_drive))
   {
-     ROS_INFO("every costmap layers are cleared except static layer");
+          ros::Duration(2.0).sleep();
+          ROS_INFO_STREAM("SM: Backward Drive Enabled? "<< srv_drive.response);
   }
   else
   {
-     ROS_INFO("failed calling clear_costmaps service");
+          ROS_ERROR("Failed to call service Drive");
   }
+
+  srv_stop.request.enableStop  = true;
+  if (clt_stop_.call(srv_stop))
+  {
+    ros::Duration(0.5).sleep();
+  }
+  else
+  {
+    ROS_ERROR("Failed to call service Stop");
+  }
+
+ // Then Rotate in Place
 
   driving_tools::RotateInPlace srv_turn;
 
@@ -312,39 +324,52 @@ void SmRd1::stateInitialize()
   {
           ROS_ERROR("Failed to call service Stop");
   }
-  // Break Rover
+
   // driving_tools::Stop srv_stop;
   srv_stop.request.enableStop  = true;
   if (clt_stop_.call(srv_stop))
   {
-    // ROS_INFO_STREAM("Success? "<< srv_stop.response.success);
+    ros::Duration(0.5).sleep();// ROS_INFO_STREAM("Success? "<< srv_stop.response.success);
   }
   else
   {
     ROS_ERROR("Failed to call service Stop");
   }
 
-  driving_tools::MoveForward srv_drive;
-  srv_drive.request.throttle  = 0.3;
-  if (clt_drive_.call(srv_drive))
+  // // driving_tools::MoveForward srv_drive;
+  // srv_drive.request.throttle  = 0.3;
+  // if (clt_drive_.call(srv_drive))
+  // {
+  //         ros::Duration(2.0).sleep();
+  //         ROS_INFO_STREAM("SM: Drive Enabled? "<< srv_drive.response);
+  // }
+  // else
+  // {
+  //         ROS_ERROR("Failed to call service Drive");
+  // }
+  //
+  // srv_stop.request.enableStop  = true;
+  // if (clt_stop_.call(srv_stop))
+  // {
+  //   ros::Duration(0.5).sleep();// ROS_INFO_STREAM("Success? "<< srv_stop.response.success);
+  // }
+  // else
+  // {
+  //   ROS_ERROR("Failed to call service Stop");
+  // }
+
+  // Clear the costmap
+  std_srvs::Empty emptymsg;
+  ros::service::waitForService("/move_base/clear_costmaps",ros::Duration(3.0));
+  if (ros::service::call("/move_base/clear_costmaps",emptymsg))
   {
-          ros::Duration(3.0).sleep();
-          ROS_INFO_STREAM("SM: Drive Enabled? "<< srv_drive.response);
+     ROS_INFO("costmap layers are cleared");
   }
   else
   {
-          ROS_ERROR("Failed to call service Drive");
+     ROS_ERROR("failed calling clear_costmaps service");
   }
 
-  srv_stop.request.enableStop  = true;
-  if (clt_stop_.call(srv_stop))
-  {
-    // ROS_INFO_STREAM("Success? "<< srv_stop.response.success);
-  }
-  else
-  {
-    ROS_ERROR("Failed to call service Stop");
-  }
 
 // make sure we dont latch to a vol we skipped while homing
 volatile_detected_distance = -1.0;
