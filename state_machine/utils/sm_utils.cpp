@@ -46,12 +46,20 @@ std::vector<std::pair<double, double>> circlePacking(std::pair<double,double> or
       ROS_INFO_STREAM(eigValues[i]);
     }*/
     //Eigen::Vector2d eigValues(eigSolver.eigenvectors().cols(0));
-    std::vector<double> scaledEigenVector;
+    ROS_INFO_STREAM("Tr: " << P_mat.trace() << " SUM: " << P_mat.sum() << " TF: " << (P_mat.trace() == P_mat.sum()));
+    std::vector<double> scaledEigenVector, sEV;
     for (int i = 0; i < size_P; ++i)
     {
-      scaledEigenVector.push_back(eigVector(i)*eigValues(0));
-      //ROS_INFO_STREAM(scaledEigenVector[i]);
+      sEV.push_back(eigVector(i)*eigValues(0));
+      if (P_mat.trace() != P_mat.sum()){
+        scaledEigenVector.push_back(eigVector(i)*eigValues(0));
+      } else
+      {
+        scaledEigenVector.push_back(P_mat(i,i));
+      }
+      ROS_INFO_STREAM(scaledEigenVector[i]);
     }
+    ROS_INFO_STREAM("STEP");
     //Pack in transformed space
     double ellipseRadius = 0;
     double x = 0.0, y = 0.0;
@@ -59,12 +67,17 @@ std::vector<std::pair<double, double>> circlePacking(std::pair<double,double> or
     std::pair<double,double> temp_pair;
     //aligned points
 
-    while (x < scaledEigenVector[0])
+    while (x <= fabs(scaledEigenVector[0]))
     {
       while (ellipseRadius <= 1.0)
       {
         temp_pair = {x,y};
         transformed_samples.push_back(temp_pair);
+        if (x > 0)
+        {
+          temp_pair = {-x,y};
+          transformed_samples.push_back(temp_pair);
+        }
         if (y > 0)
         {
           temp_pair = {x,-y};
@@ -72,8 +85,6 @@ std::vector<std::pair<double, double>> circlePacking(std::pair<double,double> or
 
           if (x > 0)
           {
-            temp_pair = {-x,y};
-            transformed_samples.push_back(temp_pair);
             temp_pair = {-x,-y};
             transformed_samples.push_back(temp_pair);
           }
@@ -81,10 +92,12 @@ std::vector<std::pair<double, double>> circlePacking(std::pair<double,double> or
         ++n;
         y = n*sqrt(5)*radius;
         ellipseRadius = (x*x)/pow(scaledEigenVector[0],2) + (y*y)/pow(scaledEigenVector[1],2);
+        ROS_INFO_STREAM("X: " << x << " Y: " << y << " R: " << ellipseRadius);
       }
       ++m;
+      n = 0;
       x = m*radius;
-      y = sqrt(5)*radius;
+      y = 0;
       ellipseRadius = 0;
     }
 
@@ -96,7 +109,7 @@ std::vector<std::pair<double, double>> circlePacking(std::pair<double,double> or
     //ROS_INFO("1");
     while (ellipseRadius <= 1.0)
     {
-      ellipseRadius = 0;
+      //ellipseRadius = 0;
       while (ellipseRadius <= 1.0)
       {
         temp_pair = {x,y};
@@ -110,21 +123,24 @@ std::vector<std::pair<double, double>> circlePacking(std::pair<double,double> or
         transformed_samples.push_back(temp_pair);
 
         ++n;
-        y = n*sqrt(5)/2.0*radius;
+        y = (2*n+1)*sqrt(5)/2.0*radius;
         ellipseRadius = (x*x)/pow(scaledEigenVector[0],2) + (y*y)/pow(scaledEigenVector[1],2);
         ROS_INFO_STREAM(ellipseRadius);
       }
-      m+=2;
-      x = ( (m+1.0)/2.0 )*radius;
+      ++m;
+      n = 0;
+      x = ( (2*m+1.0)/2.0 )*radius;
       y = sqrt(5)/2.0*radius;
-
+      ellipseRadius = (x*x)/pow(scaledEigenVector[0],2) + (y*y)/pow(scaledEigenVector[1],2);
     }
 
     //transform to normal space
-    double theta = atan2(scaledEigenVector[1],scaledEigenVector[0]);
+
+    double theta = atan2(sEV[1],sEV[0]);
+  
     Eigen::Matrix2d R;
     R << cos(theta), -sin(theta), sin(theta), cos(theta);
-    ROS_INFO_STREAM(theta);
+    ROS_INFO_STREAM("THETA: " << theta);
     ROS_INFO_STREAM(R);
     for (int i = 0; i < transformed_samples.size();++i)
     {
