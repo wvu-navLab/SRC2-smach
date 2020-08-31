@@ -1000,7 +1000,7 @@ void SmRd1::stateLost()
 
   //flag_completed_homing = true;
   std_msgs::Int64 state_msg;
-  state_msg.data = _planning;
+  state_msg.data = _lost;
   sm_state_pub.publish(state_msg);
 }
 //------------------------------------------------------------------------------------------------------------------------
