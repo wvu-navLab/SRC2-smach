@@ -562,10 +562,10 @@ void SmRd1::stateVolatileHandler()
 
   int count = 0;
 
-  int max_count = 2;
+  int max_count = 5;
   ros::Rate rateVol(20);
   double diff;
-  const double MAX_TIME = 2;
+  const double MAX_TIME = 10;
 
 
   while(count < max_count && !flag_localization_failure && !flag_volatile_recorded)
@@ -632,12 +632,12 @@ void SmRd1::stateVolatileHandler()
                         ROS_ERROR("Failed to call service Stop");
                     }
                           ROS_INFO_STREAM("SM: In Vol Range");
-			                    if( serviceWatchDog.isValid()){
-                        	while( (ros::Time::now().toSec() - serviceWatchDog.toSec() ) < TIMER_THRESH ){
-                              		ROS_WARN_ONCE( " Wating to Call Score Service When Valid %f " , (TIMER_THRESH- (ros::Time::now().toSec() - serviceWatchDog.toSec()) ));
-//ros::spinOnce();
-                       		 }
-                   		 }
+// 			                    if( serviceWatchDog.isValid()){
+//                         	while( (ros::Time::now().toSec() - serviceWatchDog.toSec() ) < TIMER_THRESH ){
+//                               		ROS_WARN_ONCE( " Wating to Call Score Service When Valid %f " , (TIMER_THRESH- (ros::Time::now().toSec() - serviceWatchDog.toSec()) ));
+// //ros::spinOnce();
+//                        		 }
+//}
 
                           srv_vol_rep.request.start = true;
                           if (clt_vol_report_.call(srv_vol_rep))
@@ -655,11 +655,11 @@ void SmRd1::stateVolatileHandler()
                                   ROS_ERROR("Service Did not Collect Points");
                                   // flag_arrived_at_waypoint = true;
                           }
-
+                            ros::spinOnce();
                   }
                   if ( volatile_detected_distance > prev_volatile_detected_distance && minDist || distXOR )
                   {
-                    ros::Duration(.5).sleep();
+                    ros::Duration(2.0).sleep();
                   }
 
                  rateVol.sleep();
@@ -841,7 +841,7 @@ void SmRd1::stateVolatileHandler()
   //       ROS_ERROR("Failed to call service Interrupt Nav");
   // }
 
-  ROS_INFO("VolatileHandler!\n");
+  ROS_INFO("VolatileHandler\n");
   //flag_arrived_at_waypoint = false;
   flag_waypoint_unreachable = false;
   //flag_localizing_volatile = true;
@@ -851,7 +851,8 @@ void SmRd1::stateVolatileHandler()
   sm_state_pub.publish(state_msg);
   detection_timer = ros::Time::now();
   min_volatile_detected_distance = 30;
-  volatile_detected_distance = -1;
+  volatile_detected_distance = -1.0;
+  ROS_INFO("VolatileHandler Exit %f\n",   volatile_detected_distance);
   ++timer_counter;
 }
 
@@ -1044,9 +1045,7 @@ void SmRd1::volatileDetectedCallback(const std_msgs::Float32::ConstPtr& msg)
           }
 
   }
-  else{
-      volatile_detected_distance = msg->data;
-  }
+
 }
 
 void SmRd1::volatileRecordedCallback(const std_msgs::Bool::ConstPtr& msg)
