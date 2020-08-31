@@ -445,6 +445,17 @@ void SmRd1::statePlanning()
   //   ROS_ERROR("Failed to call service Drive to Waypoint");
   // }
 
+  std_srvs::Empty emptymsg;
+  ros::service::waitForService("/move_base/clear_costmaps",ros::Duration(2.0));
+  if (ros::service::call("/move_base/clear_costmaps",emptymsg))
+  {
+     ROS_INFO("every costmap layers are cleared except static layer");
+  }
+  else
+  {
+     ROS_INFO("failed calling clear_costmaps service");
+  }
+
   std_msgs::Int64 state_msg;
   state_msg.data = _planning;
   sm_state_pub.publish(state_msg);
@@ -924,6 +935,7 @@ void SmRd1::stateLost()
   {
     // ROS_INFO_STREAM("Success? "<< srv_upd_pose.response.success);
     flag_localization_failure=false;
+      flag_arrived_at_waypoint = false;
   }
   else
   {
