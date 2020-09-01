@@ -7,7 +7,6 @@
 #include <nav_msgs/Odometry.h>
 #include <geometry_msgs/Pose.h>
 #include <geometry_msgs/Twist.h>
-#include <pose_update/PoseUpdate.h>
 #include <round2_volatile_handler/NextVolatileLocation.h>
 #include <waypoint_nav/SetGoal.h>
 #include <waypoint_nav/Interrupt.h>
@@ -17,6 +16,11 @@
 #include <driving_tools/RotateInPlace.h>
 #include <volatile_handler/VolatileReport.h>
 #include <move_excavator/ExcavationStatus.h>
+#include <nav_msgs/Odometry.h>
+#include <tf2/LinearMath/Quaternion.h>
+#include <tf2_geometry_msgs/tf2_geometry_msgs.h>
+#include <state_machine/sm_utils.h>
+
 
 class SmRd2
 {
@@ -54,6 +58,10 @@ public:
   bool flag_fallthrough_condition_excavator = false;
   bool flag_volatile_dug_excavator = true;
 
+  double pitch = 0, roll = 0, yaw = 0, yaw_prev = 0;
+  double x_ = 0, y_ = 0, z_ = 0;
+  geometry_msgs::Pose current_pose_;
+
 
   // State vector
   std::vector<int> state_to_exec; // Only one should be true at a time, if multiple are true then a default state should be executed
@@ -73,6 +81,7 @@ public:
   ros::Subscriber volatile_detected_hauler_sub;
   ros::Subscriber volatile_recorded_hauler_sub;
   ros::Subscriber localization_failure_hauler_sub;
+  ros::Subscriber localization_sub;
 
   ros::Subscriber odometry_hauler_sub;
   ros::Subscriber localized_base_excavator_sub;
@@ -116,6 +125,8 @@ public:
   // void volatileDetectedExcavatorCallback(const std_msgs::Float32::ConstPtr& msg);
   // void volatileRecordedExcavatorCallback(const std_msgs::Bool::ConstPtr& msg);
   void localizationFailureExcavatorCallback(const std_msgs::Bool::ConstPtr& msg);
+  void localizationCallback(const nav_msgs::Odometry::ConstPtr& msg);
+
 
   void odometryHaulerCallback(const nav_msgs::Odometry::ConstPtr& msg);
   void localizedBaseHaulerCallback(const std_msgs::Int64::ConstPtr& msg);

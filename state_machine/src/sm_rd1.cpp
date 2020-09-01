@@ -656,9 +656,9 @@ void SmRd1::stateVolatileHandler()
   ros::Rate rateVol(20);
   double diff;
   const double MAX_TIME = 10;
+  bool arrived_sentinel = true;
 
-
-  while(count < max_count && !flag_localization_failure && !flag_volatile_recorded)
+  while(count < max_count && !flag_localization_failure && !flag_volatile_recorded && arrived_sentinel)
   {
           ROS_INFO_STREAM("While: " << count <<  " " << volatile_detected_distance);
           bool rot_in_place = true;
@@ -668,7 +668,7 @@ void SmRd1::stateVolatileHandler()
 	        double direction =1.0;
           diff = ros::Time::now().toSec() -timeout.toSec();
           double angle_change = 0;
-          while(step < 2 && !flag_localization_failure && !flag_volatile_recorded && diff < MAX_TIME && angle_change < 4*M_PI)
+          while(step < 2 && !flag_localization_failure && !flag_volatile_recorded && diff < MAX_TIME && angle_change < 4*M_PI && arrived_sentinel)
           {
                   ROS_INFO_STREAM("step: " << step << " " << volatile_detected_distance);
                   bool isCurrentDistFalse = volatile_detected_distance > 0;
@@ -716,6 +716,7 @@ void SmRd1::stateVolatileHandler()
 		                  if (clt_stop_.call(srv_stop))
                     {
                        ROS_INFO_STREAM("SM: Stopping Enabled? "<< srv_stop.response);
+                       arrived_sentinel = false;
                     }
                     else
                     {
@@ -763,7 +764,7 @@ void SmRd1::stateVolatileHandler()
           step = 0;
           ros::Duration(.1).sleep();
           timeout = ros::Time::now();
-          while(step < 2 && !flag_localization_failure && !flag_volatile_recorded && diff < MAX_TIME && angle_change < 4*M_PI)
+          while(step < 2 && !flag_localization_failure && !flag_volatile_recorded && diff < MAX_TIME && angle_change < 4*M_PI && arrived_sentinel)
           {
                   ROS_INFO_STREAM("step: " << step);
                   bool isCurrentDistFalse = volatile_detected_distance > 0;
@@ -855,7 +856,7 @@ void SmRd1::stateVolatileHandler()
                           ROS_INFO_STREAM("SM: Volatile Accepted? "<< srv_vol_rep.response);
                           flag_volatile_recorded=true; //JNG CHANGED THIS TO UNCOMMENT 8/12/20
                           flag_arrived_at_waypoint = false;
-
+                          arrived_sentinel = false;
                   }
                   else
                   {
@@ -1181,6 +1182,7 @@ void SmRd1::localizationCallback(const nav_msgs::Odometry::ConstPtr& msg)
                       msg->pose.pose.orientation.z,
                       msg->pose.pose.orientation.w);
   tf2::Matrix3x3(q).getRPY(roll, pitch, yaw);
+
 }
 
 
