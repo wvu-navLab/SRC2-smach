@@ -311,32 +311,32 @@ void SmRd1::stateInitialize()
 
  // Then Rotate in Place
 
-  // driving_tools::RotateInPlace srv_turn;
-  //
-  // srv_turn.request.throttle  = 0.2;
-  //  ros::Duration(1.0).sleep();
-  // if (clt_rip_.call(srv_turn))
-  // {
-  //         ROS_INFO_STREAM("SM: Rotating Enabled? "<< srv_turn.response);
-  //         ros::Duration(5.0).sleep();
-  // }
-  // else
-  // {
-  //         ROS_ERROR("Failed to call service Stop");
-  // }
-  //
-  // // driving_tools::Stop srv_stop;
-  // srv_stop.request.enableStop  = true;
-  // if (clt_stop_.call(srv_stop))
-  // {
-  //   ros::Duration(2.0).sleep();// ROS_INFO_STREAM("Success? "<< srv_stop.response.success);
-  // }
-  // else
-  // {
-  //   ROS_ERROR("Failed to call service Stop");
-  // }
+  driving_tools::RotateInPlace srv_turn;
 
-  // // driving_tools::MoveForward srv_drive;
+  srv_turn.request.throttle  = 0.2;
+   ros::Duration(1.0).sleep();
+  if (clt_rip_.call(srv_turn))
+  {
+          ROS_INFO_STREAM("SM: Rotating Enabled? "<< srv_turn.response);
+          ros::Duration(5.0).sleep();
+  }
+  else
+  {
+          ROS_ERROR("Failed to call service Stop");
+  }
+
+  // driving_tools::Stop srv_stop;
+  srv_stop.request.enableStop  = true;
+  if (clt_stop_.call(srv_stop))
+  {
+    ros::Duration(2.0).sleep();// ROS_INFO_STREAM("Success? "<< srv_stop.response.success);
+  }
+  else
+  {
+    ROS_ERROR("Failed to call service Stop");
+  }
+
+  // driving_tools::MoveForward srv_drive;
   // srv_drive.request.throttle  = 0.3;
   // if (clt_drive_.call(srv_drive))
   // {
