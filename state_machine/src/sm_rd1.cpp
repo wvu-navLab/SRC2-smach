@@ -384,6 +384,11 @@ void SmRd1::statePlanning()
   flag_arrived_at_waypoint = false;
   flag_waypoint_unreachable = false;
 
+  ac.waitForServer();
+  ac.cancelGoal();
+  ac.waitForResult(ros::Duration(5.00));
+
+
   // Break
   driving_tools::Stop srv_stop;
   srv_stop.request.enableStop  = true;
@@ -535,8 +540,8 @@ void SmRd1::stateTraverse()
     	flag_localization_failure = false;
     }
     else{
-	ROS_INFO(" Reached a Waypoint Designated for Localization Update Type : %f ",waypoint_type_ );
-	flag_localization_failure = true;
+      ROS_INFO(" Reached a Waypoint Designated for Localization Update Type : %f ",waypoint_type_ );
+      flag_localization_failure = true;
 
     }
   }
@@ -986,23 +991,27 @@ void SmRd1::stateLost()
   if (clt_approach_base_.call(srv_approach_base))
   {
     // ROS_INFO_STREAM("Success? "<< srv_stop.response.success);
+
+    if(!srv_approach_base.request.success)
+    {
+      ROS_INFO_STREAM("Defining goal from base location");
+
+      goal_yaw_ = atan2(base_location_.y - current_pose_.position.y, base_location_.x - current_pose_.position.x);
+
+      rotateToHeading(goal_yaw_);
+
+      move_base_msgs::MoveBaseGoal move_base_goal;
+      ac.waitForServer();
+      setPoseGoal(move_base_goal, base_location_.x, base_location_.y, goal_yaw_);
+      ROS_INFO_STREAM("goal pose after SetposeGOAL: " << move_base_goal);
+      ac.sendGoal(move_base_goal, boost::bind(&SmRd1::doneCallback, this,_1,_2), boost::bind(&SmRd1::activeCallback, this), boost::bind(&SmRd1::feedbackCallback, this,_1));
+      ac.waitForResult(ros::Duration(0.25));
+    }
+
   }
   else
   {
     ROS_ERROR("Failed to call service ApproachBaseStation");
-
-    ROS_INFO_STREAM("Defining goal from base location");
-
-    goal_yaw_ = atan2(base_location_.y - current_pose_.position.y, base_location_.x - current_pose_.position.x);
-
-    rotateToHeading(goal_yaw_);
-
-    move_base_msgs::MoveBaseGoal move_base_goal;
-    ac.waitForServer();
-    setPoseGoal(move_base_goal, base_location_.x, base_location_.y, goal_yaw_);
-    ROS_INFO_STREAM("goal pose after SetposeGOAL: " << move_base_goal);
-    ac.sendGoal(move_base_goal, boost::bind(&SmRd1::doneCallback, this,_1,_2), boost::bind(&SmRd1::activeCallback, this), boost::bind(&SmRd1::feedbackCallback, this,_1));
-    ac.waitForResult(ros::Duration(0.25));
   }
 
   // Homing - Measurement Update
