@@ -542,7 +542,8 @@ void SmRd1::stateTraverse()
   }
 
   move_base_state_ = ac.getState();
-  ROS_INFO_STREAM("Para a nossa alegria: "<< move_base_state_.getText());
+  int state =(int) move_base_state_.state_;
+  ROS_WARN_STREAM("Para a nossa alegria: "<< state);
   std::cout << "/* message */" << '\n';
   // if(driving_mode_==4){
   //   flag_waypoint_unreachable= true;
