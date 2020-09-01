@@ -386,8 +386,7 @@ void SmRd1::statePlanning()
 
   ac.waitForServer();
   ac.cancelGoal();
-  ac.waitForResult(ros::Duration(5.00));
-
+  ac.waitForResult(ros::Duration(0.25));
 
   // Break
   driving_tools::Stop srv_stop;
@@ -540,8 +539,8 @@ void SmRd1::stateTraverse()
     	flag_localization_failure = false;
     }
     else{
-      ROS_INFO(" Reached a Waypoint Designated for Localization Update Type : %f ",waypoint_type_ );
-      flag_localization_failure = true;
+    ROS_INFO(" Reached a Waypoint Designated for Localization Update Type : %f ",waypoint_type_ );
+    flag_localization_failure = true;
 
     }
   }
