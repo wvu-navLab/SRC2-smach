@@ -336,10 +336,6 @@ void SmRd1::stateInitialize()
   //   ROS_ERROR("Failed to call service Stop");
   // }
 
-
-  rotateToHeading(0.0);
-
-
   // // driving_tools::MoveForward srv_drive;
   // srv_drive.request.throttle  = 0.3;
   // if (clt_drive_.call(srv_drive))
@@ -465,6 +461,8 @@ void SmRd1::statePlanning()
   }
 
   goal_yaw_ = atan2(goal_pose_.position.y - current_pose_.position.y, goal_pose_.position.x - current_pose_.position.x);
+
+  rotateToHeading(goal_yaw_);
 
   move_base_msgs::MoveBaseGoal move_base_goal;
   ac.waitForServer();
@@ -998,6 +996,8 @@ void SmRd1::stateLost()
     ROS_INFO_STREAM("Defining goal from base location");
 
     goal_yaw_ = atan2(base_location_.y - current_pose_.position.y, base_location_.x - current_pose_.position.x);
+
+    rotateToHeading(goal_yaw_);
 
     move_base_msgs::MoveBaseGoal move_base_goal;
     ac.waitForServer();
