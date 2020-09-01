@@ -719,7 +719,14 @@ void SmRd1::stateVolatileHandler()
       {
               serviceWatchDog =  ros::Time::now();
               ROS_ERROR("Service Did not Collect Points");
-              flag_localizing_volatile = true;
+              flag_volatile_recorded=true; //JN
+              flag_arrived_at_waypoint = false;
+               prev_volatile_detected_distance = 30;
+               flag_waypoint_unreachable = false;
+               volatile_detected_distance = -1.0;
+               std_msgs::Int64 state_msg;
+               state_msg.data = _volatile_handler;
+               sm_state_pub.publish(state_msg);
       }
 
 
