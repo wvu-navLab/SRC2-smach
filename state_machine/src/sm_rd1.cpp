@@ -1069,7 +1069,7 @@ void SmRd1::stateLost()
   {
     // ROS_INFO_STREAM("Success? "<< srv_stop.response.success);
 
-    if(!srv_approach_base.request.success)
+    if(!srv_approach_base.response.success.data)
     {
       ROS_INFO_STREAM("Defining goal from base location");
 
