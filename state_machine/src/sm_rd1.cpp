@@ -447,7 +447,7 @@ void SmRd1::statePlanning()
         {
           // ROS_INFO_STREAM("Success? "<< srv_wp_gen.response.success);
           goal_pose_ = srv_wp_gen.response.goal;
-	  waypoint_type_ = srv_wp_gen.response.type;
+	        waypoint_type_ = srv_wp_gen.response.type;
 
         }
         else
