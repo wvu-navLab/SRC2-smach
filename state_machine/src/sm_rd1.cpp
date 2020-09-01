@@ -239,8 +239,6 @@ void SmRd1::stateInitialize()
     ROS_ERROR("Failed to call service Pose Update");
   }
 
-  rotateToHeading(0.5);
-
   // Start attitude constraints for static rover
   sensor_fusion::RoverStatic srv_rover_static;
   srv_rover_static.request.rover_static  = true;
@@ -304,7 +302,7 @@ void SmRd1::stateInitialize()
   srv_stop.request.enableStop  = true;
   if (clt_stop_.call(srv_stop))
   {
-    ros::Duration(0.5).sleep();
+    ros::Duration(2.0).sleep();
   }
   else
   {
@@ -313,30 +311,34 @@ void SmRd1::stateInitialize()
 
  // Then Rotate in Place
 
-  driving_tools::RotateInPlace srv_turn;
+  // driving_tools::RotateInPlace srv_turn;
+  //
+  // srv_turn.request.throttle  = 0.2;
+  //  ros::Duration(1.0).sleep();
+  // if (clt_rip_.call(srv_turn))
+  // {
+  //         ROS_INFO_STREAM("SM: Rotating Enabled? "<< srv_turn.response);
+  //         ros::Duration(5.0).sleep();
+  // }
+  // else
+  // {
+  //         ROS_ERROR("Failed to call service Stop");
+  // }
+  //
+  // // driving_tools::Stop srv_stop;
+  // srv_stop.request.enableStop  = true;
+  // if (clt_stop_.call(srv_stop))
+  // {
+  //   ros::Duration(2.0).sleep();// ROS_INFO_STREAM("Success? "<< srv_stop.response.success);
+  // }
+  // else
+  // {
+  //   ROS_ERROR("Failed to call service Stop");
+  // }
 
-  srv_turn.request.throttle  = 0.2;
-   ros::Duration(1.0).sleep();
-  if (clt_rip_.call(srv_turn))
-  {
-          ROS_INFO_STREAM("SM: Rotating Enabled? "<< srv_turn.response);
-          ros::Duration(5.0).sleep();
-  }
-  else
-  {
-          ROS_ERROR("Failed to call service Stop");
-  }
 
-  // driving_tools::Stop srv_stop;
-  srv_stop.request.enableStop  = true;
-  if (clt_stop_.call(srv_stop))
-  {
-    ros::Duration(0.5).sleep();// ROS_INFO_STREAM("Success? "<< srv_stop.response.success);
-  }
-  else
-  {
-    ROS_ERROR("Failed to call service Stop");
-  }
+  rotateToHeading(0.0);
+
 
   // // driving_tools::MoveForward srv_drive;
   // srv_drive.request.throttle  = 0.3;
@@ -462,11 +464,11 @@ void SmRd1::statePlanning()
     }
   }
 
-  goal_yaw = atan2(goal_pose_.position.y - current_pose_.position.y, goal_pose_.position.x - current_pose_.position.x);
+  goal_yaw_ = atan2(goal_pose_.position.y - current_pose_.position.y, goal_pose_.position.x - current_pose_.position.x);
 
   move_base_msgs::MoveBaseGoal move_base_goal;
   ac.waitForServer();
-  setPoseGoal(move_base_goal, goal_pose_.position.x, goal_pose_.position.y, goal_yaw);
+  setPoseGoal(move_base_goal, goal_pose_.position.x, goal_pose_.position.y, goal_yaw_);
   ROS_INFO_STREAM("goal pose after SetposeGOAL: " << move_base_goal);
   ac.sendGoal(move_base_goal, boost::bind(&SmRd1::doneCallback, this,_1,_2), boost::bind(&SmRd1::activeCallback, this), boost::bind(&SmRd1::feedbackCallback, this,_1));
   ac.waitForResult(ros::Duration(0.25));
@@ -619,7 +621,7 @@ void SmRd1::stateVolatileHandler()
   volatile_handler::VolatileReport srv_vol_rep;
   srv_vol_rep.request.start = false;
    ros::Time serviceWatchDog;
-  //if (fabs(pitch) > M_PI/6.0 || fabs(roll) > M_PI/6.0)
+  //if (fabs(pitch_) > M_PI/6.0 || fabs(roll_) > M_PI/6.0)
   //{
     if(volatile_detected_distance < VOLATILE_MIN_THRESH){
     srv_vol_rep.request.start = true;
@@ -749,7 +751,7 @@ void SmRd1::stateVolatileHandler()
                  rateVol.sleep();
                   ros::spinOnce();
                   diff = ros::Time::now().toSec() -timeout.toSec();
-                  angle_change += fabs(yaw - yaw_prev);
+                  angle_change += fabs(yaw_ - yaw_prev_);
 
           }
 
@@ -993,11 +995,11 @@ void SmRd1::stateLost()
 
     ROS_INFO_STREAM("Defining goal from base location");
 
-    goal_yaw = atan2(base_location_.y - current_pose_.position.y, base_location_.x - current_pose_.position.x);
+    goal_yaw_ = atan2(base_location_.y - current_pose_.position.y, base_location_.x - current_pose_.position.x);
 
     move_base_msgs::MoveBaseGoal move_base_goal;
     ac.waitForServer();
-    setPoseGoal(move_base_goal, base_location_.x, base_location_.y, goal_yaw);
+    setPoseGoal(move_base_goal, base_location_.x, base_location_.y, goal_yaw_);
     ROS_INFO_STREAM("goal pose after SetposeGOAL: " << move_base_goal);
     ac.sendGoal(move_base_goal, boost::bind(&SmRd1::doneCallback, this,_1,_2), boost::bind(&SmRd1::activeCallback, this), boost::bind(&SmRd1::feedbackCallback, this,_1));
     ac.waitForResult(ros::Duration(0.25));
@@ -1045,7 +1047,7 @@ void SmRd1::stateLost()
   srv_stop.request.enableStop  = true;
   if (clt_stop_.call(srv_stop))
   {
-    ros::Duration(0.5).sleep();
+    ros::Duration(2).sleep();
   }
   else
   {
@@ -1072,7 +1074,7 @@ void SmRd1::stateLost()
   srv_stop.request.enableStop  = true;
   if (clt_stop_.call(srv_stop))
   {
-    ros::Duration(0.5).sleep();// ROS_INFO_STREAM("Success? "<< srv_stop.response.success);
+    ros::Duration(2.0).sleep();// ROS_INFO_STREAM("Success? "<< srv_stop.response.success);
   }
   else
   {
@@ -1194,12 +1196,12 @@ void SmRd1::localizationCallback(const nav_msgs::Odometry::ConstPtr& msg)
 {
   current_pose_ = msg->pose.pose;
 
-  yaw_prev = yaw;
+  yaw_prev_ = yaw_;
   tf2::Quaternion q(msg->pose.pose.orientation.x,
                       msg->pose.pose.orientation.y,
                       msg->pose.pose.orientation.z,
                       msg->pose.pose.orientation.w);
-  tf2::Matrix3x3(q).getRPY(roll, pitch, yaw);
+  tf2::Matrix3x3(q).getRPY(roll_, pitch_, yaw_);
 }
 
 
@@ -1243,24 +1245,38 @@ void SmRd1::rotateToHeading(double desired_yaw)
 {
   ros::Rate rateRotateToHeading(20);
 
-  driving_tools::RotateInPlace srv_turn;
-  srv_turn.request.throttle  = 0.2;
 
-  if (clt_rip_.call(srv_turn))
-  {
-    ROS_INFO_STREAM("SM: Rotating Enabled? "<< srv_turn.response);
-  }
-  else
-  {
-    ROS_ERROR("Failed to call service Stop");
-  }
 
-  double yaw_thres = 0.01;
-  while(fabs(yaw-desired_yaw) < yaw_thres)
+  ROS_INFO("Starting yaw control.");
+
+  double yaw_thres = 0.1;
+
+  ros::spinOnce();
+
+  ROS_INFO_STREAM("BEFORE WHILE Yaw: "<<yaw_<<", desired yaw: "<< desired_yaw);
+
+  double yaw_error = fabs(yaw_-desired_yaw);
+  fabs(yaw_-desired_yaw) < M_PI? yaw_error = fabs(yaw_-desired_yaw) : yaw_error = fabs(yaw_-desired_yaw) - 2*M_PI;
+
+  while(yaw_error > yaw_thres)
   {
+    driving_tools::RotateInPlace srv_turn;
+    srv_turn.request.throttle  = 0.1*yaw_error;
+
+    if (clt_rip_.call(srv_turn))
+    {
+      ROS_INFO_STREAM("SM: Rotating Enabled? "<< srv_turn.response);
+    }
+    else
+    {
+      ROS_ERROR("Failed to call service Stop");
+    }
+
     rateRotateToHeading.sleep();
     ros::spinOnce();
-    ROS_INFO("SM: Trying to control yaw.");
+    ROS_WARN("Trying to control yaw to desired angles.");
+    ROS_INFO_STREAM("Yaw error: "<<yaw_error);
+    fabs(yaw_-desired_yaw) < M_PI? yaw_error = fabs(yaw_-desired_yaw) : yaw_error = fabs(yaw_-desired_yaw) - 2*M_PI;
   }
 
   driving_tools::Stop srv_stop;

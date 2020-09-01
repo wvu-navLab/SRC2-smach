@@ -64,12 +64,13 @@ public:
   const double TIMER_THRESH = 15;
   const double NOT_DETECTED_THRESH = 6;
   int timer_counter = 0;
-  double pitch = 0, roll = 0, yaw = 0, yaw_prev = 0;
-  double goal_yaw;
+  double pitch_ = 0, roll_ = 0, yaw_ = 0, yaw_prev_ = 0;
+  double goal_yaw_;
   bool actionDone_ = false;
   geometry_msgs::Pose current_pose_, goal_pose_;
   geometry_msgs::Point base_location_;
   double waypoint_type_;
+  int driving_mode_;
 
 
   // State vector
@@ -127,7 +128,6 @@ public:
   void localizationFailureCallback(const std_msgs::Bool::ConstPtr& msg);
   void localizationCallback(const nav_msgs::Odometry::ConstPtr& msg);
   void drivingModeCallback(const std_msgs::Int64::ConstPtr& msg);
-  int driving_mode_;
 
   void setPoseGoal(move_base_msgs::MoveBaseGoal& poseGoal, double x, double y, double yaw); // m, m, rad
   void doneCallback(const actionlib::SimpleClientGoalState& state, const move_base_msgs::MoveBaseResultConstPtr& result);
