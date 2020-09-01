@@ -620,6 +620,8 @@ void SmRd1::stateVolatileHandler()
 
   volatile_handler::VolatileReport srv_vol_rep;
   srv_vol_rep.request.start = false;
+  srv_vol_rep.request.x_offset = 0.0;
+  srv_vol_rep.request.y_offset = 0.0;
    ros::Time serviceWatchDog;
   //if (fabs(pitch_) > M_PI/6.0 || fabs(roll_) > M_PI/6.0)
   //{
