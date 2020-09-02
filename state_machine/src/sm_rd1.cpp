@@ -658,7 +658,7 @@ void SmRd1::stateVolatileHandler()
 
     if( serviceWatchDog.isValid()){
           while( (ros::Time::now().toSec() - serviceWatchDog.toSec() ) < TIMER_THRESH*2.0) {
-            ROS_WARN("Waiting for volatile serviate to be available %f",TIMER_THRESH*2.0-(ros::Time::now().toSec() - serviceWatchDog.toSec() ));
+            ROS_WARN_ONCE("Waiting for volatile serviate to be available %f",TIMER_THRESH*2.0-(ros::Time::now().toSec() - serviceWatchDog.toSec() ));
             ros::spinOnce();
       }
     }
@@ -690,7 +690,7 @@ void SmRd1::stateVolatileHandler()
       }
       if( serviceWatchDog.isValid()){
             while( (ros::Time::now().toSec() - serviceWatchDog.toSec() ) < TIMER_THRESH*2.0) {
-              ROS_WARN("Waiting for volatile serviate to be available %f",TIMER_THRESH*2.0-(ros::Time::now().toSec() - serviceWatchDog.toSec() ));
+              ROS_WARN_ONCE("Waiting for volatile serviate to be available %f",TIMER_THRESH*2.0-(ros::Time::now().toSec() - serviceWatchDog.toSec() ));
               ros::spinOnce();
         }
       }
