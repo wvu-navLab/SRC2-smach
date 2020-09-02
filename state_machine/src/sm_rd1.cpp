@@ -683,6 +683,7 @@ void SmRd1::stateVolatileHandler()
              {
                  ROS_ERROR("Failed to call service Brake");
              }
+             return;
 
     }
     else
@@ -729,6 +730,7 @@ void SmRd1::stateVolatileHandler()
                {
                    ROS_ERROR("Failed to call service Brake");
                }
+               return;
 
 
       }
@@ -776,7 +778,7 @@ void SmRd1::stateVolatileHandler()
                {
                    ROS_ERROR("Failed to call service Brake");
                }
-
+               return;
 
       }
       else
@@ -1133,7 +1135,7 @@ void SmRd1::stateLost()
     ROS_ERROR("Failed to call service Stop");
   }
   srcp2_msgs::BrakeRoverSrv srv_brake;
-  srv_brake.request.brake_force  = 100.0;
+  srv_brake.request.brake_force  = 500.0;
   if (clt_srcp2_brake_rover_.call(srv_brake))
   {
      ROS_INFO_STREAM("SM: Brake Enabled? "<< srv_brake.response.finished);
