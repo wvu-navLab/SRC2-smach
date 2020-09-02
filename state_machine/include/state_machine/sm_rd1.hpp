@@ -29,6 +29,7 @@
 #include <std_srvs/Empty.h>
 #include <waypoint_checker/CheckCollision.h>
 #include <boost/bind.hpp>
+#include <srcp2_msgs/BrakeRoverSrv.h>
 
 typedef actionlib::SimpleActionClient<move_base_msgs::MoveBaseAction> MoveBaseClient;
 
@@ -104,6 +105,7 @@ public:
   ros::ServiceClient clt_approach_base_;
   ros::ServiceClient clt_rover_static_;
   ros::ServiceClient clt_waypoint_checker_;
+  ros::ServiceClient clt_srcp2_brake_rover_;
 
   MoveBaseClient ac;
   actionlib::SimpleClientGoalState move_base_state_;

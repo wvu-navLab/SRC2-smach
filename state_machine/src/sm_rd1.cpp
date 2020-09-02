@@ -35,6 +35,7 @@ move_base_state_(actionlib::SimpleClientGoalState::LOST)
   clt_homing_ = nh.serviceClient<sensor_fusion::HomingUpdate>("homing");
   clt_sf_true_pose_ = nh.serviceClient<sensor_fusion::GetTruePose>("true_pose");
   clt_waypoint_checker_ = nh.serviceClient<waypoint_checker::CheckCollision>("waypoint_checker");
+  clt_srcp2_brake_rover_= nh.serviceClient<srcp2_msgs::BrakeRoverSrv>("brake_rover");
   // this is a comment
 
 
@@ -600,6 +601,21 @@ void SmRd1::stateVolatileHandler()
       ROS_ERROR("Failed to call service Stop");
   }
 
+  srcp2_msgs::BrakeRoverSrv srv_brake;
+  srv_brake.request.brake_force  = 100.0;
+  srv_brake.request.brake_force  = 100.0;
+  if (clt_srcp2_brake_rover_.call(srv_brake))
+  {
+     ROS_INFO_STREAM("SM: Brake Enabled? "<< srv_brake.response.finished);
+
+  }
+  else
+  {
+      ROS_ERROR("Failed to call service Brake");
+  }
+
+
+
     //  ros::Duration(2.0).sleep();
 
 
@@ -632,7 +648,18 @@ void SmRd1::stateVolatileHandler()
             ros::spinOnce();
             clearCostmaps_();
              ROS_WARN("VolatileHandler Exit %f\n",   volatile_detected_distance);
-             return;
+             srcp2_msgs::BrakeRoverSrv srv_brake;
+
+             srv_brake.request.brake_force  = 100.0;
+             if (clt_srcp2_brake_rover_.call(srv_brake))
+             {
+                ROS_INFO_STREAM("SM: Brake Enabled? "<< srv_brake.response.finished);
+
+             }
+             else
+             {
+                 ROS_ERROR("Failed to call service Brake");
+             }
 
     }
     else
@@ -667,7 +694,19 @@ void SmRd1::stateVolatileHandler()
                ros::Duration(3.0).sleep();
                clearCostmaps_();
                ROS_WARN("VolatileHandler Exit %f\n",   volatile_detected_distance);
-               return;
+
+               srv_brake.request.brake_force  = 0.0;
+
+               if (clt_srcp2_brake_rover_.call(srv_brake))
+               {
+                  ROS_INFO_STREAM("SM: Brake Enabled? "<< srv_brake.response.finished);
+
+               }
+               else
+               {
+                   ROS_ERROR("Failed to call service Brake");
+               }
+
 
       }
       else
@@ -702,7 +741,19 @@ void SmRd1::stateVolatileHandler()
                clearCostmaps_();
                ROS_WARN("VolatileHandler Exit %f\n",   volatile_detected_distance);
                ros::spinOnce();
-               return;
+
+               srv_brake.request.brake_force  = 0.0;
+
+               if (clt_srcp2_brake_rover_.call(srv_brake))
+               {
+                  ROS_INFO_STREAM("SM: Brake Enabled? "<< srv_brake.response.finished);
+
+               }
+               else
+               {
+                   ROS_ERROR("Failed to call service Brake");
+               }
+
 
       }
       else
@@ -1005,6 +1056,17 @@ void SmRd1::stateVolatileHandler()
   // {
   //       ROS_ERROR("Failed to call service Interrupt Nav");
   // }
+
+  srv_brake.request.brake_force  = 0.0;
+  if (clt_srcp2_brake_rover_.call(srv_brake))
+  {
+     ROS_INFO_STREAM("SM: Brake Enabled? "<< srv_brake.response.finished);
+
+  }
+  else
+  {
+      ROS_ERROR("Failed to call service Brake");
+  }
 
   ROS_WARN("VolatileHandler\n");
   //flag_arrived_at_waypoint = false;
