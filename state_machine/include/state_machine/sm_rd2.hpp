@@ -94,14 +94,12 @@ public:
   ros::Subscriber localization_failure_excavator_sub;
   ros::Subscriber manipulation_feedback_excavator_sub;
 
-  ros::ServiceClient clt_true_pose_excavator_;
   ros::ServiceClient clt_next_vol_excavator_;
   ros::ServiceClient clt_wp_nav_set_goal_excavator_;
   ros::ServiceClient clt_wp_nav_interrupt_excavator_;
   ros::ServiceClient clt_vh_report_excavator_;
   ros::ServiceClient clt_stop_excavator_;
 
-  ros::ServiceClient clt_true_pose_hauler_;
   ros::ServiceClient clt_wp_nav_set_goal_hauler_;
   ros::ServiceClient clt_wp_nav_interrupt_hauler_;
   ros::ServiceClient clt_vh_report_hauler_;
