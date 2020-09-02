@@ -60,7 +60,9 @@ public:
 
   double pitch = 0, roll = 0, yaw = 0, yaw_prev = 0;
   double x_ = 0, y_ = 0, z_ = 0;
+  std::vector<double> P_;
   geometry_msgs::Pose current_pose_;
+  std::vector<std::pair<double, double>> search_candidates;
 
 
   // State vector

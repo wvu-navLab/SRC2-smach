@@ -410,16 +410,25 @@ void SmRd2::stateVolatileHandler()
    if (clt_wp_nav_set_goal_hauler_.call(srv_wp_nav))
    {
      //s ROS_INFO_STREAM("Success? "<< srv_wp_nav.response.success);
-     //if success true
+     if (!srv_wp_nav.response.success)
+     {
+        if (!search_candidates.size())
+        {
 
-     //if success false
-        //if list of candidates is empty, get new goal set
-        // set nearest item as goal and remove from list
+          std::vector<double> temp_P({P_[0], P_[1], P_[6], P_[7]});
+          std::pair<double, double> origin({goal_pose_.position.x, goal_pose_.position.y});
 
-        //go to goal, but where
+          search_candidates = sm_utils::circlePacking(origin, temp_P, 2, 0.5);
+          goal_pose_.position.x = search_candidates[0].first;
+          goal_pose_.position.y = search_candidates[1].second;
 
-        /**
-        // Set Goal
+        } else
+        {
+          goal_pose_.position.x = search_candidates[0].first;
+          goal_pose_.position.y = search_candidates[1].second;
+        }
+        search_candidates.erase(search_candidates.begin());
+
         waypoint_nav::SetGoal srv_wp_nav;
         srv_wp_nav.request.start = true;
         srv_wp_nav.request.goal = goal_pose_;
@@ -433,10 +442,10 @@ void SmRd2::stateVolatileHandler()
         }
 
         // Publish volatile pose
-        manipulation_volatile_pose_pub.publish(goal_pose);
-        */
+        manipulation_volatile_pose_pub.publish(goal_pose_);
 
         //if last item in list and item can't be found set as unreachable
+      }
 
    }
    else
@@ -622,6 +631,11 @@ void SmRd2::localizationCallback(const nav_msgs::Odometry::ConstPtr& msg)
   x_ = msg->pose.pose.position.x;
   y_ = msg->pose.pose.position.y;
   z_ = msg->pose.pose.position.x;
+  P_.clear();
+  for (int i = 0; i < 36; ++i)
+  {
+    P_.push_back(msg->pose.covariance[i]);
+  }
 }
 
 //------------------------------------------------------------------------------------------------------------------------
