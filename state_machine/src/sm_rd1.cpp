@@ -1365,7 +1365,7 @@ void SmRd1::rotateToHeading(double desired_yaw)
   while(fabs(yaw_error) > yaw_thres)
   {
     driving_tools::RotateInPlace srv_turn;
-    srv_turn.request.throttle  = copysign(0.1*(1 + yaw_error/M_PI), yaw_error);
+    srv_turn.request.throttle  = copysign(0.1*(1 + fabs(yaw_error)/M_PI), yaw_error);
 
     if (clt_rip_.call(srv_turn))
     {
@@ -1379,7 +1379,7 @@ void SmRd1::rotateToHeading(double desired_yaw)
     rateRotateToHeading.sleep();
     ros::spinOnce();
     ROS_WARN("Trying to control yaw to desired angles.");
-    
+
     ROS_INFO_STREAM("Yaw error: "<<yaw_error);
     if (fabs(yaw_error) > M_PI)
     {
