@@ -27,6 +27,8 @@
 #include <sensor_fusion/HomingUpdate.h>
 #include <std_srvs/Empty.h>
 #include <waypoint_checker/CheckCollision.h>
+#include <boost/bind.hpp>
+#include <srcp2_msgs/BrakeRoverSrv.h>
 
 typedef actionlib::SimpleActionClient<move_base_msgs::MoveBaseAction> MoveBaseClient;
 
@@ -58,16 +60,17 @@ public:
   ros::Time detection_timer, not_detected_timer;
 
 
-  const double VOLATILE_MIN_THRESH = .5;
+  const double VOLATILE_THRESH = 1.0;
   const double TIMER_THRESH = 15;
   const double NOT_DETECTED_THRESH = 6;
   int timer_counter = 0;
-  double pitch = 0, roll = 0, yaw = 0, yaw_prev = 0;
-  double goal_yaw;
+  double pitch_ = 0, roll_ = 0, yaw_ = 0, yaw_prev_ = 0;
+  double goal_yaw_;
   bool actionDone_ = false;
   geometry_msgs::Pose current_pose_, goal_pose_;
   geometry_msgs::Point base_location_;
   double waypoint_type_;
+  int driving_mode_;
 
 
   // State vector
@@ -101,8 +104,10 @@ public:
   ros::ServiceClient clt_approach_base_;
   ros::ServiceClient clt_rover_static_;
   ros::ServiceClient clt_waypoint_checker_;
+  ros::ServiceClient clt_srcp2_brake_rover_;
 
   MoveBaseClient ac;
+  actionlib::SimpleClientGoalState move_base_state_;
 
   // Methods ----------------------------------------------------------------------------------------------------------------------------
   SmRd1(); // Constructor
@@ -124,7 +129,7 @@ public:
   void localizationFailureCallback(const std_msgs::Bool::ConstPtr& msg);
   void localizationCallback(const nav_msgs::Odometry::ConstPtr& msg);
   void drivingModeCallback(const std_msgs::Int64::ConstPtr& msg);
-  int driving_mode_;
+  void clearCostmaps_();
 
   void setPoseGoal(move_base_msgs::MoveBaseGoal& poseGoal, double x, double y, double yaw); // m, m, rad
   void doneCallback(const actionlib::SimpleClientGoalState& state, const move_base_msgs::MoveBaseResultConstPtr& result);
