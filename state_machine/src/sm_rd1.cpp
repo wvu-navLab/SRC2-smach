@@ -552,10 +552,10 @@ void SmRd1::stateTraverse()
   }
 
   move_base_state_ = ac.getState();
-  int state =(int) move_base_state_.state_;
-  ROS_WARN_STREAM("Para a nossa alegria: "<< state);
+  int mb_state =(int) move_base_state_.state_;
+  ROS_WARN_STREAM("Para a nossa alegria: "<< mb_state);
   std::cout << "/* message */" << '\n';
-  if(state==5){
+  if(mb_state==5 || mb_state==7){
     flag_waypoint_unreachable= true;
     driving_tools::Stop srv_stop;
     srv_stop.request.enableStop  = true;
@@ -593,9 +593,6 @@ void SmRd1::clearCostmaps_(){
 }
 void SmRd1::stateVolatileHandler()
 {
-  ac.waitForServer();
-  ac.cancelGoal();
-  ac.waitForResult(ros::Duration(0.25));
 
   ROS_WARN("Volatile Handling State!");
 
@@ -611,6 +608,11 @@ void SmRd1::stateVolatileHandler()
 
   // }
   //ros::Duration(2.0).sleep();
+  srcp2_msgs::BrakeRoverSrv srv_brake;
+  if(volatile_detected_distance< VOLATILE_THRESH){
+    ac.waitForServer();
+    ac.cancelGoal();
+    ac.waitForResult(ros::Duration(0.25));
 
   driving_tools::Stop srv_stop;
   srv_stop.request.enableStop  = true;
@@ -796,7 +798,7 @@ void SmRd1::stateVolatileHandler()
                clearCostmaps_();
       }
 
-
+}
 
 //
 //   int count = 0;
@@ -1334,22 +1336,22 @@ void SmRd1::arrivedAtWaypointCallback(const std_msgs::Bool::ConstPtr& msg)
 
 void SmRd1::volatileDetectedCallback(const std_msgs::Float32::ConstPtr& msg)
 {
-  if (!timer_counter || ros::Time::now().toSec() - detection_timer.toSec() > TIMER_THRESH)
-  {
-          ROS_INFO("Setting Vol Distance Callback %f",msg->data);
+  // if (!timer_counter || ros::Time::now().toSec() - detection_timer.toSec() > TIMER_THRESH)
+  // {
+  //         ROS_INFO("Setting Vol Distance Callback %f",msg->data);
           prev_volatile_detected_distance = volatile_detected_distance;
           volatile_detected_distance = msg->data;
 
 
-          if (volatile_detected_distance > 0 && volatile_detected_distance < min_volatile_detected_distance)
-          {
-                  min_volatile_detected_distance = volatile_detected_distance;
-          }
-
-  }
-  else{
-    volatile_detected_distance = -1;
-  }
+  //         if (volatile_detected_distance > 0 && volatile_detected_distance < min_volatile_detected_distance)
+  //         {
+  //                 min_volatile_detected_distance = volatile_detected_distance;
+  //         }
+  //
+  // }
+  // else{
+  //   volatile_detected_distance = -1;
+  // }
 
 }
 

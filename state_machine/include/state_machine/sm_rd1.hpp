@@ -61,7 +61,7 @@ public:
   ros::Time detection_timer, not_detected_timer;
 
 
-  const double VOLATILE_MIN_THRESH = .5;
+  const double VOLATILE_THRESH = 1.0;
   const double TIMER_THRESH = 15;
   const double NOT_DETECTED_THRESH = 6;
   int timer_counter = 0;
