@@ -1349,13 +1349,23 @@ void SmRd1::rotateToHeading(double desired_yaw)
 
   ROS_INFO_STREAM("BEFORE WHILE Yaw: "<<yaw_<<", desired yaw: "<< desired_yaw);
 
-  double yaw_error = fabs(yaw_-desired_yaw);
-  fabs(yaw_-desired_yaw) < M_PI? yaw_error = fabs(yaw_-desired_yaw) : yaw_error = fabs(yaw_-desired_yaw) - 2*M_PI;
+  double yaw_error = desired_yaw - yaw_;
+  if (fabs(yaw_error) > M_PI)
+  {
+    if(yaw_error > 0)
+    {
+      yaw_error = yaw_error - 2*M_PI;
+    }
+    else
+    {
+      yaw_error = yaw_error + 2*M_PI;
+    }
+  }
 
-  while(yaw_error > yaw_thres)
+  while(fabs(yaw_error) > yaw_thres)
   {
     driving_tools::RotateInPlace srv_turn;
-    srv_turn.request.throttle  = 0.1*(1 + yaw_error/M_PI);
+    srv_turn.request.throttle  = copysign(0.1*(1 + yaw_error/M_PI), yaw_error);
 
     if (clt_rip_.call(srv_turn))
     {
@@ -1369,8 +1379,19 @@ void SmRd1::rotateToHeading(double desired_yaw)
     rateRotateToHeading.sleep();
     ros::spinOnce();
     ROS_WARN("Trying to control yaw to desired angles.");
+    
     ROS_INFO_STREAM("Yaw error: "<<yaw_error);
-    fabs(yaw_-desired_yaw) < M_PI? yaw_error = fabs(yaw_-desired_yaw) : yaw_error = fabs(yaw_-desired_yaw) - 2*M_PI;
+    if (fabs(yaw_error) > M_PI)
+    {
+      if(yaw_error > 0)
+      {
+        yaw_error = yaw_error - 2*M_PI;
+      }
+      else
+      {
+        yaw_error = yaw_error + 2*M_PI;
+      }
+    }
   }
 
   driving_tools::Stop srv_stop;
