@@ -359,16 +359,7 @@ void SmRd1::stateInitialize()
   // }
 
   // Clear the costmap
-  std_srvs::Empty emptymsg;
-  ros::service::waitForService("/move_base/clear_costmaps",ros::Duration(3.0));
-  if (ros::service::call("/move_base/clear_costmaps",emptymsg))
-  {
-     ROS_INFO("costmap layers are cleared");
-  }
-  else
-  {
-     ROS_ERROR("failed calling clear_costmaps service");
-  }
+  clearCostmaps_();
 
 
 // make sure we dont latch to a vol we skipped while homing
@@ -488,16 +479,7 @@ void SmRd1::statePlanning()
   //   ROS_ERROR("Failed to call service Drive to Waypoint");
   // }
 
-  std_srvs::Empty emptymsg;
-  ros::service::waitForService("/move_base/clear_costmaps",ros::Duration(2.0));
-  if (ros::service::call("/move_base/clear_costmaps",emptymsg))
-  {
-     ROS_INFO("every costmap layers are cleared except static layer");
-  }
-  else
-  {
-     ROS_INFO("failed calling clear_costmaps service");
-  }
+  clearCostmaps_();
 
   std_msgs::Int64 state_msg;
   state_msg.data = _planning;
@@ -562,18 +544,7 @@ void SmRd1::stateTraverse()
       ROS_ERROR("Failed to call service Stop");
     }
 
-    std_srvs::Empty emptymsg;
-    ROS_ERROR(" Waypoint Unreachable Clearing Cost, Turning, and Sending to Planning" );
-
-    ros::service::waitForService("/move_base/clear_costmaps",ros::Duration(2.0));
-    if (ros::service::call("/move_base/clear_costmaps",emptymsg))
-    {
-       ROS_INFO("every costmap layers are cleared except static layer");
-    }
-    else
-    {
-       ROS_INFO("failed calling clear_costmaps service");
-    }
+    clearCostmaps_();
 
 
   }
@@ -583,7 +554,19 @@ void SmRd1::stateTraverse()
   sm_state_pub.publish(state_msg);
 
 }
-
+void SmRd1::clearCostmaps_(){
+  // Clear the costmap
+  std_srvs::Empty emptymsg;
+  ros::service::waitForService("/move_base/clear_costmaps",ros::Duration(3.0));
+  if (ros::service::call("/move_base/clear_costmaps",emptymsg))
+  {
+     ROS_INFO("costmap layers are cleared");
+  }
+  else
+  {
+     ROS_ERROR("failed calling clear_costmaps service");
+  }
+}
 void SmRd1::stateVolatileHandler()
 {
   ac.waitForServer();
@@ -635,7 +618,7 @@ void SmRd1::stateVolatileHandler()
 
     {
             ROS_INFO_STREAM("SM: Volatile Accepted? "<< srv_vol_rep.response);
-            flag_volatile_recorded=true; //JNG CHANGED THIS TO UNCOMMENT 8/12/20
+            flag_volatile_recorded=true;
             flag_arrived_at_waypoint = false;
              prev_volatile_detected_distance = 30;
              flag_waypoint_unreachable = false;
@@ -645,7 +628,9 @@ void SmRd1::stateVolatileHandler()
              sm_state_pub.publish(state_msg);
              //detection_timer = ros::Time::now();
            //  min_volatile_detected_distance = 30;
-
+            ros::Duration(3.0).sleep();
+            ros::spinOnce();
+            clearCostmaps_();
              ROS_WARN("VolatileHandler Exit %f\n",   volatile_detected_distance);
              return;
 
@@ -668,7 +653,7 @@ void SmRd1::stateVolatileHandler()
       if (clt_vol_report_.call(srv_vol_rep))
       {
               ROS_INFO_STREAM("SM: Volatile Accepted? "<< srv_vol_rep.response);
-              flag_volatile_recorded=true; //JNG CHANGED THIS TO UNCOMMENT 8/12/20
+              flag_volatile_recorded=true;
               flag_arrived_at_waypoint = false;
                prev_volatile_detected_distance = 30;
                flag_waypoint_unreachable = false;
@@ -678,7 +663,9 @@ void SmRd1::stateVolatileHandler()
                sm_state_pub.publish(state_msg);
                //detection_timer = ros::Time::now();
              //  min_volatile_detected_distance = 30;
-
+               ros::spinOnce();
+               ros::Duration(3.0).sleep();
+               clearCostmaps_();
                ROS_WARN("VolatileHandler Exit %f\n",   volatile_detected_distance);
                return;
 
@@ -701,7 +688,7 @@ void SmRd1::stateVolatileHandler()
 
       {
               ROS_INFO_STREAM("SM: Volatile Accepted? "<< srv_vol_rep.response);
-              flag_volatile_recorded=true; //JNG CHANGED THIS TO UNCOMMENT 8/12/20
+              flag_volatile_recorded=true;
               flag_arrived_at_waypoint = false;
   	           prev_volatile_detected_distance = 30;
                flag_waypoint_unreachable = false;
@@ -709,10 +696,12 @@ void SmRd1::stateVolatileHandler()
                std_msgs::Int64 state_msg;
                state_msg.data = _volatile_handler;
                sm_state_pub.publish(state_msg);
+               ros::Duration(3.0).sleep();
                //detection_timer = ros::Time::now();
              //  min_volatile_detected_distance = 30;
-
+               clearCostmaps_();
                ROS_WARN("VolatileHandler Exit %f\n",   volatile_detected_distance);
+               ros::spinOnce();
                return;
 
       }
@@ -728,6 +717,7 @@ void SmRd1::stateVolatileHandler()
                std_msgs::Int64 state_msg;
                state_msg.data = _volatile_handler;
                sm_state_pub.publish(state_msg);
+               clearCostmaps_();
       }
 
 
@@ -1198,16 +1188,7 @@ void SmRd1::stateLost()
   // }
 
   // Clear the costmap
-  std_srvs::Empty emptymsg;
-  ros::service::waitForService("/move_base/clear_costmaps",ros::Duration(3.0));
-  if (ros::service::call("/move_base/clear_costmaps",emptymsg))
-  {
-     ROS_INFO("costmap layers are cleared");
-  }
-  else
-  {
-     ROS_ERROR("failed calling clear_costmaps service");
-  }
+  clearCostmaps_();
     // make sure we dont latch to a vol we skipped while homing
     volatile_detected_distance = -1.0;
 
