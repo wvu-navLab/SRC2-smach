@@ -659,13 +659,13 @@ void SmRd1::stateVolatileHandler()
     if( serviceWatchDog.isValid()){
           while( (ros::Time::now().toSec() - serviceWatchDog.toSec() ) < TIMER_THRESH*2.0) {
             ROS_WARN("Waiting for volatile serviate to be available %f",TIMER_THRESH*2.0-(ros::Time::now().toSec() - serviceWatchDog.toSec() ));
+            ros::spinOnce();
       }
     }
       srv_vol_rep.request.start = true;
       srv_vol_rep.request.x_offset = 0.0;
       srv_vol_rep.request.y_offset = -1.0;
       if (clt_vol_report_.call(srv_vol_rep))
-
       {
               ROS_INFO_STREAM("SM: Volatile Accepted? "<< srv_vol_rep.response);
               flag_volatile_recorded=true; //JNG CHANGED THIS TO UNCOMMENT 8/12/20
@@ -691,6 +691,7 @@ void SmRd1::stateVolatileHandler()
       if( serviceWatchDog.isValid()){
             while( (ros::Time::now().toSec() - serviceWatchDog.toSec() ) < TIMER_THRESH*2.0) {
               ROS_WARN("Waiting for volatile serviate to be available %f",TIMER_THRESH*2.0-(ros::Time::now().toSec() - serviceWatchDog.toSec() ));
+              ros::spinOnce();
         }
       }
       srv_vol_rep.request.start = true;
