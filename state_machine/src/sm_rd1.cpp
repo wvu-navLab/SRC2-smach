@@ -210,6 +210,19 @@ void SmRd1::stateInitialize()
     ROS_ERROR("Failed to call service Stop");
   }
 
+  srcp2_msgs::BrakeRoverSrv srv_brake;
+
+  srv_brake.request.brake_force  = 100.0;
+  if (clt_srcp2_brake_rover_.call(srv_brake))
+  {
+     ROS_INFO_STREAM("SM: Brake Enabled? "<< srv_brake.response.finished);
+
+  }
+  else
+  {
+      ROS_ERROR("Failed to call service Brake");
+  }
+
   // // Get True Pose
   // pose_update::PoseUpdate srv_upd_pose;
   // srv_upd_pose.request.start  = true;
@@ -287,6 +300,16 @@ void SmRd1::stateInitialize()
     ROS_ERROR("Failed to call service ToggleLight");
   }
 
+  srv_brake.request.brake_force  = 0.0;
+  if (clt_srcp2_brake_rover_.call(srv_brake))
+  {
+     ROS_INFO_STREAM("SM: Brake Enabled? "<< srv_brake.response.finished);
+
+  }
+  else
+  {
+      ROS_ERROR("Failed to call service Brake");
+  }
   // Move Backward first
   driving_tools::MoveForward srv_drive;
   srv_drive.request.throttle  = -0.3;
@@ -602,7 +625,7 @@ void SmRd1::stateVolatileHandler()
   }
 
   srcp2_msgs::BrakeRoverSrv srv_brake;
-  srv_brake.request.brake_force  = 100.0;
+
   srv_brake.request.brake_force  = 100.0;
   if (clt_srcp2_brake_rover_.call(srv_brake))
   {
@@ -650,7 +673,7 @@ void SmRd1::stateVolatileHandler()
              ROS_WARN("VolatileHandler Exit %f\n",   volatile_detected_distance);
              srcp2_msgs::BrakeRoverSrv srv_brake;
 
-             srv_brake.request.brake_force  = 100.0;
+             srv_brake.request.brake_force  = 0.0;
              if (clt_srcp2_brake_rover_.call(srv_brake))
              {
                 ROS_INFO_STREAM("SM: Brake Enabled? "<< srv_brake.response.finished);
@@ -1109,6 +1132,17 @@ void SmRd1::stateLost()
   {
     ROS_ERROR("Failed to call service Stop");
   }
+  srcp2_msgs::BrakeRoverSrv srv_brake;
+  srv_brake.request.brake_force  = 100.0;
+  if (clt_srcp2_brake_rover_.call(srv_brake))
+  {
+     ROS_INFO_STREAM("SM: Brake Enabled? "<< srv_brake.response.finished);
+
+  }
+  else
+  {
+      ROS_ERROR("Failed to call service Brake");
+  }
 
   // Turn on the Lights
   srcp2_msgs::ToggleLightSrv srv_lights;
@@ -1176,7 +1210,16 @@ void SmRd1::stateLost()
   {
     ROS_ERROR("Failed to call service ToggleLight");
   }
+  srv_brake.request.brake_force  = 0.0;
+  if (clt_srcp2_brake_rover_.call(srv_brake))
+  {
+     ROS_INFO_STREAM("SM: Brake Enabled? "<< srv_brake.response.finished);
 
+  }
+  else
+  {
+      ROS_ERROR("Failed to call service Brake");
+  }
   // Move Backward first
   driving_tools::MoveForward srv_drive;
   srv_drive.request.throttle  = -0.3;
