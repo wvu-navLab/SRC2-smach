@@ -6,7 +6,6 @@
 #include <std_msgs/Int64.h>
 #include <geometry_msgs/Pose.h>
 #include <geometry_msgs/Point.h>
-#include <pose_update/PoseUpdate.h>
 #include <waypoint_gen/GenerateWaypoint.h>
 #include <waypoint_nav/SetGoal.h>
 #include <waypoint_nav/Interrupt.h>

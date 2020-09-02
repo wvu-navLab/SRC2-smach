@@ -694,6 +694,8 @@ void SmRd1::stateVolatileHandler()
             ROS_ERROR("Service Did not Collect Points");
     }
 
+
+
     if( serviceWatchDog.isValid()){
           while( (ros::Time::now().toSec() - serviceWatchDog.toSec() ) < TIMER_THRESH*2.0) {
             ROS_WARN_ONCE("Waiting for volatile serviate to be available %f",TIMER_THRESH*2.0-(ros::Time::now().toSec() - serviceWatchDog.toSec() ));
@@ -1074,6 +1076,7 @@ void SmRd1::stateVolatileHandler()
 //   }
 //   }
 
+
   // srv_wp_nav.request.interrupt = false;
   // if (clt_wp_nav_interrupt_.call(srv_wp_nav))
   // {
@@ -1386,7 +1389,9 @@ void SmRd1::localizationCallback(const nav_msgs::Odometry::ConstPtr& msg)
                       msg->pose.pose.orientation.y,
                       msg->pose.pose.orientation.z,
                       msg->pose.pose.orientation.w);
+
   tf2::Matrix3x3(q).getRPY(roll_, pitch_, yaw_);
+
 }
 
 
