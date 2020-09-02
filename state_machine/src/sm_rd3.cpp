@@ -15,7 +15,6 @@ SmRd3::SmRd3()
   localization_failure_sub = nh.subscribe("state_machine/localization_failure", 1, &SmRd3::localizationFailureCallback, this);
 
   // Clients
-  clt_true_pose_ = nh.serviceClient<pose_update::PoseUpdate>("localization/true_pose_update");
   clt_wp_gen_ = nh.serviceClient<waypoint_gen::GenerateWaypoint>("navigation/generate_goal");
   clt_wp_nav_set_goal_ = nh.serviceClient<waypoint_nav::SetGoal>("navigation/set_goal");
   clt_wp_nav_interrupt_ = nh.serviceClient<waypoint_nav::Interrupt>("navigation/interrupt");
@@ -157,17 +156,6 @@ void SmRd3::stateInitialize()
     ROS_ERROR("Failed to call service Stop");
   }
 
-  // Get True Pose
-  pose_update::PoseUpdate srv_upd_pose;
-  srv_upd_pose.request.start  = true;
-  if (clt_true_pose_.call(srv_upd_pose))
-  {
-    // ROS_INFO_STREAM("Success? "<< srv_upd_pose.response.success);
-  }
-  else
-  {
-    ROS_ERROR("Failed to call service Pose Update");
-  }
 
   std_msgs::Int64 state_msg;
   state_msg.data = _initialize;

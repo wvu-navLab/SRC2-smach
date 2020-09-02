@@ -16,6 +16,7 @@ SmRd2::SmRd2()
   // volatile_detected_excavator_sub = nh.subscribe("/excavator_1/state_machine/volatile_detected_excavator", 1, &SmRd2::volatileDetectedExcavatorCallback, this);
   // volatile_recorded_excavator_sub = nh.subscribe("/excavator_1/state_machine/volatile_recorded_excavator", 1, &SmRd2::volatileRecordedExcavatorCallback, this);
   localization_failure_excavator_sub = nh.subscribe("/excavator_1/state_machine/localization_failure_excavator", 1, &SmRd2::localizationFailureExcavatorCallback, this);
+  localization_sub  = nh.subscribe("localization/odometry/sensor_fusion", 1, &SmRd2::localizationCallback, this);
   manipulation_feedback_excavator_sub = nh.subscribe("/excavator_1/manipulation/feedback", 1, &SmRd2::manipulationFeedbackCallback, this);
 
   // Subscribers
@@ -49,7 +50,7 @@ std::string hauler_1 = "hauler_1";
   // clt_vol_report_ = nh.serviceClient<volatile_handler::VolatileReport>(hauler_1+"/volatile/report");
 
 
-  clt_true_pose_excavator_ = nh.serviceClient<pose_update::PoseUpdate>("/excavator_1/localization/true_pose_update");
+  //clt_true_pose_excavator_ = nh.serviceClient<pose_update::PoseUpdate>("/excavator_1/localization/true_pose_update");
   clt_next_vol_excavator_ = nh.serviceClient<round2_volatile_handler::NextVolatileLocation>("/excavator_1/volatile/next");
   clt_wp_nav_set_goal_excavator_ = nh.serviceClient<waypoint_nav::SetGoal>("/excavator_1/navigation/set_goal");
   clt_wp_nav_interrupt_excavator_ = nh.serviceClient<waypoint_nav::Interrupt>("/excavator_1/navigation/interrupt");
@@ -57,7 +58,7 @@ std::string hauler_1 = "hauler_1";
   // clt_vol_report_ = nh.serviceClient<volatile_handler::VolatileReport>(excavator_1+"/volatile/report");
 
   // Clients
-  clt_true_pose_hauler_ = nh.serviceClient<pose_update::PoseUpdate>("/hauler_1/localization/true_pose_update");
+  //clt_true_pose_hauler_ = nh.serviceClient<pose_update::PoseUpdate>("/hauler_1/localization/true_pose_update");
   clt_wp_nav_set_goal_hauler_ = nh.serviceClient<waypoint_nav::SetGoal>("/hauler_1/navigation/set_goal");
   clt_wp_nav_interrupt_hauler_ = nh.serviceClient<waypoint_nav::Interrupt>("/hauler_1/navigation/interrupt");
   clt_stop_hauler_ = nh.serviceClient<driving_tools::Stop>("/hauler_1/driving/stop");
@@ -221,7 +222,7 @@ void SmRd2::stateInitialize()
     ROS_ERROR("EXCAVATOR Failed to call service Stop");
   }
   // Get True Pose
-  pose_update::PoseUpdate srv_upd_pose;
+  /**pose_update::PoseUpdate srv_upd_pose;
   srv_upd_pose.request.start  = true;
   if (clt_true_pose_hauler_.call(srv_upd_pose))
   {
@@ -238,7 +239,7 @@ void SmRd2::stateInitialize()
   else
   {
     ROS_ERROR("EXCAVATOR Failed to call service Pose Update");
-  }
+  }*/
   std_msgs::Int64 state_msg;
   state_msg.data = _initialize;
   sm_state_excavator_pub.publish(state_msg);
@@ -409,6 +410,43 @@ void SmRd2::stateVolatileHandler()
    if (clt_wp_nav_set_goal_hauler_.call(srv_wp_nav))
    {
      //s ROS_INFO_STREAM("Success? "<< srv_wp_nav.response.success);
+     if (!srv_wp_nav.response.success)
+     {
+        if (!search_candidates.size())
+        {
+
+          std::vector<double> temp_P({P_[0], P_[1], P_[6], P_[7]});
+          std::pair<double, double> origin({goal_pose_.position.x, goal_pose_.position.y});
+
+          search_candidates = sm_utils::circlePacking(origin, temp_P, 2, 0.5);
+          goal_pose_.position.x = search_candidates[0].first;
+          goal_pose_.position.y = search_candidates[1].second;
+
+        } else
+        {
+          goal_pose_.position.x = search_candidates[0].first;
+          goal_pose_.position.y = search_candidates[1].second;
+        }
+        search_candidates.erase(search_candidates.begin());
+
+        waypoint_nav::SetGoal srv_wp_nav;
+        srv_wp_nav.request.start = true;
+        srv_wp_nav.request.goal = goal_pose_;
+        if (clt_wp_nav_set_goal_excavator_.call(srv_wp_nav))
+        {
+          //s ROS_INFO_STREAM("Success? "<< srv_wp_nav.response.success);
+        }
+        else
+        {
+          ROS_ERROR("EXCAVATOR Failed to call service Drive to Waypoint");
+        }
+
+        // Publish volatile pose
+        manipulation_volatile_pose_pub.publish(goal_pose_);
+
+        //if last item in list and item can't be found set as unreachable
+      }
+
    }
    else
    {
@@ -416,49 +454,6 @@ void SmRd2::stateVolatileHandler()
    }
 
 
-   // volatile_handler::VolatileReport srv_vol_rep;
-   // srv_vol_rep.request.start = true;
-   // if (clt_vol_report_.call(srv_vol_rep))
-   // {
-   //   ROS_INFO_STREAM("SM: Volatile Accepted? "<< srv_vol_rep.response);
-   //    flag_volatile_recorded=true; //JNG CHANGED THIS TO UNCOMMENT 8/12/20
-   //   flag_arrived_at_waypoint = false;
-   //   // srv_wp_nav.request.interrupt = false;
-   //   // if (clt_wp_nav_interrupt_.call(srv_wp_nav))
-   //   // {
-   //   //   ROS_INFO_STREAM("AFTER FOUND VOL I called service interrupt ");
-   //   // }
-   //   // else
-   //   // {
-   //   //   ROS_ERROR("AFTER FOUDN VOL Failed to call service Interrupt Nav");
-   //   // }
-   //   // // Turn off brake
-   //   // srv_stop.request.enableStop  = false;
-   //   // if (clt_stop_.call(srv_stop))
-   //   // {
-   //   //   ROS_INFO_STREAM("SM: Stopping Disabled? "<< srv_stop.response);
-   //   // }
-   //   // else
-   //   // {
-   //   //   ROS_ERROR("Failed to call service Start");
-   //   // }
-   // }
-   // else
-   // {
-   //   ROS_ERROR("Service Did not Collect Points");
-   //   // flag_arrived_at_waypoint = true;
-   // }
-/*
-    // Turn off brake
-    srv_stop.request.enableStop  = false;
-    if (clt_stop_.call(srv_stop))
-    {
-      ROS_INFO_STREAM("SM: Stopping Disabled? "<< srv_stop.response);
-    }
-    else
-    {
-      ROS_ERROR("Failed to call service Start");
-    } */
 
    ROS_INFO("VolatileHandler!\n");
    //flag_arrived_at_waypoint = false;
@@ -620,6 +615,27 @@ void SmRd2::arrivedAtWaypointHaulerCallback(const std_msgs::Bool::ConstPtr& msg)
 void SmRd2::localizationFailureHaulerCallback(const std_msgs::Bool::ConstPtr& msg)
 {
   flag_localization_failure_hauler = msg->data;
+}
+
+void SmRd2::localizationCallback(const nav_msgs::Odometry::ConstPtr& msg)
+{
+  current_pose_ = msg->pose.pose;
+
+  yaw_prev = yaw;
+  tf2::Quaternion q(msg->pose.pose.orientation.x,
+                      msg->pose.pose.orientation.y,
+                      msg->pose.pose.orientation.z,
+                      msg->pose.pose.orientation.w);
+  tf2::Matrix3x3(q).getRPY(roll, pitch, yaw);
+
+  x_ = msg->pose.pose.position.x;
+  y_ = msg->pose.pose.position.y;
+  z_ = msg->pose.pose.position.x;
+  P_.clear();
+  for (int i = 0; i < 36; ++i)
+  {
+    P_.push_back(msg->pose.covariance[i]);
+  }
 }
 
 //------------------------------------------------------------------------------------------------------------------------

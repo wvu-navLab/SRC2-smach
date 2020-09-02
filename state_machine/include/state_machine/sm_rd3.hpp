@@ -5,7 +5,6 @@
 #include <std_msgs/Float32.h>
 #include <std_msgs/Int64.h>
 #include <geometry_msgs/Pose.h>
-#include <pose_update/PoseUpdate.h>
 #include <waypoint_gen/GenerateWaypoint.h>
 #include <waypoint_nav/SetGoal.h>
 #include <waypoint_nav/Interrupt.h>
@@ -50,7 +49,6 @@ public:
   ros::Subscriber volatile_recorded_sub;
   ros::Subscriber localization_failure_sub;
 
-  ros::ServiceClient clt_true_pose_;
   ros::ServiceClient clt_wp_gen_;
   ros::ServiceClient clt_wp_nav_set_goal_;
   ros::ServiceClient clt_wp_nav_interrupt_;
