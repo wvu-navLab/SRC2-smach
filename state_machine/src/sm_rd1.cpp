@@ -1379,7 +1379,7 @@ void SmRd1::rotateToHeading(double desired_yaw)
     rateRotateToHeading.sleep();
     ros::spinOnce();
     ROS_WARN("Trying to control yaw to desired angles.");
-
+    yaw_error = desired_yaw - yaw_;
     ROS_INFO_STREAM("Yaw error: "<<yaw_error);
     if (fabs(yaw_error) > M_PI)
     {
