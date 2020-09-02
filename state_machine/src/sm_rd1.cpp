@@ -1347,7 +1347,7 @@ void SmRd1::rotateToHeading(double desired_yaw)
   while(yaw_error > yaw_thres)
   {
     driving_tools::RotateInPlace srv_turn;
-    srv_turn.request.throttle  = 0.1*yaw_error;
+    srv_turn.request.throttle  = 0.1*(1 + yaw_error/M_PI);
 
     if (clt_rip_.call(srv_turn))
     {
