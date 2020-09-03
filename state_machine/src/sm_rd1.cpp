@@ -28,6 +28,7 @@ move_base_state_(actionlib::SimpleClientGoalState::LOST)
   clt_rip_ = nh.serviceClient<driving_tools::RotateInPlace>("driving/rotate_in_place");
   clt_drive_ = nh.serviceClient<driving_tools::MoveForward>("driving/move_forward");
   clt_vol_report_ = nh.serviceClient<volatile_handler::VolatileReport>("volatile/report");
+  clt_vol_detect_ = nh.serviceClient<volatile_handler::VolatileReport>("volatile/toggle_detecto");
   clt_lights_ = nh.serviceClient<srcp2_msgs::ToggleLightSrv>("toggle_light");
   clt_brake_ = nh.serviceClient<srcp2_msgs::BrakeRoverSrv>("brake_rover");
   clt_approach_base_ = nh.serviceClient<src2_object_detection::ApproachBaseStation>("approach_base_station");
@@ -167,6 +168,16 @@ void SmRd1::stateInitialize()
   flag_arrived_at_waypoint = false;
   flag_waypoint_unreachable = false;
 
+  volatile_handler::ToggleDetector srv_vol_detect;
+  srv_vol_detect.request.on  = false;
+  if (clt_vol_detect_.call(srv_vol_detect))
+  {
+    // ROS_INFO_STREAM("Success? "<< srv_stop.response.success);
+  }
+  else
+  {
+    ROS_ERROR("Failed to call service ToggleDetector");
+  }
 
   // Turn on the Lights
   srcp2_msgs::ToggleLightSrv srv_lights;
@@ -358,6 +369,16 @@ void SmRd1::stateInitialize()
   else
   {
     ROS_ERROR("Failed to call service Stop");
+  }
+
+  srv_vol_detect.request.on  = true;
+  if (clt_vol_detect_.call(srv_vol_detect))
+  {
+    // ROS_INFO_STREAM("Success? "<< srv_stop.response.success);
+  }
+  else
+  {
+    ROS_ERROR("Failed to call service ToggleDetector");
   }
 
   // driving_tools::MoveForward srv_drive;
@@ -596,7 +617,6 @@ void SmRd1::stateVolatileHandler()
 
   ROS_WARN("Volatile Handling State!");
 
-<<<<<<< HEAD
 //   // waypoint_nav::Interrupt srv_wp_nav;
 //   // srv_wp_nav.request.interrupt = true;
 //   // if (clt_wp_nav_interrupt_.call(srv_wp_nav))
@@ -606,214 +626,6 @@ void SmRd1::stateVolatileHandler()
 //   // else
 //   // {
 //   //   ROS_ERROR("Failed to call service Interrupt.");
-=======
-  // waypoint_nav::Interrupt srv_wp_nav;
-  // srv_wp_nav.request.interrupt = true;
-  // if (clt_wp_nav_interrupt_.call(srv_wp_nav))
-  // {
-  //   ROS_INFO_STREAM("Called service Interrupt.");
-  // }
-  // else
-  // {
-  //   ROS_ERROR("Failed to call service Interrupt.");
-
-  // }
-  //ros::Duration(2.0).sleep();
-  srcp2_msgs::BrakeRoverSrv srv_brake;
-  if(volatile_detected_distance< VOLATILE_THRESH){
-    ac.waitForServer();
-    ac.cancelGoal();
-    ac.waitForResult(ros::Duration(0.25));
-
-  driving_tools::Stop srv_stop;
-  srv_stop.request.enableStop  = true;
-  if (clt_stop_.call(srv_stop))
-  {
-     ROS_INFO_STREAM("SM: Stopping Enabled? "<< srv_stop.response);
-
-  }
-  else
-  {
-      ROS_ERROR("Failed to call service Stop");
-  }
-
-  srcp2_msgs::BrakeRoverSrv srv_brake;
-
-  srv_brake.request.brake_force  = 100.0;
-  if (clt_srcp2_brake_rover_.call(srv_brake))
-  {
-     ROS_INFO_STREAM("SM: Brake Enabled? "<< srv_brake.response.finished);
-
-  }
-  else
-  {
-      ROS_ERROR("Failed to call service Brake");
-  }
-
-
-
-    //  ros::Duration(2.0).sleep();
-
-
-  volatile_handler::VolatileReport srv_vol_rep;
-  srv_vol_rep.request.start = false;
-  srv_vol_rep.request.x_offset = 0.0;
-  srv_vol_rep.request.y_offset = 0.0;
-   ros::Time serviceWatchDog;
-  //if (fabs(pitch_) > M_PI/6.0 || fabs(roll_) > M_PI/6.0)
-  //{
-
-    srv_vol_rep.request.start = true;
-    srv_vol_rep.request.x_offset = 0.0;
-    srv_vol_rep.request.y_offset = 0.0;
-    if (clt_vol_report_.call(srv_vol_rep))
-
-    {
-            ROS_INFO_STREAM("SM: Volatile Accepted? "<< srv_vol_rep.response);
-            flag_volatile_recorded=true;
-            flag_arrived_at_waypoint = false;
-             prev_volatile_detected_distance = 30;
-             flag_waypoint_unreachable = false;
-             volatile_detected_distance = -1.0;
-             std_msgs::Int64 state_msg;
-             state_msg.data = _volatile_handler;
-             sm_state_pub.publish(state_msg);
-             //detection_timer = ros::Time::now();
-           //  min_volatile_detected_distance = 30;
-            ros::Duration(3.0).sleep();
-            ros::spinOnce();
-            clearCostmaps_();
-             ROS_WARN("VolatileHandler Exit %f\n",   volatile_detected_distance);
-             srcp2_msgs::BrakeRoverSrv srv_brake;
-
-             srv_brake.request.brake_force  = 0.0;
-             if (clt_srcp2_brake_rover_.call(srv_brake))
-             {
-                ROS_INFO_STREAM("SM: Brake Enabled? "<< srv_brake.response.finished);
-
-             }
-             else
-             {
-                 ROS_ERROR("Failed to call service Brake");
-             }
-             return;
-
-    }
-    else
-    {
-            serviceWatchDog =  ros::Time::now();
-            ROS_ERROR("Service Did not Collect Points");
-    }
-
-
-
-    if( serviceWatchDog.isValid()){
-          while( (ros::Time::now().toSec() - serviceWatchDog.toSec() ) < TIMER_THRESH*2.0) {
-            ROS_WARN_ONCE("Waiting for volatile serviate to be available %f",TIMER_THRESH*2.0-(ros::Time::now().toSec() - serviceWatchDog.toSec() ));
-            ros::spinOnce();
-      }
-    }
-      srv_vol_rep.request.start = true;
-      srv_vol_rep.request.x_offset = 0.0;
-      srv_vol_rep.request.y_offset = -1.0;
-      if (clt_vol_report_.call(srv_vol_rep))
-      {
-              ROS_INFO_STREAM("SM: Volatile Accepted? "<< srv_vol_rep.response);
-              flag_volatile_recorded=true;
-              flag_arrived_at_waypoint = false;
-               prev_volatile_detected_distance = 30;
-               flag_waypoint_unreachable = false;
-               volatile_detected_distance = -1.0;
-               std_msgs::Int64 state_msg;
-               state_msg.data = _volatile_handler;
-               sm_state_pub.publish(state_msg);
-               //detection_timer = ros::Time::now();
-             //  min_volatile_detected_distance = 30;
-               ros::spinOnce();
-               ros::Duration(3.0).sleep();
-               clearCostmaps_();
-               ROS_WARN("VolatileHandler Exit %f\n",   volatile_detected_distance);
-
-               srv_brake.request.brake_force  = 0.0;
-
-               if (clt_srcp2_brake_rover_.call(srv_brake))
-               {
-                  ROS_INFO_STREAM("SM: Brake Enabled? "<< srv_brake.response.finished);
-
-               }
-               else
-               {
-                   ROS_ERROR("Failed to call service Brake");
-               }
-               return;
-
-
-      }
-      else
-      {
-              serviceWatchDog =  ros::Time::now();
-              ROS_ERROR("Service Did not Collect Points");
-      }
-      if( serviceWatchDog.isValid()){
-            while( (ros::Time::now().toSec() - serviceWatchDog.toSec() ) < TIMER_THRESH*2.0) {
-              ROS_WARN_ONCE("Waiting for volatile serviate to be available %f",TIMER_THRESH*2.0-(ros::Time::now().toSec() - serviceWatchDog.toSec() ));
-              ros::spinOnce();
-        }
-      }
-      srv_vol_rep.request.start = true;
-      srv_vol_rep.request.x_offset = 0.0;
-      srv_vol_rep.request.y_offset = 1.0;
-      if (clt_vol_report_.call(srv_vol_rep))
-
-      {
-              ROS_INFO_STREAM("SM: Volatile Accepted? "<< srv_vol_rep.response);
-              flag_volatile_recorded=true;
-              flag_arrived_at_waypoint = false;
-  	           prev_volatile_detected_distance = 30;
-               flag_waypoint_unreachable = false;
-               volatile_detected_distance = -1.0;
-               std_msgs::Int64 state_msg;
-               state_msg.data = _volatile_handler;
-               sm_state_pub.publish(state_msg);
-               ros::Duration(3.0).sleep();
-               //detection_timer = ros::Time::now();
-             //  min_volatile_detected_distance = 30;
-               clearCostmaps_();
-               ROS_WARN("VolatileHandler Exit %f\n",   volatile_detected_distance);
-               ros::spinOnce();
-
-               srv_brake.request.brake_force  = 0.0;
-
-               if (clt_srcp2_brake_rover_.call(srv_brake))
-               {
-                  ROS_INFO_STREAM("SM: Brake Enabled? "<< srv_brake.response.finished);
-
-               }
-               else
-               {
-                   ROS_ERROR("Failed to call service Brake");
-               }
-               return;
-
-      }
-      else
-      {
-              serviceWatchDog =  ros::Time::now();
-              ROS_ERROR("Service Did not Collect Points");
-              flag_volatile_recorded=true; //JN
-              flag_arrived_at_waypoint = false;
-               prev_volatile_detected_distance = 30;
-               flag_waypoint_unreachable = false;
-               volatile_detected_distance = -1.0;
-               std_msgs::Int64 state_msg;
-               state_msg.data = _volatile_handler;
-               sm_state_pub.publish(state_msg);
-               clearCostmaps_();
-      }
-
-}
-
->>>>>>> bb484a0df546d511cc636dbcc4909c485b04058c
 //
 //   // }
 //   //ros::Duration(2.0).sleep();
@@ -899,49 +711,7 @@ void SmRd1::stateVolatileHandler()
 //   //detection_timer = ros::Time::now();
 // //  min_volatile_detected_distance = 30;
 //
-<<<<<<< HEAD
 //   ROS_WARN("VolatileHandler Exit %f\n",   volatile_detected_distance);
-=======
-//           }
-//   }
-//   }
-
-
-  // srv_wp_nav.request.interrupt = false;
-  // if (clt_wp_nav_interrupt_.call(srv_wp_nav))
-  // {
-  //       ROS_INFO_STREAM("I called service interrupt ");
-  // }
-  // else
-  // {
-  //       ROS_ERROR("Failed to call service Interrupt Nav");
-  // }
-
-  srv_brake.request.brake_force  = 0.0;
-  if (clt_srcp2_brake_rover_.call(srv_brake))
-  {
-     ROS_INFO_STREAM("SM: Brake Enabled? "<< srv_brake.response.finished);
-
-  }
-  else
-  {
-      ROS_ERROR("Failed to call service Brake");
-  }
-
-  ROS_WARN("VolatileHandler\n");
-  //flag_arrived_at_waypoint = false;
-  flag_waypoint_unreachable = false;
-  volatile_detected_distance = -1.0;
-  //flag_localizing_volatile = true;
-  // flag_arrived_at_waypoint = true; // This is temporary for hackathon, since volatile reporting doesn't have all info and doesn't command a waypoint yet.
-  std_msgs::Int64 state_msg;
-  state_msg.data = _volatile_handler;
-  sm_state_pub.publish(state_msg);
-  //detection_timer = ros::Time::now();
-//  min_volatile_detected_distance = 30;
-
-  ROS_WARN("VolatileHandler Exit %f\n",   volatile_detected_distance);
->>>>>>> bb484a0df546d511cc636dbcc4909c485b04058c
   //++timer_counter;
 }
 
@@ -959,6 +729,16 @@ void SmRd1::stateLost()
   ac.cancelGoal();
   ac.waitForResult(ros::Duration(0.25));
 
+  volatile_handler::ToggleDetector srv_vol_detect;
+  srv_vol_detect.request.on  = false;
+  if (clt_vol_detect_.call(srv_vol_detect))
+  {
+    // ROS_INFO_STREAM("Success? "<< srv_stop.response.success);
+  }
+  else
+  {
+    ROS_ERROR("Failed to call service ToggleDetector");
+  }
   // Break
   driving_tools::Stop srv_stop;
   srv_stop.request.enableStop  = true;
@@ -1109,6 +889,15 @@ void SmRd1::stateLost()
     ROS_ERROR("Failed to call service Stop");
   }
 
+  srv_vol_detect.request.on  = true;
+  if (clt_vol_detect_.call(srv_vol_detect))
+  {
+    // ROS_INFO_STREAM("Success? "<< srv_stop.response.success);
+  }
+  else
+  {
+    ROS_ERROR("Failed to call service ToggleDetector");
+  }
   // // driving_tools::MoveForward srv_drive;
   // srv_drive.request.throttle  = 0.3;
   // if (clt_drive_.call(srv_drive))

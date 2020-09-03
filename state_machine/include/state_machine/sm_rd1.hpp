@@ -14,6 +14,7 @@
 #include <driving_tools/CirculateBaseStation.h>
 #include <driving_tools/RotateInPlace.h>
 #include <volatile_handler/VolatileReport.h>
+#include <volatile_handler/ToggleDetector.h>
 #include <nav_msgs/Odometry.h>
 #include <tf2/LinearMath/Quaternion.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
@@ -98,6 +99,7 @@ public:
   ros::ServiceClient clt_rip_;
   ros::ServiceClient clt_drive_;
   ros::ServiceClient clt_vol_report_;
+  ros::ServiceClient clt_vol_detect_;
   ros::ServiceClient clt_brake_;
   ros::ServiceClient clt_lights_;
   ros::ServiceClient clt_homing_;
