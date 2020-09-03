@@ -18,6 +18,7 @@ move_base_state_(actionlib::SimpleClientGoalState::LOST)
   localization_failure_sub = nh.subscribe("state_machine/localization_failure", 1, &SmRd3::localizationFailureCallback, this);
   localization_sub  = nh.subscribe("localization/odometry/sensor_fusion", 1, &SmRd3::localizationCallback, this);
   driving_mode_sub =nh.subscribe("driving/driving_mode",1, &SmRd3::drivingModeCallback, this);
+  lidar_sub =nh.subscribe("laser/scan",1, &SmRd3::lidarCallback, this);
 
   // Clients
   clt_wp_gen_ = nh.serviceClient<waypoint_gen::GenerateWaypoint>("navigation/generate_goal");
@@ -238,21 +239,60 @@ void SmRd3::stateInitialize()
 
   ros::spinOnce();
 
+  ROS_INFO_STREAM("SCOUT: Pose: "<< current_pose_);
+  ROS_INFO_STREAM("SCOUT: Base location: "<< base_location_);
   goal_yaw_ = atan2(base_location_.y - current_pose_.position.y, base_location_.x - current_pose_.position.x);
 
   Brake (0.0);
 
   RotateToHeading(goal_yaw_);
 
+  Stop(2.0);
+  
   for(int i = 0; i < 5; i++)
   {
-    MoveAroundBaseStation(8.0, 10);
+    ROS_INFO_STREAM("Try number: " << i);
+    MoveAroundBaseStation(8.5, 15);
 
-    RotateInPlace(0.3, 3);
-    
-    RotateToHeading(goal_yaw_);
+    RotateInPlace(0.3, 10);
 
-    Stop(0.0);
+    Stop(2.0);
+
+    // Approach Base Station
+    src2_object_detection::ApproachBaseStation srv_approach_base;
+    srv_approach_base.request.approach_base_station.data= true;
+    if (clt_approach_base_.call(srv_approach_base))
+    {
+      ROS_INFO("SCOUT: Called service ApproachBaseStation");
+      ROS_INFO_STREAM("Success finding the Base? "<< srv_approach_base.response.success.data);
+    }
+    else
+    {
+      ROS_ERROR("SCOUT: Failed  to call service ApproachBaseStation");
+    }
+
+    Stop(2.0);
+
+    Brake (500.0);
+
+    // Homing - Measurement Update
+    sensor_fusion::HomingUpdate srv_homing;
+    srv_homing.request.initializeLandmark = false;
+    if (clt_homing_.call(srv_homing))
+    {
+      ROS_INFO("SCOUT: Called service Homing [Update]");
+      flag_localization_failure=false;
+      flag_arrived_at_waypoint = true;
+      flag_completed_homing = true;
+    }
+    else
+    {
+      ROS_ERROR("SCOUT: Failed to call service Homing [Update]");
+    }
+
+    Lights ("0.2");
+
+    Brake (0.0);
   }
 
   // make sure we dont latch to a vol we skipped while homing
@@ -678,9 +718,6 @@ void SmRd3::RotateToHeading(double desired_yaw)
       yaw_error = yaw_error + 2*M_PI;
     }
   }
-  flag_heading_fail=false;
-  ros::Time start_time = ros::Time::now();
-  ros::Duration timeoutHeading(10.0); // Timeout of 20 seconds
 
   while(fabs(yaw_error) > yaw_thres)
   {
@@ -690,6 +727,7 @@ void SmRd3::RotateToHeading(double desired_yaw)
     ros::spinOnce();
 
     yaw_error = desired_yaw - yaw_;
+
     if (fabs(yaw_error) > M_PI)
     {
       if(yaw_error > 0)
@@ -701,32 +739,11 @@ void SmRd3::RotateToHeading(double desired_yaw)
         yaw_error = yaw_error + 2*M_PI;
       }
     }
+
     ROS_INFO_STREAM("Trying to control yaw to desired angles. Yaw error: "<<yaw_error);
-
-    ROS_ERROR_STREAM("TIME: "<<ros::Time::now() - start_time << ", TIMEOUT: " << timeoutHeading);
-
-    if (ros::Time::now() - start_time > timeoutHeading)
-    {
-      ROS_ERROR("Yaw Control Failed. Possibly stuck. Break control.");
-      flag_heading_fail = true;
-      break;
-    }
   }
 
-  if (flag_heading_fail)
-  {
-    ROS_WARN("Recovery action initiated in yaw control.");
-
-    Stop(2.0);
-
-    Drive (-0.3, 4.0);
-
-    flag_heading_fail=false;
-  }
-  else
-  {
-    Stop(0.0);
-  }
+  Stop(0.0);
 }
 
 void SmRd3::lidarCallback(const sensor_msgs::LaserScan::ConstPtr& msg)
@@ -744,41 +761,41 @@ void SmRd3::lidarCallback(const sensor_msgs::LaserScan::ConstPtr& msg)
   ROS_INFO_STREAM("Range to Base Station: " << range_);
 }
 
-void SmRd3::MoveAroundBaseStation(double desired_range, double time)
+void SmRd3::MoveAroundBaseStation(double desired_radius, double time)
 {
   ros::Rate control_rate(20);
 
   ROS_INFO("Starting circulate base station control.");
 
-  double range_threshold = 0.1;
+  double radius_threshold = 0.1;
 
   ros::spinOnce();
 
-  double range_error = desired_range - range_;
-  ROS_INFO_STREAM("Range error: " << range_error);
+  double radius = hypot(base_location_.y - current_pose_.position.y, base_location_.x - current_pose_.position.x);
+  double radius_error = desired_radius - radius;
+
+  ROS_INFO_STREAM("Radius error: " << radius_error);
 
   ros::Time start_time = ros::Time::now();
   ros::Duration timeoutCirculate(time); // Timeout of 20 seconds
 
-  while(range_error > range_threshold)
+  while(ros::Time::now() - start_time > timeoutCirculate)
   {
-    double radius = hypot(base_location_.y - current_pose_.position.y, base_location_.x - current_pose_.position.x);
-    
-    ROS_INFO_STREAM("Radius to Base Station: " << radius);
-    ROS_INFO_STREAM("Radius CMD to Base Station: " << radius + 0.1*range_error);
-
-    CirculateBaseStation(0.3, radius + 0.1*range_error, 0.0);
-
-    control_rate.sleep();
-    ros::spinOnce();
-    range_error = desired_range - range_;
-
-    ROS_INFO_STREAM("Trying to control yaw to desired angles. Range error: "<<range_error);
-
-    if (ros::Time::now() - start_time > timeoutCirculate)
+    while(abs(radius_error) > radius_threshold)
     {
-      ROS_ERROR("TIMEOUT. Break control.");
-      break;
+      ROS_INFO_STREAM("Radius to Base Station: " << radius);
+      ROS_INFO_STREAM("Radius CMD to Base Station: " << radius + 1.2*radius_error);
+
+      CirculateBaseStation(0.3, radius + 1.2*radius_error, 0.0);
+
+
+      control_rate.sleep();
+      ros::spinOnce();
+      radius = hypot(base_location_.y - current_pose_.position.y, base_location_.x - current_pose_.position.x);
+      radius_error = desired_radius - radius;
+
+      ROS_INFO_STREAM("Trying to control yaw to desired angles. Range error: "<<radius_error);
+
     }
   }
   

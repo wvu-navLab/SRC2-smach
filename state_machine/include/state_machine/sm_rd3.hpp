@@ -93,6 +93,8 @@ public:
   ros::Subscriber localization_sub;
   ros::Subscriber driving_mode_sub;
   ros::Subscriber mobility_sub;
+  ros::Subscriber lidar_sub;
+
   // ros::ServiceClient clt_true_pose_;
   ros::ServiceClient clt_sf_true_pose_;
   ros::ServiceClient clt_wp_gen_;
