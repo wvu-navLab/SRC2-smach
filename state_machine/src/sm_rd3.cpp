@@ -251,6 +251,7 @@ void SmRd3::stateInitialize()
   
   for(int i = 0; i < 5; i++)
   {
+<<<<<<< HEAD
     ROS_INFO_STREAM("Try number: " << i);
     MoveAroundBaseStation(8.5, 15);
 
@@ -274,6 +275,13 @@ void SmRd3::stateInitialize()
     Stop(2.0);
 
     Brake (500.0);
+=======
+    MoveAroundBaseStation(9.0, 10);
+
+    RotateInPlace(0.3, 3);
+
+    RotateToHeading(goal_yaw_);
+>>>>>>> 3dc6c87037a39c8b2c796d0dd7dfb028a0027905
 
     // Homing - Measurement Update
     sensor_fusion::HomingUpdate srv_homing;
@@ -374,9 +382,9 @@ void SmRd3::statePlanning()
           ROS_INFO("SCOUT: Called service Generate Waypoint");
           goal_pose_ = srv_wp_gen.response.goal;
 	        waypoint_type_ = srv_wp_gen.response.type;
-          
+
           goal_yaw_ = atan2(goal_pose_.position.y - current_pose_.position.y, goal_pose_.position.x - current_pose_.position.x);
-          
+
           Brake (0.0);
 
           RotateToHeading(goal_yaw_);
@@ -753,7 +761,7 @@ void SmRd3::lidarCallback(const sensor_msgs::LaserScan::ConstPtr& msg)
   for (int i=0; i<ranges.size(); ++i)
   {
     if (ranges[i] < min_range)
-    { 
+    {
       min_range = ranges[i];
     }
   }
@@ -781,10 +789,17 @@ void SmRd3::MoveAroundBaseStation(double desired_radius, double time)
 
   while(ros::Time::now() - start_time > timeoutCirculate)
   {
+<<<<<<< HEAD
     while(abs(radius_error) > radius_threshold)
     {
       ROS_INFO_STREAM("Radius to Base Station: " << radius);
       ROS_INFO_STREAM("Radius CMD to Base Station: " << radius + 1.2*radius_error);
+=======
+    double radius = hypot(base_location_.y - current_pose_.position.y, base_location_.x - current_pose_.position.x);
+
+    ROS_INFO_STREAM("Radius to Base Station: " << radius);
+    ROS_INFO_STREAM("Radius CMD to Base Station: " << radius + 0.1*range_error);
+>>>>>>> 3dc6c87037a39c8b2c796d0dd7dfb028a0027905
 
       CirculateBaseStation(0.3, radius + 1.2*radius_error, 0.0);
 
@@ -798,7 +813,7 @@ void SmRd3::MoveAroundBaseStation(double desired_radius, double time)
 
     }
   }
-  
+
   Stop(0.0);
 }
 

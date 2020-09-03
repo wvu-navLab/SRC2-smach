@@ -191,7 +191,7 @@ void SmRd1::stateInitialize()
     ROS_ERROR("SCOUT: Failed  to call service ApproachBaseStation");
   }
 
-  Stop(0.0);
+  Stop(1.0);
 
   Brake(100.0);
 
@@ -234,9 +234,9 @@ void SmRd1::stateInitialize()
 
   Brake(0.0);
 
-  Drive(-0.3, 2.0);
+  Drive(-0.2, 3.0);
 
-  Stop(0.0);
+  Stop(1.0);
 
   RotateInPlace(0.2, 1.0);
 
@@ -275,7 +275,7 @@ void SmRd1::statePlanning()
 {
   ROS_INFO("Planning!\n");
   flag_arrived_at_waypoint = false;
-  flag_waypoint_unreachable = false;
+
 
   ROS_INFO("SCOUT: Canceling MoveBase goal.");
   ac.waitForServer();
@@ -296,6 +296,13 @@ void SmRd1::statePlanning()
     flag_completed_homing = false;
     srv_wp_gen.request.next  = true;
   }
+  else if(flag_waypoint_unreachable)
+  {
+    flag_waypoint_unreachable=false;
+    srv_wp_gen.request.next  = true;
+  }
+
+
   else
   {
   srv_wp_gen.request.next  = false;
@@ -431,7 +438,7 @@ void SmRd1::stateTraverse()
     immobilityRecovery();
     flag_have_true_pose = true;
     flag_arrived_at_waypoint = true;
-    flag_waypoint_unreachable = false;
+
   }
 
   move_base_state_ = ac.getState();
@@ -476,7 +483,7 @@ void SmRd1::stateLost()
 
   ToggleDetector(false);
 
-  Stop (0.0);
+  Stop (2.0);
 
   Lights ("0.8");
 
@@ -726,11 +733,11 @@ void SmRd1::RotateToHeading(double desired_yaw)
   {
     ROS_WARN("Recovery action initiated in yaw control.");
 
-    // Stop(2.0);
-    //
-    // Drive (-0.3, 4.0);
+     Stop(2.0);
 
-    immobilityRecovery(); //TODO: Use this instead of Stop and Drive at line 714 and 716
+     Drive (-0.3, 4.0);
+
+  //  immobilityRecovery(); //TODO: Use this instead of Stop and Drive at line 714 and 716
 
     flag_heading_fail=false;
   }
@@ -762,6 +769,10 @@ void SmRd1::immobilityRecovery()
   Brake(100.0);
 
   Brake(0.0);
+
+  flag_waypoint_unreachable=true;
+
+
 
 }
 
