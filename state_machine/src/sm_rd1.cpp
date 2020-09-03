@@ -10,6 +10,7 @@ move_base_state_(actionlib::SimpleClientGoalState::LOST)
 
   // Subscribers
   localized_base_sub = nh.subscribe("state_machine/localized_base_scout", 1, &SmRd1::localizedBaseCallback, this);
+  mobility_sub = nh.subscribe("state_machine/mobility_scout", 1, &SmRd1::mobilityCallback, this);
   waypoint_unreachable_sub = nh.subscribe("state_machine/waypoint_unreachable", 1, &SmRd1::waypointUnreachableCallback, this);
   arrived_at_waypoint_sub = nh.subscribe("state_machine/arrived_at_waypoint", 1, &SmRd1::arrivedAtWaypointCallback, this);
   volatile_detected_sub = nh.subscribe("state_machine/volatile_detected", 1, &SmRd1::volatileDetectedCallback, this);
@@ -53,6 +54,7 @@ void SmRd1::run()
   {
     // Debug prints +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     ROS_INFO("flag_localized_base: %i",flag_localized_base);
+    ROS_INFO("flag_mobility: %i",flag_mobility);
     ROS_INFO("flag_have_true_pose: %i",flag_have_true_pose);
     ROS_INFO("flag_waypoint_unreachable: %i",flag_waypoint_unreachable);
     ROS_INFO("flag_arrived_at_waypoint: %i",flag_arrived_at_waypoint);
@@ -413,7 +415,6 @@ volatile_detected_distance = -1.0;
   state_msg.data = _initialize;
   sm_state_pub.publish(state_msg);
 }
-
 void SmRd1::statePlanning()
 {
   ROS_INFO("Planning!\n");
@@ -530,7 +531,6 @@ void SmRd1::statePlanning()
   state_msg.data = _planning;
   sm_state_pub.publish(state_msg);
 }
-
 void SmRd1::stateTraverse()
 {
   ROS_WARN("Traverse State\n");
@@ -572,6 +572,16 @@ void SmRd1::stateTraverse()
     }
   }
 
+  if (!flag_mobility)
+  {
+    ROS_WARN("RECOVERY ACTION INITIATED!");
+    immobilityRecovery();
+    flag_have_true_pose = true;
+    flag_arrived_at_waypoint = true;
+    flag_waypoint_unreachable = false;
+    // rotateToHeading(goal_yaw_);
+  }
+
   move_base_state_ = ac.getState();
   int mb_state =(int) move_base_state_.state_;
   ROS_WARN_STREAM("Para a nossa alegria: "<< mb_state);
@@ -599,7 +609,8 @@ void SmRd1::stateTraverse()
   sm_state_pub.publish(state_msg);
 
 }
-void SmRd1::clearCostmaps_(){
+void SmRd1::clearCostmaps_()
+{
   // Clear the costmap
   std_srvs::Empty emptymsg;
   ros::service::waitForService("/move_base/clear_costmaps",ros::Duration(3.0));
@@ -714,7 +725,6 @@ void SmRd1::stateVolatileHandler()
 //   ROS_WARN("VolatileHandler Exit %f\n",   volatile_detected_distance);
   //++timer_counter;
 }
-
 void SmRd1::stateLost()
 {
   ROS_ERROR("LOST STATE!\n");
@@ -889,6 +899,7 @@ void SmRd1::stateLost()
     ROS_ERROR("Failed to call service Stop");
   }
 
+<<<<<<< HEAD
   srv_vol_detect.request.on  = true;
   if (clt_vol_detect_.call(srv_vol_detect))
   {
@@ -919,8 +930,9 @@ void SmRd1::stateLost()
   // {
   //   ROS_ERROR("Failed to call service Stop");
   // }
+=======
+>>>>>>> 33b4924e8083ae87eb8417c894276b4d2c091210
 
-  // Clear the costmap
   clearCostmaps_();
     // make sure we dont latch to a vol we skipped while homing
     volatile_detected_distance = -1.0;
@@ -935,7 +947,6 @@ void SmRd1::stateLost()
 
 
 // Callbacks +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-// void SmRd1::localizedBaseCallback(const std_msgs::Bool::ConstPtr& msg)
 void SmRd1::localizedBaseCallback(const std_msgs::Int64::ConstPtr& msg)
 {
   flag_localized_base = msg->data;
@@ -945,6 +956,18 @@ void SmRd1::localizedBaseCallback(const std_msgs::Int64::ConstPtr& msg)
   }
   else {
     ROS_INFO("Waiting for Initial Localization  = %i",flag_localized_base);
+  }
+}
+
+void SmRd1::mobilityCallback(const std_msgs::Int64::ConstPtr& msg)
+{
+  flag_mobility = msg->data;
+  if (flag_mobility) {
+    ROS_WARN_ONCE("Rover is traversing = %i",flag_mobility);
+
+  }
+  else {
+    ROS_ERROR("ROVER IMMOBILIZATION!  = %i",flag_mobility);
   }
 }
 
@@ -1077,6 +1100,9 @@ void SmRd1::rotateToHeading(double desired_yaw)
       yaw_error = yaw_error + 2*M_PI;
     }
   }
+  flag_heading_fail=false;
+  ros::Time start_time = ros::Time::now();
+  ros::Duration timeoutHeading(10.0); // Timeout of 20 seconds
 
   while(fabs(yaw_error) > yaw_thres)
   {
@@ -1108,7 +1134,67 @@ void SmRd1::rotateToHeading(double desired_yaw)
         yaw_error = yaw_error + 2*M_PI;
       }
     }
+    ROS_ERROR_STREAM("TIME: "<<ros::Time::now() - start_time);
+    ROS_ERROR_STREAM("TIMEOUT: "<< timeoutHeading);
+    if (ros::Time::now() - start_time > timeoutHeading)
+    {
+      ROS_ERROR_STREAM("Yaw Control Failed, Possible Stuck, breaking: "<<yaw_error);
+      flag_heading_fail = true;
+      break;
+    }
   }
+
+  if (flag_heading_fail)
+  {
+    ROS_WARN("RECOVERY ACTION INITIATED in YAW CONTROL!");
+    driving_tools::Stop srv_stop;
+    srv_stop.request.enableStop  = true;
+    if (clt_stop_.call(srv_stop))
+    {
+      ros::Duration(2).sleep();
+    }
+    else
+    {
+      ROS_ERROR("Failed to call service Stop");
+    }
+    driving_tools::MoveForward srv_drive;
+    srv_drive.request.throttle  = -0.3;
+    if (clt_drive_.call(srv_drive))
+    {
+            ros::Duration(4.0).sleep();
+            ROS_INFO_STREAM("SM: Backward Drive Enabled? "<< srv_drive.response);
+    }
+    else
+    {
+            ROS_ERROR("Failed to call service Drive");
+    }
+
+    flag_heading_fail=false;
+  }
+  else
+  {
+    driving_tools::Stop srv_stop;
+    srv_stop.request.enableStop  = true;
+    if (clt_stop_.call(srv_stop))
+    {
+      ROS_INFO_STREAM("SM: Stopping Enabled? "<< srv_stop.response);
+    }
+    else
+    {
+      ROS_ERROR("Failed to call service Stop");
+    }
+  }
+}
+
+void SmRd1::immobilityRecovery()
+{
+  ros::Rate rateImmobilityRecovery(0.5);
+
+  ac.waitForServer();
+  ac.cancelGoal();
+  ac.waitForResult(ros::Duration(0.25));
+
+  ROS_INFO("Starting recovery");
 
   driving_tools::Stop srv_stop;
   srv_stop.request.enableStop  = true;
@@ -1120,9 +1206,91 @@ void SmRd1::rotateToHeading(double desired_yaw)
   {
     ROS_ERROR("Failed to call service Stop");
   }
+
+  srcp2_msgs::BrakeRoverSrv srv_brake;
+  srv_brake.request.brake_force  = 100.0;
+  if (clt_srcp2_brake_rover_.call(srv_brake))
+  {
+     ROS_INFO_STREAM("SM: Brake ON? "<< srv_brake.response);
+
+  }
+  else
+  {
+      ROS_ERROR("Failed to call service Brake");
+  }
+  srv_brake.request.brake_force  = 0.0;
+  if (clt_srcp2_brake_rover_.call(srv_brake))
+  {
+     ROS_INFO_STREAM("SM: Brake OFF? "<< srv_brake.response);
+
+  }
+  else
+  {
+      ROS_ERROR("Failed to call service Brake");
+  }
+  driving_tools::MoveForward srv_drive;
+  srv_drive.request.throttle  = -0.4;
+  if (clt_drive_.call(srv_drive))
+  {
+        ros::Duration(2.0).sleep();
+        ROS_INFO_STREAM("at RECOVERY: Backward Drive Enabled? "<< srv_drive.response);
+  }
+  else
+  {
+        ROS_ERROR("Failed to call service Drive");
+  }
+
+  srv_stop.request.enableStop  = true;
+  if (clt_stop_.call(srv_stop))
+  {
+    ROS_INFO_STREAM("SM: Stopping Enabled? "<< srv_stop.response);
+  }
+  else
+  {
+    ROS_ERROR("Failed to call service Stop");
+  }
+
+  srv_brake.request.brake_force  = 100.0;
+  if (clt_srcp2_brake_rover_.call(srv_brake))
+  {
+     ROS_INFO_STREAM("SM: Brake ON? "<< srv_brake.response);
+
+  }
+  else
+  {
+      ROS_ERROR("Failed to call service Brake");
+  }
+  srv_brake.request.brake_force  = 0.0;
+  if (clt_srcp2_brake_rover_.call(srv_brake))
+  {
+     ROS_INFO_STREAM("SM: Brake OFF? "<< srv_brake.response);
+
+  }
+  else
+  {
+      ROS_ERROR("Failed to call service Brake");
+  }
+
+  // waypoint_gen::GenerateWaypoint srv_wp_gen;
+  // srv_wp_gen.request.start  = true;
+  // srv_wp_gen.request.next  = false;
+  //
+  //
+  // if (clt_wp_gen_.call(srv_wp_gen))
+  // {
+  //   // ROS_INFO_STREAM("Success? "<< srv_wp_gen.response.success);
+  //   goal_pose_ = srv_wp_gen.response.goal;
+  //   waypoint_type_ = srv_wp_gen.response.type;
+  // }
+  // else
+  // {
+  //   ROS_ERROR("Failed to call service Generate Waypoint");
+  // }
+  // ROS_INFO_STREAM("goal pose at RECOVERY: " << goal_pose_);
+  //
+  // ros::spinOnce();
+
 }
-
-
 
 
 

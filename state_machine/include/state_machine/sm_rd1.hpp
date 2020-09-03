@@ -43,6 +43,7 @@ public:
   // Condition flag declarations
   // bool flag_localized_base = false;
   int flag_localized_base = 0;
+  int flag_mobility = 1;
   bool flag_have_true_pose = false;
   bool flag_waypoint_unreachable = false;
   bool flag_arrived_at_waypoint = true;
@@ -57,6 +58,7 @@ public:
   bool flag_brake_engaged = false;
   bool flag_fallthrough_condition = false;
   bool flag_completed_homing = false;
+  bool flag_heading_fail=false;
 
   ros::Time detection_timer, not_detected_timer;
 
@@ -88,7 +90,7 @@ public:
   ros::Subscriber localization_failure_sub;
   ros::Subscriber localization_sub;
   ros::Subscriber driving_mode_sub;
-
+  ros::Subscriber mobility_sub;
   // ros::ServiceClient clt_true_pose_;
   ros::ServiceClient clt_sf_true_pose_;
   ros::ServiceClient clt_wp_gen_;
@@ -122,8 +124,8 @@ public:
   void stateLost();
 
   // Subscriber callbacks
-  // void localizedBaseCallback(const std_msgs::Bool::ConstPtr& msg);
   void localizedBaseCallback(const std_msgs::Int64::ConstPtr& msg);
+  void mobilityCallback(const std_msgs::Int64::ConstPtr& msg);
   void waypointUnreachableCallback(const std_msgs::Bool::ConstPtr& msg);
   void arrivedAtWaypointCallback(const std_msgs::Bool::ConstPtr& msg);
   void volatileDetectedCallback(const std_msgs::Float32::ConstPtr& msg);
@@ -132,6 +134,7 @@ public:
   void localizationCallback(const nav_msgs::Odometry::ConstPtr& msg);
   void drivingModeCallback(const std_msgs::Int64::ConstPtr& msg);
   void clearCostmaps_();
+  void immobilityRecovery();
 
   void setPoseGoal(move_base_msgs::MoveBaseGoal& poseGoal, double x, double y, double yaw); // m, m, rad
   void doneCallback(const actionlib::SimpleClientGoalState& state, const move_base_msgs::MoveBaseResultConstPtr& result);
