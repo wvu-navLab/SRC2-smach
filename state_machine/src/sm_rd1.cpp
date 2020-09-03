@@ -328,9 +328,9 @@ void SmRd1::statePlanning()
           ROS_INFO("SCOUT: Called service Generate Waypoint");
           goal_pose_ = srv_wp_gen.response.goal;
 	        waypoint_type_ = srv_wp_gen.response.type;
-          
+
           goal_yaw_ = atan2(goal_pose_.position.y - current_pose_.position.y, goal_pose_.position.x - current_pose_.position.x);
-          
+
           Brake (0.0);
 
           RotateToHeading(goal_yaw_);
@@ -711,9 +711,11 @@ void SmRd1::RotateToHeading(double desired_yaw)
   {
     ROS_WARN("Recovery action initiated in yaw control.");
 
-    Stop(2.0);
+    // Stop(2.0);
+    //
+    // Drive (-0.3, 4.0);
 
-    Drive (-0.3, 4.0);
+    immobilityRecovery(); //TODO: Use this instead of Stop and Drive at line 714 and 716
 
     flag_heading_fail=false;
   }
@@ -725,7 +727,6 @@ void SmRd1::RotateToHeading(double desired_yaw)
 
 void SmRd1::immobilityRecovery()
 {
-  ros::Rate rateImmobilityRecovery(0.5);
 
   ac.waitForServer();
   ac.cancelGoal();
@@ -739,7 +740,7 @@ void SmRd1::immobilityRecovery()
 
   Brake(0.0);
 
-  Drive(-0.4, 2.0);
+  Drive(-0.3, 4.0);
 
   Stop(0.0);
 
