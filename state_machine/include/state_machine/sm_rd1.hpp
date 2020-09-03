@@ -7,6 +7,7 @@
 #include <geometry_msgs/Pose.h>
 #include <geometry_msgs/Point.h>
 #include <waypoint_gen/GenerateWaypoint.h>
+#include <waypoint_gen/StartWaypoint.h>
 #include <waypoint_nav/SetGoal.h>
 #include <waypoint_nav/Interrupt.h>
 #include <driving_tools/Stop.h>
@@ -94,6 +95,7 @@ public:
   // ros::ServiceClient clt_true_pose_;
   ros::ServiceClient clt_sf_true_pose_;
   ros::ServiceClient clt_wp_gen_;
+  ros::ServiceClient clt_wp_start_;
   ros::ServiceClient clt_wp_nav_set_goal_;
   ros::ServiceClient clt_wp_nav_interrupt_;
   ros::ServiceClient clt_vh_report_;

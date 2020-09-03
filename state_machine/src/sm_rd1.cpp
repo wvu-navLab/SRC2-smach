@@ -21,6 +21,7 @@ move_base_state_(actionlib::SimpleClientGoalState::LOST)
 
   // Clients
   clt_wp_gen_ = nh.serviceClient<waypoint_gen::GenerateWaypoint>("navigation/generate_goal");
+  clt_wp_start_ = nh.serviceClient<waypoint_gen::StartWaypoint>("navigation/start");
   clt_wp_nav_set_goal_ = nh.serviceClient<waypoint_nav::SetGoal>("navigation/set_goal");
   clt_wp_nav_interrupt_ = nh.serviceClient<waypoint_nav::Interrupt>("navigation/interrupt");
   clt_stop_ = nh.serviceClient<driving_tools::Stop>("driving/stop");
@@ -248,6 +249,20 @@ void SmRd1::stateInitialize()
   ClearCostmaps();
 
   Brake(0.0);
+
+  waypoint_gen::StartWaypoint srv_wp_start;
+  srv_wp_start.request.start  = true;
+
+  if (clt_wp_start_.call(srv_wp_start))
+  {
+    ROS_INFO("Starting Waypoint Gen");
+  }
+  else
+  {
+    ROS_ERROR("SCOUT: Failed  to call service Waypoint Start");
+  }
+
+
 
   // make sure we dont latch to a vol we skipped while homing
   volatile_detected_distance = -1.0;
