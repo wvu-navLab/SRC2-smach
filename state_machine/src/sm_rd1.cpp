@@ -29,6 +29,7 @@ move_base_state_(actionlib::SimpleClientGoalState::LOST)
   clt_rip_ = nh.serviceClient<driving_tools::RotateInPlace>("driving/rotate_in_place");
   clt_drive_ = nh.serviceClient<driving_tools::MoveForward>("driving/move_forward");
   clt_vol_report_ = nh.serviceClient<volatile_handler::VolatileReport>("volatile/report");
+  clt_vol_detect_ = nh.serviceClient<volatile_handler::VolatileReport>("volatile/toggle_detecto");
   clt_lights_ = nh.serviceClient<srcp2_msgs::ToggleLightSrv>("toggle_light");
   clt_brake_ = nh.serviceClient<srcp2_msgs::BrakeRoverSrv>("brake_rover");
   clt_approach_base_ = nh.serviceClient<src2_object_detection::ApproachBaseStation>("approach_base_station");
@@ -169,6 +170,16 @@ void SmRd1::stateInitialize()
   flag_arrived_at_waypoint = false;
   flag_waypoint_unreachable = false;
 
+  volatile_handler::ToggleDetector srv_vol_detect;
+  srv_vol_detect.request.on  = false;
+  if (clt_vol_detect_.call(srv_vol_detect))
+  {
+    // ROS_INFO_STREAM("Success? "<< srv_stop.response.success);
+  }
+  else
+  {
+    ROS_ERROR("Failed to call service ToggleDetector");
+  }
 
   // Turn on the Lights
   srcp2_msgs::ToggleLightSrv srv_lights;
@@ -360,6 +371,16 @@ void SmRd1::stateInitialize()
   else
   {
     ROS_ERROR("Failed to call service Stop");
+  }
+
+  srv_vol_detect.request.on  = true;
+  if (clt_vol_detect_.call(srv_vol_detect))
+  {
+    // ROS_INFO_STREAM("Success? "<< srv_stop.response.success);
+  }
+  else
+  {
+    ROS_ERROR("Failed to call service ToggleDetector");
   }
 
   // driving_tools::MoveForward srv_drive;
@@ -718,6 +739,16 @@ void SmRd1::stateLost()
   ac.cancelGoal();
   ac.waitForResult(ros::Duration(0.25));
 
+  volatile_handler::ToggleDetector srv_vol_detect;
+  srv_vol_detect.request.on  = false;
+  if (clt_vol_detect_.call(srv_vol_detect))
+  {
+    // ROS_INFO_STREAM("Success? "<< srv_stop.response.success);
+  }
+  else
+  {
+    ROS_ERROR("Failed to call service ToggleDetector");
+  }
   // Break
   driving_tools::Stop srv_stop;
   srv_stop.request.enableStop  = true;
@@ -868,6 +899,36 @@ void SmRd1::stateLost()
     ROS_ERROR("Failed to call service Stop");
   }
 
+  srv_vol_detect.request.on  = true;
+  if (clt_vol_detect_.call(srv_vol_detect))
+  {
+    // ROS_INFO_STREAM("Success? "<< srv_stop.response.success);
+  }
+  else
+  {
+    ROS_ERROR("Failed to call service ToggleDetector");
+  }
+  // // driving_tools::MoveForward srv_drive;
+  // srv_drive.request.throttle  = 0.3;
+  // if (clt_drive_.call(srv_drive))
+  // {
+  //         ros::Duration(2.0).sleep();
+  //         ROS_INFO_STREAM("SM: Drive Enabled? "<< srv_drive.response);
+  // }
+  // else
+  // {
+  //         ROS_ERROR("Failed to call service Drive");
+  // }
+  //
+  // srv_stop.request.enableStop  = true;
+  // if (clt_stop_.call(srv_stop))
+  // {
+  //   ros::Duration(0.5).sleep();// ROS_INFO_STREAM("Success? "<< srv_stop.response.success);
+  // }
+  // else
+  // {
+  //   ROS_ERROR("Failed to call service Stop");
+  // }
 
   clearCostmaps_();
     // make sure we dont latch to a vol we skipped while homing
