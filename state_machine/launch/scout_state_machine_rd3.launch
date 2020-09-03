@@ -2,7 +2,7 @@
 <launch>
 
   <group ns="scout_1">
-    <node name="state_machine" pkg="state_machine" type="state_machine_rd3_node" output="screen"/>
+    <node name="state_machine" pkg="state_machine" type="state_machine_rd3_node" output="screen" launch-prefix="bash -c 'sleep 30.0; $0 $@' "/>
   </group>
 
 </launch>
