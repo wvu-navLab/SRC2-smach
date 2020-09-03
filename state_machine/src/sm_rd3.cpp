@@ -251,7 +251,6 @@ void SmRd3::stateInitialize()
   
   for(int i = 0; i < 5; i++)
   {
-<<<<<<< HEAD
     ROS_INFO_STREAM("Try number: " << i);
     MoveAroundBaseStation(8.5, 15);
 
@@ -275,13 +274,6 @@ void SmRd3::stateInitialize()
     Stop(2.0);
 
     Brake (500.0);
-=======
-    MoveAroundBaseStation(9.0, 10);
-
-    RotateInPlace(0.3, 3);
-
-    RotateToHeading(goal_yaw_);
->>>>>>> 3dc6c87037a39c8b2c796d0dd7dfb028a0027905
 
     // Homing - Measurement Update
     sensor_fusion::HomingUpdate srv_homing;
@@ -787,30 +779,23 @@ void SmRd3::MoveAroundBaseStation(double desired_radius, double time)
   ros::Time start_time = ros::Time::now();
   ros::Duration timeoutCirculate(time); // Timeout of 20 seconds
 
-  while(ros::Time::now() - start_time > timeoutCirculate)
+  while(abs(radius_error) > radius_threshold)
   {
-<<<<<<< HEAD
-    while(abs(radius_error) > radius_threshold)
-    {
-      ROS_INFO_STREAM("Radius to Base Station: " << radius);
-      ROS_INFO_STREAM("Radius CMD to Base Station: " << radius + 1.2*radius_error);
-=======
-    double radius = hypot(base_location_.y - current_pose_.position.y, base_location_.x - current_pose_.position.x);
-
     ROS_INFO_STREAM("Radius to Base Station: " << radius);
-    ROS_INFO_STREAM("Radius CMD to Base Station: " << radius + 0.1*range_error);
->>>>>>> 3dc6c87037a39c8b2c796d0dd7dfb028a0027905
+    ROS_INFO_STREAM("Radius CMD to Base Station: " << radius + radius_error);
 
-      CirculateBaseStation(0.3, radius + 1.2*radius_error, 0.0);
+    CirculateBaseStation(0.3, radius + radius_error, 0.0);
 
 
-      control_rate.sleep();
-      ros::spinOnce();
-      radius = hypot(base_location_.y - current_pose_.position.y, base_location_.x - current_pose_.position.x);
-      radius_error = desired_radius - radius;
+    control_rate.sleep();
+    ros::spinOnce();
+    radius = hypot(base_location_.y - current_pose_.position.y, base_location_.x - current_pose_.position.x);
+    radius_error = desired_radius - radius;
 
-      ROS_INFO_STREAM("Trying to control yaw to desired angles. Range error: "<<radius_error);
-
+    ROS_INFO_STREAM("Trying to control yaw to desired angles. Range error: "<<radius_error);
+    if(ros::Time::now() - start_time > timeoutCirculate)
+    {
+      break;
     }
   }
 
