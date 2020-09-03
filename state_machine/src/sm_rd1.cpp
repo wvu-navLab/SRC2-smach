@@ -171,7 +171,7 @@ void SmRd1::stateInitialize()
   ToggleDetector(false);
 
   Lights("0.8");
- 
+
   while (!clt_approach_base_.waitForExistence())
   {
     ROS_WARN("SCOUT: Waiting for ApproachBaseStation service");
@@ -341,9 +341,12 @@ void SmRd1::statePlanning()
 
   goal_yaw_ = atan2(goal_pose_.position.y - current_pose_.position.y, goal_pose_.position.x - current_pose_.position.x);
 
-  RotateToHeading(goal_yaw_);
 
   Brake (0.0);
+
+  RotateToHeading(goal_yaw_);
+
+  ClearCostmaps();
 
   move_base_msgs::MoveBaseGoal move_base_goal;
   ac.waitForServer();
@@ -352,7 +355,7 @@ void SmRd1::statePlanning()
   ac.sendGoal(move_base_goal, boost::bind(&SmRd1::doneCallback, this,_1,_2), boost::bind(&SmRd1::activeCallback, this), boost::bind(&SmRd1::feedbackCallback, this,_1));
   ac.waitForResult(ros::Duration(0.25));
 
-  ClearCostmaps();
+
 
   std_msgs::Int64 state_msg;
   state_msg.data = _planning;
@@ -452,7 +455,7 @@ void SmRd1::stateLost()
   ac.waitForResult(ros::Duration(0.25));
 
   ToggleDetector(false);
-  
+
   Stop (0.0);
 
   Lights ("0.8");
@@ -565,7 +568,7 @@ void SmRd1::arrivedAtWaypointCallback(const std_msgs::Bool::ConstPtr& msg)
 
 void SmRd1::volatileDetectedCallback(const std_msgs::Float32::ConstPtr& msg)
 {
-  
+
   prev_volatile_detected_distance = volatile_detected_distance;
   volatile_detected_distance = msg->data;
 
@@ -688,7 +691,7 @@ void SmRd1::RotateToHeading(double desired_yaw)
       }
     }
     ROS_INFO_STREAM("Trying to control yaw to desired angles. Yaw error: "<<yaw_error);
-    
+
     ROS_ERROR_STREAM("TIME: "<<ros::Time::now() - start_time << ", TIMEOUT: " << timeoutHeading);
 
     if (ros::Time::now() - start_time > timeoutHeading)
@@ -732,7 +735,7 @@ void SmRd1::immobilityRecovery()
   Brake(0.0);
 
   Drive(-0.4, 2.0);
-  
+
   Stop(0.0);
 
   Brake(100.0);
