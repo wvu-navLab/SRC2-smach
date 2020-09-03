@@ -29,7 +29,7 @@ move_base_state_(actionlib::SimpleClientGoalState::LOST)
   clt_rip_ = nh.serviceClient<driving_tools::RotateInPlace>("driving/rotate_in_place");
   clt_drive_ = nh.serviceClient<driving_tools::MoveForward>("driving/move_forward");
   clt_vol_report_ = nh.serviceClient<volatile_handler::VolatileReport>("volatile/report");
-  clt_vol_detect_ = nh.serviceClient<volatile_handler::VolatileReport>("volatile/toggle_detector");
+  clt_vol_detect_ = nh.serviceClient<volatile_handler::ToggleDetector>("volatile/toggle_detector");
   clt_lights_ = nh.serviceClient<srcp2_msgs::ToggleLightSrv>("toggle_light");
   clt_brake_ = nh.serviceClient<srcp2_msgs::BrakeRoverSrv>("brake_rover");
   clt_approach_base_ = nh.serviceClient<src2_object_detection::ApproachBaseStation>("approach_base_station");
