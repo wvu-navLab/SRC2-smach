@@ -899,7 +899,6 @@ void SmRd1::stateLost()
     ROS_ERROR("Failed to call service Stop");
   }
 
-<<<<<<< HEAD
   srv_vol_detect.request.on  = true;
   if (clt_vol_detect_.call(srv_vol_detect))
   {
@@ -930,8 +929,6 @@ void SmRd1::stateLost()
   // {
   //   ROS_ERROR("Failed to call service Stop");
   // }
-=======
->>>>>>> 33b4924e8083ae87eb8417c894276b4d2c091210
 
   clearCostmaps_();
     // make sure we dont latch to a vol we skipped while homing
