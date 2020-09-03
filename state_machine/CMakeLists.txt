@@ -161,7 +161,7 @@ add_dependencies(sm_utils ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_
 
 add_dependencies(sm_rd1 ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 add_dependencies(sm_rd2 ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-#add_dependencies(sm_rd3 ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+add_dependencies(sm_rd3 ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 target_link_libraries(sm_utils
   ${catkin_LIBRARIES}
  )
