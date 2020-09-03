@@ -281,11 +281,6 @@ void SmRd1::statePlanning()
     flag_completed_homing = false;
     srv_wp_gen.request.next  = true;
   }
-  else if(flag_waypoint_unreachable)
-  {
-    flag_waypoint_unreachable=false;
-    srv_wp_gen.request.next  = true;
-  }
   else
   {
   srv_wp_gen.request.next  = false;
@@ -302,6 +297,14 @@ void SmRd1::statePlanning()
     ROS_ERROR("SCOUT: Failed  to call service Generate Waypoint");
   }
   ROS_INFO_STREAM("SCOUT: WP Generation: Goal pose: " << goal_pose_);
+
+  goal_yaw_ = atan2(goal_pose_.position.y - current_pose_.position.y, goal_pose_.position.x - current_pose_.position.x);
+
+  Brake (0.0);
+
+  RotateToHeading(goal_yaw_);
+
+  Brake (100.0);
 
   // check waypoint
 
@@ -325,7 +328,14 @@ void SmRd1::statePlanning()
           ROS_INFO("SCOUT: Called service Generate Waypoint");
           goal_pose_ = srv_wp_gen.response.goal;
 	        waypoint_type_ = srv_wp_gen.response.type;
+          
+          goal_yaw_ = atan2(goal_pose_.position.y - current_pose_.position.y, goal_pose_.position.x - current_pose_.position.x);
+          
+          Brake (0.0);
 
+          RotateToHeading(goal_yaw_);
+
+          Brake (100.0);
         }
         else
         {
@@ -339,14 +349,11 @@ void SmRd1::statePlanning()
     }
   }
 
-  goal_yaw_ = atan2(goal_pose_.position.y - current_pose_.position.y, goal_pose_.position.x - current_pose_.position.x);
+  ClearCostmaps();
 
+  Stop (2.0);
 
   Brake (0.0);
-
-  RotateToHeading(goal_yaw_);
-
-  ClearCostmaps();
 
   move_base_msgs::MoveBaseGoal move_base_goal;
   ac.waitForServer();
@@ -354,8 +361,6 @@ void SmRd1::statePlanning()
   ROS_INFO_STREAM("SCOUT: Sending goal to MoveBase: " << move_base_goal);
   ac.sendGoal(move_base_goal, boost::bind(&SmRd1::doneCallback, this,_1,_2), boost::bind(&SmRd1::activeCallback, this), boost::bind(&SmRd1::feedbackCallback, this,_1));
   ac.waitForResult(ros::Duration(0.25));
-
-
 
   std_msgs::Int64 state_msg;
   state_msg.data = _planning;
