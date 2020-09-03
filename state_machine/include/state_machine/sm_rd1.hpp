@@ -133,14 +133,20 @@ public:
   void localizationFailureCallback(const std_msgs::Bool::ConstPtr& msg);
   void localizationCallback(const nav_msgs::Odometry::ConstPtr& msg);
   void drivingModeCallback(const std_msgs::Int64::ConstPtr& msg);
-  void clearCostmaps_();
   void immobilityRecovery();
 
   void setPoseGoal(move_base_msgs::MoveBaseGoal& poseGoal, double x, double y, double yaw); // m, m, rad
   void doneCallback(const actionlib::SimpleClientGoalState& state, const move_base_msgs::MoveBaseResultConstPtr& result);
   void activeCallback();
   void feedbackCallback(const move_base_msgs::MoveBaseFeedbackConstPtr& feedback);
-  void rotateToHeading(double desired_yaw);
 
-
+  void RotateToHeading(double desired_yaw);
+  void ClearCostmaps();
+  void Lights(std::string intensity);
+  void RotateInPlace(double throttle, double time);
+  void Stop(double time);
+  void Drive(double throttle, double time);
+  void ToggleDetector(bool flag);
+  void Brake(double intensity);
+  void RoverStatic(bool flag);
 };
