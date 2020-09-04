@@ -1,8 +1,8 @@
 <launch>
 
   <!-- pcl_obstacle_avoidance launch file -->
-  <include file="$(find pcl_object_detection)/launch/excavator_pcl_object_detection.launch"/>
-  <include file="$(find pcl_object_detection)/launch/hauler_pcl_object_detection.launch"/>
+  <include file="$(find pcl_obstacle_detection)/launch/excavator_pcl_obj_detection.launch"/>
+  <include file="$(find pcl_obstacle_detection)/launch/hauler_pcl_obj_detection.launch"/>
 
 
   <!-- motion_control launch file -->

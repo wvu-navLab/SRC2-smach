@@ -1,7 +1,7 @@
 <launch>
 
   <!-- pcl_obstacle_avoidance launch file -->
-  <include file="$(find pcl_object_detection)/launch/scout_pcl_object_detection.launch"/>
+  <include file="$(find pcl_obstacle_detection)/launch/scout_pcl_obj_detection.launch"/>
 
   <!-- scout_motion_control launch file -->
   <include file="$(find driving_control)/launch/scout_driving_control.launch"/>
