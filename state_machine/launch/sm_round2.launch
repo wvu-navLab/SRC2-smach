@@ -37,13 +37,12 @@
   <include file="$(find round2_volatile_handler)/launch/excavator_volatile_handler.launch"/>
 
   <!-- src2_object_detection launch file -->
-  <include file="$(find src2_object_detection)/launch/object_detection_round1.launch"/>
-  <include file="$(find src2_object_detection)/launch/object_detection_round1.launch"/>
+  <include file="$(find src2_object_detection)/launch/object_detection_round2.launch"/>
 
   <!-- move_base launch files -->
-  <include file="$(find src2_move_base)/launch/excavator_map_server.launch"/>
+  <!--include file="$(find src2_move_base)/launch/excavator_map_server.launch"/-->
   <include file="$(find src2_move_base)/launch/excavator_move_base.launch"/>
-  <include file="$(find src2_move_base)/launch/hauler_map_server.launch"/>
+  <!--include file="$(find src2_move_base)/launch/hauler_map_server.launch"/-->
   <include file="$(find src2_move_base)/launch/hauler_move_base.launch"/>
 
   <!-- laser tools  -->
