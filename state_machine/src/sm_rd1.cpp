@@ -436,8 +436,8 @@ void SmRd1::stateTraverse()
   {
     ROS_INFO("SCOUT: Recovering maneuver initialized.");
     immobilityRecovery();
-    flag_have_true_pose = true;
-    flag_arrived_at_waypoint = true;
+    //flag_have_true_pose = true;
+
 
   }
 
@@ -481,7 +481,6 @@ void SmRd1::stateLost()
   ac.cancelGoal();
   ac.waitForResult(ros::Duration(0.25));
 
-  ToggleDetector(false);
 
   Stop (2.0);
 
@@ -543,7 +542,7 @@ void SmRd1::stateLost()
 
   Stop (2.0);
 
-  ToggleDetector(true);
+
 
   ClearCostmaps();
 
