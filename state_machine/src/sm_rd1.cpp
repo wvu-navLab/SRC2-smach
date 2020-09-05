@@ -429,6 +429,7 @@ void SmRd1::stateTraverse()
     {
       ROS_INFO(" Reached a Waypoint Designated for Localization Update Type : %f ",waypoint_type_ );
       flag_localization_failure = true;
+      waypoint_type_=0; // just to account for triggered homing update
     }
   }
 
@@ -484,7 +485,26 @@ void SmRd1::stateLost()
 
   Stop (2.0);
 
+  if(pow(pow(base_location_.x - current_pose_.position.x,2)+pow(base_location_.y - current_pose_.position.y,2),.5)>10s.){
+
+
+  ROS_INFO_STREAM("Defining goal from base location");
+
+  goal_yaw_ = atan2(base_location_.y - current_pose_.position.y, base_location_.x - current_pose_.position.x);
+
+  RotateToHeading(goal_yaw_);
+
+  move_base_msgs::MoveBaseGoal move_base_goal;
+  ac.waitForServer();
+  setPoseGoal(move_base_goal, base_location_.x, base_location_.y, goal_yaw_);
+  ROS_INFO_STREAM("SCOUT: Sending goal to MoveBase: " << move_base_goal);
+  ac.sendGoal(move_base_goal, boost::bind(&SmRd1::doneCallback, this,_1,_2), boost::bind(&SmRd1::activeCallback, this), boost::bind(&SmRd1::feedbackCallback, this,_1));
+  ac.waitForResult(ros::Duration(0.25));
+  // set as a waypoint type 1 so it will come back here.
+  waypoint_type_=1;
+  }
   Lights ("0.8");
+
 
   // Approach Base Station
   src2_object_detection::ApproachBaseStation srv_approach_base;
@@ -494,18 +514,8 @@ void SmRd1::stateLost()
     ROS_INFO("SCOUT: Called service ApproachBaseStation");
     if(!srv_approach_base.response.success.data)
     {
-      ROS_INFO_STREAM("Defining goal from base location");
-
-      goal_yaw_ = atan2(base_location_.y - current_pose_.position.y, base_location_.x - current_pose_.position.x);
-
-      RotateToHeading(goal_yaw_);
-
-      move_base_msgs::MoveBaseGoal move_base_goal;
-      ac.waitForServer();
-      setPoseGoal(move_base_goal, base_location_.x, base_location_.y, goal_yaw_);
-      ROS_INFO_STREAM("SCOUT: Sending goal to MoveBase: " << move_base_goal);
-      ac.sendGoal(move_base_goal, boost::bind(&SmRd1::doneCallback, this,_1,_2), boost::bind(&SmRd1::activeCallback, this), boost::bind(&SmRd1::feedbackCallback, this,_1));
-      ac.waitForResult(ros::Duration(0.25));
+    // if it fails we are currently doomed
+    ROS_ERROR("Approach to Home Failed!");
     }
   }
   else
@@ -542,7 +552,7 @@ void SmRd1::stateLost()
 
   Stop (2.0);
 
-
+  ToggleDetector(true);
 
   ClearCostmaps();
 
