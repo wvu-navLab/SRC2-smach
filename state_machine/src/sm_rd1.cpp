@@ -7,10 +7,10 @@ move_base_state_(actionlib::SimpleClientGoalState::LOST)
   // Initialize ROS, Subs, and Pubs *******************************************
   // Publishers
   sm_state_pub = nh.advertise<std_msgs::Int64>("state_machine/state", 1);
-
+  cmd_vel_pub = nh.advertise<geometry_msgs::Twist>("driving/cmd_vel", 1);
   // Subscribers
   localized_base_sub = nh.subscribe("state_machine/localized_base_scout", 1, &SmRd1::localizedBaseCallback, this);
-  mobility_sub = nh.subscribe("state_machine/mobility_scout", 1, &SmRd1::mobilityCallback, this);
+  mobility_sub = nh.subscribe("state_machine/mobility_scout", 10, &SmRd1::mobilityCallback, this);
   waypoint_unreachable_sub = nh.subscribe("state_machine/waypoint_unreachable", 1, &SmRd1::waypointUnreachableCallback, this);
   arrived_at_waypoint_sub = nh.subscribe("state_machine/arrived_at_waypoint", 1, &SmRd1::arrivedAtWaypointCallback, this);
   volatile_detected_sub = nh.subscribe("state_machine/volatile_detected", 1, &SmRd1::volatileDetectedCallback, this);
@@ -235,8 +235,24 @@ void SmRd1::stateInitialize()
   Brake(0.0);
 
   Drive(-0.2, 3.0);
+  //
+  Stop(2.0);
+
+  DriveCmdVel(-0.3, 10.0);
 
   Stop(2.0);
+
+  Brake(100.0);
+
+  Brake(0.0);
+
+  DriveCmdVel(0.3, 10.0);
+
+  Stop(2.0);
+
+  Brake(100.0);
+
+  Brake(0.0);
 
   RotateInPlace(0.2, 3.0);
 
@@ -879,6 +895,22 @@ void SmRd1::Drive(double throttle, double time)
   else
   {
     ROS_ERROR("SCOUT: Failed  to call service Drive");
+  }
+}
+
+
+void SmRd1::DriveCmdVel(double vel, double time)
+{
+  geometry_msgs::Twist cmd_vel;
+  cmd_vel.linear.x = 0.0;
+  cmd_vel.linear.y = vel;
+  cmd_vel.angular.z=0.0;
+  ros::Time start_time = ros::Time::now();
+  ros::Duration timeout(time-2); // Timeout of 20 seconds
+  ROS_ERROR("Drive Cmd Vel publisher.");
+  while (ros::Time::now() - start_time < timeout)
+  {
+    cmd_vel_pub.publish(cmd_vel);
   }
 }
 
