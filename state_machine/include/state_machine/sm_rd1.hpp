@@ -6,6 +6,7 @@
 #include <std_msgs/Int64.h>
 #include <geometry_msgs/Pose.h>
 #include <geometry_msgs/Point.h>
+#include <geometry_msgs/Twist.h>
 #include <waypoint_gen/GenerateWaypoint.h>
 #include <waypoint_gen/StartWaypoint.h>
 #include <waypoint_nav/SetGoal.h>
@@ -82,7 +83,7 @@ public:
 
   // ROS objects
   ros::NodeHandle nh;
-  ros::Publisher sm_state_pub;
+  ros::Publisher sm_state_pub, cmd_vel_pub;
   ros::Subscriber localized_base_sub;
   ros::Subscriber waypoint_unreachable_sub;
   ros::Subscriber arrived_at_waypoint_sub;
@@ -151,4 +152,5 @@ public:
   void ToggleDetector(bool flag);
   void Brake(double intensity);
   void RoverStatic(bool flag);
+  void DriveCmdVel(double vel, double time);
 };
