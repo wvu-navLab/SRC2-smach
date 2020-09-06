@@ -902,16 +902,20 @@ void SmRd1::Drive(double throttle, double time)
 void SmRd1::DriveCmdVel(double vel, double time)
 {
   geometry_msgs::Twist cmd_vel;
-  cmd_vel.linear.x = 0.0;
-  cmd_vel.linear.y = vel;
-  cmd_vel.angular.z=0.0;
+  cmd_vel.linear.x = vel;
+  cmd_vel.linear.y = 0.0;
+  cmd_vel.angular.z = 0.0;
   ros::Time start_time = ros::Time::now();
-  ros::Duration timeout(time-2); // Timeout of 20 seconds
+  ros::Duration timeout(time); // Timeout of 20 seconds
   ROS_ERROR("Drive Cmd Vel publisher.");
   while (ros::Time::now() - start_time < timeout)
   {
     cmd_vel_pub.publish(cmd_vel);
   }
+  cmd_vel.linear.x = 0.0;
+  cmd_vel.linear.y = 0.0;
+  cmd_vel.angular.z = 0.0;
+  cmd_vel_pub.publish(cmd_vel);
 }
 
 void SmRd1::ToggleDetector(bool flag)
