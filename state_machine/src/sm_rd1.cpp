@@ -191,7 +191,7 @@ void SmRd1::stateInitialize()
     ROS_ERROR("SCOUT: Failed  to call service ApproachBaseStation");
   }
 
-  Stop(1.0);
+  Stop(2.0);
 
   Brake(100.0);
 
@@ -236,11 +236,11 @@ void SmRd1::stateInitialize()
 
   Drive(-0.2, 3.0);
 
-  Stop(1.0);
+  Stop(2.0);
 
-  RotateInPlace(0.2, 1.0);
+  RotateInPlace(0.2, 3.0);
 
-  Stop(0.0);
+  Stop(2.0);
 
   Brake(100.0);
 
@@ -282,7 +282,7 @@ void SmRd1::statePlanning()
   ac.cancelGoal();
   ac.waitForResult(ros::Duration(0.25));
 
-  Stop(0.0);
+  Stop(1.0);
 
   Brake(100.0);
 
@@ -451,7 +451,7 @@ void SmRd1::stateTraverse()
     ROS_ERROR("SCOUT: MoveBase has failed to make itself useful.");
     flag_waypoint_unreachable= true;
 
-    Stop (0.0);
+    Stop (1.0);
 
     ClearCostmaps();
   }
@@ -523,7 +523,7 @@ void SmRd1::stateLost()
     ROS_ERROR("SCOUT: Failed  to call service ApproachBaseStation");
   }
 
-  Brake (500.0);
+  Brake (100.0);
 
   // Homing - Measurement Update
   sensor_fusion::HomingUpdate srv_homing;
@@ -548,7 +548,7 @@ void SmRd1::stateLost()
 
   Stop (2.0);
 
-  RotateInPlace (0.2, 1.0);
+  RotateInPlace (0.2, 3.0);
 
   Stop (2.0);
 
@@ -726,9 +726,9 @@ void SmRd1::RotateToHeading(double desired_yaw)
         yaw_error = yaw_error + 2*M_PI;
       }
     }
-    ROS_INFO_STREAM("Trying to control yaw to desired angles. Yaw error: "<<yaw_error);
+    // ROS_INFO_STREAM("Trying to control yaw to desired angles. Yaw error: "<<yaw_error);
 
-    ROS_ERROR_STREAM("TIME: "<<ros::Time::now() - start_time << ", TIMEOUT: " << timeoutHeading);
+    // ROS_ERROR_STREAM("TIME: "<<ros::Time::now() - start_time << ", TIMEOUT: " << timeoutHeading);
 
     if (ros::Time::now() - start_time > timeoutHeading)
     {
