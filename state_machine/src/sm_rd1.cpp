@@ -236,23 +236,27 @@ void SmRd1::stateInitialize()
 
   Drive(-0.2, 3.0);
   //
-  Stop(2.0);
-
-  DriveCmdVel(-0.3, 10.0);
-
-  Stop(2.0);
+  Stop(5.0);
 
   Brake(100.0);
 
   Brake(0.0);
 
-  DriveCmdVel(0.3, 10.0);
+  DriveCmdVel(-0.3, 5.0);
 
-  Stop(2.0);
+  Stop(5.0);
 
   Brake(100.0);
 
-  Brake(0.0);
+  // Brake(0.0);
+  //
+  // DriveCmdVel(0.4, 5.0);
+  //
+  // Stop(10.0);
+  //
+  // Brake(100.0);
+  //
+  // Brake(0.0);
 
   RotateInPlace(0.2, 3.0);
 
@@ -912,10 +916,6 @@ void SmRd1::DriveCmdVel(double vel, double time)
   {
     cmd_vel_pub.publish(cmd_vel);
   }
-  cmd_vel.linear.x = 0.0;
-  cmd_vel.linear.y = 0.0;
-  cmd_vel.angular.z = 0.0;
-  cmd_vel_pub.publish(cmd_vel);
 }
 
 void SmRd1::ToggleDetector(bool flag)
