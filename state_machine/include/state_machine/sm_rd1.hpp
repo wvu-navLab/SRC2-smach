@@ -152,5 +152,6 @@ public:
   void ToggleDetector(bool flag);
   void Brake(double intensity);
   void RoverStatic(bool flag);
-  void DriveCmdVel(double vel, double time);
+  void DriveCmdVel(double vx, double vy, double wz, double time);
+{
 };
