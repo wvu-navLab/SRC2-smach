@@ -435,7 +435,7 @@ void SmRd1::stateTraverse()
     flag_waypoint_unreachable = false;
     flag_recovering_localization = false;
   }
-     bool is_colliding = false;
+  bool is_colliding = false;
     waypoint_checker::CheckCollision srv_wp_check;
     if (clt_waypoint_checker_.call(srv_wp_check))
     {
@@ -446,7 +446,7 @@ void SmRd1::stateTraverse()
         ROS_INFO("SCOUT: Waypoint Unreachable. Sending to Planning");
         flag_waypoint_unreachable=true;
       }
-    }
+  }
   double distance_to_goal = std::hypot(goal_pose_.position.y - current_pose_.position.y, goal_pose_.position.x - current_pose_.position.x);
   if (distance_to_goal < 2.0)
   {
