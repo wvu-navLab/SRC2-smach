@@ -242,7 +242,7 @@ void SmRd1::stateInitialize()
 
   Brake(0.0);
 
-  DriveCmdVel(-0.3, 5.0);
+  DriveCmdVel(-0.3, 0.0, 0.0, 5.0);
 
   Stop(5.0);
 
@@ -250,7 +250,7 @@ void SmRd1::stateInitialize()
 
   // Brake(0.0);
   //
-  // DriveCmdVel(0.4, 5.0);
+  // DriveCmdVel(0.4, 0.0, 0.0, 5.0);
   //
   // Stop(10.0);
   //
@@ -903,12 +903,12 @@ void SmRd1::Drive(double throttle, double time)
 }
 
 
-void SmRd1::DriveCmdVel(double vel, double time)
+void SmRd1::DriveCmdVel(double vx, double vy, double wz, double time)
 {
   geometry_msgs::Twist cmd_vel;
-  cmd_vel.linear.x = vel;
-  cmd_vel.linear.y = 0.0;
-  cmd_vel.angular.z = 0.0;
+  cmd_vel.linear.x = vx;
+  cmd_vel.linear.y = vy;
+  cmd_vel.angular.z = wz;
   ros::Time start_time = ros::Time::now();
   ros::Duration timeout(time); // Timeout of 20 seconds
   ROS_ERROR("Drive Cmd Vel publisher.");
