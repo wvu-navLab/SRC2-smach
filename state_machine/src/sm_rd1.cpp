@@ -516,24 +516,25 @@ void SmRd1::stateLost()
 
   Stop (2.0);
 
-  if(pow(pow(base_location_.x - current_pose_.position.x,2)+pow(base_location_.y - current_pose_.position.y,2),.5)>10.0){
-
-
-  ROS_INFO_STREAM("Defining goal from base location");
-
-  goal_yaw_ = atan2(base_location_.y - current_pose_.position.y, base_location_.x - current_pose_.position.x);
-
-  RotateToHeading(goal_yaw_);
-
-  move_base_msgs::MoveBaseGoal move_base_goal;
-  ac.waitForServer();
-  setPoseGoal(move_base_goal, base_location_.x, base_location_.y, goal_yaw_);
-  ROS_INFO_STREAM("SCOUT: Sending goal to MoveBase: " << move_base_goal);
-  ac.sendGoal(move_base_goal, boost::bind(&SmRd1::doneCallback, this,_1,_2), boost::bind(&SmRd1::activeCallback, this), boost::bind(&SmRd1::feedbackCallback, this,_1));
-  ac.waitForResult(ros::Duration(0.25));
-  // set as a waypoint type 1 so it will come back here.
-  waypoint_type_=1;
-  }
+  // if(pow(pow(base_location_.x - current_pose_.position.x,2)+pow(base_location_.y - current_pose_.position.y,2),.5)>10.0){
+  //
+  //
+  // ROS_INFO_STREAM("Defining goal from base location");
+  //
+  // goal_yaw_ = atan2(base_location_.y - current_pose_.position.y, base_location_.x - current_pose_.position.x);
+  //
+  // RotateToHeading(goal_yaw_);
+  //
+  // move_base_msgs::MoveBaseGoal move_base_goal;
+  // ac.waitForServer();
+  // setPoseGoal(move_base_goal, base_location_.x, base_location_.y, goal_yaw_);
+  // ROS_INFO_STREAM("SCOUT: Sending goal to MoveBase: " << move_base_goal);
+  // ac.sendGoal(move_base_goal, boost::bind(&SmRd1::doneCallback, this,_1,_2), boost::bind(&SmRd1::activeCallback, this), boost::bind(&SmRd1::feedbackCallback, this,_1));
+  // ac.waitForResult(ros::Duration(0.25));
+  // // set as a waypoint type 1 so it will come back here.
+  // waypoint_type_=1;
+  // return;
+  // }
   Lights ("0.8");
 
 
