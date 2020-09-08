@@ -230,23 +230,24 @@ void SmRd1::stateInitialize()
 
   RoverStatic(false);
 
-  Lights("0.2");
+  Lights("0.6");
 
   Brake(0.0);
 
-  Drive(-0.2, 3.0);
+  // Drive(-0.2, 4.0);
+  DriveCmdVel(-0.3, 0.0, 0.0, 4.0);
   //
   Stop(5.0);
 
   Brake(100.0);
 
-  Brake(0.0);
+  // Brake(0.0);
 
-  DriveCmdVel(-0.3, 0.0, 0.0, 5.0);
+  // DriveCmdVel(-0.3, 0.0, 0.0, 5.0);
 
-  Stop(5.0);
+  // Stop(5.0);
 
-  Brake(100.0);
+  // Brake(100.0);
 
   // Brake(0.0);
   //
@@ -258,11 +259,11 @@ void SmRd1::stateInitialize()
   //
   // Brake(0.0);
 
-  RotateInPlace(0.2, 3.0);
+  // RotateInPlace(0.2, 3.0);
 
-  Stop(2.0);
+  // Stop(2.0);
 
-  Brake(100.0);
+  // Brake(100.0);
 
   ToggleDetector(true);
 
@@ -435,6 +436,18 @@ void SmRd1::stateTraverse()
     flag_waypoint_unreachable = false;
     flag_recovering_localization = false;
   }
+  bool is_colliding = false;
+    waypoint_checker::CheckCollision srv_wp_check;
+    if (clt_waypoint_checker_.call(srv_wp_check))
+    {
+      ROS_INFO("SCOUT: Called service Waypoint Checker");
+      is_colliding = srv_wp_check.response.collision;
+      if(is_colliding)
+      {
+        ROS_INFO("SCOUT: Waypoint Unreachable. Sending to Planning");
+        flag_waypoint_unreachable=true;
+      }
+  }
   double distance_to_goal = std::hypot(goal_pose_.position.y - current_pose_.position.y, goal_pose_.position.x - current_pose_.position.x);
   if (distance_to_goal < 2.0)
   {
@@ -453,14 +466,12 @@ void SmRd1::stateTraverse()
     }
   }
 
-  if (!flag_mobility)
-  {
-    ROS_INFO("SCOUT: Recovering maneuver initialized.");
-    immobilityRecovery();
-    //flag_have_true_pose = true;
-
-
-  }
+  // if (!flag_mobility)
+  // {
+  //   ROS_INFO("SCOUT: Recovering maneuver initialized.");
+  //   immobilityRecovery();
+  //   //flag_have_true_pose = true;
+  // }
 
   move_base_state_ = ac.getState();
   int mb_state =(int) move_base_state_.state_;
@@ -505,24 +516,25 @@ void SmRd1::stateLost()
 
   Stop (2.0);
 
-  if(pow(pow(base_location_.x - current_pose_.position.x,2)+pow(base_location_.y - current_pose_.position.y,2),.5)>10.0){
-
-
-  ROS_INFO_STREAM("Defining goal from base location");
-
-  goal_yaw_ = atan2(base_location_.y - current_pose_.position.y, base_location_.x - current_pose_.position.x);
-
-  RotateToHeading(goal_yaw_);
-
-  move_base_msgs::MoveBaseGoal move_base_goal;
-  ac.waitForServer();
-  setPoseGoal(move_base_goal, base_location_.x, base_location_.y, goal_yaw_);
-  ROS_INFO_STREAM("SCOUT: Sending goal to MoveBase: " << move_base_goal);
-  ac.sendGoal(move_base_goal, boost::bind(&SmRd1::doneCallback, this,_1,_2), boost::bind(&SmRd1::activeCallback, this), boost::bind(&SmRd1::feedbackCallback, this,_1));
-  ac.waitForResult(ros::Duration(0.25));
-  // set as a waypoint type 1 so it will come back here.
-  waypoint_type_=1;
-  }
+  // if(pow(pow(base_location_.x - current_pose_.position.x,2)+pow(base_location_.y - current_pose_.position.y,2),.5)>10.0){
+  //
+  //
+  // ROS_INFO_STREAM("Defining goal from base location");
+  //
+  // goal_yaw_ = atan2(base_location_.y - current_pose_.position.y, base_location_.x - current_pose_.position.x);
+  //
+  // RotateToHeading(goal_yaw_);
+  //
+  // move_base_msgs::MoveBaseGoal move_base_goal;
+  // ac.waitForServer();
+  // setPoseGoal(move_base_goal, base_location_.x, base_location_.y, goal_yaw_);
+  // ROS_INFO_STREAM("SCOUT: Sending goal to MoveBase: " << move_base_goal);
+  // ac.sendGoal(move_base_goal, boost::bind(&SmRd1::doneCallback, this,_1,_2), boost::bind(&SmRd1::activeCallback, this), boost::bind(&SmRd1::feedbackCallback, this,_1));
+  // ac.waitForResult(ros::Duration(0.25));
+  // // set as a waypoint type 1 so it will come back here.
+  // waypoint_type_=1;
+  // return;
+  // }
   Lights ("0.8");
 
 
@@ -560,7 +572,7 @@ void SmRd1::stateLost()
     ROS_ERROR("SCOUT: Failed to call service Homing [Update]");
   }
 
-  Lights ("0.2");
+  Lights ("0.6");
 
   Brake (0.0);
 
@@ -609,6 +621,7 @@ g
   }
   else {
     ROS_ERROR("ROVER IMMOBILIZATION!  = %i",flag_mobility);
+    immobilityRecovery();
   }
 }
 

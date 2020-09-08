@@ -153,5 +153,5 @@ public:
   void Brake(double intensity);
   void RoverStatic(bool flag);
   void DriveCmdVel(double vx, double vy, double wz, double time);
-{
+
 };
