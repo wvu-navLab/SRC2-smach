@@ -234,19 +234,20 @@ void SmRd1::stateInitialize()
 
   Brake(0.0);
 
-  Drive(-0.2, 3.0);
+  // Drive(-0.2, 4.0);
+  DriveCmdVel(-0.3, 0.0, 0.0, 4.0);
   //
   Stop(5.0);
 
   Brake(100.0);
 
-  Brake(0.0);
+  // Brake(0.0);
 
-  DriveCmdVel(-0.3, 0.0, 0.0, 5.0);
+  // DriveCmdVel(-0.3, 0.0, 0.0, 5.0);
 
-  Stop(5.0);
+  // Stop(5.0);
 
-  Brake(100.0);
+  // Brake(100.0);
 
   // Brake(0.0);
   //
@@ -258,11 +259,11 @@ void SmRd1::stateInitialize()
   //
   // Brake(0.0);
 
-  RotateInPlace(0.2, 3.0);
+  // RotateInPlace(0.2, 3.0);
 
-  Stop(2.0);
+  // Stop(2.0);
 
-  Brake(100.0);
+  // Brake(100.0);
 
   ToggleDetector(true);
 
@@ -465,14 +466,12 @@ void SmRd1::stateTraverse()
     }
   }
 
-  if (!flag_mobility)
-  {
-    ROS_INFO("SCOUT: Recovering maneuver initialized.");
-    immobilityRecovery();
-    //flag_have_true_pose = true;
-
-
-  }
+  // if (!flag_mobility)
+  // {
+  //   ROS_INFO("SCOUT: Recovering maneuver initialized.");
+  //   immobilityRecovery();
+  //   //flag_have_true_pose = true;
+  // }
 
   move_base_state_ = ac.getState();
   int mb_state =(int) move_base_state_.state_;
@@ -621,6 +620,7 @@ void SmRd1::mobilityCallback(const std_msgs::Int64::ConstPtr& msg)
   }
   else {
     ROS_ERROR("ROVER IMMOBILIZATION!  = %i",flag_mobility);
+    immobilityRecovery();
   }
 }
 
