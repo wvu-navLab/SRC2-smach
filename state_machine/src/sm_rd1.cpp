@@ -300,7 +300,10 @@ void SmRd1::statePlanning()
 {
   ROS_INFO("Planning!\n");
   flag_arrived_at_waypoint = false;
-
+  if(waypoint_type_==1)
+  {
+    flag_waypoint_unreachable=false;
+  }
 
   ROS_INFO("SCOUT: Canceling MoveBase goal.");
   ac.waitForServer();
