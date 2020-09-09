@@ -217,6 +217,10 @@ void SmRd1::stateInitialize()
 
   // Homing - Initialize Base Station Landmark
   sensor_fusion::HomingUpdate srv_homing;
+  ros::spinOnce();
+
+  srv_homing.request.angle = pitch_ + .4; // pitch up is negative number
+  ROS_ERROR("Requesting Angle for LIDAR %f",srv_homing.request.angle);
   srv_homing.request.initializeLandmark = true;
   if (clt_homing_.call(srv_homing))
   {
@@ -296,7 +300,10 @@ void SmRd1::statePlanning()
 {
   ROS_INFO("Planning!\n");
   flag_arrived_at_waypoint = false;
-
+  if(waypoint_type_==1)
+  {
+    flag_waypoint_unreachable=false;
+  }
 
   ROS_INFO("SCOUT: Canceling MoveBase goal.");
   ac.waitForServer();
@@ -559,6 +566,10 @@ void SmRd1::stateLost()
 
   // Homing - Measurement Update
   sensor_fusion::HomingUpdate srv_homing;
+  ros::spinOnce();
+
+  srv_homing.request.angle = pitch_ + .4; // pitch up is negative number
+  ROS_INFO("Requesting Angle for LIDAR %f",srv_homing.request.angle);
   srv_homing.request.initializeLandmark = false;
   if (clt_homing_.call(srv_homing))
   {
