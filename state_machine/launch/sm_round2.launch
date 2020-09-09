@@ -41,9 +41,9 @@
   <include file="$(find src2_object_detection)/launch/hauler_object_detection.launch"/>
 
   <!-- move_base launch files -->
-  <!-- <include file="$(find src2_move_base)/launch/excavator_map_server.launch"/> -->
+  <include file="$(find src2_move_base)/launch/excavator_map_server.launch"/>
   <include file="$(find src2_move_base)/launch/excavator_move_base.launch"/>
-  <!-- <include file="$(find src2_move_base)/launch/hauler_map_server.launch"/> -->
+  <include file="$(find src2_move_base)/launch/hauler_map_server.launch"/>
   <include file="$(find src2_move_base)/launch/hauler_move_base.launch"/>
 
   <!-- laser tools  -->
