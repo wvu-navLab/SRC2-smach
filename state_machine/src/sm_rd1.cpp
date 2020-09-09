@@ -628,7 +628,6 @@ void SmRd1::mobilityCallback(const std_msgs::Int64::ConstPtr& msg)
   flag_mobility = msg->data;
   if (flag_mobility) {
     ROS_WARN_ONCE("Rover is traversing = %i",flag_mobility);
-
   }
   else {
     ROS_ERROR("ROVER IMMOBILIZATION!  = %i",flag_mobility);
