@@ -61,6 +61,7 @@ public:
   bool flag_fallthrough_condition = false;
   bool flag_completed_homing = false;
   bool flag_heading_fail=false;
+  bool need_to_initialize_landmark=true;
 
   ros::Time detection_timer, not_detected_timer;
 

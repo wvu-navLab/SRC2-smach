@@ -41,6 +41,7 @@ move_base_state_(actionlib::SimpleClientGoalState::LOST)
 
 
   driving_mode_=0;
+  need_to_initialize_landmark=true;
 
   detection_timer = ros::Time::now();
   not_detected_timer = ros::Time::now();
@@ -182,7 +183,8 @@ void SmRd1::stateInitialize()
   src2_object_detection::ApproachBaseStation srv_approach_base;
   srv_approach_base.request.approach_base_station.data= true;
   bool approachSuccess = false;
-  while(!approachSuccess){
+  int homingRecoveryCount = 0;
+  while(!approachSuccess && homingRecoveryCount<3){
       if (clt_approach_base_.call(srv_approach_base))
       {
         ROS_INFO("SCOUT: Called service ApproachBaseStation");
@@ -201,6 +203,7 @@ void SmRd1::stateInitialize()
     {
       ROS_ERROR("SCOUT: Failed  to call service ApproachBaseStation");
     }
+    homingRecoveryCount=homingRecoveryCount+1;
   }
 
   Stop(2.0);
@@ -227,22 +230,28 @@ void SmRd1::stateInitialize()
 
   RoverStatic(true);
 
+  if(approachSuccess){
   // Homing - Initialize Base Station Landmark
   sensor_fusion::HomingUpdate srv_homing;
   ros::spinOnce();
 
   srv_homing.request.angle = pitch_ + .2; // pitch up is negative number
   ROS_ERROR("Requesting Angle for LIDAR %f",srv_homing.request.angle);
-  srv_homing.request.initializeLandmark = true;
+  srv_homing.request.initializeLandmark = need_to_initialize_landmark;
   if (clt_homing_.call(srv_homing))
   {
     ROS_INFO("SCOUT: Called service HomingUpdate");
     base_location_ = srv_homing.response.base_location;
+    need_to_initialize_landmark = false;
   }
   else
   {
     ROS_ERROR("SCOUT: Failed to call service HomingUpdate");
   }
+}
+else{
+  ROS_ERROR(" Initial Homing Fail, Starting Without Base Location");
+}
 
   RoverStatic(false);
 
@@ -561,7 +570,8 @@ void SmRd1::stateLost()
   src2_object_detection::ApproachBaseStation srv_approach_base;
   srv_approach_base.request.approach_base_station.data= true;
   bool approachSuccess = false;
-  while(!approachSuccess){
+  int homingRecoveryCount=0;
+  while(!approachSuccess && homingRecoveryCount<3){
       if (clt_approach_base_.call(srv_approach_base))
       {
         ROS_INFO("SCOUT: Called service ApproachBaseStation");
@@ -580,29 +590,37 @@ void SmRd1::stateLost()
     {
       ROS_ERROR("SCOUT: Failed  to call service ApproachBaseStation");
     }
+    homingRecoveryCount=homingRecoveryCount+1;
   }
 
 
   Brake (100.0);
-
+  if(approachSuccess){
   // Homing - Measurement Update
   sensor_fusion::HomingUpdate srv_homing;
   ros::spinOnce();
 
   srv_homing.request.angle = pitch_ + .2; // pitch up is negative number
   ROS_INFO("Requesting Angle for LIDAR %f",srv_homing.request.angle);
-  srv_homing.request.initializeLandmark = false;
+  srv_homing.request.initializeLandmark = need_to_initialize_landmark;
   if (clt_homing_.call(srv_homing))
   {
     ROS_INFO("SCOUT: Called service Homing [Update]");
     flag_localization_failure=false;
     flag_arrived_at_waypoint = true;
     flag_completed_homing = true;
+    need_to_initialize_landmark=false;
   }
   else
   {
     ROS_ERROR("SCOUT: Failed to call service Homing [Update]");
   }
+
+}
+else{
+  ROS_ERROR(" Homing Attempt Failed, Just Moving On For Now");
+
+}
 
   Lights ("0.6");
 
