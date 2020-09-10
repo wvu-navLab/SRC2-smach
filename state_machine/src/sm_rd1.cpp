@@ -181,14 +181,26 @@ void SmRd1::stateInitialize()
   // Approach Base Station
   src2_object_detection::ApproachBaseStation srv_approach_base;
   srv_approach_base.request.approach_base_station.data= true;
-  if (clt_approach_base_.call(srv_approach_base))
-  {
-    ROS_INFO("SCOUT: Called service ApproachBaseStation");
-    ROS_INFO_STREAM("Success finding the Base? "<< srv_approach_base.response.success.data);
-  }
-  else
-  {
-    ROS_ERROR("SCOUT: Failed  to call service ApproachBaseStation");
+  bool approachSuccess = false;
+  while(!approachSuccess){
+      if (clt_approach_base_.call(srv_approach_base))
+      {
+        ROS_INFO("SCOUT: Called service ApproachBaseStation");
+        ROS_INFO_STREAM("Success finding the Base? "<< srv_approach_base.response.success.data);
+        if(!srv_approach_base.response.success.data){
+        homingRecovery();
+      }
+      else
+      {
+        approachSuccess=true;
+      }
+
+    }
+
+    else
+    {
+      ROS_ERROR("SCOUT: Failed  to call service ApproachBaseStation");
+    }
   }
 
   Stop(2.0);
@@ -548,19 +560,28 @@ void SmRd1::stateLost()
   // Approach Base Station
   src2_object_detection::ApproachBaseStation srv_approach_base;
   srv_approach_base.request.approach_base_station.data= true;
-  if (clt_approach_base_.call(srv_approach_base))
-  {
-    ROS_INFO("SCOUT: Called service ApproachBaseStation");
-    if(!srv_approach_base.response.success.data)
+  bool approachSuccess = false;
+  while(!approachSuccess){
+      if (clt_approach_base_.call(srv_approach_base))
+      {
+        ROS_INFO("SCOUT: Called service ApproachBaseStation");
+        ROS_INFO_STREAM("Success finding the Base? "<< srv_approach_base.response.success.data);
+        if(!srv_approach_base.response.success.data){
+        homingRecovery();
+      }
+      else
+      {
+        approachSuccess=true;
+      }
+
+    }
+
+    else
     {
-    // if it fails we are currently doomed
-    ROS_ERROR("Approach to Home Failed!");
+      ROS_ERROR("SCOUT: Failed  to call service ApproachBaseStation");
     }
   }
-  else
-  {
-    ROS_ERROR("SCOUT: Failed  to call service ApproachBaseStation");
-  }
+
 
   Brake (100.0);
 
@@ -797,6 +818,39 @@ void SmRd1::RotateToHeading(double desired_yaw)
   {
     Stop(0.0);
   }
+}
+
+void SmRd1::homingRecovery()
+{
+
+  ac.waitForServer();
+  ac.cancelGoal();
+  ac.waitForResult(ros::Duration(0.25));
+
+  ROS_WARN("Starting Homing Recovery.");
+
+  Stop(2.0);
+
+  Brake(100.0);
+
+  Brake(0.0);
+
+  Drive(-0.3, 4.0);
+
+  Stop(0.0);
+
+  RotateInPlace(.5,2.0);
+
+  Stop(0.0);
+
+  Drive(0.3, 4.0);
+
+  Brake(100.0);
+
+  Brake(0.0);
+
+
+
 }
 
 void SmRd1::immobilityRecovery()
