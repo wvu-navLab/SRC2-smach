@@ -235,14 +235,18 @@ void SmRd1::stateInitialize()
   sensor_fusion::HomingUpdate srv_homing;
   ros::spinOnce();
 
-  srv_homing.request.angle = pitch_ + .2; // pitch up is negative number
+  srv_homing.request.angle = pitch_ + .4; // pitch up is negative number
   ROS_ERROR("Requesting Angle for LIDAR %f",srv_homing.request.angle);
   srv_homing.request.initializeLandmark = need_to_initialize_landmark;
   if (clt_homing_.call(srv_homing))
   {
     ROS_INFO("SCOUT: Called service HomingUpdate");
+    if(srv_homing.response.success){
     base_location_ = srv_homing.response.base_location;
     need_to_initialize_landmark = false;
+  }else{
+    ROS_ERROR(" Initial Homing Fail, Starting Without Base Location");
+  }
   }
   else
   {
@@ -600,16 +604,22 @@ void SmRd1::stateLost()
   sensor_fusion::HomingUpdate srv_homing;
   ros::spinOnce();
 
-  srv_homing.request.angle = pitch_ + .2; // pitch up is negative number
+  srv_homing.request.angle = pitch_ + .4; // pitch up is negative number
   ROS_INFO("Requesting Angle for LIDAR %f",srv_homing.request.angle);
   srv_homing.request.initializeLandmark = need_to_initialize_landmark;
   if (clt_homing_.call(srv_homing))
   {
     ROS_INFO("SCOUT: Called service Homing [Update]");
+    if(srv_homing.request.initializeLandmark && srv_homing.response.success){
+        base_location_ = srv_homing.response.base_location;
+        ROS_WARN("SCOUT: Saving Base Location %f %f",base_location_.x, base_location_.y);
+    }
     flag_localization_failure=false;
     flag_arrived_at_waypoint = true;
     flag_completed_homing = true;
-    need_to_initialize_landmark=false;
+    if(srv_homing.response.success){
+      need_to_initialize_landmark=false;
+    }
   }
   else
   {
