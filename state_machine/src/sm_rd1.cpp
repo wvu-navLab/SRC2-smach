@@ -832,8 +832,8 @@ void SmRd1::ClearCostmaps()
 {
   // Clear the costmap
   std_srvs::Empty emptymsg;
-  ros::service::waitForService("/move_base/clear_costmaps",ros::Duration(3.0));
-  if (ros::service::call("/move_base/clear_costmaps",emptymsg))
+  ros::service::waitForService("/scout_1/move_base/clear_costmaps",ros::Duration(3.0));
+  if (ros::service::call("/scout_1/move_base/clear_costmaps",emptymsg))
   {
      ROS_INFO("SCOUT: Called service to clear costmap layers.");
   }
