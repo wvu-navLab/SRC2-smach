@@ -63,6 +63,6 @@
   <include file="$(find waypoint_checker)/launch/hauler_waypoint_checker.launch"/>
 
   <!-- state machine for R2 -->
-  <!-- <include file="$(find state_machine)/launch/excavator_hauler_state_machine_rd2.launch"/> -->
+  <!-- <include file="$(find state_machine)/launch/exc_haul_state_machine_rd2.launch"/> -->
 
 </launch>

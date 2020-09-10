@@ -1,0 +1,7 @@
+<?xml version="1.0"?>
+<launch>
+
+  <node name="state_machine" pkg="state_machine" type="state_machine_rd2_node" output="screen" launch-prefix="bash -c 'sleep 20.0; $0 $@' "/>
+
+
+</launch>

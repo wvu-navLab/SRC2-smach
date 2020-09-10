@@ -1,42 +1,42 @@
 #include <state_machine/sm_rd1.hpp>
 
 SmRd1::SmRd1() :
-ac("/move_base", true),
+ac("/scout_1/move_base", true),
 move_base_state_(actionlib::SimpleClientGoalState::LOST)
 {
   // Initialize ROS, Subs, and Pubs *******************************************
   // Publishers
-  sm_state_pub = nh.advertise<std_msgs::Int64>("state_machine/state", 1);
-  cmd_vel_pub = nh.advertise<geometry_msgs::Twist>("driving/cmd_vel", 1);
+  sm_state_pub = nh.advertise<std_msgs::Int64>("/state_machine/state", 1);
+  cmd_vel_pub = nh.advertise<geometry_msgs::Twist>("/scout_1/driving/cmd_vel", 1);
   // Subscribers
-  localized_base_sub = nh.subscribe("state_machine/localized_base_scout", 1, &SmRd1::localizedBaseCallback, this);
-  mobility_sub = nh.subscribe("state_machine/mobility_scout", 10, &SmRd1::mobilityCallback, this);
-  waypoint_unreachable_sub = nh.subscribe("state_machine/waypoint_unreachable", 1, &SmRd1::waypointUnreachableCallback, this);
-  arrived_at_waypoint_sub = nh.subscribe("state_machine/arrived_at_waypoint", 1, &SmRd1::arrivedAtWaypointCallback, this);
-  volatile_detected_sub = nh.subscribe("state_machine/volatile_detected", 1, &SmRd1::volatileDetectedCallback, this);
-  volatile_recorded_sub = nh.subscribe("state_machine/volatile_recorded", 1, &SmRd1::volatileRecordedCallback, this);
-  localization_failure_sub = nh.subscribe("state_machine/localization_failure", 1, &SmRd1::localizationFailureCallback, this);
-  localization_sub  = nh.subscribe("localization/odometry/sensor_fusion", 1, &SmRd1::localizationCallback, this);
-  driving_mode_sub =nh.subscribe("driving/driving_mode",1, &SmRd1::drivingModeCallback, this);
+  localized_base_sub = nh.subscribe("/state_machine/localized_base_scout", 1, &SmRd1::localizedBaseCallback, this);
+  mobility_sub = nh.subscribe("/state_machine/mobility_scout", 10, &SmRd1::mobilityCallback, this);
+  waypoint_unreachable_sub = nh.subscribe("/state_machine/waypoint_unreachable", 1, &SmRd1::waypointUnreachableCallback, this);
+  arrived_at_waypoint_sub = nh.subscribe("/state_machine/arrived_at_waypoint", 1, &SmRd1::arrivedAtWaypointCallback, this);
+  volatile_detected_sub = nh.subscribe("/state_machine/volatile_detected", 1, &SmRd1::volatileDetectedCallback, this);
+  volatile_recorded_sub = nh.subscribe("/state_machine/volatile_recorded", 1, &SmRd1::volatileRecordedCallback, this);
+  localization_failure_sub = nh.subscribe("/state_machine/localization_failure", 1, &SmRd1::localizationFailureCallback, this);
+  localization_sub  = nh.subscribe("/scout_1/localization/odometry/sensor_fusion", 1, &SmRd1::localizationCallback, this);
+  driving_mode_sub =nh.subscribe("/scout_1/driving/driving_mode",1, &SmRd1::drivingModeCallback, this);
 
   // Clients
-  clt_wp_gen_ = nh.serviceClient<waypoint_gen::GenerateWaypoint>("navigation/generate_goal");
-  clt_wp_start_ = nh.serviceClient<waypoint_gen::StartWaypoint>("navigation/start");
-  clt_wp_nav_set_goal_ = nh.serviceClient<waypoint_nav::SetGoal>("navigation/set_goal");
-  clt_wp_nav_interrupt_ = nh.serviceClient<waypoint_nav::Interrupt>("navigation/interrupt");
-  clt_stop_ = nh.serviceClient<driving_tools::Stop>("driving/stop");
-  clt_rip_ = nh.serviceClient<driving_tools::RotateInPlace>("driving/rotate_in_place");
-  clt_drive_ = nh.serviceClient<driving_tools::MoveForward>("driving/move_forward");
-  clt_vol_report_ = nh.serviceClient<volatile_handler::VolatileReport>("volatile/report");
-  clt_vol_detect_ = nh.serviceClient<volatile_handler::ToggleDetector>("volatile/toggle_detector");
-  clt_lights_ = nh.serviceClient<srcp2_msgs::ToggleLightSrv>("toggle_light");
-  clt_brake_ = nh.serviceClient<srcp2_msgs::BrakeRoverSrv>("brake_rover");
-  clt_approach_base_ = nh.serviceClient<src2_object_detection::ApproachBaseStation>("approach_base_station");
-  clt_rover_static_ = nh.serviceClient<sensor_fusion::RoverStatic>("sensor_fusion/toggle_rover_static");
-  clt_homing_ = nh.serviceClient<sensor_fusion::HomingUpdate>("homing");
-  clt_sf_true_pose_ = nh.serviceClient<sensor_fusion::GetTruePose>("true_pose");
-  clt_waypoint_checker_ = nh.serviceClient<waypoint_checker::CheckCollision>("waypoint_checker");
-  clt_srcp2_brake_rover_= nh.serviceClient<srcp2_msgs::BrakeRoverSrv>("brake_rover");
+  clt_wp_gen_ = nh.serviceClient<waypoint_gen::GenerateWaypoint>("/scout_1/navigation/generate_goal");
+  clt_wp_start_ = nh.serviceClient<waypoint_gen::StartWaypoint>("/scout_1/navigation/start");
+  clt_wp_nav_set_goal_ = nh.serviceClient<waypoint_nav::SetGoal>("/scout_1/navigation/set_goal");
+  clt_wp_nav_interrupt_ = nh.serviceClient<waypoint_nav::Interrupt>("/scout_1/navigation/interrupt");
+  clt_stop_ = nh.serviceClient<driving_tools::Stop>("/scout_1/driving/stop");
+  clt_rip_ = nh.serviceClient<driving_tools::RotateInPlace>("/scout_1/driving/rotate_in_place");
+  clt_drive_ = nh.serviceClient<driving_tools::MoveForward>("/scout_1/driving/move_forward");
+  clt_vol_report_ = nh.serviceClient<volatile_handler::VolatileReport>("/scout_1/volatile/report");
+  clt_vol_detect_ = nh.serviceClient<volatile_handler::ToggleDetector>("/scout_1/volatile/toggle_detector");
+  clt_lights_ = nh.serviceClient<srcp2_msgs::ToggleLightSrv>("/scout_1/toggle_light");
+  clt_brake_ = nh.serviceClient<srcp2_msgs::BrakeRoverSrv>("/scout_1/brake_rover");
+  clt_approach_base_ = nh.serviceClient<src2_object_detection::ApproachBaseStation>("/scout_1/approach_base_station");
+  clt_rover_static_ = nh.serviceClient<sensor_fusion::RoverStatic>("/scout_1/sensor_fusion/toggle_rover_static");
+  clt_homing_ = nh.serviceClient<sensor_fusion::HomingUpdate>("/scout_1/homing");
+  clt_sf_true_pose_ = nh.serviceClient<sensor_fusion::GetTruePose>("/scout_1/true_pose");
+  clt_waypoint_checker_ = nh.serviceClient<waypoint_checker::CheckCollision>("/scout_1/waypoint_checker");
+  clt_srcp2_brake_rover_= nh.serviceClient<srcp2_msgs::BrakeRoverSrv>("/scout_1/brake_rover");
   // this is a comment
 
 
