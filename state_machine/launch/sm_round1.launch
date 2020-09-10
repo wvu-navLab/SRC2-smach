@@ -27,8 +27,8 @@
   <include file="$(find src2_object_detection)/launch/object_detection_round1.launch"/>
 
   <!-- scout_move_base launch files -->
-  <include file="$(find src2_move_base)/launch/map_server.launch"/>
-  <include file="$(find src2_move_base)/launch/move_base.launch"/>
+  <include file="$(find src2_move_base)/launch/scout_map_server.launch"/>
+  <include file="$(find src2_move_base)/launch/scout_move_base.launch"/>
 
   <!-- laser tools  -->
   <include file="$(find laser_tools_src2)/launch/scout_laser_tools_R1.launch"/>
