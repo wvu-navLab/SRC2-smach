@@ -33,6 +33,7 @@
 #include <boost/bind.hpp>
 #include <srcp2_msgs/BrakeRoverSrv.h>
 #include <move_excavator/ExcavationStatus.h>
+#include <round2_volatile_handler/NextVolatileLocation.h>
 
 #include <move_excavator/HomeArm.h>
 #include <move_excavator/DigVolatile.h>
@@ -84,6 +85,9 @@ public:
   bool flag_completed_homing_hauler_ = false;
   bool flag_heading_fail_hauler_=false;
 
+  std::string goal_vol_type_;
+  geometry_msgs::Pose goal_vol_pose_;
+
   int timer_counter = 0;
   double pitch_excavator_ = 0, roll_excavator_ = 0, yaw_excavator_ = 0, yaw_prev_excavator_ = 0;
   double goal_yaw_excavator_;
@@ -94,6 +98,8 @@ public:
   int driving_mode_excavator_;
   bool excavation_finished_excavator_;
   double collected_mass_excavator_;
+
+
 
   int timer_counter_hauler_ = 0;
   double pitch_hauler_ = 0, roll_hauler_ = 0, yaw_hauler_ = 0, yaw_prev_hauler_ = 0;
@@ -139,6 +145,7 @@ public:
   ros::ServiceClient clt_approach_base_excavator_;
   ros::ServiceClient clt_rover_static_excavator_;
   ros::ServiceClient clt_waypoint_checker_excavator_;
+  ros::ServiceClient clt_next_vol_excavator_;
   ros::ServiceClient clt_srcp2_brake_rover_excavator_;
   ros::ServiceClient clt_home_arm_excavator_;
   ros::ServiceClient clt_dig_volatile_excavator_;
@@ -211,6 +218,7 @@ public:
   void feedbackCallbackExcavator(const move_base_msgs::MoveBaseFeedbackConstPtr& feedback);
 
   void RotateToHeadingExcavator(double desired_yaw);
+  void UpdateGoalPoseExcavator();
   void ClearCostmapsExcavator();
   void LightsExcavator(std::string intensity);
   void RotateInPlaceExcavator(double throttle, double time);
