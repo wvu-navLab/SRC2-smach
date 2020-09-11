@@ -4,6 +4,7 @@
 #include <std_msgs/Bool.h>
 #include <std_msgs/Float32.h>
 #include <std_msgs/Int64.h>
+#include <sensor_msgs/LaserScan.h>
 #include <geometry_msgs/Pose.h>
 #include <geometry_msgs/Point.h>
 #include <geometry_msgs/Twist.h>
@@ -64,7 +65,7 @@ public:
   bool need_to_initialize_landmark=true;
 
   ros::Time detection_timer, not_detected_timer;
-
+  ros::Time last_time_laser_collision_ = ros::Time::now();
 
   const double VOLATILE_THRESH = 1.0;
   const double TIMER_THRESH = 15;
@@ -77,7 +78,12 @@ public:
   geometry_msgs::Point base_location_;
   double waypoint_type_;
   int driving_mode_;
+  const double LASER_THRESH = 0.2;
+  const int LASER_SET_SIZE = 20;
+  const int LASER_COUNTER_THRESH = 20;
 
+  int counter_laser_collision_ = 0;
+  
 
   // State vector
   std::vector<int> state_to_exec; // Only one should be true at a time, if multiple are true then a default state should be executed
@@ -139,6 +145,7 @@ public:
   void drivingModeCallback(const std_msgs::Int64::ConstPtr& msg);
   void immobilityRecovery();
   void homingRecovery();
+  void laserCallback(const sensor_msgs::LaserScan::ConstPtr& msg);
 
   void setPoseGoal(move_base_msgs::MoveBaseGoal& poseGoal, double x, double y, double yaw); // m, m, rad
   void doneCallback(const actionlib::SimpleClientGoalState& state, const move_base_msgs::MoveBaseResultConstPtr& result);

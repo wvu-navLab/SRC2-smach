@@ -737,6 +737,37 @@ void SmRd1::localizationCallback(const nav_msgs::Odometry::ConstPtr& msg)
 
 }
 
+void SmRd1::laserCallback(const sensor_msgs::LaserScan::ConstPtr& msg)
+{
+  std::vector<float> ranges = msg->ranges;
+  std::sort (ranges.begin(), ranges.end());
+  float min_range = 0; 
+  for (int i = 0; i < LASER_SET_SIZE; ++i)
+  {
+    min_range = min_range + ranges[i];
+  }
+  min_range = min_range/LASER_SET_SIZE;
+
+  if (min_range < LASER_THRESH)
+  {
+    if (ros::Time::now() - last_time_laser_collision_ < ros::Duration(20))
+    {
+      ROS_WARN("SCOUT: Close to wall.");
+      counter_laser_collision_++;
+    }
+    else
+    {
+      counter_laser_collision_ = 0;
+    }
+    last_time_laser_collision_ = ros::Time::now();
+  }
+
+  if (counter_laser_collision_ > LASER_COUNTER_THRESH)
+  {
+    ROS_ERROR("SCOUT: LASER COUNTER > 20 ! Starting Recovery.");
+    immobilityRecovery();
+  }
+}  
 
 void SmRd1::setPoseGoal(move_base_msgs::MoveBaseGoal &poseGoal, double x, double y, double yaw) // m, m, rad
 {
