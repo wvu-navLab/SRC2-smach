@@ -60,7 +60,7 @@ void SmRd1::run()
     ROS_INFO("flag_waypoint_unreachable: %i",flag_waypoint_unreachable);
     ROS_INFO("flag_arrived_at_waypoint: %i",flag_arrived_at_waypoint);
     ROS_INFO("volatile_detected_distance: %f",volatile_detected_distance);
-    ROS_INFO("flag_localizing_volatile: %i",flag_localizing_volatile);
+  //  ROS_INFO("flag_localizing_volatile: %i",flag_localizing_volatile);
     ROS_INFO("flag_volatile_recorded: %i",flag_volatile_recorded);
     ROS_INFO("flag_volatile_unreachable: %i",flag_volatile_unreachable);
     ROS_INFO("flag_localization_failure: %i",flag_localization_failure);
