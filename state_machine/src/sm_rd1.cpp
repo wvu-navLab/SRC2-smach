@@ -747,6 +747,7 @@ void SmRd1::laserCallback(const sensor_msgs::LaserScan::ConstPtr& msg)
     min_range = min_range + ranges[i];
   }
   min_range = min_range/LASER_SET_SIZE;
+  ROS_INFO_STREAM("SCOUT: Minimum range average: " << min_range);
 
   if (min_range < LASER_THRESH)
   {
@@ -754,10 +755,12 @@ void SmRd1::laserCallback(const sensor_msgs::LaserScan::ConstPtr& msg)
     {
       ROS_WARN("SCOUT: Close to wall.");
       counter_laser_collision_++;
+      ROS_INFO_STREAM("SCOUT: Counter laser:" << counter_laser_collision_);
     }
     else
     {
       counter_laser_collision_ = 0;
+      ROS_INFO_STREAM("SCOUT: Counter laser RESET!");
     }
     last_time_laser_collision_ = ros::Time::now();
   }
