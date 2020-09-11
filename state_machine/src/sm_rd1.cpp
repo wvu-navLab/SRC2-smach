@@ -18,7 +18,7 @@ move_base_state_(actionlib::SimpleClientGoalState::LOST)
   localization_failure_sub = nh.subscribe("/state_machine/localization_failure", 1, &SmRd1::localizationFailureCallback, this);
   localization_sub  = nh.subscribe("/scout_1/localization/odometry/sensor_fusion", 1, &SmRd1::localizationCallback, this);
   driving_mode_sub =nh.subscribe("/scout_1/driving/driving_mode",1, &SmRd1::drivingModeCallback, this);
-
+  laserscan_sub =nh.subscribe("/scout_1/laser/scan",1, &SmRd1::laserCallback, this);
   // Clients
   clt_wp_gen_ = nh.serviceClient<waypoint_gen::GenerateWaypoint>("/scout_1/navigation/generate_goal");
   clt_wp_start_ = nh.serviceClient<waypoint_gen::StartWaypoint>("/scout_1/navigation/start");
