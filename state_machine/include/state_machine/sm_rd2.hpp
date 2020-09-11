@@ -34,6 +34,14 @@
 #include <srcp2_msgs/BrakeRoverSrv.h>
 #include <move_excavator/ExcavationStatus.h>
 
+#include <move_excavator/HomeArm.h>
+#include <move_excavator/DigVolatile.h>
+#include <move_excavator/Scoop.h>
+#include <move_excavator/ExtendArm.h>
+#include <move_excavator/DropVolatile.h>
+#include <move_excavator/ExcavatorFK.h>
+
+
 typedef actionlib::SimpleActionClient<move_base_msgs::MoveBaseAction> MoveBaseClient;
 
 class SmRd2
@@ -132,6 +140,11 @@ public:
   ros::ServiceClient clt_rover_static_excavator_;
   ros::ServiceClient clt_waypoint_checker_excavator_;
   ros::ServiceClient clt_srcp2_brake_rover_excavator_;
+  ros::ServiceClient clt_home_arm_excavator_;
+  ros::ServiceClient clt_dig_volatile_excavator_;
+  ros::ServiceClient clt_scoop_excavator_;
+  ros::ServiceClient clt_extend_arm_excavator_ ;
+  ros::ServiceClient clt_drop_volatile_excavator_;
 
   // HAULER
   ros::Publisher cmd_vel_pub_hauler_;
@@ -208,6 +221,11 @@ public:
   void RoverStaticExcavator(bool flag);
   void DriveCmdVelExcavator(double vx, double vy, double wz, double time);
   void ManipulationStateControlExcavator(int state, double time);
+  void ExecuteHomeArmExcavator(double heading);
+  void ExecuteDigExcavator(double heading);
+  void ExecuteScoopExcavator(double heading);
+  void ExecuteExtendArmExcavator(double heading);
+  void ExecuteDropExcavator(double heading);
 
   // HAULER
   void localizedBaseCallbackHauler(const std_msgs::Int64::ConstPtr& msg);

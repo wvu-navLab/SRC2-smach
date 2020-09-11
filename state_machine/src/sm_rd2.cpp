@@ -40,6 +40,12 @@ move_base_state_hauler_(actionlib::SimpleClientGoalState::LOST)
   clt_waypoint_checker_excavator_ = nh.serviceClient<waypoint_checker::CheckCollision>("/excavator_1/waypoint_checker");
   clt_srcp2_brake_rover_excavator_= nh.serviceClient<srcp2_msgs::BrakeRoverSrv>("/excavator_1/brake_rover");
 
+  clt_home_arm_excavator_ = nh.serviceClient<move_excavator::HomeArm>("/excavator_1/manipulation/home_arm");
+  clt_dig_volatile_excavator_ = nh.serviceClient<move_excavator::DigVolatile>("/excavator_1/manipulation/dig_volatile");
+  clt_scoop_excavator_ = nh.serviceClient<move_excavator::Scoop>("/excavator_1/manipulation/scoop");
+  clt_extend_arm_excavator_ = nh.serviceClient<move_excavator::ExtendArm>("/excavator_1/manipulation/extend_arm");
+  clt_drop_volatile_excavator_ = nh.serviceClient<move_excavator::DropVolatile>("/excavator_1/manipulation/drop_volatile");
+
   driving_mode_excavator_=0;
 
   //HAULER
@@ -205,7 +211,9 @@ void SmRd2::stateInitialize()
 
   // ToggleDetectorExcavator(false);
   BrakeExcavator(100.0);
-  ManipulationStateControlExcavator(0,5.0);
+
+  ExecuteHomeArmExcavator(0.0);
+
   BrakeExcavator(0.0);
   // ros::Duration(time).sleep();
 
@@ -1028,6 +1036,47 @@ void SmRd2::ManipulationStateControlExcavator(int state, double time)
   ROS_INFO_STREAM("MSG.DATA"<<msg.data);
   ros::Duration(time).sleep();
 }
+
+void SmRd2::ExecuteHomeArmExcavator(double heading)
+{
+  move_excavator::HomeArm srv;
+  srv.request.heading = heading;
+  srv.request.timeLimit = 100;
+  bool success = clt_home_arm_excavator_.call(srv);
+}
+
+void SmRd2::ExecuteDigExcavator(double heading)
+{
+  move_excavator::DigVolatile srv;
+  srv.request.heading = heading;
+  srv.request.timeLimit = 100;
+  bool success = clt_dig_volatile_excavator_.call(srv);
+}
+
+void SmRd2::ExecuteScoopExcavator(double heading)
+{
+  move_excavator::Scoop srv;
+  srv.request.heading = heading;
+  srv.request.timeLimit = 100;
+  bool success = clt_scoop_excavator_.call(srv);
+}
+
+void SmRd2::ExecuteExtendArmExcavator(double heading)
+{
+  move_excavator::ExtendArm srv;
+  srv.request.heading = heading;
+  srv.request.timeLimit = 100;
+  bool success = clt_extend_arm_excavator_.call(srv);
+}
+
+void SmRd2::ExecuteDropExcavator(double heading)
+{
+  move_excavator::DropVolatile srv;
+  srv.request.heading = heading;
+  srv.request.timeLimit = 100;
+  bool success = clt_drop_volatile_excavator_.call(srv);
+}
+
 
 //------------------------------------------------------------------------------------------------------------------------
 // HAULER
