@@ -263,8 +263,8 @@ else{
 
   Brake(0.0);
 
-  // Drive(-0.2, 4.0);
-  DriveCmdVel(-0.3, 0.0, 0.0, 4.0);
+  Drive(-0.3, 2.0);
+  // DriveCmdVel(-0.3, 0.0, 0.0, 2.0);
   //
   Stop(5.0);
 
