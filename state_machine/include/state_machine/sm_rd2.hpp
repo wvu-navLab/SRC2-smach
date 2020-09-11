@@ -193,7 +193,7 @@ public:
   void RotateInPlaceExcavator(double throttle, double time);
   void StopExcavator(double time);
   void DriveExcavator(double throttle, double time);
-  void ToggleDetectorExcavator(bool flag);
+  // void ToggleDetectorExcavator(bool flag);
   void BrakeExcavator(double intensity);
   void RoverStaticExcavator(bool flag);
   void DriveCmdVelExcavator(double vx, double vy, double wz, double time);
