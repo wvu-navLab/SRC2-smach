@@ -532,7 +532,24 @@ void SmRd2::stateTraverse()
 void SmRd2::stateVolatileHandler()
 {
 
-  ROS_WARN("Volatile Handling State!");
+  BrakeExcavator(100.0);
+
+  ROS_WARN("Excavation State!");
+
+  ManipulationStateControlExcavator(9, 1.0);
+
+  while(!flag_volatile_dug_excavator_)
+  {
+    ros::spinOnce();
+  }
+  
+  ros::Duration(10.0).sleep();
+
+  flag_waypoint_unreachable_excavator_ = false;
+
+  std_msgs::Int64 state_msg;
+  state_msg.data = _volatile_handler;
+  sm_state_pub_.publish(state_msg);
 }
 
 void SmRd2::stateLost()
