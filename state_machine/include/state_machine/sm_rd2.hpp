@@ -49,9 +49,6 @@ public:
   bool flag_have_true_pose = false;
   bool flag_waypoint_unreachable = false;
   bool flag_arrived_at_waypoint = true;
-  double volatile_detected_distance = -1.0;
-  double min_volatile_detected_distance = 30.0;
-  double prev_volatile_detected_distance = -1.0;
   bool flag_localizing_volatile = false;
   bool flag_volatile_recorded = false;
   bool flag_volatile_unreachable = false;
@@ -63,12 +60,20 @@ public:
   bool flag_heading_fail=false;
   bool need_to_initialize_landmark=true;
 
-  ros::Time detection_timer, not_detected_timer;
+  int flag_localized_base_hauler_ = 0;
+  int flag_mobility_hauler_ = 1;
+  bool flag_have_true_pose_hauler_ = false;
+  bool flag_waypoint_unreachable_hauler_ = false;
+  bool flag_arrived_at_waypoint_hauler_ = true;
+  bool flag_localizing_volatile = false;
+  bool flag_volatile_unreachable = false;
+  bool flag_localization_failure_hauler_ = false;
+  bool flag_recovering_localization_hauler_ = false;
+  bool flag_brake_engaged_hauler_ = false;
+  bool flag_fallthrough_condition_hauler_ = false;
+  bool flag_completed_homing_hauler_ = false;
+  bool flag_heading_fail_hauler_=false;
 
-
-  const double VOLATILE_THRESH = 1.0;
-  const double TIMER_THRESH = 15;
-  const double NOT_DETECTED_THRESH = 6;
   int timer_counter = 0;
   double pitch_ = 0, roll_ = 0, yaw_ = 0, yaw_prev_ = 0;
   double goal_yaw_;
@@ -77,6 +82,14 @@ public:
   geometry_msgs::Point base_location_;
   double waypoint_type_;
   int driving_mode_;
+
+  int timer_counter_hauler_ = 0;
+  double pitch_hauler_ = 0, roll_hauler_ = 0, yaw_hauler_ = 0, yaw_prev_hauler_ = 0;
+  double goal_yaw_hauler_;
+  bool actionDone_hauler_ = false;
+  geometry_msgs::Pose current_pose_hauler_, goal_pose_hauler_;
+  double waypoint_type_hauler_;
+  int driving_mode_hauler_;
 
 
   // State vector
@@ -114,8 +127,39 @@ public:
   ros::ServiceClient clt_waypoint_checker_;
   ros::ServiceClient clt_srcp2_brake_rover_;
 
+  // HAULER
+  ros::Publisher cmd_vel_pub_hauler_;
+  ros::Subscriber localized_base_sub_hauler_;
+  ros::Subscriber waypoint_unreachable_sub_hauler_;
+  ros::Subscriber arrived_at_waypoint_sub_hauler_;
+  ros::Subscriber localization_failure_sub_hauler_;
+  ros::Subscriber localization_sub_hauler_;
+  ros::Subscriber driving_mode_sub_hauler_;
+  ros::Subscriber mobility_sub_hauler_;
+  ros::ServiceClient clt_sf_true_pose_hauler_;
+  ros::ServiceClient clt_wp_gen_hauler_;
+  ros::ServiceClient clt_wp_start_hauler_;
+  ros::ServiceClient clt_wp_nav_set_goal_hauler_;
+  ros::ServiceClient clt_wp_nav_interrupt_hauler_;
+  ros::ServiceClient clt_vh_report_hauler_;
+  ros::ServiceClient clt_stop_hauler_;
+  ros::ServiceClient clt_rip_hauler_;
+  ros::ServiceClient clt_drive_hauler_;
+  ros::ServiceClient clt_vol_report_hauler_;
+  ros::ServiceClient clt_vol_detect_hauler_;
+  ros::ServiceClient clt_brake_hauler_;
+  ros::ServiceClient clt_lights_hauler_;
+  ros::ServiceClient clt_homing_hauler_;
+  ros::ServiceClient clt_approach_base_hauler_;
+  ros::ServiceClient clt_rover_static_hauler_;
+  ros::ServiceClient clt_waypoint_checker_hauler_;
+  ros::ServiceClient clt_srcp2_brake_rover_hauler_;
+
   MoveBaseClient ac;
   actionlib::SimpleClientGoalState move_base_state_;
+
+  MoveBaseClient ac_hauler_;
+  actionlib::SimpleClientGoalState move_base_state_hauler_;
 
   // Methods ----------------------------------------------------------------------------------------------------------------------------
   SmRd2(); // Constructor
@@ -155,5 +199,34 @@ public:
   void Brake(double intensity);
   void RoverStatic(bool flag);
   void DriveCmdVel(double vx, double vy, double wz, double time);
+
+  // HAULER
+  void localizedBaseCallbackHauler(const std_msgs::Int64::ConstPtr& msg);
+  void mobilityCallbackHauler(const std_msgs::Int64::ConstPtr& msg);
+  void waypointUnreachableCallbackHauler(const std_msgs::Bool::ConstPtr& msg);
+  void arrivedAtWaypointCallbackHauler(const std_msgs::Bool::ConstPtr& msg);
+  void volatileDetectedCallbackHauler(const std_msgs::Float32::ConstPtr& msg);
+  void volatileRecordedCallbackHauler(const std_msgs::Bool::ConstPtr& msg);
+  void localizationFailureCallbackHauler(const std_msgs::Bool::ConstPtr& msg);
+  void localizationCallbackHauler(const nav_msgs::Odometry::ConstPtr& msg);
+  void drivingModeCallbackHauler(const std_msgs::Int64::ConstPtr& msg);
+  void immobilityRecoveryHauler();
+  void homingRecoveryHauler();
+
+  void setPoseGoalHauler(move_base_msgs::MoveBaseGoal& poseGoal, double x, double y, double yaw); // m, m, rad
+  void doneCallbackHauler(const actionlib::SimpleClientGoalState& state, const move_base_msgs::MoveBaseResultConstPtr& result);
+  void activeCallbackHauler();
+  void feedbackCallbackHauler(const move_base_msgs::MoveBaseFeedbackConstPtr& feedback);
+
+  void RotateToHeadingHauler(double desired_yaw);
+  void ClearCostmapsHauler();
+  void LightsHauler(std::string intensity);
+  void RotateInPlaceHauler(double throttle, double time);
+  void StopHauler(double time);
+  void DriveHauler(double throttle, double time);
+  void ToggleDetectorHauler(bool flag);
+  void BrakeHauler(double intensity);
+  void RoverStaticHauler(bool flag);
+  void DriveCmdVelHauler(double vx, double vy, double wz, double time);
 
 };

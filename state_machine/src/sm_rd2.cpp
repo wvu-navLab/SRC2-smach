@@ -19,6 +19,7 @@ move_base_state_(actionlib::SimpleClientGoalState::LOST)
   localization_sub  = nh.subscribe("/excavator_1/localization/odometry/sensor_fusion", 1, &SmRd2::localizationCallback, this);
   driving_mode_sub =nh.subscribe("/excavator_1/driving/driving_mode",1, &SmRd2::drivingModeCallback, this);
 
+
   // Clients
   clt_wp_gen_ = nh.serviceClient<waypoint_gen::GenerateWaypoint>("/excavator_1/navigation/generate_goal");
   clt_wp_start_ = nh.serviceClient<waypoint_gen::StartWaypoint>("/excavator_1/navigation/start");
@@ -39,8 +40,41 @@ move_base_state_(actionlib::SimpleClientGoalState::LOST)
   clt_srcp2_brake_rover_= nh.serviceClient<srcp2_msgs::BrakeRoverSrv>("/excavator_1/brake_rover");
   // this is a comment
 
-
   driving_mode_=0;
+
+  //HAULER
+  //Publishers
+  cmd_vel_pub = nh.advertise<geometry_msgs::Twist>("/hauler_1/driving/cmd_vel", 1);
+
+  //Subscribers
+  localized_base_sub_hauler_ = nh.subscribe("/state_machine/localized_base_hauler", 1, &SmRd2::localizedBaseCallbackHauler, this);
+  mobility_sub_hauler_ = nh.subscribe("/state_machine/mobility_hauler", 10, &SmRd2::mobilityCallbackHauler, this);
+  waypoint_unreachable_sub_hauler_ = nh.subscribe("/state_machine/waypoint_unreachable", 1, &SmRd2::waypointUnreachableCallbackHauler, this);
+  arrived_at_waypoint_sub_hauler_ = nh.subscribe("/state_machine/arrived_at_waypoint", 1, &SmRd2::arrivedAtWaypointCallbackHauler, this);
+  localization_failure_sub_hauler_ = nh.subscribe("/state_machine/localization_failure", 1, &SmRd2::localizationFailureCallbackHauler, this);
+  localization_sub_hauler_  = nh.subscribe("/hauler_1/localization/odometry/sensor_fusion", 1, &SmRd2::localizationCallbackHauler, this);
+  driving_mode_sub_hauler_ =nh.subscribe("/hauler_1/driving/driving_mode",1, &SmRd2::drivingModeCallbackHauler, this);
+
+  //Clients
+  clt_wp_gen_hauler_ = nh.serviceClient<waypoint_gen::GenerateWaypoint>("/hauler_1/navigation/generate_goal");
+  clt_wp_start_hauler_ = nh.serviceClient<waypoint_gen::StartWaypoint>("/hauler_1/navigation/start");
+  clt_wp_nav_set_goal_hauler_ = nh.serviceClient<waypoint_nav::SetGoal>("/hauler_1/navigation/set_goal");
+  clt_wp_nav_interrupt_hauler_ = nh.serviceClient<waypoint_nav::Interrupt>("/hauler_1/navigation/interrupt");
+  clt_stop_hauler_ = nh.serviceClient<driving_tools::Stop>("/hauler_1/driving/stop");
+  clt_rip_hauler_ = nh.serviceClient<driving_tools::RotateInPlace>("/hauler_1/driving/rotate_in_place");
+  clt_drive_hauler_ = nh.serviceClient<driving_tools::MoveForward>("/hauler_1/driving/move_forward");
+  clt_vol_report_hauler_ = nh.serviceClient<volatile_handler::VolatileReport>("/hauler_1/volatile/report");
+  clt_vol_detect_hauler_ = nh.serviceClient<volatile_handler::ToggleDetector>("/hauler_1/volatile/toggle_detector");
+  clt_lights_hauler_ = nh.serviceClient<srcp2_msgs::ToggleLightSrv>("/hauler_1/toggle_light");
+  clt_brake_hauler_ = nh.serviceClient<srcp2_msgs::BrakeRoverSrv>("/hauler_1/brake_rover");
+  clt_approach_base_hauler_ = nh.serviceClient<src2_object_detection::ApproachBaseStation>("/hauler_1/approach_base_station");
+  clt_rover_static_hauler_ = nh.serviceClient<sensor_fusion::RoverStatic>("/hauler_1/sensor_fusion/toggle_rover_static");
+  clt_homing_hauler_ = nh.serviceClient<sensor_fusion::HomingUpdate>("/hauler_1/homing");
+  clt_sf_true_pose_hauler_ = nh.serviceClient<sensor_fusion::GetTruePose>("/hauler_1/true_pose");
+  clt_waypoint_checker_hauler_ = nh.serviceClient<waypoint_checker::CheckCollision>("/hauler_1/waypoint_checker");
+  clt_srcp2_brake_rover_hauler_= nh.serviceClient<srcp2_msgs::BrakeRoverSrv>("/hauler_1/brake_rover");
+
+  driving_mode_hauler_=0;
   need_to_initialize_landmark=true;
 
   detection_timer = ros::Time::now();
@@ -1054,3 +1088,722 @@ void SmRd2::RoverStatic(bool flag)
 }
 
 //------------------------------------------------------------------------------------------------------------------------
+// HAULER
+//------------------------------------------------------------------------------------------------------------------------
+
+// Callbacks +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+void SmRd2::localizedBaseCallbackHauler(const std_msgs::Int64::ConstPtr& msg)
+{
+  flag_localized_base_hauler_ = msg->data;
+  if (flag_localized_base_hauler_) {
+    ROS_WARN_ONCE("Initial Localization Successful = %i",flag_localized_base);
+
+  }
+  else {
+    ROS_INFO("Waiting for Initial Localization  = %i",flag_localized_base);
+  }
+}
+
+void SmRd2::mobilityCallbackHauler(const std_msgs::Int64::ConstPtr& msg)
+{
+  flag_mobility_hauler_ = msg->data;
+  if (flag_mobility_hauler_) {
+    ROS_WARN_ONCE("Rover is traversing = %i",flag_mobility_hauler_);
+  }
+  else {
+    ROS_ERROR("ROVER IMMOBILIZATION!  = %i",flag_mobilityv);
+    immobilityRecoveryHauler();
+  }
+}
+
+void SmRd2::waypointUnreachableCallbackHauler(const std_msgs::Bool::ConstPtr& msg)
+{
+  flag_waypoint_unreachable_hauler_ = msg->data;
+}
+
+void SmRd2::arrivedAtWaypointCallbackHauler(const std_msgs::Bool::ConstPtr& msg)
+{
+  flag_arrived_at_waypoint_hauler_ = msg->data;
+}
+
+void SmRd2::localizationFailureCallbackHauler(const std_msgs::Bool::ConstPtr& msg)
+{
+  flag_localization_failure_hauler_ = msg->data;
+}
+void SmRd2::drivingModeCallbackHauler(const std_msgs::Int64::ConstPtr& msg){
+  driving_mode_hauler_=msg->data;
+}
+void SmRd2::localizationCallbackHauler(const nav_msgs::Odometry::ConstPtr& msg)
+{
+  current_pose_hauler_ = msg->pose.pose;
+
+  yaw_prev_hauler_ = yaw_hauler_;
+  tf2::Quaternion q(msg->pose.pose.orientation.x,
+                      msg->pose.pose.orientation.y,
+                      msg->pose.pose.orientation.z,
+                      msg->pose.pose.orientation.w);
+
+  tf2::Matrix3x3(q).getRPY(roll_hauler_, pitch_hauler_, yaw_hauler_);
+
+}
+
+
+void SmRd2::setPoseGoalHauler(move_base_msgs::MoveBaseGoal &poseGoal, double x, double y, double yaw) // m, m, rad
+{
+    const double pitch = 0.0;
+    const double roll = 0.0;
+    double cy = cos(yaw * 0.5);
+    double sy = sin(yaw * 0.5);
+    double cr = cos(roll * 0.5);
+    double sr = sin(roll * 0.5);
+    double cp = cos(pitch * 0.5);
+    double sp = sin(pitch * 0.5);
+
+    poseGoal.target_pose.header.frame_id = "hauler_1_tf/odom";
+    poseGoal.target_pose.pose.position.x = x;
+    poseGoal.target_pose.pose.position.y = y;
+    poseGoal.target_pose.pose.position.z = 0.0;
+    poseGoal.target_pose.pose.orientation.w = cy * cr * cp + sy * sr * sp;
+    poseGoal.target_pose.pose.orientation.x = cy * sr * cp - sy * cr * sp;
+    poseGoal.target_pose.pose.orientation.y = cy * cr * sp + sy * sr * cp;
+    poseGoal.target_pose.pose.orientation.z = sy * cr * cp - cy * sr * sp;
+}
+
+void SmRd2::doneCallbackHauler(const actionlib::SimpleClientGoalState& state, const move_base_msgs::MoveBaseResult::ConstPtr& result)
+{
+    actionDone_hauler_ = true;
+    // ROS_INFO("Goal done");
+}
+void SmRd2::activeCallbackHauler()
+{
+    // ROS_INFO("Goal went active");
+}
+void SmRd2::feedbackCallbackHauler(const move_base_msgs::MoveBaseFeedback::ConstPtr& feedback)
+{
+    ROS_INFO("Got feedback");
+}
+
+void SmRd2::RotateToHeadingHauler(double desired_yaw)
+{
+  ros::Rate raterotateToHeading(20);
+
+  ROS_INFO("Starting yaw control.");
+
+  double yaw_thres = 0.1;
+
+  ros::spinOnce();
+
+  double yaw_error = desired_yaw - yaw_hauler_;
+  if (fabs(yaw_error) > M_PI)
+  {
+    if(yaw_error > 0)
+    {
+      yaw_error = yaw_error - 2*M_PI;
+    }
+    else
+    {
+      yaw_error = yaw_error + 2*M_PI;
+    }
+  }
+  flag_heading_fail=false;
+  ros::Time start_time = ros::Time::now();
+  ros::Duration timeoutHeading(10.0); // Timeout of 20 seconds
+
+  while(fabs(yaw_error) > yaw_thres)
+  {
+    RotateInPlaceHauler(copysign(0.1*(1 + fabs(yaw_error)/M_PI), -yaw_error),0.0);
+
+    raterotateToHeading.sleep();
+    ros::spinOnce();
+
+    yaw_error = desired_yaw - yaw_hauler_;
+    if (fabs(yaw_error) > M_PI)
+    {
+      if(yaw_error > 0)
+      {
+        yaw_error = yaw_error - 2*M_PI;
+      }
+      else
+      {
+        yaw_error = yaw_error + 2*M_PI;
+      }
+    }
+    // ROS_INFO_STREAM("Trying to control yaw to desired angles. Yaw error: "<<yaw_error);
+
+    // ROS_ERROR_STREAM("TIME: "<<ros::Time::now() - start_time << ", TIMEOUT: " << timeoutHeading);
+
+    if (ros::Time::now() - start_time > timeoutHeading)
+    {
+      ROS_ERROR("Yaw Control Failed. Possibly stuck. Break control.");
+      flag_heading_fail_hauler_ = true;
+      break;
+    }
+  }
+
+  if (flag_heading_fail_hauler_)
+  {
+    ROS_WARN("Recovery action initiated in yaw control.");
+
+     StopHauler(2.0);
+
+     DriveHauler (-0.3, 4.0);
+
+  //  immobilityRecovery(); //TODO: Use this instead of Stop and Drive at line 714 and 716
+
+    flag_heading_fail_hauler_=false;
+  }
+  else
+  {
+    StopHauler(0.0);
+  }
+}
+
+void SmRd2::homingRecoveryHauler()
+{
+
+  ac_hauler_.waitForServer();
+  ac_hauler_.cancelGoal();
+  ac_hauler_.waitForResult(ros::Duration(0.25));
+
+  ROS_WARN("Starting Homing Recovery.");
+
+  StopHauler(2.0);
+
+  BrakeHauler(100.0);
+
+  BrakeHauler(0.0);
+
+  DriveHauler(-0.3, 4.0);
+
+  StopHauler(0.0);
+
+  RotateInPlaceHauler(.5,2.0);
+
+  StopHauler(0.0);
+
+  DriveHauler(0.3, 4.0);
+
+  BrakeHauler(100.0);
+
+  BrakeHauler(0.0);
+
+
+
+}
+
+void SmRd2::immobilityRecoveryHauler()
+{
+
+  ac_hauler_.waitForServer();
+  ac_hauler_.cancelGoal();
+  ac_hauler_.waitForResult(ros::Duration(0.25));
+
+  ROS_WARN("Starting Recovery.");
+
+  StopHauler(2.0);
+
+  BrakeHauler(100.0);
+
+  BrakeHauler(0.0);
+
+  DriveHauler(-0.3, 4.0);
+
+  StopHauler(0.0);
+
+  BrakeHauler(100.0);
+
+  BrakeHauler(0.0);
+
+  flag_waypoint_unreachable_hauler_=true;
+
+
+
+}
+
+void SmRd2::ClearCostmapsHauler()
+{
+  // Clear the costmap
+  std_srvs::Empty emptymsg;
+  ros::service::waitForService("/hauler_1/move_base/clear_costmaps",ros::Duration(3.0));
+  if (ros::service::call("/hauler_1/move_base/clear_costmaps",emptymsg))
+  {
+     ROS_INFO("HAULER: Called service to clear costmap layers.");
+  }
+  else
+  {
+     ROS_ERROR("HAULER: Failed calling clear_costmaps service.");
+  }
+}
+
+void SmRd2::LightsHauler(std::string intensity)
+{
+  // Turn on the Lights
+  srcp2_msgs::ToggleLightSrv srv_lights;
+  srv_lights.request.data  = intensity;
+  if (clt_lights_hauler_.call(srv_lights))
+  {
+    ROS_INFO("HAULER: Called service ToggleLight");
+  }
+  else
+  {
+    ROS_ERROR("HAULER: Failed  to call service ToggleLight");
+  }
+}
+
+void SmRd2::RotateInPlaceHauler(double throttle, double time)
+{
+  driving_tools::RotateInPlace srv_turn;
+  srv_turn.request.throttle  = throttle;
+  if (clt_rip_hauler_.call(srv_turn))
+  {
+    ROS_INFO("HAULER: Called service RotateInPlace");
+    ros::Duration(time).sleep();
+  }
+  else
+  {
+    ROS_INFO("HAULER: Failed to call service RotateInPlace");
+  }
+}
+
+void SmRd2::StopHauler(double time)
+{
+  driving_tools::Stop srv_stop;
+  srv_stop.request.enableStop  = true;
+  if (clt_stop_hauler_.call(srv_stop))
+  {
+    ROS_INFO("HAULER: Called service Stop");
+    ros::Duration(time).sleep();
+  }
+  else
+  {
+    ROS_ERROR("HAULER: Failed  to call service Stop");
+  }
+}
+
+void SmRd2::BrakeHauler(double intensity)
+{
+  srcp2_msgs::BrakeRoverSrv srv_brake;
+  srv_brake.request.brake_force  = intensity;
+  if (clt_srcp2_brake_rover_hauler_.call(srv_brake))
+  {
+    if (intensity < 0.01)
+    {
+      flag_brake_engaged_hauler_ =false;
+    }
+    else
+    {
+      flag_brake_engaged_hauler_ =true;
+    }
+    ROS_INFO_STREAM("HAULER: Called service SRCP2 Brake. Engaged?" << flag_brake_engaged_hauler_);
+  }
+  else
+  {
+      ROS_ERROR("HAULER: Failed  to call service Brake");
+  }
+}
+
+void SmRd2::DriveHauler(double throttle, double time)
+{
+  driving_tools::MoveForward srv_drive;
+  srv_drive.request.throttle = throttle;
+  if (clt_drive_hauler_.call(srv_drive))
+  {
+    ROS_INFO("HAULER: Called service Drive");
+    ros::Duration(time).sleep();
+  }
+  else
+  {
+    ROS_ERROR("HAULER: Failed  to call service Drive");
+  }
+}
+
+
+void SmRd2::DriveCmdVelHauler(double vx, double vy, double wz, double time)
+{
+  geometry_msgs::Twist cmd_vel;
+  cmd_vel.linear.x = vx;
+  cmd_vel.linear.y = vy;
+  cmd_vel.angular.z = wz;
+  ros::Time start_time = ros::Time::now();
+  ros::Duration timeout(time); // Timeout of 20 seconds
+  ROS_ERROR("Drive Cmd Vel publisher.");
+  while (ros::Time::now() - start_time < timeout)
+  {
+    cmd_vel_pub_hauler_.publish(cmd_vel);
+  }
+}
+
+void SmRd2::RoverStaticHauler(bool flag)
+{
+  // Start attitude constraints for static rover
+  sensor_fusion::RoverStatic srv_rover_static;
+  srv_rover_static.request.rover_static  = flag;
+  if (clt_rover_static_hauler_.call(srv_rover_static))
+  {
+    ROS_INFO_STREAM("HAULER: Called service RoverStatic. Turned on?" << flag);
+  }
+  else
+  {
+    ROS_ERROR("HAULER: Failed to call service RoverStatic");
+  }
+
+}void SmRd2::localizedBaseCallbackHauler(const std_msgs::Int64::ConstPtr& msg)
+{
+  flag_localized_base_hauler_ = msg->data;
+  if (flag_localized_base_hauler_) {
+    ROS_WARN_ONCE("HAULER: Initial Localization Successful = %i",flag_localized_base);
+
+  }
+  else {
+    ROS_INFO("HAULER: Waiting for Initial Localization  = %i",flag_localized_base);
+  }
+}
+
+void SmRd2::mobilityCallbackHauler(const std_msgs::Int64::ConstPtr& msg)
+{
+  flag_mobility_hauler_ = msg->data;
+  if (flag_mobility_hauler_) {
+    ROS_WARN_ONCE("HAULER: Rover is traversing = %i",flag_mobility_hauler_);
+  }
+  else {
+    ROS_ERROR("HAULER: ROVER IMMOBILIZATION!  = %i",flag_mobilityv);
+    immobilityRecoveryHauler();
+  }
+}
+
+void SmRd2::waypointUnreachableCallbackHauler(const std_msgs::Bool::ConstPtr& msg)
+{
+  flag_waypoint_unreachable_hauler_ = msg->data;
+}
+
+void SmRd2::arrivedAtWaypointCallbackHauler(const std_msgs::Bool::ConstPtr& msg)
+{
+  flag_arrived_at_waypoint_hauler_ = msg->data;
+}
+
+void SmRd2::localizationFailureCallbackHauler(const std_msgs::Bool::ConstPtr& msg)
+{
+  flag_localization_failure_hauler_ = msg->data;
+}
+void SmRd2::drivingModeCallbackHauler(const std_msgs::Int64::ConstPtr& msg){
+  driving_mode_hauler_=msg->data;
+}
+void SmRd2::localizationCallbackHauler(const nav_msgs::Odometry::ConstPtr& msg)
+{
+  current_pose_hauler_ = msg->pose.pose;
+
+  yaw_prev_hauler_ = yaw_hauler_;
+  tf2::Quaternion q(msg->pose.pose.orientation.x,
+                      msg->pose.pose.orientation.y,
+                      msg->pose.pose.orientation.z,
+                      msg->pose.pose.orientation.w);
+
+  tf2::Matrix3x3(q).getRPY(roll_hauler_, pitch_hauler_, yaw_hauler_);
+
+}
+
+
+void SmRd2::setPoseGoalHauler(move_base_msgs::MoveBaseGoal &poseGoal, double x, double y, double yaw) // m, m, rad
+{
+    const double pitch = 0.0;
+    const double roll = 0.0;
+    double cy = cos(yaw * 0.5);
+    double sy = sin(yaw * 0.5);
+    double cr = cos(roll * 0.5);
+    double sr = sin(roll * 0.5);
+    double cp = cos(pitch * 0.5);
+    double sp = sin(pitch * 0.5);
+
+    poseGoal.target_pose.header.frame_id = "hauler_1_tf/odom";
+    poseGoal.target_pose.pose.position.x = x;
+    poseGoal.target_pose.pose.position.y = y;
+    poseGoal.target_pose.pose.position.z = 0.0;
+    poseGoal.target_pose.pose.orientation.w = cy * cr * cp + sy * sr * sp;
+    poseGoal.target_pose.pose.orientation.x = cy * sr * cp - sy * cr * sp;
+    poseGoal.target_pose.pose.orientation.y = cy * cr * sp + sy * sr * cp;
+    poseGoal.target_pose.pose.orientation.z = sy * cr * cp - cy * sr * sp;
+}
+
+void SmRd2::doneCallbackHauler(const actionlib::SimpleClientGoalState& state, const move_base_msgs::MoveBaseResult::ConstPtr& result)
+{
+    actionDone_hauler_ = true;
+    // ROS_INFO("Goal done");
+}
+void SmRd2::activeCallbackHauler()
+{
+    // ROS_INFO("Goal went active");
+}
+void SmRd2::feedbackCallbackHauler(const move_base_msgs::MoveBaseFeedback::ConstPtr& feedback)
+{
+    ROS_INFO("HAULER: Got feedback");
+}
+
+void SmRd2::RotateToHeadingHauler(double desired_yaw)
+{
+  ros::Rate raterotateToHeading(20);
+
+  ROS_INFO("HAULER: Starting yaw control.");
+
+  double yaw_thres = 0.1;
+
+  ros::spinOnce();
+
+  double yaw_error = desired_yaw - yaw_hauler_;
+  if (fabs(yaw_error) > M_PI)
+  {
+    if(yaw_error > 0)
+    {
+      yaw_error = yaw_error - 2*M_PI;
+    }
+    else
+    {
+      yaw_error = yaw_error + 2*M_PI;
+    }
+  }
+  flag_heading_fail=false;
+  ros::Time start_time = ros::Time::now();
+  ros::Duration timeoutHeading(10.0); // Timeout of 20 seconds
+
+  while(fabs(yaw_error) > yaw_thres)
+  {
+    RotateInPlaceHauler(copysign(0.1*(1 + fabs(yaw_error)/M_PI), -yaw_error),0.0);
+
+    raterotateToHeading.sleep();
+    ros::spinOnce();
+
+    yaw_error = desired_yaw - yaw_hauler_;
+    if (fabs(yaw_error) > M_PI)
+    {
+      if(yaw_error > 0)
+      {
+        yaw_error = yaw_error - 2*M_PI;
+      }
+      else
+      {
+        yaw_error = yaw_error + 2*M_PI;
+      }
+    }
+    // ROS_INFO_STREAM("Trying to control yaw to desired angles. Yaw error: "<<yaw_error);
+
+    // ROS_ERROR_STREAM("TIME: "<<ros::Time::now() - start_time << ", TIMEOUT: " << timeoutHeading);
+
+    if (ros::Time::now() - start_time > timeoutHeading)
+    {
+      ROS_ERROR("HAULER: Yaw Control Failed. Possibly stuck. Break control.");
+      flag_heading_fail_hauler_ = true;
+      break;
+    }
+  }
+
+  if (flag_heading_fail_hauler_)
+  {
+    ROS_WARN("HAULER: Recovery action initiated in yaw control.");
+
+     StopHauler(2.0);
+
+     DriveHauler (-0.3, 4.0);
+
+  //  immobilityRecovery(); //TODO: Use this instead of Stop and Drive at line 714 and 716
+
+    flag_heading_fail_hauler_=false;
+  }
+  else
+  {
+    StopHauler(0.0);
+  }
+}
+
+void SmRd2::homingRecoveryHauler()
+{
+
+  ac_hauler_.waitForServer();
+  ac_hauler_.cancelGoal();
+  ac_hauler_.waitForResult(ros::Duration(0.25));
+
+  ROS_WARN("HAULER: Starting Homing Recovery.");
+
+  StopHauler(2.0);
+
+  BrakeHauler(100.0);
+
+  BrakeHauler(0.0);
+
+  DriveHauler(-0.3, 4.0);
+
+  StopHauler(0.0);
+
+  RotateInPlaceHauler(.5,2.0);
+
+  StopHauler(0.0);
+
+  DriveHauler(0.3, 4.0);
+
+  BrakeHauler(100.0);
+
+  BrakeHauler(0.0);
+
+
+
+}
+
+void SmRd2::immobilityRecoveryHauler()
+{
+
+  ac_hauler_.waitForServer();
+  ac_hauler_.cancelGoal();
+  ac_hauler_.waitForResult(ros::Duration(0.25));
+
+  ROS_WARN("HAULER: Starting Recovery.");
+
+  StopHauler(2.0);
+
+  BrakeHauler(100.0);
+
+  BrakeHauler(0.0);
+
+  DriveHauler(-0.3, 4.0);
+
+  StopHauler(0.0);
+
+  BrakeHauler(100.0);
+
+  BrakeHauler(0.0);
+
+  flag_waypoint_unreachable_hauler_=true;
+
+
+
+}
+
+void SmRd2::ClearCostmapsHauler()
+{
+  // Clear the costmap
+  std_srvs::Empty emptymsg;
+  ros::service::waitForService("/hauler_1/move_base/clear_costmaps",ros::Duration(3.0));
+  if (ros::service::call("/hauler_1/move_base/clear_costmaps",emptymsg))
+  {
+     ROS_INFO("HAULER: Called service to clear costmap layers.");
+  }
+  else
+  {
+     ROS_ERROR("HAULER: Failed calling clear_costmaps service.");
+  }
+}
+
+void SmRd2::LightsHauler(std::string intensity)
+{
+  // Turn on the Lights
+  srcp2_msgs::ToggleLightSrv srv_lights;
+  srv_lights.request.data  = intensity;
+  if (clt_lights_hauler_.call(srv_lights))
+  {
+    ROS_INFO("HAULER: Called service ToggleLight");
+  }
+  else
+  {
+    ROS_ERROR("HAULER: Failed  to call service ToggleLight");
+  }
+}
+
+void SmRd2::RotateInPlaceHauler(double throttle, double time)
+{
+  driving_tools::RotateInPlace srv_turn;
+  srv_turn.request.throttle  = throttle;
+  if (clt_rip_hauler_.call(srv_turn))
+  {
+    ROS_INFO("HAULER: Called service RotateInPlace");
+    ros::Duration(time).sleep();
+  }
+  else
+  {
+    ROS_INFO("HAULER: Failed to call service RotateInPlace");
+  }
+}
+
+void SmRd2::StopHauler(double time)
+{
+  driving_tools::Stop srv_stop;
+  srv_stop.request.enableStop  = true;
+  if (clt_stop_hauler_.call(srv_stop))
+  {
+    ROS_INFO("HAULER: Called service Stop");
+    ros::Duration(time).sleep();
+  }
+  else
+  {
+    ROS_ERROR("HAULER: Failed  to call service Stop");
+  }
+}
+
+void SmRd2::BrakeHauler(double intensity)
+{
+  srcp2_msgs::BrakeRoverSrv srv_brake;
+  srv_brake.request.brake_force  = intensity;
+  if (clt_srcp2_brake_rover_hauler_.call(srv_brake))
+  {
+    if (intensity < 0.01)
+    {
+      flag_brake_engaged_hauler_ =false;
+    }
+    else
+    {
+      flag_brake_engaged_hauler_ =true;
+    }
+    ROS_INFO_STREAM("HAULER: Called service SRCP2 Brake. Engaged?" << flag_brake_engaged_hauler_);
+  }
+  else
+  {
+      ROS_ERROR("HAULER: Failed  to call service Brake");
+  }
+}
+
+void SmRd2::DriveHauler(double throttle, double time)
+{
+  driving_tools::MoveForward srv_drive;
+  srv_drive.request.throttle = throttle;
+  if (clt_drive_hauler_.call(srv_drive))
+  {
+    ROS_INFO("HAULER: Called service Drive");
+    ros::Duration(time).sleep();
+  }
+  else
+  {
+    ROS_ERROR("HAULER: Failed  to call service Drive");
+  }
+}
+
+
+void SmRd2::DriveCmdVelHauler(double vx, double vy, double wz, double time)
+{
+  geometry_msgs::Twist cmd_vel;
+  cmd_vel.linear.x = vx;
+  cmd_vel.linear.y = vy;
+  cmd_vel.angular.z = wz;
+  ros::Time start_time = ros::Time::now();
+  ros::Duration timeout(time); // Timeout of 20 seconds
+  ROS_ERROR("HAULER: Drive Cmd Vel publisher.");
+  while (ros::Time::now() - start_time < timeout)
+  {
+    cmd_vel_pub_hauler_.publish(cmd_vel);
+  }
+}
+
+void SmRd2::RoverStaticHauler(bool flag)
+{
+  // Start attitude constraints for static rover
+  sensor_fusion::RoverStatic srv_rover_static;
+  srv_rover_static.request.rover_static  = flag;
+  if (clt_rover_static_hauler_.call(srv_rover_static))
+  {
+    ROS_INFO_STREAM("HAULER: Called service RoverStatic. Turned on?" << flag);
+  }
+  else
+  {
+    ROS_ERROR("HAULER: Failed to call service RoverStatic");
+  }
+
+}
+
+//------------------------------------------------------------------------------------------------------------------------
+
+
