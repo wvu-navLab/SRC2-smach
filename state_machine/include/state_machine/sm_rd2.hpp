@@ -32,6 +32,7 @@
 #include <waypoint_checker/CheckCollision.h>
 #include <boost/bind.hpp>
 #include <srcp2_msgs/BrakeRoverSrv.h>
+#include <move_excavator/ExcavationStatus.h>
 
 typedef actionlib::SimpleActionClient<move_base_msgs::MoveBaseAction> MoveBaseClient;
 
@@ -59,6 +60,7 @@ public:
   bool flag_completed_homing_excavator_ = false;
   bool flag_heading_fail_excavator_=false;
   bool need_to_initialize_landmark_excavator_=true;
+  bool flag_volatile_dug_excavator_ = false;
 
   int flag_localized_base_hauler_ = 0;
   int flag_mobility_hauler_ = 1;
@@ -82,6 +84,8 @@ public:
   geometry_msgs::Point base_location_;
   double waypoint_type_excavator_;
   int driving_mode_excavator_;
+  bool excavation_finished_excavator_;
+  double collected_mass_excavator_;
 
   int timer_counter_hauler_ = 0;
   double pitch_hauler_ = 0, roll_hauler_ = 0, yaw_hauler_ = 0, yaw_prev_hauler_ = 0;
@@ -98,6 +102,9 @@ public:
   // ROS objects
   ros::NodeHandle nh;
   ros::Publisher sm_state_pub_, cmd_vel_pub_excavator_;
+  ros::Publisher manip_state_pub_excavator_;
+  ros::Publisher manip_volatile_pose_pub_excavator_;
+
   ros::Subscriber localized_base_sub_excavator_;
   ros::Subscriber waypoint_unreachable_sub_excavator_;
   ros::Subscriber arrived_at_waypoint_sub_excavator_;
@@ -107,6 +114,8 @@ public:
   ros::Subscriber localization_sub_excavator_;
   ros::Subscriber driving_mode_sub_excavator_;
   ros::Subscriber mobility_sub_excavator_;
+  ros::Subscriber manip_feedback_sub_excavator_;
+
   ros::ServiceClient clt_sf_true_pose_excavator_;
   ros::ServiceClient clt_wp_gen_excavator_;
   ros::ServiceClient clt_wp_start_excavator_;
@@ -181,6 +190,7 @@ public:
   void drivingModeCallbackExcavator(const std_msgs::Int64::ConstPtr& msg);
   void immobilityRecoveryExcavator();
   void homingRecoveryExcavator();
+  void manipulationFeedbackCallbackExcavator(const move_excavator::ExcavationStatus::ConstPtr& msg);
 
   void setPoseGoalExcavator(move_base_msgs::MoveBaseGoal& poseGoal, double x, double y, double yaw); // m, m, rad
   void doneCallbackExcavator(const actionlib::SimpleClientGoalState& state, const move_base_msgs::MoveBaseResultConstPtr& result);
@@ -197,6 +207,7 @@ public:
   void BrakeExcavator(double intensity);
   void RoverStaticExcavator(bool flag);
   void DriveCmdVelExcavator(double vx, double vy, double wz, double time);
+  void ManipStateControlExcavator(int state);
 
   // HAULER
   void localizedBaseCallbackHauler(const std_msgs::Int64::ConstPtr& msg);

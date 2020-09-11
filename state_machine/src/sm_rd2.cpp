@@ -10,6 +10,9 @@ move_base_state_hauler_(actionlib::SimpleClientGoalState::LOST)
   // Publishers Excavator
   sm_state_pub_ = nh.advertise<std_msgs::Int64>("/state_machine/state_excavator", 1);
   cmd_vel_pub_excavator_ = nh.advertise<geometry_msgs::Twist>("/excavator_1/driving/cmd_vel", 1);
+  manip_state_pub_excavator_ = nh.advertise<std_msgs::Int64>("/excavator_1/manipulation/state", 10);
+  manip_volatile_pose_pub_excavator_ = nh.advertise<geometry_msgs::Pose>("/excavator_1/manipulation/volatile_pose", 10);
+
   // Subscribers Excavator
   localized_base_sub_excavator_ = nh.subscribe("/state_machine/localized_base_excavator", 1, &SmRd2::localizedBaseCallbackExcavator, this);
   mobility_sub_excavator_ = nh.subscribe("/state_machine/mobility_excavator", 10, &SmRd2::mobilityCallbackExcavator, this);
@@ -18,6 +21,8 @@ move_base_state_hauler_(actionlib::SimpleClientGoalState::LOST)
   localization_failure_sub_excavator_ = nh.subscribe("/state_machine/localization_failure_excavator", 1, &SmRd2::localizationFailureCallbackExcavator, this);
   localization_sub_excavator_  = nh.subscribe("/excavator_1/localization/odometry/sensor_fusion", 1, &SmRd2::localizationCallbackExcavator, this);
   driving_mode_sub_excavator_ =nh.subscribe("/excavator_1/driving/driving_mode",1, &SmRd2::drivingModeCallbackExcavator, this);
+  manip_feedback_sub_excavator_ = nh.subscribe("/excavator_1/manipulation/feedback", 1, &SmRd2::manipulationFeedbackCallbackExcavator, this);
+
   // Clients Excavator
   clt_wp_gen_excavator_ = nh.serviceClient<waypoint_gen::GenerateWaypoint>("/excavator_1/navigation/generate_goal");
   clt_wp_start_excavator_ = nh.serviceClient<waypoint_gen::StartWaypoint>("/excavator_1/navigation/start");
@@ -755,6 +760,16 @@ void SmRd2::feedbackCallbackExcavator(const move_base_msgs::MoveBaseFeedback::Co
     ROS_INFO("Got feedback");
 }
 
+void SmRd2::manipulationFeedbackCallbackExcavator(const move_excavator::ExcavationStatus::ConstPtr& msg)
+{
+  excavation_finished_excavator_ = msg->isFinished;
+  collected_mass_excavator_ = msg->collectedMass;
+  if(excavation_finished_excavator_)
+  {
+    ROS_INFO_STREAM("EXCAVATOR: Let's finish manipulation.");
+    flag_volatile_dug_excavator_ = true;
+  }
+}
 void SmRd2::RotateToHeadingExcavator(double desired_yaw)
 {
   ros::Rate raterotateToHeading(20);
@@ -1019,6 +1034,13 @@ void SmRd2::RoverStaticExcavator(bool flag)
     ROS_ERROR("EXCAVATOR: Failed to call service RoverStatic");
   }
 
+}
+
+void SmRd2::ManipStateControlExcavator(int state)
+{
+  std_msgs::Int64 msg;
+  msg.data = state;
+  manip_state_pub_excavator_.publish(msg);
 }
 
 //------------------------------------------------------------------------------------------------------------------------
