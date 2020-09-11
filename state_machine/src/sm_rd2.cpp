@@ -210,7 +210,7 @@ void SmRd2::stateInitialize()
   // ros::Duration(time).sleep();
 
 
-  // LightsExcavator("0.8");
+  LightsExcavator("0.8");
 
   while (!clt_approach_base_excavator_.waitForExistence())
   {
