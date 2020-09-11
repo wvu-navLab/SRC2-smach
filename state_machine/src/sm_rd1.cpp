@@ -45,6 +45,7 @@ move_base_state_(actionlib::SimpleClientGoalState::LOST)
 
   detection_timer = ros::Time::now();
   not_detected_timer = ros::Time::now();
+  last_time_laser_collision_ = ros::Time::now();
 }
 
 void SmRd1::run()
@@ -741,7 +742,7 @@ void SmRd1::laserCallback(const sensor_msgs::LaserScan::ConstPtr& msg)
 {
   std::vector<float> ranges = msg->ranges;
   std::sort (ranges.begin(), ranges.end());
-  float min_range = 0; 
+  float min_range = 0;
   for (int i = 0; i < LASER_SET_SIZE; ++i)
   {
     min_range = min_range + ranges[i];
@@ -770,7 +771,7 @@ void SmRd1::laserCallback(const sensor_msgs::LaserScan::ConstPtr& msg)
     ROS_ERROR("SCOUT: LASER COUNTER > 20 ! Starting Recovery.");
     immobilityRecovery();
   }
-}  
+}
 
 void SmRd1::setPoseGoal(move_base_msgs::MoveBaseGoal &poseGoal, double x, double y, double yaw) // m, m, rad
 {

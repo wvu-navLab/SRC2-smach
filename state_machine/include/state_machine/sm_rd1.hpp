@@ -65,7 +65,7 @@ public:
   bool need_to_initialize_landmark=true;
 
   ros::Time detection_timer, not_detected_timer;
-  ros::Time last_time_laser_collision_ = ros::Time::now();
+  ros::Time last_time_laser_collision_;
 
   const double VOLATILE_THRESH = 1.0;
   const double TIMER_THRESH = 15;
@@ -83,7 +83,7 @@ public:
   const int LASER_COUNTER_THRESH = 20;
 
   int counter_laser_collision_ = 0;
-  
+
 
   // State vector
   std::vector<int> state_to_exec; // Only one should be true at a time, if multiple are true then a default state should be executed
