@@ -204,8 +204,13 @@ void SmRd2::stateInitialize()
   flag_waypoint_unreachable_excavator_ = false;
 
   // ToggleDetectorExcavator(false);
+  BrakeExcavator(100.0);
+  ManipulationStateControlExcavator(0,5.0);
+  BrakeExcavator(0.0);
+  // ros::Duration(time).sleep();
 
-  LightsExcavator("0.8");
+
+  // LightsExcavator("0.8");
 
   while (!clt_approach_base_excavator_.waitForExistence())
   {
@@ -303,32 +308,6 @@ else{
 
   BrakeExcavator(100.0);
 
-  // Brake(0.0);
-
-  // DriveCmdVel(-0.3, 0.0, 0.0, 5.0);
-
-  // Stop(5.0);
-
-  // Brake(100.0);
-
-  // Brake(0.0);
-  //
-  // DriveCmdVel(0.4, 0.0, 0.0, 5.0);
-  //
-  // Stop(10.0);
-  //
-  // Brake(100.0);
-  //
-  // Brake(0.0);
-
-  // RotateInPlace(0.2, 3.0);
-
-  // Stop(2.0);
-
-  // Brake(100.0);
-
-  // ToggleDetectorExcavator(true);
-
   ClearCostmapsExcavator();
 
   BrakeExcavator(0.0);
@@ -345,9 +324,9 @@ else{
     ROS_ERROR("EXCAVATOR: Failed  to call service Waypoint Start");
   }
 
+  //TODO: Initialize Hauler without using get_true_pose but instead using the relative base_station location after initized with Excavator
 
 
-  // make sure we dont latch to a vol we skipped while homing
   std_msgs::Int64 state_msg;
   state_msg.data = _initialize;
   sm_state_pub_.publish(state_msg);
@@ -1036,11 +1015,18 @@ void SmRd2::RoverStaticExcavator(bool flag)
 
 }
 
-void SmRd2::ManipStateControlExcavator(int state)
+void SmRd2::ManipulationStateControlExcavator(int state, double time)
 {
+
   std_msgs::Int64 msg;
   msg.data = state;
+  ROS_WARN("WTF DUDE");
+  ros::service::waitForService("/excavator_1/manipulation/home_arm",ros::Duration(3.0));
   manip_state_pub_excavator_.publish(msg);
+  ROS_INFO_STREAM("STATE"<<state);
+  ROS_INFO_STREAM("MSG"<<msg);
+  ROS_INFO_STREAM("MSG.DATA"<<msg.data);
+  ros::Duration(time).sleep();
 }
 
 //------------------------------------------------------------------------------------------------------------------------

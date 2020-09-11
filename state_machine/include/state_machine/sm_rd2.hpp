@@ -207,7 +207,7 @@ public:
   void BrakeExcavator(double intensity);
   void RoverStaticExcavator(bool flag);
   void DriveCmdVelExcavator(double vx, double vy, double wz, double time);
-  void ManipStateControlExcavator(int state);
+  void ManipulationStateControlExcavator(int state, double time);
 
   // HAULER
   void localizedBaseCallbackHauler(const std_msgs::Int64::ConstPtr& msg);
