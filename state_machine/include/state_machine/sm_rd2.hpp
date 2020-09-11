@@ -221,11 +221,11 @@ public:
   void RoverStaticExcavator(bool flag);
   void DriveCmdVelExcavator(double vx, double vy, double wz, double time);
   void ManipulationStateControlExcavator(int state, double time);
-  void ExecuteHomeArmExcavator(double heading);
-  void ExecuteDigExcavator(double heading);
-  void ExecuteScoopExcavator(double heading);
-  void ExecuteExtendArmExcavator(double heading);
-  void ExecuteDropExcavator(double heading);
+  void ExecuteHomeArmExcavator(double heading, double time);
+  void ExecuteDigExcavator(double heading, double time);
+  void ExecuteScoopExcavator(double heading, double time);
+  void ExecuteExtendArmExcavator(double heading, double time);
+  void ExecuteDropExcavator(double heading, double time);
 
   // HAULER
   void localizedBaseCallbackHauler(const std_msgs::Int64::ConstPtr& msg);

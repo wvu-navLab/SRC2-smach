@@ -212,7 +212,7 @@ void SmRd2::stateInitialize()
   // ToggleDetectorExcavator(false);
   BrakeExcavator(100.0);
 
-  ExecuteHomeArmExcavator(0.0);
+  ExecuteHomeArmExcavator(0.0, 3.0);
 
   BrakeExcavator(0.0);
   // ros::Duration(time).sleep();
@@ -1037,44 +1037,89 @@ void SmRd2::ManipulationStateControlExcavator(int state, double time)
   ros::Duration(time).sleep();
 }
 
-void SmRd2::ExecuteHomeArmExcavator(double heading)
+void SmRd2::ExecuteHomeArmExcavator(double heading, double time)
 {
   move_excavator::HomeArm srv;
   srv.request.heading = heading;
   srv.request.timeLimit = 100;
-  bool success = clt_home_arm_excavator_.call(srv);
+  // bool success = clt_home_arm_excavator_.call(srv);
+  if (clt_home_arm_excavator_.call(srv))
+  {
+    ROS_INFO("EXCAVATOR: Called service Home Arm");
+    ros::Duration(time).sleep();
+  }
+  else
+  {
+    ROS_ERROR("EXCAVATOR: Failed  to call service Home Arm");
+  }
 }
 
-void SmRd2::ExecuteDigExcavator(double heading)
+void SmRd2::ExecuteDigExcavator(double heading, double time)
 {
   move_excavator::DigVolatile srv;
   srv.request.heading = heading;
   srv.request.timeLimit = 100;
-  bool success = clt_dig_volatile_excavator_.call(srv);
+  // bool success = clt_dig_volatile_excavator_.call(srv);
+  if (clt_dig_volatile_excavator_.call(srv))
+  {
+    ROS_INFO("EXCAVATOR: Called service Dig Volatile");
+    ros::Duration(time).sleep();
+  }
+  else
+  {
+    ROS_ERROR("EXCAVATOR: Failed  to call service Dig Volatile");
+  }
 }
 
-void SmRd2::ExecuteScoopExcavator(double heading)
+void SmRd2::ExecuteScoopExcavator(double heading, double time)
 {
   move_excavator::Scoop srv;
   srv.request.heading = heading;
   srv.request.timeLimit = 100;
-  bool success = clt_scoop_excavator_.call(srv);
+  // bool success = clt_scoop_excavator_.call(srv);
+  if (clt_scoop_excavator_.call(srv))
+  {
+    ROS_INFO("EXCAVATOR: Called service Scoop");
+    ros::Duration(time).sleep();
+  }
+  else
+  {
+    ROS_ERROR("EXCAVATOR: Failed  to call service Scoop");
+  }
 }
 
-void SmRd2::ExecuteExtendArmExcavator(double heading)
+void SmRd2::ExecuteExtendArmExcavator(double heading, double time)
 {
   move_excavator::ExtendArm srv;
   srv.request.heading = heading;
   srv.request.timeLimit = 100;
-  bool success = clt_extend_arm_excavator_.call(srv);
+  // bool success = clt_extend_arm_excavator_.call(srv);
+  if (clt_extend_arm_excavator_.call(srv))
+  {
+    ROS_INFO("EXCAVATOR: Called service Extend Arm");
+    ros::Duration(time).sleep();
+  }
+  else
+  {
+    ROS_ERROR("EXCAVATOR: Failed  to call service Extend Arm");
+  }
 }
 
-void SmRd2::ExecuteDropExcavator(double heading)
+void SmRd2::ExecuteDropExcavator(double heading, double time)
 {
   move_excavator::DropVolatile srv;
   srv.request.heading = heading;
   srv.request.timeLimit = 100;
-  bool success = clt_drop_volatile_excavator_.call(srv);
+  // bool success = clt_drop_volatile_excavator_.call(srv);
+  if (clt_drop_volatile_excavator_.call(srv))
+  {
+    ROS_INFO("EXCAVATOR: Called service Drop Volatile");
+    ros::Duration(time).sleep();
+  }
+  else
+  {
+    ROS_ERROR("EXCAVATOR: Failed  to call service Drop Volatile");
+  }
 }
 
 
