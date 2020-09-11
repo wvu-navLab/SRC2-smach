@@ -1,43 +1,37 @@
 #include <state_machine/sm_rd2.hpp>
 
 SmRd2::SmRd2() :
-ac("/excavator_1/move_base", true),
-move_base_state_(actionlib::SimpleClientGoalState::LOST)
+ac_excavator_("/excavator_1/move_base", true),
+move_base_state_excavator_(actionlib::SimpleClientGoalState::LOST)
 {
   // Initialize ROS, Subs, and Pubs *******************************************
-  // Publishers
-  sm_state_pub = nh.advertise<std_msgs::Int64>("/state_machine/state", 1);
-  cmd_vel_pub = nh.advertise<geometry_msgs::Twist>("/excavator_1/driving/cmd_vel", 1);
-  // Subscribers
-  localized_base_sub = nh.subscribe("/state_machine/localized_base_excavator", 1, &SmRd2::localizedBaseCallback, this);
-  mobility_sub = nh.subscribe("/state_machine/mobility_excavator", 10, &SmRd2::mobilityCallback, this);
-  waypoint_unreachable_sub = nh.subscribe("/state_machine/waypoint_unreachable", 1, &SmRd2::waypointUnreachableCallback, this);
-  arrived_at_waypoint_sub = nh.subscribe("/state_machine/arrived_at_waypoint", 1, &SmRd2::arrivedAtWaypointCallback, this);
-  volatile_detected_sub = nh.subscribe("/state_machine/volatile_detected", 1, &SmRd2::volatileDetectedCallback, this);
-  volatile_recorded_sub = nh.subscribe("/state_machine/volatile_recorded", 1, &SmRd2::volatileRecordedCallback, this);
-  localization_failure_sub = nh.subscribe("/state_machine/localization_failure", 1, &SmRd2::localizationFailureCallback, this);
-  localization_sub  = nh.subscribe("/excavator_1/localization/odometry/sensor_fusion", 1, &SmRd2::localizationCallback, this);
-  driving_mode_sub =nh.subscribe("/excavator_1/driving/driving_mode",1, &SmRd2::drivingModeCallback, this);
-
-  // Clients
-  clt_wp_gen_ = nh.serviceClient<waypoint_gen::GenerateWaypoint>("/excavator_1/navigation/generate_goal");
-  clt_wp_start_ = nh.serviceClient<waypoint_gen::StartWaypoint>("/excavator_1/navigation/start");
-  clt_wp_nav_set_goal_ = nh.serviceClient<waypoint_nav::SetGoal>("/excavator_1/navigation/set_goal");
-  clt_wp_nav_interrupt_ = nh.serviceClient<waypoint_nav::Interrupt>("/excavator_1/navigation/interrupt");
-  clt_stop_ = nh.serviceClient<driving_tools::Stop>("/excavator_1/driving/stop");
-  clt_rip_ = nh.serviceClient<driving_tools::RotateInPlace>("/excavator_1/driving/rotate_in_place");
-  clt_drive_ = nh.serviceClient<driving_tools::MoveForward>("/excavator_1/driving/move_forward");
-  clt_vol_report_ = nh.serviceClient<volatile_handler::VolatileReport>("/excavator_1/volatile/report");
-  clt_vol_detect_ = nh.serviceClient<volatile_handler::ToggleDetector>("/excavator_1/volatile/toggle_detector");
-  clt_lights_ = nh.serviceClient<srcp2_msgs::ToggleLightSrv>("/excavator_1/toggle_light");
-  clt_brake_ = nh.serviceClient<srcp2_msgs::BrakeRoverSrv>("/excavator_1/brake_rover");
-  clt_approach_base_ = nh.serviceClient<src2_object_detection::ApproachBaseStation>("/excavator_1/approach_base_station");
-  clt_rover_static_ = nh.serviceClient<sensor_fusion::RoverStatic>("/excavator_1/sensor_fusion/toggle_rover_static");
-  clt_homing_ = nh.serviceClient<sensor_fusion::HomingUpdate>("/excavator_1/homing");
-  clt_sf_true_pose_ = nh.serviceClient<sensor_fusion::GetTruePose>("/excavator_1/true_pose");
-  clt_waypoint_checker_ = nh.serviceClient<waypoint_checker::CheckCollision>("/excavator_1/waypoint_checker");
-  clt_srcp2_brake_rover_= nh.serviceClient<srcp2_msgs::BrakeRoverSrv>("/excavator_1/brake_rover");
-  // this is a comment
+  // Publishers Excavator
+  sm_state_pub_ = nh.advertise<std_msgs::Int64>("/state_machine/state_excavator", 1);
+  cmd_vel_pub_excavator_ = nh.advertise<geometry_msgs::Twist>("/excavator_1/driving/cmd_vel", 1);
+  // Subscribers Excavator
+  localized_base_sub_excavator_ = nh.subscribe("/state_machine/localized_base_excavator", 1, &SmRd2::localizedBaseCallback, this);
+  mobility_sub_excavator_ = nh.subscribe("/state_machine/mobility_excavator", 10, &SmRd2::mobilityCallback, this);
+  waypoint_unreachable_sub_excavator_ = nh.subscribe("/state_machine/waypoint_unreachable_excavator", 1, &SmRd2::waypointUnreachableCallback, this);
+  arrived_at_waypoint_sub_excavator_ = nh.subscribe("/state_machine/arrived_at_waypoint_excavator", 1, &SmRd2::arrivedAtWaypointCallback, this);
+  localization_failure_sub_excavator_ = nh.subscribe("/state_machine/localization_failure_excavator", 1, &SmRd2::localizationFailureCallback, this);
+  localization_sub_excavator_  = nh.subscribe("/excavator_1/localization/odometry/sensor_fusion", 1, &SmRd2::localizationCallback, this);
+  driving_mode_sub_excavator_ =nh.subscribe("/excavator_1/driving/driving_mode",1, &SmRd2::drivingModeCallback, this);
+  // Clients Excavator
+  clt_wp_gen_excavator_ = nh.serviceClient<waypoint_gen::GenerateWaypoint>("/excavator_1/navigation/generate_goal");
+  clt_wp_start_excavator_ = nh.serviceClient<waypoint_gen::StartWaypoint>("/excavator_1/navigation/start");
+  clt_wp_nav_set_goal_excavator_ = nh.serviceClient<waypoint_nav::SetGoal>("/excavator_1/navigation/set_goal");
+  clt_wp_nav_interrupt_excavator_ = nh.serviceClient<waypoint_nav::Interrupt>("/excavator_1/navigation/interrupt");
+  clt_stop_excavator_ = nh.serviceClient<driving_tools::Stop>("/excavator_1/driving/stop");
+  clt_rip_excavator_ = nh.serviceClient<driving_tools::RotateInPlace>("/excavator_1/driving/rotate_in_place");
+  clt_drive_excavator_ = nh.serviceClient<driving_tools::MoveForward>("/excavator_1/driving/move_forward");
+  clt_lights_excavator_ = nh.serviceClient<srcp2_msgs::ToggleLightSrv>("/excavator_1/toggle_light");
+  clt_brake_excavator_ = nh.serviceClient<srcp2_msgs::BrakeRoverSrv>("/excavator_1/brake_rover");
+  clt_approach_base_excavator_ = nh.serviceClient<src2_object_detection::ApproachBaseStation>("/excavator_1/approach_base_station");
+  clt_rover_static_excavator_ = nh.serviceClient<sensor_fusion::RoverStatic>("/excavator_1/sensor_fusion/toggle_rover_static");
+  clt_homing_excavator_ = nh.serviceClient<sensor_fusion::HomingUpdate>("/excavator_1/homing");
+  clt_sf_true_pose_excavator_ = nh.serviceClient<sensor_fusion::GetTruePose>("/excavator_1/true_pose");
+  clt_waypoint_checker_excavator_ = nh.serviceClient<waypoint_checker::CheckCollision>("/excavator_1/waypoint_checker");
+  clt_srcp2_brake_rover_excavator_= nh.serviceClient<srcp2_msgs::BrakeRoverSrv>("/excavator_1/brake_rover");
 
 
   driving_mode_=0;
@@ -53,31 +47,31 @@ void SmRd2::run()
   while(ros::ok())
   {
     // Debug prints +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-    ROS_INFO("flag_localized_base: %i",flag_localized_base);
-    ROS_INFO("flag_mobility: %i",flag_mobility);
-    ROS_INFO("flag_have_true_pose: %i",flag_have_true_pose);
-    ROS_INFO("flag_waypoint_unreachable: %i",flag_waypoint_unreachable);
-    ROS_INFO("flag_arrived_at_waypoint: %i",flag_arrived_at_waypoint);
-    ROS_INFO("volatile_detected_distance: %f",volatile_detected_distance);
-    ROS_INFO("flag_localizing_volatile: %i",flag_localizing_volatile);
-    ROS_INFO("flag_volatile_recorded: %i",flag_volatile_recorded);
-    ROS_INFO("flag_volatile_unreachable: %i",flag_volatile_unreachable);
-    ROS_INFO("flag_localization_failure: %i",flag_localization_failure);
-    ROS_INFO("flag_brake_engaged: %i",flag_brake_engaged);
-    ROS_INFO("flag_fallthrough_condition: %i",flag_fallthrough_condition);
+    ROS_INFO("flag_localized_base_excavator_: %i",flag_localized_base_excavator_);
+    ROS_INFO("flag_mobility_excavator_: %i",flag_mobility_excavator_);
+    ROS_INFO("flag_have_true_pose_excavator_: %i",flag_have_true_pose_excavator_);
+    ROS_INFO("flag_waypoint_unreachable_excavator_: %i",flag_waypoint_unreachable_excavator_);
+    ROS_INFO("flag_arrived_at_waypoint_excavator_: %i",flag_arrived_at_waypoint_excavator_);
+    ROS_INFO("volatile_detected_distance_excavator_: %f",volatile_detected_distance_excavator_);
+    ROS_INFO("flag_localizing_volatile_excavator_: %i",flag_localizing_volatile_excavator_);
+    ROS_INFO("flag_volatile_recorded_excavator_: %i",flag_volatile_recorded_excavator_);
+    ROS_INFO("flag_volatile_unreachable_excavator_: %i",flag_volatile_unreachable_excavator_);
+    ROS_INFO("flag_localization_failure_excavator_: %i",flag_localization_failure_excavator_);
+    ROS_INFO("flag_brake_engaged_excavator_: %i",flag_brake_engaged_excavator_);
+    ROS_INFO("flag_fallthrough_condition_excavator_: %i",flag_fallthrough_condition_excavator_);
     //---------------------------------------------------------------------------------------------------------------------
 
 
     // Conditional flag logic (Preemptive conditions) +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-    if((volatile_detected_distance>0.0) && !flag_localizing_volatile && !flag_localization_failure && flag_have_true_pose)
+    if((volatile_detected_distance>0.0) && !flag_localizing_volatile_excavator_ && !flag_localization_failure_excavator_ && flag_have_true_pose_excavator_)
     {
-      flag_arrived_at_waypoint = true;
-      flag_waypoint_unreachable = false;
+      flag_arrived_at_waypoint_excavator_ = true;
+      flag_waypoint_unreachable_excavator_ = false;
     }
-    if(flag_localization_failure && !flag_recovering_localization)
+    if(flag_localization_failure_excavator_ && !flag_recovering_localization_excavator_)
     {
-      flag_arrived_at_waypoint = true;
-      flag_waypoint_unreachable = false;
+      flag_arrived_at_waypoint_excavator_ = true;
+      flag_waypoint_unreachable_excavator_ = false;
     }
     //---------------------------------------------------------------------------------------------------------------------
 
@@ -85,32 +79,32 @@ void SmRd2::run()
     // State machine truth table ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     state_to_exec.clear();
     state_to_exec.resize(num_states,0);
-    if(!flag_have_true_pose && (flag_arrived_at_waypoint || flag_waypoint_unreachable))
+    if(!flag_have_true_pose_excavator_ && (flag_arrived_at_waypoint_excavator_ || flag_waypoint_unreachable_excavator_))
     {
       state_to_exec.at(_initialize) = 1;
     }
-    else if((flag_arrived_at_waypoint || flag_waypoint_unreachable) && (flag_localization_failure || flag_recovering_localization))
+    else if((flag_arrived_at_waypoint_excavator_ || flag_waypoint_unreachable_excavator_) && (flag_localization_failure_excavator_ || flag_recovering_localization_excavator_))
     {
       state_to_exec.at(_lost) = 1;
     }
-    else if((flag_arrived_at_waypoint || flag_waypoint_unreachable) && (volatile_detected_distance==-1.0) && !flag_localizing_volatile && !flag_brake_engaged)
+    else if((flag_arrived_at_waypoint_excavator_ || flag_waypoint_unreachable_excavator_) && (volatile_detected_distance_excavator_==-1.0) && !flag_localizing_volatile_excavator_ && !flag_brake_engaged_excavator_)
     {
       state_to_exec.at(_planning) = 1;
     }
-    else if((!flag_arrived_at_waypoint && !flag_waypoint_unreachable) && !flag_brake_engaged)
+    else if((!flag_arrived_at_waypoint_excavator_ && !flag_waypoint_unreachable_excavator_) && !flag_brake_engaged_excavator_)
     {
       state_to_exec.at(_traverse) = 1;
     }
-    else if(((volatile_detected_distance>=0)  || flag_localizing_volatile) && !flag_brake_engaged)
+    else if(!flag_localizing_volatile_excavator_ && !flag_brake_engaged_excavator_)
     {
       state_to_exec.at(_volatile_handler) = 1;
     }
     else
     {
-      flag_arrived_at_waypoint = true;
-      flag_waypoint_unreachable = false;
-      flag_localizing_volatile = false;
-      flag_fallthrough_condition = true;
+      flag_arrived_at_waypoint_excavator_ = true;
+      flag_waypoint_unreachable_excavator_ = false;
+      flag_localizing_volatile_excavator_ = false;
+      flag_fallthrough_condition_ = true;
     }
     //---------------------------------------------------------------------------------------------------------------------
 
@@ -125,7 +119,7 @@ void SmRd2::run()
       }
     }
 
-    if(!flag_fallthrough_condition || state_to_exec_count == 1)
+    if(!flag_fallthrough_condition__ || state_to_exec_count == 1)
     {
       if(state_to_exec.at(_initialize))
       {
@@ -167,14 +161,14 @@ void SmRd2::run()
 void SmRd2::stateInitialize()
 {
   ROS_WARN("Initialization State!\n");
-  flag_arrived_at_waypoint = false;
-  flag_waypoint_unreachable = false;
+  flag_arrived_at_waypoint_excavator_ = false;
+  flag_waypoint_unreachable_excavator_ = false;
 
-  ToggleDetector(false);
+  ToggleDetectorExcavator(false);
 
-  Lights("0.8");
+  LightsExcavatorExcavator("0.8");
 
-  while (!clt_approach_base_.waitForExistence())
+  while (!clt_approach_base_excavator_.waitForExistence())
   {
     ROS_WARN("EXCAVATOR: Waiting for ApproachBaseStation service");
   }
@@ -185,12 +179,12 @@ void SmRd2::stateInitialize()
   bool approachSuccess = false;
   int homingRecoveryCount = 0;
   while(!approachSuccess && homingRecoveryCount<3){
-      if (clt_approach_base_.call(srv_approach_base))
+      if (clt_approach_base_excavator_.call(srv_approach_base))
       {
         ROS_INFO("EXCAVATOR: Called service ApproachBaseStation");
         ROS_INFO_STREAM("Success finding the Base? "<< srv_approach_base.response.success.data);
         if(!srv_approach_base.response.success.data){
-        homingRecovery();
+        homingRecoveryExcavator();
       }
       else
       {
@@ -206,11 +200,11 @@ void SmRd2::stateInitialize()
     homingRecoveryCount=homingRecoveryCount+1;
   }
 
-  Stop(2.0);
+  StopExcavator(2.0);
 
-  Brake(100.0);
+  BrakeExcavator(100.0);
 
-  while (!clt_sf_true_pose_.waitForExistence())
+  while (!clt_sf_true_pose_excavator_ .waitForExistence())
   {
     ROS_ERROR("EXCAVATOR: Waiting for TruePose service");
   }
@@ -218,7 +212,7 @@ void SmRd2::stateInitialize()
   // Update SF with True Pose
   sensor_fusion::GetTruePose srv_sf_true_pose;
   srv_sf_true_pose.request.start = true;
-  if (clt_sf_true_pose_.call(srv_sf_true_pose))
+  if (clt_sf_true_pose_excavator_ .call(srv_sf_true_pose))
   {
     ROS_INFO("EXCAVATOR: Called service TruePose");
     ROS_INFO_STREAM("Status of SF True Pose: "<< srv_sf_true_pose.response.success);
@@ -228,7 +222,7 @@ void SmRd2::stateInitialize()
     ROS_ERROR("EXCAVATOR: Failed  to call service Pose Update");
   }
 
-  RoverStatic(true);
+  RoverStaticExcavator(true);
 
   if(approachSuccess){
   // Homing - Initialize Base Station Landmark
@@ -238,7 +232,7 @@ void SmRd2::stateInitialize()
   srv_homing.request.angle = pitch_ + .4; // pitch up is negative number
   ROS_ERROR("Requesting Angle for LIDAR %f",srv_homing.request.angle);
   srv_homing.request.initializeLandmark = need_to_initialize_landmark;
-  if (clt_homing_.call(srv_homing))
+  if (clt_homing_excavator_.call(srv_homing))
   {
     ROS_INFO("EXCAVATOR: Called service HomingUpdate");
     if(srv_homing.response.success){
@@ -257,18 +251,18 @@ else{
   ROS_ERROR(" Initial Homing Fail, Starting Without Base Location");
 }
 
-  RoverStatic(false);
+  RoverStaticExcavator(false);
 
-  Lights("0.6");
+  LightsExcavator("0.6");
 
-  Brake(0.0);
+  BrakeExcavator(0.0);
 
   // Drive(-0.2, 4.0);
-  DriveCmdVel(-0.3, 0.0, 0.0, 4.0);
+  DriveCmdVelExcavator(-0.3, 0.0, 0.0, 4.0);
   //
-  Stop(5.0);
+  StopExcavator(5.0);
 
-  Brake(100.0);
+  BrakeExcavator(100.0);
 
   // Brake(0.0);
 
@@ -294,16 +288,16 @@ else{
 
   // Brake(100.0);
 
-  ToggleDetector(true);
+  ToggleDetectorExcavator(true);
 
-  ClearCostmaps();
+  ClearCostmapsExcavator();
 
-  Brake(0.0);
+  BrakeExcavator(0.0);
 
   waypoint_gen::StartWaypoint srv_wp_start;
   srv_wp_start.request.start  = true;
 
-  if (clt_wp_start_.call(srv_wp_start))
+  if (clt_wp_start_excavator_.call(srv_wp_start))
   {
     ROS_INFO("Starting Waypoint Gen");
   }
@@ -318,26 +312,26 @@ else{
   volatile_detected_distance = -1.0;
   std_msgs::Int64 state_msg;
   state_msg.data = _initialize;
-  sm_state_pub.publish(state_msg);
+  sm_state_pub_.publish(state_msg);
 }
 
 void SmRd2::statePlanning()
 {
   ROS_INFO("Planning!\n");
-  flag_arrived_at_waypoint = false;
+  flag_arrived_at_waypoint_excavator_ = false;
   if(waypoint_type_==1)
   {
-    flag_waypoint_unreachable=false;
+    flag_waypoint_unreachable_excavator_=false;
   }
 
   ROS_INFO("EXCAVATOR: Canceling MoveBase goal.");
-  ac.waitForServer();
-  ac.cancelGoal();
-  ac.waitForResult(ros::Duration(0.25));
+  ac_excavator_.waitForServer();
+  ac_excavator_.cancelGoal();
+  ac_excavator_.waitForResult(ros::Duration(0.25));
 
-  Stop(1.0);
+  StopExcavator(1.0);
 
-  Brake(100.0);
+  BrakeExcavator(100.0);
 
   // ROS_INFO_STREAM("goal pose: " << goal_pose);
   // Generate Goal
@@ -349,9 +343,9 @@ void SmRd2::statePlanning()
     flag_completed_homing = false;
     srv_wp_gen.request.next  = true;
   }
-  else if(flag_waypoint_unreachable)
+  else if(flag_waypoint_unreachable_excavator_)
   {
-    flag_waypoint_unreachable=false;
+    flag_waypoint_unreachable_excavator_=false;
     srv_wp_gen.request.next  = true;
   }
 
@@ -361,7 +355,7 @@ void SmRd2::statePlanning()
   srv_wp_gen.request.next  = false;
   }
 
-  if (clt_wp_gen_.call(srv_wp_gen))
+  if (clt_wp_gen_excavator_.call(srv_wp_gen))
   {
     ROS_INFO("EXCAVATOR: Called service Generate Waypoint");
     goal_pose_ = srv_wp_gen.response.goal;
@@ -375,11 +369,11 @@ void SmRd2::statePlanning()
 
   goal_yaw_ = atan2(goal_pose_.position.y - current_pose_.position.y, goal_pose_.position.x - current_pose_.position.x);
 
-  Brake (0.0);
+  BrakeExcavator (0.0);
 
-  RotateToHeading(goal_yaw_);
+  RotateToHeadingExcavator(goal_yaw_);
 
-  Brake (100.0);
+  BrakeExcavator (100.0);
 
   // check waypoint
 
@@ -389,7 +383,7 @@ void SmRd2::statePlanning()
   {
     srv_wp_check.request.x  = goal_pose_.position.x;
     srv_wp_check.request.y = goal_pose_.position.y;
-    if (clt_waypoint_checker_.call(srv_wp_check))
+    if (clt_waypoint_checker_excavator_.call(srv_wp_check))
     {
       ROS_INFO("EXCAVATOR: Called service Waypoint Checker");
       is_colliding = srv_wp_check.response.collision;
@@ -398,7 +392,7 @@ void SmRd2::statePlanning()
         ROS_INFO("EXCAVATOR: Waypoint Unreachable. Getting new waypoint");
         srv_wp_gen.request.start  = true;
         srv_wp_gen.request.next  = true;
-        if (clt_wp_gen_.call(srv_wp_gen))
+        if (clt_wp_gen_excavator__.call(srv_wp_gen))
         {
           ROS_INFO("EXCAVATOR: Called service Generate Waypoint");
           goal_pose_ = srv_wp_gen.response.goal;
@@ -406,11 +400,11 @@ void SmRd2::statePlanning()
 
           goal_yaw_ = atan2(goal_pose_.position.y - current_pose_.position.y, goal_pose_.position.x - current_pose_.position.x);
 
-          Brake (0.0);
+          BrakeExcavator (0.0);
 
-          RotateToHeading(goal_yaw_);
+          RotateToHeadingExcavator(goal_yaw_);
 
-          Brake (100.0);
+          BrakeExcavator (100.0);
         }
         else
         {
@@ -424,76 +418,76 @@ void SmRd2::statePlanning()
     }
   }
 
-  ClearCostmaps();
+  ClearCostmapsExcavator();
 
-  Stop (2.0);
+  StopExcavator (2.0);
 
-  Brake (0.0);
+  BrakeExcavator (0.0);
 
   move_base_msgs::MoveBaseGoal move_base_goal;
-  ac.waitForServer();
-  setPoseGoal(move_base_goal, goal_pose_.position.x, goal_pose_.position.y, goal_yaw_);
+  ac_excavator_.waitForServer();
+  setPoseGoalExcavator(move_base_goal, goal_pose_.position.x, goal_pose_.position.y, goal_yaw_);
   ROS_INFO_STREAM("EXCAVATOR: Sending goal to MoveBase: " << move_base_goal);
-  ac.sendGoal(move_base_goal, boost::bind(&SmRd2::doneCallback, this,_1,_2), boost::bind(&SmRd2::activeCallback, this), boost::bind(&SmRd2::feedbackCallback, this,_1));
-  ac.waitForResult(ros::Duration(0.25));
+  ac_excavator_.sendGoal(move_base_goal, boost::bind(&SmRd2::doneCallback, this,_1,_2), boost::bind(&SmRd2::activeCallback, this), boost::bind(&SmRd2::feedbackCallback, this,_1));
+  ac_excavator_.waitForResult(ros::Duration(0.25));
 
   std_msgs::Int64 state_msg;
   state_msg.data = _planning;
-  sm_state_pub.publish(state_msg);
+  sm_state_pub_.publish(state_msg);
 }
 void SmRd2::stateTraverse()
 {
   ROS_WARN("Traverse State\n");
 
-  if(flag_localized_base && !flag_have_true_pose)
+  if(flag_localized_base_excavator_ && !flag_have_true_pose_excavator_)
   {
     ROS_INFO("EXCAVATOR: Localized but don't have true pose.");
-    flag_have_true_pose = true;
-    flag_arrived_at_waypoint = true;
-    flag_waypoint_unreachable = false;
+    flag_have_true_pose_excavator_ = true;
+    flag_arrived_at_waypoint_excavator_ = true;
+    flag_waypoint_unreachable_excavator_ = false;
   }
-  if(flag_volatile_recorded)
+  if(flag_volatile_recorded_excavator_)
   {
     ROS_INFO("EXCAVATOR: Volatile recorded.");
-    volatile_detected_distance = -1.0;
-    flag_localizing_volatile = false;
-    flag_volatile_recorded = false;
-    flag_arrived_at_waypoint = true;
-    flag_waypoint_unreachable = false;
+    volatile_detected_distance_excavator_ = -1.0;
+    flag_localizing_volatile_excavator_ = false;
+    flag_volatile_recorded_excavator_ = false;
+    flag_arrived_at_waypoint_excavator_ = true;
+    flag_waypoint_unreachable_excavator_ = false;
   }
-  if(flag_recovering_localization && !flag_localization_failure)
+  if(flag_recovering_localization_excavator_ && !flag_localization_failure_excavator_)
   {
     ROS_INFO("EXCAVATOR: Recovering localization or failure in localization.");
-    flag_arrived_at_waypoint = true;
-    flag_waypoint_unreachable = false;
-    flag_recovering_localization = false;
+    flag_arrived_at_waypoint_excavator_ = true;
+    flag_waypoint_unreachable_excavator_ = false;
+    flag_recovering_localization_excavator_ = false;
   }
   bool is_colliding = false;
     waypoint_checker::CheckCollision srv_wp_check;
-    if (clt_waypoint_checker_.call(srv_wp_check))
+    if (clt_waypoint_checker_excavator_.call(srv_wp_check))
     {
       ROS_INFO("EXCAVATOR: Called service Waypoint Checker");
       is_colliding = srv_wp_check.response.collision;
       if(is_colliding)
       {
         ROS_INFO("EXCAVATOR: Waypoint Unreachable. Sending to Planning");
-        flag_waypoint_unreachable=true;
+        flag_waypoint_unreachable_excavator_=true;
       }
   }
   double distance_to_goal = std::hypot(goal_pose_.position.y - current_pose_.position.y, goal_pose_.position.x - current_pose_.position.x);
   if (distance_to_goal < 2.0)
   {
     ROS_INFO("EXCAVATOR: Close to goal, getting new waypoint.");
-    flag_arrived_at_waypoint = true;
-    flag_waypoint_unreachable = false;
+    flag_arrived_at_waypoint_excavator_ = true;
+    flag_waypoint_unreachable_excavator_ = false;
     if(waypoint_type_ ==0 )
     {
-    	flag_localization_failure = false;
+    	flag_localization_failure_excavator_ = false;
     }
     else
     {
       ROS_INFO(" Reached a Waypoint Designated for Localization Update Type : %f ",waypoint_type_ );
-      flag_localization_failure = true;
+      flag_localization_failure_excavator_ = true;
       waypoint_type_=0; // just to account for triggered homing update
     }
   }
@@ -505,23 +499,23 @@ void SmRd2::stateTraverse()
   //   //flag_have_true_pose = true;
   // }
 
-  move_base_state_ = ac.getState();
-  int mb_state =(int) move_base_state_.state_;
+  move_base_state_excavator_ = ac_excavator_.getState();
+  int mb_state =(int) move_base_state_excavator_.state_;
   ROS_WARN_STREAM("MoveBase status: "<< mb_state);
 
   if(mb_state==5 || mb_state==7)
   {
     ROS_ERROR("EXCAVATOR: MoveBase has failed to make itself useful.");
-    flag_waypoint_unreachable= true;
+    flag_waypoint_unreachable_excavator_= true;
 
-    Stop (1.0);
+    StopExcavator (1.0);
 
-    ClearCostmaps();
+    ClearCostmapsExcavator();
   }
 
   std_msgs::Int64 state_msg;
   state_msg.data = _traverse;
-  sm_state_pub.publish(state_msg);
+  sm_state_pub_.publish(state_msg);
 
 }
 
@@ -534,19 +528,19 @@ void SmRd2::stateVolatileHandler()
 void SmRd2::stateLost()
 {
   ROS_ERROR("LOST STATE!\n");
-  flag_recovering_localization = false;
+  flag_recovering_localization_excavator_ = false;
 
-  flag_localizing_volatile = false;
-  flag_arrived_at_waypoint = false;
-  flag_waypoint_unreachable = false;
+  flag_localizing_volatile_excavator_ = false;
+  flag_arrived_at_waypoint_excavator_ = false;
+  flag_waypoint_unreachable_excavator_ = false;
 
   ROS_INFO("EXCAVATOR: Canceling MoveBase goal.");
-  ac.waitForServer();
-  ac.cancelGoal();
-  ac.waitForResult(ros::Duration(0.25));
+  ac_excavator_.waitForServer();
+  ac_excavator_.cancelGoal();
+  ac_excavator_.waitForResult(ros::Duration(0.25));
 
 
-  Stop (2.0);
+  StopExcavator (2.0);
 
   // if(pow(pow(base_location_.x - current_pose_.position.x,2)+pow(base_location_.y - current_pose_.position.y,2),.5)>10.0){
   //
@@ -567,7 +561,7 @@ void SmRd2::stateLost()
   // waypoint_type_=1;
   // return;
   // }
-  Lights ("0.8");
+  LightsExcavator ("0.8");
 
 
   // Approach Base Station
@@ -576,12 +570,12 @@ void SmRd2::stateLost()
   bool approachSuccess = false;
   int homingRecoveryCount=0;
   while(!approachSuccess && homingRecoveryCount<3){
-      if (clt_approach_base_.call(srv_approach_base))
+      if (clt_approach_base_excavator_.call(srv_approach_base))
       {
         ROS_INFO("EXCAVATOR: Called service ApproachBaseStation");
         ROS_INFO_STREAM("Success finding the Base? "<< srv_approach_base.response.success.data);
         if(!srv_approach_base.response.success.data){
-        homingRecovery();
+        homingRecoveryExcavator();
       }
       else
       {
@@ -598,27 +592,27 @@ void SmRd2::stateLost()
   }
 
 
-  Brake (100.0);
+  BrakeExcavator (100.0);
   if(approachSuccess){
   // Homing - Measurement Update
   sensor_fusion::HomingUpdate srv_homing;
   ros::spinOnce();
 
-  srv_homing.request.angle = pitch_ + .4; // pitch up is negative number
+  srv_homing.request.angle = pitch_excavator_ + .4; // pitch up is negative number
   ROS_INFO("Requesting Angle for LIDAR %f",srv_homing.request.angle);
   srv_homing.request.initializeLandmark = need_to_initialize_landmark;
-  if (clt_homing_.call(srv_homing))
+  if (clt_homing_excavator_.call(srv_homing))
   {
     ROS_INFO("EXCAVATOR: Called service Homing [Update]");
     if(srv_homing.request.initializeLandmark && srv_homing.response.success){
         base_location_ = srv_homing.response.base_location;
         ROS_WARN("EXCAVATOR: Saving Base Location %f %f",base_location_.x, base_location_.y);
     }
-    flag_localization_failure=false;
-    flag_arrived_at_waypoint = true;
-    flag_completed_homing = true;
+    flag_localization_failure_excavator_=false;
+    flag_arrived_at_waypoint_excavator_ = true;
+    flag_completed_homing_excavator_ = true;
     if(srv_homing.response.success){
-      need_to_initialize_landmark=false;
+      need_to_initialize_landmark_excavator_=false;
     }
   }
   else
@@ -632,113 +626,92 @@ else{
 
 }
 
-  Lights ("0.6");
+  LightsExcavator ("0.6");
 
-  Brake (0.0);
+  BrakeExcavator (0.0);
 
-  Drive (-0.3, 2.0);
+  DriveExcavator (-0.3, 2.0);
 
-  Stop (2.0);
+  StopExcavator (2.0);
 
-  RotateInPlace (0.2, 3.0);
+  RotateInPlaceExcavator (0.2, 3.0);
 
-  Stop (2.0);
+  StopExcavator (2.0);
 
-  ToggleDetector(true);
+  ToggleDetectorExcavator(true);
 
-  ClearCostmaps();
+  ClearCostmapsExcavator();
 
   // make sure we dont latch to a vol we skipped while homing
-  volatile_detected_distance = -1.0;
+  // volatile_detected_distance = -1.0;
 
   //flag_completed_homing = true;
   std_msgs::Int64 state_msg;
   state_msg.data = _lost;
-  sm_state_pub.publish(state_msg);
+  sm_state_pub_.publish(state_msg);
 }
 //------------------------------------------------------------------------------------------------------------------------
 
 
 // Callbacks +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-void SmRd2::localizedBaseCallback(const std_msgs::Int64::ConstPtr& msg)
+void SmRd2::localizedBaseCallbackExcavator(const std_msgs::Int64::ConstPtr& msg)
 {
-  flag_localized_base = msg->data;
-  if (flag_localized_base) {
-    ROS_WARN_ONCE("Initial Localization Successful = %i",flag_localized_base);
+  flag_localized_base_excavator_ = msg->data;
+  if (flag_localized_base_excavator_) {
+    ROS_WARN_ONCE("Initial Localization Successful = %i",flag_localized_base_excavator_);
 
   }
   else {
-    ROS_INFO("Waiting for Initial Localization  = %i",flag_localized_base);
+    ROS_INFO("Waiting for Initial Localization  = %i",flag_localized_base_excavator_);
   }
 }
 
-void SmRd2::mobilityCallback(const std_msgs::Int64::ConstPtr& msg)
+void SmRd2::mobilityCallbackExcavator(const std_msgs::Int64::ConstPtr& msg)
 {
-  flag_mobility = msg->data;
-  if (flag_mobility) {
-    ROS_WARN_ONCE("Rover is traversing = %i",flag_mobility);
+  flag_mobility_excavator_ = msg->data;
+  if (flag_mobility_excavator_) {
+    ROS_WARN_ONCE("Rover is traversing = %i",flag_mobility_excavator_);
   }
   else {
-    ROS_ERROR("ROVER IMMOBILIZATION!  = %i",flag_mobility);
-    immobilityRecovery();
+    ROS_ERROR("ROVER IMMOBILIZATION!  = %i",flag_mobility_excavator_);
+    immobilityRecoveryExcavator();
   }
 }
 
-void SmRd2::waypointUnreachableCallback(const std_msgs::Bool::ConstPtr& msg)
+void SmRd2::waypointUnreachableCallbackExcavator(const std_msgs::Bool::ConstPtr& msg)
 {
-  flag_waypoint_unreachable = msg->data;
+  flag_waypoint_unreachable_excavator_ = msg->data;
 }
 
-void SmRd2::arrivedAtWaypointCallback(const std_msgs::Bool::ConstPtr& msg)
+void SmRd2::arrivedAtWaypointCallbackExcavator(const std_msgs::Bool::ConstPtr& msg)
 {
-  flag_arrived_at_waypoint = msg->data;
+  flag_arrived_at_waypoint_excavator_ = msg->data;
 }
 
-void SmRd2::volatileDetectedCallback(const std_msgs::Float32::ConstPtr& msg)
+
+void SmRd2::localizationFailureCallbackExcavator(const std_msgs::Bool::ConstPtr& msg)
 {
-
-  prev_volatile_detected_distance = volatile_detected_distance;
-  volatile_detected_distance = msg->data;
-
+  flag_localization_failure_excavator_ = msg->data;
 }
-
-void SmRd2::volatileRecordedCallback(const std_msgs::Bool::ConstPtr& msg)
+void SmRd2::drivingModeCallbackExcavator(const std_msgs::Int64::ConstPtr& msg){
+  driving_mode_excavator_=msg->data;
+}
+void SmRd2::localizationCallbackExcavator(const nav_msgs::Odometry::ConstPtr& msg)
 {
-  flag_volatile_recorded = msg->data;
-  ROS_INFO_STREAM("Record: " << flag_volatile_recorded);
-  if (flag_volatile_recorded == true)
-  {
-          volatile_detected_distance = -1.0;
-  }else
-  {
-    not_detected_timer = ros::Time::now();
-    ROS_INFO_STREAM("NAO" << not_detected_timer.toSec());
-  }
-}
+  current_pose_excavator_ = msg->pose.pose;
 
-void SmRd2::localizationFailureCallback(const std_msgs::Bool::ConstPtr& msg)
-{
-  flag_localization_failure = msg->data;
-}
-void SmRd2::drivingModeCallback(const std_msgs::Int64::ConstPtr& msg){
-  driving_mode_=msg->data;
-}
-void SmRd2::localizationCallback(const nav_msgs::Odometry::ConstPtr& msg)
-{
-  current_pose_ = msg->pose.pose;
-
-  yaw_prev_ = yaw_;
+  yaw_prev_ = yaw_excavator_;
   tf2::Quaternion q(msg->pose.pose.orientation.x,
                       msg->pose.pose.orientation.y,
                       msg->pose.pose.orientation.z,
                       msg->pose.pose.orientation.w);
 
-  tf2::Matrix3x3(q).getRPY(roll_, pitch_, yaw_);
+  tf2::Matrix3x3(q).getRPY(roll_excavator_, pitch_excavator_, yaw_excavator_);
 
 }
 
 
-void SmRd2::setPoseGoal(move_base_msgs::MoveBaseGoal &poseGoal, double x, double y, double yaw) // m, m, rad
+void SmRd2::setPoseGoalExcavator(move_base_msgs::MoveBaseGoal &poseGoal, double x, double y, double yaw) // m, m, rad
 {
     const double pitch = 0.0;
     const double roll = 0.0;
@@ -759,21 +732,21 @@ void SmRd2::setPoseGoal(move_base_msgs::MoveBaseGoal &poseGoal, double x, double
     poseGoal.target_pose.pose.orientation.z = sy * cr * cp - cy * sr * sp;
 }
 
-void SmRd2::doneCallback(const actionlib::SimpleClientGoalState& state, const move_base_msgs::MoveBaseResult::ConstPtr& result)
+void SmRd2::doneCallbackExcavator(const actionlib::SimpleClientGoalState& state, const move_base_msgs::MoveBaseResult::ConstPtr& result)
 {
-    actionDone_ = true;
+    actionDone_excavator_= true;
     // ROS_INFO("Goal done");
 }
-void SmRd2::activeCallback()
+void SmRd2::activeCallbackExcavator()
 {
     // ROS_INFO("Goal went active");
 }
-void SmRd2::feedbackCallback(const move_base_msgs::MoveBaseFeedback::ConstPtr& feedback)
+void SmRd2::feedbackCallbackExcavator(const move_base_msgs::MoveBaseFeedback::ConstPtr& feedback)
 {
     ROS_INFO("Got feedback");
 }
 
-void SmRd2::RotateToHeading(double desired_yaw)
+void SmRd2::RotateToHeadingExcavator(double desired_yaw)
 {
   ros::Rate raterotateToHeading(20);
 
@@ -783,7 +756,7 @@ void SmRd2::RotateToHeading(double desired_yaw)
 
   ros::spinOnce();
 
-  double yaw_error = desired_yaw - yaw_;
+  double yaw_error = desired_yaw - yaw_excavator_;
   if (fabs(yaw_error) > M_PI)
   {
     if(yaw_error > 0)
@@ -795,18 +768,18 @@ void SmRd2::RotateToHeading(double desired_yaw)
       yaw_error = yaw_error + 2*M_PI;
     }
   }
-  flag_heading_fail=false;
+  flag_heading_fail_excavator_=false;
   ros::Time start_time = ros::Time::now();
   ros::Duration timeoutHeading(10.0); // Timeout of 20 seconds
 
   while(fabs(yaw_error) > yaw_thres)
   {
-    RotateInPlace(copysign(0.1*(1 + fabs(yaw_error)/M_PI), -yaw_error),0.0);
+    RotateInPlaceExcavator(copysign(0.1*(1 + fabs(yaw_error)/M_PI), -yaw_error),0.0);
 
     raterotateToHeading.sleep();
     ros::spinOnce();
 
-    yaw_error = desired_yaw - yaw_;
+    yaw_error = desired_yaw - yaw_excavator_;
     if (fabs(yaw_error) > M_PI)
     {
       if(yaw_error > 0)
@@ -825,92 +798,92 @@ void SmRd2::RotateToHeading(double desired_yaw)
     if (ros::Time::now() - start_time > timeoutHeading)
     {
       ROS_ERROR("Yaw Control Failed. Possibly stuck. Break control.");
-      flag_heading_fail = true;
+      flag_heading_fail_excavator_ = true;
       break;
     }
   }
 
-  if (flag_heading_fail)
+  if (flag_heading_fail_excavator_)
   {
     ROS_WARN("Recovery action initiated in yaw control.");
 
-     Stop(2.0);
+     StopExcavator(2.0);
 
-     Drive (-0.3, 4.0);
+     DriveExcavator (-0.3, 4.0);
 
   //  immobilityRecovery(); //TODO: Use this instead of Stop and Drive at line 714 and 716
 
-    flag_heading_fail=false;
+    flag_heading_fail_excavator_=false;
   }
   else
   {
-    Stop(0.0);
+    StopExcavator(0.0);
   }
 }
 
-void SmRd2::homingRecovery()
+void SmRd2::homingRecoveryExcavator()
 {
 
-  ac.waitForServer();
-  ac.cancelGoal();
-  ac.waitForResult(ros::Duration(0.25));
+  ac_excavator_.waitForServer();
+  ac_excavator_.cancelGoal();
+  ac_excavator_.waitForResult(ros::Duration(0.25));
 
   ROS_WARN("Starting Homing Recovery.");
 
-  Stop(2.0);
+  StopExcavator(2.0);
 
-  Brake(100.0);
+  BrakeExcavator(100.0);
 
-  Brake(0.0);
+  BrakeExcavator(0.0);
 
-  Drive(-0.3, 4.0);
+  DriveExcavator(-0.3, 4.0);
 
-  Stop(0.0);
+  StopExcavator(0.0);
 
-  RotateInPlace(.5,2.0);
+  RotateInPlaceExcavator(.5,2.0);
 
-  Stop(0.0);
+  StopExcavator(0.0);
 
-  Drive(0.3, 4.0);
+  DriveExcavator(0.3, 4.0);
 
-  Brake(100.0);
+  BrakeExcavator(100.0);
 
-  Brake(0.0);
+  BrakeExcavator(0.0);
 
 
 
 }
 
-void SmRd2::immobilityRecovery()
+void SmRd2::immobilityRecoveryExcavator()
 {
 
-  ac.waitForServer();
-  ac.cancelGoal();
-  ac.waitForResult(ros::Duration(0.25));
+  ac_excavator_.waitForServer();
+  ac_excavator_.cancelGoal();
+  ac_excavator_.waitForResult(ros::Duration(0.25));
 
   ROS_WARN("Starting Recovery.");
 
-  Stop(2.0);
+  StopExcavator(2.0);
 
-  Brake(100.0);
+  BrakeExcavator(100.0);
 
-  Brake(0.0);
+  BrakeExcavator(0.0);
 
-  Drive(-0.3, 4.0);
+  DriveExcavator(-0.3, 4.0);
 
-  Stop(0.0);
+  StopExcavator(0.0);
 
-  Brake(100.0);
+  BrakeExcavator(100.0);
 
-  Brake(0.0);
+  BrakeExcavator(0.0);
 
-  flag_waypoint_unreachable=true;
+  flag_waypoint_unreachable_excavator_=true;
 
 
 
 }
 
-void SmRd2::ClearCostmaps()
+void SmRd2::ClearCostmapsExcavator()
 {
   // Clear the costmap
   std_srvs::Empty emptymsg;
@@ -925,12 +898,12 @@ void SmRd2::ClearCostmaps()
   }
 }
 
-void SmRd2::Lights(std::string intensity)
+void SmRd2::LightsExcavator(std::string intensity)
 {
   // Turn on the Lights
   srcp2_msgs::ToggleLightSrv srv_lights;
   srv_lights.request.data  = intensity;
-  if (clt_lights_.call(srv_lights))
+  if (clt_lights_excavator_.call(srv_lights))
   {
     ROS_INFO("EXCAVATOR: Called service ToggleLight");
   }
@@ -940,11 +913,11 @@ void SmRd2::Lights(std::string intensity)
   }
 }
 
-void SmRd2::RotateInPlace(double throttle, double time)
+void SmRd2::RotateInPlaceExcavator(double throttle, double time)
 {
   driving_tools::RotateInPlace srv_turn;
   srv_turn.request.throttle  = throttle;
-  if (clt_rip_.call(srv_turn))
+  if (clt_rip_excavator_.call(srv_turn))
   {
     ROS_INFO("EXCAVATOR: Called service RotateInPlace");
     ros::Duration(time).sleep();
@@ -955,11 +928,11 @@ void SmRd2::RotateInPlace(double throttle, double time)
   }
 }
 
-void SmRd2::Stop(double time)
+void SmRd2::StopExcavator(double time)
 {
   driving_tools::Stop srv_stop;
   srv_stop.request.enableStop  = true;
-  if (clt_stop_.call(srv_stop))
+  if (clt_stop_excavator_.call(srv_stop))
   {
     ROS_INFO("EXCAVATOR: Called service Stop");
     ros::Duration(time).sleep();
@@ -970,21 +943,21 @@ void SmRd2::Stop(double time)
   }
 }
 
-void SmRd2::Brake(double intensity)
+void SmRd2::BrakeExcavator(double intensity)
 {
   srcp2_msgs::BrakeRoverSrv srv_brake;
   srv_brake.request.brake_force  = intensity;
-  if (clt_srcp2_brake_rover_.call(srv_brake))
+  if (clt_srcp2_brake_rover_excavator_.call(srv_brake))
   {
     if (intensity < 0.01)
     {
-      flag_brake_engaged =false;
+      flag_brake_engaged_excavator_ =false;
     }
     else
     {
-      flag_brake_engaged =true;
+      flag_brake_engaged_excavator_ =true;
     }
-    ROS_INFO_STREAM("EXCAVATOR: Called service SRCP2 Brake. Engaged?" << flag_brake_engaged);
+    ROS_INFO_STREAM("EXCAVATOR: Called service SRCP2 Brake. Engaged?" << flag_brake_engaged_excavator_);
   }
   else
   {
@@ -992,11 +965,11 @@ void SmRd2::Brake(double intensity)
   }
 }
 
-void SmRd2::Drive(double throttle, double time)
+void SmRd2::DriveExcavator(double throttle, double time)
 {
   driving_tools::MoveForward srv_drive;
   srv_drive.request.throttle = throttle;
-  if (clt_drive_.call(srv_drive))
+  if (clt_drive_excavator_.call(srv_drive))
   {
     ROS_INFO("EXCAVATOR: Called service Drive");
     ros::Duration(time).sleep();
@@ -1008,7 +981,7 @@ void SmRd2::Drive(double throttle, double time)
 }
 
 
-void SmRd2::DriveCmdVel(double vx, double vy, double wz, double time)
+void SmRd2::DriveCmdVelExcavator(double vx, double vy, double wz, double time)
 {
   geometry_msgs::Twist cmd_vel;
   cmd_vel.linear.x = vx;
@@ -1019,11 +992,11 @@ void SmRd2::DriveCmdVel(double vx, double vy, double wz, double time)
   ROS_ERROR("Drive Cmd Vel publisher.");
   while (ros::Time::now() - start_time < timeout)
   {
-    cmd_vel_pub.publish(cmd_vel);
+    cmd_vel_pub_excavator_.publish(cmd_vel);
   }
 }
 
-void SmRd2::ToggleDetector(bool flag)
+void SmRd2::ToggleDetectorExcavator(bool flag)
 {
   volatile_handler::ToggleDetector srv_vol_detect;
   srv_vol_detect.request.on  = flag;
@@ -1037,12 +1010,12 @@ void SmRd2::ToggleDetector(bool flag)
   }
 }
 
-void SmRd2::RoverStatic(bool flag)
+void SmRd2::RoverStaticExcavator(bool flag)
 {
   // Start attitude constraints for static rover
   sensor_fusion::RoverStatic srv_rover_static;
   srv_rover_static.request.rover_static  = flag;
-  if (clt_rover_static_.call(srv_rover_static))
+  if (clt_rover_static_excavator_.call(srv_rover_static))
   {
     ROS_INFO_STREAM("EXCAVATOR: Called service RoverStatic. Turned on?" << flag);
   }

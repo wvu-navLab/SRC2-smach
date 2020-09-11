@@ -44,39 +44,30 @@ public:
 
   // Condition flag declarations
   // bool flag_localized_base = false;
-  int flag_localized_base = 0;
-  int flag_mobility = 1;
-  bool flag_have_true_pose = false;
-  bool flag_waypoint_unreachable = false;
-  bool flag_arrived_at_waypoint = true;
-  double volatile_detected_distance = -1.0;
-  double min_volatile_detected_distance = 30.0;
-  double prev_volatile_detected_distance = -1.0;
-  bool flag_localizing_volatile = false;
-  bool flag_volatile_recorded = false;
-  bool flag_volatile_unreachable = false;
-  bool flag_localization_failure = false;
-  bool flag_recovering_localization = false;
-  bool flag_brake_engaged = false;
-  bool flag_fallthrough_condition = false;
-  bool flag_completed_homing = false;
-  bool flag_heading_fail=false;
-  bool need_to_initialize_landmark=true;
+  int flag_localized_base_excavator_ = 0;
+  int flag_mobility_excavator_ = 1;
+  bool flag_have_true_pose_excavator_ = false;
+  bool flag_waypoint_unreachable_excavator_ = false;
+  bool flag_arrived_at_waypoint_excavator_ = true;
+  bool flag_localizing_volatile_excavator_ = false;
+  bool flag_volatile_recorded_excavator_ = false;
+  bool flag_volatile_unreachable_excavator_ = false;
+  bool flag_localization_failure_excavator_ = false;
+  bool flag_recovering_localization_excavator_ = false;
+  bool flag_brake_engaged_excavator_ = false;
+  bool flag_fallthrough_condition_ = false;
+  bool flag_completed_homing_excavator_ = false;
+  bool flag_heading_fail_excavator_=false;
+  bool need_to_initialize_landmark_excavator_=true;
 
-  ros::Time detection_timer, not_detected_timer;
-
-
-  const double VOLATILE_THRESH = 1.0;
-  const double TIMER_THRESH = 15;
-  const double NOT_DETECTED_THRESH = 6;
   int timer_counter = 0;
-  double pitch_ = 0, roll_ = 0, yaw_ = 0, yaw_prev_ = 0;
-  double goal_yaw_;
-  bool actionDone_ = false;
-  geometry_msgs::Pose current_pose_, goal_pose_;
+  double pitch_excavator_ = 0, roll_excavator_ = 0, yaw_excavator_ = 0, yaw_prev_excavator_ = 0;
+  double goal_yaw_excavator_;
+  bool actionDone_excavator_ = false;
+  geometry_msgs::Pose current_pose_excavator_, goal_pose_excavator_;
   geometry_msgs::Point base_location_;
-  double waypoint_type_;
-  int driving_mode_;
+  double waypoint_type_excavator_;
+  int driving_mode_excavator_;
 
 
   // State vector
@@ -84,38 +75,36 @@ public:
 
   // ROS objects
   ros::NodeHandle nh;
-  ros::Publisher sm_state_pub, cmd_vel_pub;
-  ros::Subscriber localized_base_sub;
-  ros::Subscriber waypoint_unreachable_sub;
-  ros::Subscriber arrived_at_waypoint_sub;
-  ros::Subscriber volatile_detected_sub;
-  ros::Subscriber volatile_recorded_sub;
-  ros::Subscriber localization_failure_sub;
-  ros::Subscriber localization_sub;
-  ros::Subscriber driving_mode_sub;
-  ros::Subscriber mobility_sub;
-  // ros::ServiceClient clt_true_pose_;
-  ros::ServiceClient clt_sf_true_pose_;
-  ros::ServiceClient clt_wp_gen_;
-  ros::ServiceClient clt_wp_start_;
-  ros::ServiceClient clt_wp_nav_set_goal_;
-  ros::ServiceClient clt_wp_nav_interrupt_;
-  ros::ServiceClient clt_vh_report_;
-  ros::ServiceClient clt_stop_;
-  ros::ServiceClient clt_rip_;
-  ros::ServiceClient clt_drive_;
-  ros::ServiceClient clt_vol_report_;
-  ros::ServiceClient clt_vol_detect_;
-  ros::ServiceClient clt_brake_;
-  ros::ServiceClient clt_lights_;
-  ros::ServiceClient clt_homing_;
-  ros::ServiceClient clt_approach_base_;
-  ros::ServiceClient clt_rover_static_;
-  ros::ServiceClient clt_waypoint_checker_;
-  ros::ServiceClient clt_srcp2_brake_rover_;
+  ros::Publisher sm_state_pub_, cmd_vel_pub_excavator_;
+  ros::Subscriber localized_base_sub_excavator_;
+  ros::Subscriber waypoint_unreachable_sub_excavator_;
+  ros::Subscriber arrived_at_waypoint_sub_excavator_;
+  ros::Subscriber volatile_detected_sub_excavator_;
+  ros::Subscriber volatile_recorded_sub_excavator_;
+  ros::Subscriber localization_failure_sub_excavator_;
+  ros::Subscriber localization_sub_excavator_;
+  ros::Subscriber driving_mode_sub_excavator_;
+  ros::Subscriber mobility_sub_excavator_;
 
-  MoveBaseClient ac;
-  actionlib::SimpleClientGoalState move_base_state_;
+  ros::ServiceClient clt_sf_true_pose_excavator_;
+  ros::ServiceClient clt_wp_gen_excavator_;
+  ros::ServiceClient clt_wp_start_excavator_;
+  ros::ServiceClient clt_wp_nav_set_goal_excavator_;
+  ros::ServiceClient clt_wp_nav_interrupt_excavator_;
+  ros::ServiceClient clt_vh_report_excavator_;
+  ros::ServiceClient clt_stop_excavator_;
+  ros::ServiceClient clt_rip_excavator_;
+  ros::ServiceClient clt_drive_excavator_;
+  ros::ServiceClient clt_brake_excavator_;
+  ros::ServiceClient clt_lights_excavator_;
+  ros::ServiceClient clt_homing_excavator_;
+  ros::ServiceClient clt_approach_base_excavator_;
+  ros::ServiceClient clt_rover_static_excavator_;
+  ros::ServiceClient clt_waypoint_checker_excavator_;
+  ros::ServiceClient clt_srcp2_brake_rover_excavator_;
+
+  MoveBaseClient ac_excavator_;
+  actionlib::SimpleClientGoalState move_base_state_excavator_;
 
   // Methods ----------------------------------------------------------------------------------------------------------------------------
   SmRd2(); // Constructor
@@ -128,32 +117,32 @@ public:
   void stateLost();
 
   // Subscriber callbacks
-  void localizedBaseCallback(const std_msgs::Int64::ConstPtr& msg);
-  void mobilityCallback(const std_msgs::Int64::ConstPtr& msg);
-  void waypointUnreachableCallback(const std_msgs::Bool::ConstPtr& msg);
-  void arrivedAtWaypointCallback(const std_msgs::Bool::ConstPtr& msg);
-  void volatileDetectedCallback(const std_msgs::Float32::ConstPtr& msg);
-  void volatileRecordedCallback(const std_msgs::Bool::ConstPtr& msg);
-  void localizationFailureCallback(const std_msgs::Bool::ConstPtr& msg);
-  void localizationCallback(const nav_msgs::Odometry::ConstPtr& msg);
-  void drivingModeCallback(const std_msgs::Int64::ConstPtr& msg);
-  void immobilityRecovery();
-  void homingRecovery();
+  void localizedBaseCallbackExcavator(const std_msgs::Int64::ConstPtr& msg);
+  void mobilityCallbackExcavator(const std_msgs::Int64::ConstPtr& msg);
+  void waypointUnreachableCallbackExcavator(const std_msgs::Bool::ConstPtr& msg);
+  void arrivedAtWaypointCallbackExcavator(const std_msgs::Bool::ConstPtr& msg);
+  void volatileDetectedCallbackExcavator(const std_msgs::Float32::ConstPtr& msg);
+  void volatileRecordedCallbackExcavator(const std_msgs::Bool::ConstPtr& msg);
+  void localizationFailureCallbackExcavator(const std_msgs::Bool::ConstPtr& msg);
+  void localizationCallbackExcavator(const nav_msgs::Odometry::ConstPtr& msg);
+  void drivingModeCallbackExcavator(const std_msgs::Int64::ConstPtr& msg);
+  void immobilityRecoveryExcavator();
+  void homingRecoveryExcavator();
 
-  void setPoseGoal(move_base_msgs::MoveBaseGoal& poseGoal, double x, double y, double yaw); // m, m, rad
-  void doneCallback(const actionlib::SimpleClientGoalState& state, const move_base_msgs::MoveBaseResultConstPtr& result);
-  void activeCallback();
-  void feedbackCallback(const move_base_msgs::MoveBaseFeedbackConstPtr& feedback);
+  void setPoseGoalExcavator(move_base_msgs::MoveBaseGoal& poseGoal, double x, double y, double yaw); // m, m, rad
+  void doneCallbackExcavator(const actionlib::SimpleClientGoalState& state, const move_base_msgs::MoveBaseResultConstPtr& result);
+  void activeCallbackExcavator();
+  void feedbackCallbackExcavator(const move_base_msgs::MoveBaseFeedbackConstPtr& feedback);
 
-  void RotateToHeading(double desired_yaw);
-  void ClearCostmaps();
-  void Lights(std::string intensity);
-  void RotateInPlace(double throttle, double time);
-  void Stop(double time);
-  void Drive(double throttle, double time);
-  void ToggleDetector(bool flag);
-  void Brake(double intensity);
-  void RoverStatic(bool flag);
-  void DriveCmdVel(double vx, double vy, double wz, double time);
+  void RotateToHeadingExcavator(double desired_yaw);
+  void ClearCostmapsExcavator();
+  void LightsExcavator(std::string intensity);
+  void RotateInPlaceExcavator(double throttle, double time);
+  void StopExcavator(double time);
+  void DriveExcavator(double throttle, double time);
+  void ToggleDetectorExcavator(bool flag);
+  void BrakeExcavator(double intensity);
+  void RoverStaticExcavator(bool flag);
+  void DriveCmdVelExcavator(double vx, double vy, double wz, double time);
 
 };
