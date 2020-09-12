@@ -90,7 +90,7 @@ public:
 
   // ROS objects
   ros::NodeHandle nh;
-  ros::Publisher sm_state_pub, cmd_vel_pub;
+  ros::Publisher sm_state_pub, cmd_vel_pub, pub_driving_mode_;
   ros::Subscriber localized_base_sub;
   ros::Subscriber waypoint_unreachable_sub;
   ros::Subscriber arrived_at_waypoint_sub;

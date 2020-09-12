@@ -8,6 +8,7 @@ move_base_state_(actionlib::SimpleClientGoalState::LOST)
   // Publishers
   sm_state_pub = nh.advertise<std_msgs::Int64>("/state_machine/state", 1);
   cmd_vel_pub = nh.advertise<geometry_msgs::Twist>("/scout_1/driving/cmd_vel", 1);
+  pub_driving_mode_ = nh.advertise<std_msgs::Int64>("/scout_1/driving/driving_mode", 1);
   // Subscribers
   localized_base_sub = nh.subscribe("/state_machine/localized_base_scout", 1, &SmRd1::localizedBaseCallback, this);
   mobility_sub = nh.subscribe("/state_machine/mobility_scout", 10, &SmRd1::mobilityCallback, this);
@@ -265,15 +266,23 @@ else{
   Brake(0.0);
 
   Drive(-0.3, 2.0);
+  // RotateInPlace(0.2, 3.0);
   // DriveCmdVel(-0.3, 0.0, 0.0, 2.0);
   //
-  Stop(5.0);
-  Stop(2.0);
+  // Stop(5.0);
+  Stop(1.0);
 
   Brake(100.0);
 
   Brake(0.0);
 
+  RotateInPlace(0.2, 3.0);
+
+  Stop(1.0);
+
+  Brake(100.0);
+
+  Brake(0.0);
   // DriveCmdVel(-0.3, 0.0, 0.0, 5.0);
 
   // Stop(5.0);
@@ -1041,8 +1050,14 @@ void SmRd1::Drive(double throttle, double time)
   srv_drive.request.throttle = throttle;
   if (clt_drive_.call(srv_drive))
   {
+    ros::Time start_time = ros::Time::now();
     ROS_INFO("SCOUT: Called service Drive");
-    ros::Duration(time).sleep();
+    while(ros::Time::now() - start_time < ros::Duration(time))
+    {
+      std_msgs::Int64 mode;
+      mode.data = 2;
+      pub_driving_mode_.publish(mode);
+    }
   }
   else
   {
