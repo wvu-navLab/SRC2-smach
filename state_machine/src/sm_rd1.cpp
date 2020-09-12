@@ -266,10 +266,7 @@ else{
   Brake(0.0);
 
   Drive(-0.3, 2.0);
-  // RotateInPlace(0.2, 3.0);
-  // DriveCmdVel(-0.3, 0.0, 0.0, 2.0);
-  //
-  // Stop(5.0);
+
   Stop(1.0);
 
   Brake(100.0);
@@ -645,15 +642,23 @@ else{
 
   Lights ("0.6");
 
-  Brake (0.0);
+  Brake(0.0);
 
-  Drive (-0.3, 2.0);
+  Drive(-0.3, 2.0);
 
-  Stop (2.0);
+  Stop(1.0);
 
-  RotateInPlace (0.2, 3.0);
+  Brake(100.0);
 
-  Stop (2.0);
+  Brake(0.0);
+
+  RotateInPlace(0.2, 3.0);
+
+  Stop(1.0);
+
+  Brake(100.0);
+
+  Brake(0.0);
 
   ToggleDetector(true);
 
@@ -909,15 +914,13 @@ void SmRd1::homingRecovery()
 
   Brake(0.0);
 
-  Drive(-0.3, 4.0);
+  Drive(-0.3, 3.0);
 
   Stop(0.0);
 
-  RotateInPlace(.5,2.0);
+  DriveCmdVel(0.0,0.3,0.0,3.0);
 
   Stop(0.0);
-
-  Drive(0.3, 4.0);
 
   Brake(100.0);
 
