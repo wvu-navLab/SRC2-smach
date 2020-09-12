@@ -50,7 +50,7 @@ move_base_state_(actionlib::SimpleClientGoalState::LOST)
 
 void SmRd1::run()
 {
-  ros::Rate loop_rate(2); // Hz
+  ros::Rate loop_rate(5); // Hz
   while(ros::ok())
   {
     // Debug prints +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -268,10 +268,11 @@ else{
   // DriveCmdVel(-0.3, 0.0, 0.0, 2.0);
   //
   Stop(5.0);
+  Stop(2.0);
 
   Brake(100.0);
 
-  // Brake(0.0);
+  Brake(0.0);
 
   // DriveCmdVel(-0.3, 0.0, 0.0, 5.0);
 
@@ -299,7 +300,7 @@ else{
 
   ClearCostmaps();
 
-  Brake(0.0);
+  // Brake(0.0);
 
   waypoint_gen::StartWaypoint srv_wp_start;
   srv_wp_start.request.start  = true;
@@ -336,9 +337,9 @@ void SmRd1::statePlanning()
   ac.cancelGoal();
   ac.waitForResult(ros::Duration(0.25));
 
-  Stop(1.0);
+  // Stop(1.0);
 
-  Brake(100.0);
+  // Brake(100.0);
 
   // ROS_INFO_STREAM("goal pose: " << goal_pose);
   // Generate Goal
@@ -503,7 +504,7 @@ void SmRd1::stateTraverse()
   // {
   //   ROS_INFO("SCOUT: Recovering maneuver initialized.");
   //   immobilityRecovery();
-  //   //flag_have_true_pose = true;
+    // flag_have_true_pose = true;
   // }
 
   move_base_state_ = ac.getState();
@@ -681,7 +682,7 @@ void SmRd1::mobilityCallback(const std_msgs::Int64::ConstPtr& msg)
   }
   else {
     ROS_ERROR("ROVER IMMOBILIZATION!  = %i",flag_mobility);
-    immobilityRecovery();
+    immobilityRecovery(1);
   }
 }
 
@@ -768,8 +769,9 @@ void SmRd1::laserCallback(const sensor_msgs::LaserScan::ConstPtr& msg)
 
   if (counter_laser_collision_ > LASER_COUNTER_THRESH)
   {
+    counter_laser_collision_ =0;
     ROS_ERROR("SCOUT: LASER COUNTER > 20 ! Starting Recovery.");
-    immobilityRecovery();
+    immobilityRecovery(2);
   }
 }
 
@@ -916,7 +918,7 @@ void SmRd1::homingRecovery()
 
 }
 
-void SmRd1::immobilityRecovery()
+void SmRd1::immobilityRecovery(int type)
 {
 
   ac.waitForServer();
@@ -930,8 +932,14 @@ void SmRd1::immobilityRecovery()
   Brake(100.0);
 
   Brake(0.0);
+  if (type == 2) {
+    DriveCmdVel(-0.3, -0.3, 0.0, 3.0);
+  }
+  else
+  {
+    Drive(-0.3, 4.0);
+  }
 
-  Drive(-0.3, 4.0);
 
   Stop(0.0);
 

@@ -145,7 +145,7 @@ public:
   void localizationFailureCallback(const std_msgs::Bool::ConstPtr& msg);
   void localizationCallback(const nav_msgs::Odometry::ConstPtr& msg);
   void drivingModeCallback(const std_msgs::Int64::ConstPtr& msg);
-  void immobilityRecovery();
+  void immobilityRecovery(int type);
   void homingRecovery();
   void laserCallback(const sensor_msgs::LaserScan::ConstPtr& msg);
 
