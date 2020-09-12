@@ -748,7 +748,7 @@ void SmRd1::laserCallback(const sensor_msgs::LaserScan::ConstPtr& msg)
     min_range = min_range + ranges[i];
   }
   min_range = min_range/LASER_SET_SIZE;
-  ROS_INFO_STREAM("SCOUT: Minimum range average: " << min_range);
+  ROS_INFO_STREAM_THROTTLE(2,"SCOUT: Minimum range average: " << min_range);
 
   if (min_range < LASER_THRESH)
   {
@@ -805,7 +805,7 @@ void SmRd1::activeCallback()
 }
 void SmRd1::feedbackCallback(const move_base_msgs::MoveBaseFeedback::ConstPtr& feedback)
 {
-    ROS_INFO("Got feedback");
+  //  ROS_INFO("Got feedback");
 }
 
 void SmRd1::RotateToHeading(double desired_yaw)
@@ -981,7 +981,7 @@ void SmRd1::RotateInPlace(double throttle, double time)
   srv_turn.request.throttle  = throttle;
   if (clt_rip_.call(srv_turn))
   {
-    ROS_INFO("SCOUT: Called service RotateInPlace");
+    ROS_INFO_THROTTLE(5,"SCOUT: Called service RotateInPlace");
     ros::Duration(time).sleep();
   }
   else
