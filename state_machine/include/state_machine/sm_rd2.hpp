@@ -229,7 +229,7 @@ public:
   void BrakeExcavator(double intensity);
   void RoverStaticExcavator(bool flag);
   void DriveCmdVelExcavator(double vx, double vy, double wz, double time);
-  void ManipulationStateControlExcavator(int state, double time);
+  void StartManipulation();
   void ExecuteHomeArmExcavator(double heading, double time);
   void ExecuteDigExcavator(double heading, double time);
   void ExecuteScoopExcavator(double heading, double time);
