@@ -69,7 +69,7 @@ public:
   bool flag_completed_homing_excavator_ = false;
   bool flag_heading_fail_excavator_=false;
   bool need_to_initialize_landmark_excavator_=true;
-  bool flag_volatile_dug_excavator_ = false;
+  bool flag_volatile_dug_excavator_ = true;
 
   int flag_localized_base_hauler_ = 0;
   int flag_mobility_hauler_ = 1;
@@ -84,6 +84,7 @@ public:
   bool flag_fallthrough_condition_hauler_ = false;
   bool flag_completed_homing_hauler_ = false;
   bool flag_heading_fail_hauler_=false;
+  bool need_to_initialize_landmark_hauler_ = true;
 
   std::string goal_vol_type_;
   geometry_msgs::Pose goal_vol_pose_;

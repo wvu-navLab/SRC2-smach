@@ -100,6 +100,7 @@ void SmRd2::run()
     ROS_INFO("flag_waypoint_unreachable_excavator_: %i",flag_waypoint_unreachable_excavator_);
     ROS_INFO("flag_arrived_at_waypoint_excavator_: %i",flag_arrived_at_waypoint_excavator_);
     ROS_INFO("flag_localizing_volatile_excavator_: %i",flag_localizing_volatile_excavator_);
+    ROS_INFO("flag_volatile_dug_excavator_: %i",flag_volatile_dug_excavator_);
     ROS_INFO("flag_volatile_recorded_excavator_: %i",flag_volatile_recorded_excavator_);
     ROS_INFO("flag_volatile_unreachable_excavator_: %i",flag_volatile_unreachable_excavator_);
     ROS_INFO("flag_localization_failure_excavator_: %i",flag_localization_failure_excavator_);
@@ -109,13 +110,15 @@ void SmRd2::run()
 
 
     // Conditional flag logic (Preemptive conditions) +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-    if(!flag_localizing_volatile_excavator_ && !flag_localization_failure_excavator_ && flag_have_true_pose_excavator_)
+    if(!flag_volatile_dug_excavator_ && !flag_localizing_volatile_excavator_ && !flag_localization_failure_excavator_ && flag_have_true_pose_excavator_)
     {
+      ROS_INFO("Preemptive condition1");
       flag_arrived_at_waypoint_excavator_ = true;
       flag_waypoint_unreachable_excavator_ = false;
     }
     if(flag_localization_failure_excavator_ && !flag_recovering_localization_excavator_)
     {
+      ROS_INFO("Preemptive condition2");
       flag_arrived_at_waypoint_excavator_ = true;
       flag_waypoint_unreachable_excavator_ = false;
     }
@@ -141,7 +144,7 @@ void SmRd2::run()
     {
       state_to_exec.at(_traverse) = 1;
     }
-    else if(!flag_localizing_volatile_excavator_ && !flag_brake_engaged_excavator_)
+    else if(!flag_volatile_dug_excavator_ && !flag_brake_engaged_excavator_)
     {
       state_to_exec.at(_volatile_handler) = 1;
     }
@@ -150,6 +153,7 @@ void SmRd2::run()
       flag_arrived_at_waypoint_excavator_ = true;
       flag_waypoint_unreachable_excavator_ = false;
       flag_localizing_volatile_excavator_ = false;
+      flag_volatile_dug_excavator_ = true;
       flag_fallthrough_condition_ = true;
     }
     //---------------------------------------------------------------------------------------------------------------------
@@ -211,10 +215,18 @@ void SmRd2::stateInitialize()
   flag_waypoint_unreachable_excavator_ = false;
 
   // ToggleDetectorExcavator(false);
+
+  LightsHauler("0.6");
+  DriveHauler(1.5,3.0);
+  StopHauler(1.0);
+  RotateInPlaceHauler(0.3, 5.0);
+  StopHauler(1.0);
+  DriveHauler(1.5, 3.0);
+  StopHauler(1.0);
+  BrakeHauler(100.0);
+
   BrakeExcavator(100.0);
-
   ExecuteHomeArmExcavator(0.0, 3.0);
-
   BrakeExcavator(0.0);
   // ros::Duration(time).sleep();
 
@@ -229,9 +241,9 @@ void SmRd2::stateInitialize()
   // Approach Base Station
   src2_object_detection::ApproachBaseStation srv_approach_base;
   srv_approach_base.request.approach_base_station.data= true;
-  bool approachSuccess = false;
-  int homingRecoveryCount = 0;
-  while(!approachSuccess && homingRecoveryCount<3){
+  bool approachSuccessExcavator = false;
+  int homingRecoveryCountExcavator = 0;
+  while(!approachSuccessExcavator && homingRecoveryCountExcavator<3){
     if (clt_approach_base_excavator_.call(srv_approach_base))
     {
       ROS_INFO("EXCAVATOR: Called service ApproachBaseStation");
@@ -241,7 +253,7 @@ void SmRd2::stateInitialize()
       }
       else
       {
-        approachSuccess=true;
+        approachSuccessExcavator=true;
       }
 
     }
@@ -250,7 +262,7 @@ void SmRd2::stateInitialize()
     {
       ROS_ERROR("EXCAVATOR: Failed  to call service ApproachBaseStation");
     }
-    homingRecoveryCount=homingRecoveryCount+1;
+    homingRecoveryCountExcavator=homingRecoveryCountExcavator+1;
   }
 
   StopExcavator(2.0);
@@ -269,6 +281,7 @@ void SmRd2::stateInitialize()
   {
     ROS_INFO("EXCAVATOR: Called service TruePose");
     ROS_INFO_STREAM("Status of SF True Pose: "<< srv_sf_true_pose.response.success);
+    flag_have_true_pose_excavator_ = true;
   }
   else
   {
@@ -277,9 +290,9 @@ void SmRd2::stateInitialize()
 
   RoverStaticExcavator(true);
 
-  if(approachSuccess){
+  sensor_fusion::HomingUpdate srv_homing;
+  if(approachSuccessExcavator){
     // Homing - Initialize Base Station Landmark
-    sensor_fusion::HomingUpdate srv_homing;
     ros::spinOnce();
 
     srv_homing.request.angle = pitch_excavator_ + .4; // pitch up is negative number
@@ -309,33 +322,97 @@ void SmRd2::stateInitialize()
   LightsExcavator("0.6");
 
   BrakeExcavator(0.0);
-
-  // Drive(-0.2, 4.0);
-  DriveCmdVelExcavator(-0.3, 0.0, 0.0, 4.0);
+  DriveExcavator(-0.4, 4.0);
+  RotateInPlaceExcavator(0.3, 3.0);
+  DriveExcavator(0.4, 4.0);
   //
   StopExcavator(5.0);
-
   BrakeExcavator(100.0);
 
-  ClearCostmapsExcavator();
+  BrakeHauler(0.0);
 
-  BrakeExcavator(0.0);
+  srv_approach_base.request.approach_base_station.data= true;
+  bool approachSuccessHauler = false;
+  int homingRecoveryCountHauler = 0;
+  while(!approachSuccessHauler && homingRecoveryCountHauler<3){
+    if (clt_approach_base_hauler_.call(srv_approach_base))
+    {
+      ROS_INFO("HAULER: Called service ApproachBaseStation");
+      ROS_INFO_STREAM("Success finding the Base? "<< srv_approach_base.response.success.data);
+      if(!srv_approach_base.response.success.data){
+        homingRecoveryHauler();
+      }
+      else
+      {
+        approachSuccessHauler=true;
+      }
 
-  waypoint_gen::StartWaypoint srv_wp_start;
-  srv_wp_start.request.start  = true;
+    }
 
-  if (clt_wp_start_excavator_.call(srv_wp_start))
+    else
+    {
+      ROS_ERROR("HAULER: Failed  to call service ApproachBaseStation");
+    }
+    homingRecoveryCountHauler=homingRecoveryCountHauler+1;
+  }
+  BrakeHauler(100.0);
+
+    //TODO: Initialize Hauler without using get_true_pose but instead using the relative base_station location after initized with Excavator <------------------------------------- FROM HERE
+
+  while (!clt_sf_true_pose_hauler_ .waitForExistence())
   {
-    ROS_INFO("Starting Waypoint Gen");
+    ROS_ERROR("EXCAVATOR: Waiting for TruePose service");
+  }
+
+  // Update SF with True Pose
+  srv_sf_true_pose.request.start = true;
+  if (clt_sf_true_pose_hauler_ .call(srv_sf_true_pose))
+  {
+    ROS_INFO("HAULER: Called service TruePose");
+    ROS_INFO_STREAM("Status of SF True Pose: "<< srv_sf_true_pose.response.success);
+    flag_have_true_pose_hauler_ = true;
   }
   else
   {
-    ROS_ERROR("EXCAVATOR: Failed  to call service Waypoint Start");
+    ROS_ERROR("HAULER: Failed  to call service Pose Update");
   }
 
-  //TODO: Initialize Hauler without using get_true_pose but instead using the relative base_station location after initized with Excavator
+  RoverStaticHauler(true);
 
+  if(approachSuccessHauler){
+    // Homing - Initialize Base Station Landmark
+    ros::spinOnce();
 
+    srv_homing.request.angle = pitch_hauler_ + .4; // pitch up is negative number
+    ROS_ERROR("Requesting Angle for LIDAR %f",srv_homing.request.angle);
+    srv_homing.request.initializeLandmark = need_to_initialize_landmark_hauler_;
+    if (clt_homing_hauler_.call(srv_homing))
+    {
+      ROS_INFO("HAULER: Called service HomingUpdate");
+      if(srv_homing.response.success){
+      base_location_ = srv_homing.response.base_location;
+      need_to_initialize_landmark_hauler_ = false;
+      }else{
+        ROS_ERROR(" Initial Homing Fail, Starting Without Base Location");
+      }
+    }
+    else
+    {
+      ROS_ERROR("HAULER: Failed to call service HomingUpdate");
+    }
+  }
+  else{
+    ROS_ERROR(" Initial Homing Fail, Starting Without Base Location");
+  }
+
+  RoverStaticHauler(false);
+
+  //TODO: Initialize Hauler without using get_true_pose but instead using the relative base_station location after initized with Excavator    <------------------------------------- TILL HERE
+
+  ClearCostmapsExcavator();
+  BrakeExcavator(0.0);
+  ClearCostmapsHauler();
+  BrakeHauler(0.0);
   std_msgs::Int64 state_msg;
   state_msg.data = _initialize;
   sm_state_pub_.publish(state_msg);
@@ -345,10 +422,11 @@ void SmRd2::statePlanning()
 {
   ROS_INFO("Planning!\n");
   flag_arrived_at_waypoint_excavator_ = false;
-  if(waypoint_type_excavator_==1)
-  {
-    flag_waypoint_unreachable_excavator_=false;
-  }
+  flag_waypoint_unreachable_excavator_=false;
+  // if(waypoint_type_excavator_==1)
+  // {
+  //   flag_waypoint_unreachable_excavator_=false;
+  // }
 
   ROS_INFO("EXCAVATOR: Canceling MoveBase goal.");
   ac_excavator_.waitForServer();
@@ -358,7 +436,7 @@ void SmRd2::statePlanning()
   StopExcavator(1.0);
 
   BrakeExcavator(100.0);
-  
+
   // Generate Goal
   round2_volatile_handler::NextVolatileLocation srv_next_vol;
   srv_next_vol.request.rover_position  = current_pose_excavator_;
@@ -387,46 +465,46 @@ void SmRd2::statePlanning()
 
   // check waypoint
 
-  waypoint_checker::CheckCollision srv_wp_check;
-  bool is_colliding = true;
-  while (is_colliding)
-  {
-    srv_wp_check.request.x  = goal_pose_excavator_.position.x;
-    srv_wp_check.request.y = goal_pose_excavator_.position.y;
-    if (clt_waypoint_checker_excavator_.call(srv_wp_check))
-    {
-      ROS_INFO("EXCAVATOR: Called service Waypoint Checker");
-      is_colliding = srv_wp_check.response.collision;
-      if(is_colliding)
-      {
-        ROS_INFO("EXCAVATOR: Waypoint Unreachable. Getting new waypoint");
-        if (clt_next_vol_excavator_.call(srv_next_vol))
-        {
-          std::cout << "Calling Next Vol pose" << '\n';
-          ROS_INFO_STREAM("Next Volatile Pose: "<< srv_next_vol.response.vol_position);
-          goal_vol_pose_ = srv_next_vol.response.vol_position;
-          goal_vol_type_ = srv_next_vol.response.type;
-
-          UpdateGoalPoseExcavator();
-
-          BrakeExcavator (0.0);
-
-          RotateToHeadingExcavator(goal_yaw_excavator_);
-
-          BrakeExcavator (100.0);
-
-        }
-        else
-        {
-          ROS_ERROR("EXCAVATOR Failed to call service Next Volatile Pose");
-        }
-      }
-    }
-    else
-    {
-      ROS_ERROR("EXCAVATOR: Failed to call service Waypoint Checker");
-    }
-  }
+  // waypoint_checker::CheckCollision srv_wp_check;
+  // bool is_colliding = true;
+  // while (is_colliding)
+  // {
+  //   srv_wp_check.request.x  = goal_pose_excavator_.position.x;
+  //   srv_wp_check.request.y = goal_pose_excavator_.position.y;
+  //   if (clt_waypoint_checker_excavator_.call(srv_wp_check))
+  //   {
+  //     ROS_INFO("EXCAVATOR: Called service Waypoint Checker");
+  //     is_colliding = srv_wp_check.response.collision;
+  //     if(is_colliding)
+  //     {
+  //       ROS_INFO("EXCAVATOR: Waypoint Unreachable. Getting new waypoint");
+  //       if (clt_next_vol_excavator_.call(srv_next_vol))
+  //       {
+  //         std::cout << "Calling Next Vol pose" << '\n';
+  //         ROS_INFO_STREAM("Next Volatile Pose: "<< srv_next_vol.response.vol_position);
+  //         goal_vol_pose_ = srv_next_vol.response.vol_position;
+  //         goal_vol_type_ = srv_next_vol.response.type;
+  //
+  //         UpdateGoalPoseExcavator();
+  //
+  //         BrakeExcavator (0.0);
+  //
+  //         RotateToHeadingExcavator(goal_yaw_excavator_);
+  //
+  //         BrakeExcavator (100.0);
+  //
+  //       }
+  //       else
+  //       {
+  //         ROS_ERROR("EXCAVATOR Failed to call service Next Volatile Pose");
+  //       }
+  //     }
+  //   }
+  //   else
+  //   {
+  //     ROS_ERROR("EXCAVATOR: Failed to call service Waypoint Checker");
+  //   }
+  // }
 
   ClearCostmapsExcavator();
 
@@ -457,14 +535,16 @@ void SmRd2::stateTraverse()
     flag_arrived_at_waypoint_excavator_ = true;
     flag_waypoint_unreachable_excavator_ = false;
   }
-  if(flag_volatile_recorded_excavator_)
-  {
-    ROS_INFO("EXCAVATOR: Volatile recorded.");
-    flag_localizing_volatile_excavator_ = false;
-    flag_volatile_recorded_excavator_ = false;
-    flag_arrived_at_waypoint_excavator_ = true;
-    flag_waypoint_unreachable_excavator_ = false;
-  }
+
+  // if(flag_volatile_recorded_excavator_)
+  // {
+  //   ROS_INFO("EXCAVATOR: Volatile recorded.");
+  //   flag_localizing_volatile_excavator_ = false;
+  //   flag_volatile_recorded_excavator_ = false;
+  //   flag_arrived_at_waypoint_excavator_ = true;
+  //   flag_waypoint_unreachable_excavator_ = false;
+  // }
+
   if(flag_recovering_localization_excavator_ && !flag_localization_failure_excavator_)
   {
     ROS_INFO("EXCAVATOR: Recovering localization or failure in localization.");
@@ -472,34 +552,28 @@ void SmRd2::stateTraverse()
     flag_waypoint_unreachable_excavator_ = false;
     flag_recovering_localization_excavator_ = false;
   }
+
   bool is_colliding = false;
-    waypoint_checker::CheckCollision srv_wp_check;
-    if (clt_waypoint_checker_excavator_.call(srv_wp_check))
+  waypoint_checker::CheckCollision srv_wp_check;
+  if (clt_waypoint_checker_excavator_.call(srv_wp_check))
+  {
+    ROS_INFO("EXCAVATOR: Called service Waypoint Checker");
+    is_colliding = srv_wp_check.response.collision;
+    if(is_colliding)
     {
-      ROS_INFO("EXCAVATOR: Called service Waypoint Checker");
-      is_colliding = srv_wp_check.response.collision;
-      if(is_colliding)
-      {
-        ROS_INFO("EXCAVATOR: Waypoint Unreachable. Sending to Planning");
-        flag_waypoint_unreachable_excavator_=true;
-      }
+      ROS_INFO("EXCAVATOR: Waypoint Unreachable. Sending to Planning");
+      flag_waypoint_unreachable_excavator_=true;
+    }
   }
+
   double distance_to_goal = std::hypot(goal_pose_excavator_.position.y - current_pose_excavator_.position.y, goal_pose_excavator_.position.x - current_pose_excavator_.position.x);
   if (distance_to_goal < 2.0)
   {
     ROS_INFO("EXCAVATOR: Close to goal, getting new waypoint.");
     flag_arrived_at_waypoint_excavator_ = true;
     flag_waypoint_unreachable_excavator_ = false;
-    if(waypoint_type_excavator_ ==0 )
-    {
-    	flag_localization_failure_excavator_ = false;
-    }
-    else
-    {
-      ROS_INFO(" Reached a Waypoint Designated for Localization Update Type : %f ",waypoint_type_excavator_ );
-      flag_localization_failure_excavator_ = true;
-      waypoint_type_excavator_=0; // just to account for triggered homing update
-    }
+    ROS_INFO_STREAM("Let's start manipulation.");
+    flag_volatile_dug_excavator_ = false;
   }
 
   // if (!flag_mobility)
@@ -542,7 +616,7 @@ void SmRd2::stateVolatileHandler()
   {
     ros::spinOnce();
   }
-  
+
   ros::Duration(10.0).sleep();
 
   flag_waypoint_unreachable_excavator_ = false;
@@ -765,9 +839,9 @@ void SmRd2::UpdateGoalPoseExcavator(){
   double dx = goal_pose_excavator_.position.x - current_pose_excavator_.position.x;
   double dy = goal_pose_excavator_.position.y - current_pose_excavator_.position.y;
   goal_yaw_excavator_ = atan2(dy, dx);
-  
-  goal_pose_excavator_.position.x = goal_vol_pose_.position.x - dx * hypot(dx,dy) * 0.5;
-  goal_pose_excavator_.position.y = goal_vol_pose_.position.y - dy * hypot(dx,dy) * 0.5;
+
+  goal_pose_excavator_.position.x = goal_vol_pose_.position.x + dx / hypot(dx,dy) * 0.5;
+  goal_pose_excavator_.position.y = goal_vol_pose_.position.y + dy / hypot(dx,dy) * 0.5;
 }
 
 
