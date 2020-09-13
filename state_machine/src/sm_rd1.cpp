@@ -265,19 +265,19 @@ else{
 
   Brake(0.0);
 
-  Drive(-0.3, 2.0);
+  Drive(-0.5, 3.0);
 
-  Stop(1.0);
-
-  Brake(100.0);
-
-  Brake(0.0);
-
-  RotateInPlace(0.2, 3.0);
-
-  Stop(1.0);
+  Stop(2.0);
 
   Brake(100.0);
+
+  // Brake(0.0);
+
+  // RotateInPlace(0.2, 3.0);
+
+  // Stop(2.0);
+
+  // Brake(100.0);
 
   Brake(0.0);
   // DriveCmdVel(-0.3, 0.0, 0.0, 5.0);
@@ -487,7 +487,7 @@ void SmRd1::stateTraverse()
         ROS_INFO("SCOUT: Waypoint Unreachable. Sending to Planning");
         flag_waypoint_unreachable=true;
       }
-  }
+    }
   double distance_to_goal = std::hypot(goal_pose_.position.y - current_pose_.position.y, goal_pose_.position.x - current_pose_.position.x);
   if (distance_to_goal < 2.0)
   {
@@ -644,19 +644,19 @@ else{
 
   Brake(0.0);
 
-  Drive(-0.3, 2.0);
+  Drive(-0.3, 4.0);
 
-  Stop(1.0);
-
-  Brake(100.0);
-
-  Brake(0.0);
-
-  RotateInPlace(0.2, 3.0);
-
-  Stop(1.0);
+  Stop(2.0);
 
   Brake(100.0);
+
+  // Brake(0.0);
+
+  // RotateInPlace(0.2, 3.0);
+
+  // Stop(2.0);
+
+  // Brake(100.0);
 
   Brake(0.0);
 
@@ -945,7 +945,7 @@ void SmRd1::immobilityRecovery(int type)
 
   Brake(0.0);
   if (type == 2) {
-    DriveCmdVel(-0.3, -0.3, 0.0, 3.0);
+    DriveCmdVel(-0.3, -0.4, 0.0, 3.0);
   }
   else
   {
