@@ -644,7 +644,7 @@ else{
 
   Brake(0.0);
 
-  Drive(-0.3, 4.0);
+  Drive(-0.5, 3.0);
 
   Stop(2.0);
 
@@ -918,7 +918,7 @@ void SmRd1::homingRecovery()
 
   Stop(0.0);
 
-  DriveCmdVel(0.0,0.3,0.0,3.0);
+  RotateInPlace(2.0, 1.5);// DriveCmdVel(-0.5,-0.5,0.0,3.0);
 
   Stop(0.0);
 
@@ -926,7 +926,9 @@ void SmRd1::homingRecovery()
 
   Brake(0.0);
 
+  Drive(0.3, 3.0);
 
+  Stop(0.0);
 
 }
 
@@ -945,7 +947,7 @@ void SmRd1::immobilityRecovery(int type)
 
   Brake(0.0);
   if (type == 2) {
-    DriveCmdVel(-0.3, -0.4, 0.0, 3.0);
+    DriveCmdVel(-0.4, -0.4, 0.0, 3.0);
   }
   else
   {
