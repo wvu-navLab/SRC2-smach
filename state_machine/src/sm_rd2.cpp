@@ -74,6 +74,7 @@ move_base_state_hauler_(actionlib::SimpleClientGoalState::LOST)
   clt_lights_hauler_ = nh.serviceClient<srcp2_msgs::ToggleLightSrv>("/hauler_1/toggle_light");
   clt_brake_hauler_ = nh.serviceClient<srcp2_msgs::BrakeRoverSrv>("/hauler_1/brake_rover");
   clt_approach_base_hauler_ = nh.serviceClient<src2_object_detection::ApproachBaseStation>("/hauler_1/approach_base_station");
+  clt_approach_excavator_hauler_ = nh.serviceClient<src2_object_detection::ApproachBaseStation>("/hauler_1/approach_excavator");
   clt_rover_static_hauler_ = nh.serviceClient<sensor_fusion::RoverStatic>("/hauler_1/sensor_fusion/toggle_rover_static");
   clt_homing_hauler_ = nh.serviceClient<sensor_fusion::HomingUpdate>("/hauler_1/homing");
   clt_sf_true_pose_hauler_ = nh.serviceClient<sensor_fusion::GetTruePose>("/hauler_1/true_pose");
@@ -221,7 +222,7 @@ void SmRd2::stateInitialize()
   BrakeHauler(100.0);
 
   BrakeExcavator(100.0);
-  ExecuteHomeArmExcavator(0.0, 3.0);
+  ExecuteHomeArmExcavator(0.0, 1.0);
   BrakeExcavator(0.0);
   // ros::Duration(time).sleep();
 
@@ -318,8 +319,11 @@ void SmRd2::stateInitialize()
 
   BrakeExcavator(0.0);
   DriveExcavator(-0.4, 1.0);
+  StopExcavator(3.0);
+
   RotateInPlaceExcavator(0.3, 3.0);
-  StopExcavator(1.0);
+  StopExcavator(3.0);
+
   BrakeExcavator(100.0);
 
   BrakeHauler(0.0);
@@ -350,8 +354,6 @@ void SmRd2::stateInitialize()
   // }
   BrakeHauler(100.0);
 
-  //   //TODO: Initialize Hauler without using get_true_pose but instead using the relative base_station location after initized with Excavator <------------------------------------- FROM HERE
-  //
   while (!clt_sf_true_pose_hauler_ .waitForExistence())
   {
     ROS_ERROR("EXCAVATOR: Waiting for TruePose service");
@@ -369,39 +371,6 @@ void SmRd2::stateInitialize()
   {
     ROS_ERROR("HAULER: Failed  to call service Pose Update");
   }
-  //
-  RoverStaticHauler(true);
-  //
-  // if(approachSuccessHauler){
-  //   // Homing - Initialize Base Station Landmark
-  //   ros::spinOnce();
-  //
-  //   srv_homing.request.angle = pitch_hauler_ + .4; // pitch up is negative number
-  //   ROS_ERROR("Requesting Angle for LIDAR %f",srv_homing.request.angle);
-  //   srv_homing.request.initializeLandmark = need_to_initialize_landmark_hauler_;
-  //   if (clt_homing_hauler_.call(srv_homing))
-  //   {
-  //     ROS_INFO("HAULER: Called service HomingUpdate");
-  //     if(srv_homing.response.success){
-  //     base_location_ = srv_homing.response.base_location;
-  //     need_to_initialize_landmark_hauler_ = false;
-  //     ROS_INFO_STREAM("HAULER: Called service HomingUpdate SUCCESS"<<base_location_);
-  //     }else{
-  //       ROS_ERROR(" Initial Homing Fail, Starting Without Base Location");
-  //     }
-  //   }
-  //   else
-  //   {
-  //     ROS_ERROR("HAULER: Failed to call service HomingUpdate");
-  //   }
-  // }
-  // else{
-  //   ROS_ERROR(" Initial Homing Fail, Starting Without Base Location");
-  // }
-
-  RoverStaticHauler(false);
-
-  //TODO: Initialize Hauler without using get_true_pose but instead using the relative base_station location after initized with Excavator    <------------------------------------- TILL HERE
 
   ClearCostmapsExcavator();
   BrakeExcavator(0.0);
@@ -427,7 +396,7 @@ void SmRd2::statePlanning()
   ac_excavator_.cancelGoal();
   ac_excavator_.waitForResult(ros::Duration(0.25));
 
-  StopExcavator(1.0);
+  StopExcavator(3.0);
 
   BrakeExcavator(100.0);
 
@@ -457,6 +426,14 @@ void SmRd2::statePlanning()
 
   BrakeExcavator (100.0);
 
+
+  UpdateGoalPoseHauler();
+
+  BrakeHauler (0.0);
+
+  RotateToHeadingHauler(goal_yaw_hauler_);
+
+  BrakeHauler (100.0);
   // check waypoint
 
   // waypoint_checker::CheckCollision srv_wp_check;
@@ -506,12 +483,24 @@ void SmRd2::statePlanning()
 
   BrakeExcavator (0.0);
 
+  ClearCostmapsHauler();
+
+  StopHauler (2.0);
+
+  BrakeHauler (0.0);
+
   move_base_msgs::MoveBaseGoal move_base_goal;
   ac_excavator_.waitForServer();
   setPoseGoalExcavator(move_base_goal, goal_pose_excavator_.position.x, goal_pose_excavator_.position.y, goal_yaw_excavator_);
   ROS_INFO_STREAM("EXCAVATOR: Sending goal to MoveBase: " << move_base_goal);
   ac_excavator_.sendGoal(move_base_goal, boost::bind(&SmRd2::doneCallbackExcavator, this,_1,_2), boost::bind(&SmRd2::activeCallbackExcavator, this), boost::bind(&SmRd2::feedbackCallbackExcavator, this,_1));
   ac_excavator_.waitForResult(ros::Duration(0.25));
+
+  ac_hauler_.waitForServer();
+  setPoseGoalHauler(move_base_goal, goal_pose_hauler_.position.x, goal_pose_hauler_.position.y, goal_yaw_hauler_);
+  ROS_INFO_STREAM("HAULER: Sending goal to MoveBase: " << move_base_goal);
+  ac_hauler_.sendGoal(move_base_goal, boost::bind(&SmRd2::doneCallbackHauler, this,_1,_2), boost::bind(&SmRd2::activeCallbackHauler, this), boost::bind(&SmRd2::feedbackCallbackHauler, this,_1));
+  ac_hauler_.waitForResult(ros::Duration(0.25));
 
   std_msgs::Int64 state_msg;
   state_msg.data = _planning;
@@ -600,15 +589,51 @@ void SmRd2::stateVolatileHandler()
   BrakeExcavator(100.0);
 
   ROS_WARN("Excavation State!");
-
   StartManipulation();
+
+
   ros::Rate manipulation_rate(10);
+  bool approachSuccessHauler = false;
+  ros::Time start_time = ros::Time::now();
+
   while(!flag_volatile_dug_excavator_)
   {
+    if (approachSuccessHauler == false && ros::Time::now()-start_time>ros::Duration(20))
+    {
+      src2_object_detection::ApproachBaseStation srv_approach_base;
+      srv_approach_base.request.approach_base_station.data= true;
+      int homingRecoveryCountHauler = 0;
+      while(!approachSuccessHauler && homingRecoveryCountHauler<3)
+      {
+        if (clt_approach_excavator_hauler_.call(srv_approach_base))
+        {
+          ROS_INFO("HAULER: Called service ApproachExcavator");
+          ROS_INFO_STREAM("Success finding the Excavator? "<< srv_approach_base.response.success.data);
+          if(!srv_approach_base.response.success.data)
+          {
+            homingRecoveryHauler();
+          }
+          else
+          {
+            approachSuccessHauler = true;
+          }
+        }
+        else
+        {
+          ROS_ERROR("HAULER: Failed  to call service ApproachBaseStation");
+        }
+        homingRecoveryCountHauler=homingRecoveryCountHauler+1;
+      }
+      start_time = ros::Time::now();
+      homingRecoveryCountHauler = 0;
+    }
+
     ROS_WARN_THROTTLE(10, "In Manipulatuion State Machine");
     ros::spinOnce();
     manipulation_rate.sleep();
   }
+
+
 
   ros::Duration(10.0).sleep();
 
@@ -909,7 +934,7 @@ void SmRd2::RotateToHeadingExcavator(double desired_yaw)
   }
   else
   {
-    StopExcavator(0.0);
+    StopExcavator(2.0);
   }
 }
 
@@ -1122,7 +1147,7 @@ void SmRd2::ExecuteHomeArmExcavator(double heading, double time)
 {
   move_excavator::HomeArm srv;
   srv.request.heading = heading;
-  srv.request.timeLimit = 100;
+  srv.request.timeLimit = time;
   // bool success = clt_home_arm_excavator_.call(srv);
   if (clt_home_arm_excavator_.call(srv))
   {
@@ -1139,7 +1164,7 @@ void SmRd2::ExecuteDigExcavator(double heading, double time)
 {
   move_excavator::DigVolatile srv;
   srv.request.heading = heading;
-  srv.request.timeLimit = 100;
+  srv.request.timeLimit = time;
   // bool success = clt_dig_volatile_excavator_.call(srv);
   if (clt_dig_volatile_excavator_.call(srv))
   {
@@ -1156,7 +1181,7 @@ void SmRd2::ExecuteScoopExcavator(double heading, double time)
 {
   move_excavator::Scoop srv;
   srv.request.heading = heading;
-  srv.request.timeLimit = 100;
+  srv.request.timeLimit = time;
   // bool success = clt_scoop_excavator_.call(srv);
   if (clt_scoop_excavator_.call(srv))
   {
@@ -1173,7 +1198,7 @@ void SmRd2::ExecuteExtendArmExcavator(double heading, double time)
 {
   move_excavator::ExtendArm srv;
   srv.request.heading = heading;
-  srv.request.timeLimit = 100;
+  srv.request.timeLimit = time;
   // bool success = clt_extend_arm_excavator_.call(srv);
   if (clt_extend_arm_excavator_.call(srv))
   {
@@ -1190,7 +1215,7 @@ void SmRd2::ExecuteDropExcavator(double heading, double time)
 {
   move_excavator::DropVolatile srv;
   srv.request.heading = heading;
-  srv.request.timeLimit = 100;
+  srv.request.timeLimit = time;
   // bool success = clt_drop_volatile_excavator_.call(srv);
   if (clt_drop_volatile_excavator_.call(srv))
   {
@@ -1262,6 +1287,15 @@ void SmRd2::localizationCallbackHauler(const nav_msgs::Odometry::ConstPtr& msg)
 
   tf2::Matrix3x3(q).getRPY(roll_hauler_, pitch_hauler_, yaw_hauler_);
 
+}
+
+void SmRd2::UpdateGoalPoseHauler(){
+  double dx = goal_pose_hauler_.position.x - current_pose_hauler_.position.x;
+  double dy = goal_pose_hauler_.position.y - current_pose_hauler_.position.y;
+  goal_yaw_hauler_ = atan2(dy, dx);
+
+  goal_pose_hauler_.position.x = goal_vol_pose_.position.x + dx / hypot(dx,dy) * 4;
+  goal_pose_hauler_.position.y = goal_vol_pose_.position.y + dy / hypot(dx,dy) * 4;
 }
 
 void SmRd2::setPoseGoalHauler(move_base_msgs::MoveBaseGoal &poseGoal, double x, double y, double yaw) // m, m, rad
