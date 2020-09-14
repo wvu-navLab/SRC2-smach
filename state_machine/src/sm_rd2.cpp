@@ -144,7 +144,7 @@ void SmRd2::run()
     {
       state_to_exec.at(_traverse) = 1;
     }
-    else if(!flag_volatile_dug_excavator_ && !flag_brake_engaged_excavator_)
+    else if(!flag_volatile_dug_excavator_ && flag_brake_engaged_excavator_)
     {
       state_to_exec.at(_volatile_handler) = 1;
     }
@@ -530,15 +530,6 @@ void SmRd2::stateTraverse()
     flag_waypoint_unreachable_excavator_ = false;
   }
 
-  // if(flag_volatile_recorded_excavator_)
-  // {
-  //   ROS_INFO("EXCAVATOR: Volatile recorded.");
-  //   flag_localizing_volatile_excavator_ = false;
-  //   flag_volatile_recorded_excavator_ = false;
-  //   flag_arrived_at_waypoint_excavator_ = true;
-  //   flag_waypoint_unreachable_excavator_ = false;
-  // }
-
   if(flag_recovering_localization_excavator_ && !flag_localization_failure_excavator_)
   {
     ROS_INFO("EXCAVATOR: Recovering localization or failure in localization.");
@@ -568,14 +559,15 @@ void SmRd2::stateTraverse()
     flag_waypoint_unreachable_excavator_ = false;
     ROS_INFO_STREAM("Let's start manipulation.");
     flag_volatile_dug_excavator_ = false;
+    flag_localizing_volatile_excavator_ = true;
+    BrakeExcavator(100.0);
   }
 
-  // if (!flag_mobility)
-  // {
-  //   ROS_INFO("EXCAVATOR: Recovering maneuver initialized.");
-  //   immobilityRecovery();
-  //   //flag_have_true_pose = true;
-  // }
+  if (!flag_mobility_excavator_)
+  {
+    ROS_INFO("EXCAVATOR: Recovering maneuver initialized.");
+    immobilityRecoveryExcavator();
+  }
 
   move_base_state_excavator_ = ac_excavator_.getState();
   int mb_state =(int) move_base_state_excavator_.state_;
@@ -594,7 +586,6 @@ void SmRd2::stateTraverse()
   std_msgs::Int64 state_msg;
   state_msg.data = _traverse;
   sm_state_pub_.publish(state_msg);
-
 }
 
 void SmRd2::stateVolatileHandler()
