@@ -11,7 +11,7 @@ move_base_state_(actionlib::SimpleClientGoalState::LOST)
   pub_driving_mode_ = nh.advertise<std_msgs::Int64>("/scout_1/driving/driving_mode", 1);
   // Subscribers
   localized_base_sub = nh.subscribe("/state_machine/localized_base_scout", 1, &SmRd1::localizedBaseCallback, this);
-  mobility_sub = nh.subscribe("/state_machine/mobility_scout", 10, &SmRd1::mobilityCallback, this);
+  mobility_sub = nh.subscribe("/state_machine/mobility_scout", 1, &SmRd1::mobilityCallback, this);
   waypoint_unreachable_sub = nh.subscribe("/state_machine/waypoint_unreachable", 1, &SmRd1::waypointUnreachableCallback, this);
   arrived_at_waypoint_sub = nh.subscribe("/state_machine/arrived_at_waypoint", 1, &SmRd1::arrivedAtWaypointCallback, this);
   volatile_detected_sub = nh.subscribe("/state_machine/volatile_detected", 1, &SmRd1::volatileDetectedCallback, this);
