@@ -144,7 +144,7 @@ void SmRd2::run()
     {
       state_to_exec.at(_traverse) = 1;
     }
-    else if(!flag_volatile_dug_excavator_ && !flag_brake_engaged_excavator_)
+    else if(!flag_volatile_dug_excavator_ && flag_brake_engaged_excavator_)
     {
       state_to_exec.at(_volatile_handler) = 1;
     }
@@ -226,7 +226,7 @@ void SmRd2::stateInitialize()
   // ros::Duration(time).sleep();
 
 
-  LightsExcavator("0.8");
+  // LightsExcavator("0.8");
 
   while (!clt_approach_base_excavator_.waitForExistence())
   {
@@ -348,29 +348,29 @@ void SmRd2::stateInitialize()
   //   }
   //   homingRecoveryCountHauler=homingRecoveryCountHauler+1;
   // }
-  // BrakeHauler(100.0);
-  //
+  BrakeHauler(100.0);
+
   //   //TODO: Initialize Hauler without using get_true_pose but instead using the relative base_station location after initized with Excavator <------------------------------------- FROM HERE
   //
-  // while (!clt_sf_true_pose_hauler_ .waitForExistence())
-  // {
-  //   ROS_ERROR("EXCAVATOR: Waiting for TruePose service");
-  // }
+  while (!clt_sf_true_pose_hauler_ .waitForExistence())
+  {
+    ROS_ERROR("EXCAVATOR: Waiting for TruePose service");
+  }
+
+  // Update SF with True Pose
+  srv_sf_true_pose.request.start = true;
+  if (clt_sf_true_pose_hauler_ .call(srv_sf_true_pose))
+  {
+    ROS_INFO("HAULER: Called service TruePose");
+    ROS_INFO_STREAM("Status of SF True Pose: "<< srv_sf_true_pose.response.success);
+    flag_have_true_pose_hauler_ = true;
+  }
+  else
+  {
+    ROS_ERROR("HAULER: Failed  to call service Pose Update");
+  }
   //
-  // // Update SF with True Pose
-  // srv_sf_true_pose.request.start = true;
-  // if (clt_sf_true_pose_hauler_ .call(srv_sf_true_pose))
-  // {
-  //   ROS_INFO("HAULER: Called service TruePose");
-  //   ROS_INFO_STREAM("Status of SF True Pose: "<< srv_sf_true_pose.response.success);
-  //   flag_have_true_pose_hauler_ = true;
-  // }
-  // else
-  // {
-  //   ROS_ERROR("HAULER: Failed  to call service Pose Update");
-  // }
-  //
-  // RoverStaticHauler(true);
+  RoverStaticHauler(true);
   //
   // if(approachSuccessHauler){
   //   // Homing - Initialize Base Station Landmark
@@ -530,15 +530,6 @@ void SmRd2::stateTraverse()
     flag_waypoint_unreachable_excavator_ = false;
   }
 
-  // if(flag_volatile_recorded_excavator_)
-  // {
-  //   ROS_INFO("EXCAVATOR: Volatile recorded.");
-  //   flag_localizing_volatile_excavator_ = false;
-  //   flag_volatile_recorded_excavator_ = false;
-  //   flag_arrived_at_waypoint_excavator_ = true;
-  //   flag_waypoint_unreachable_excavator_ = false;
-  // }
-
   if(flag_recovering_localization_excavator_ && !flag_localization_failure_excavator_)
   {
     ROS_INFO("EXCAVATOR: Recovering localization or failure in localization.");
@@ -568,14 +559,21 @@ void SmRd2::stateTraverse()
     flag_waypoint_unreachable_excavator_ = false;
     ROS_INFO_STREAM("Let's start manipulation.");
     flag_volatile_dug_excavator_ = false;
+    flag_localizing_volatile_excavator_ = true;
+
+    ROS_INFO("EXCAVATOR: Canceling MoveBase goal.");
+    ac_excavator_.waitForServer();
+    ac_excavator_.cancelGoal();
+    ac_excavator_.waitForResult(ros::Duration(0.25));
+
+    BrakeExcavator(100.0);
   }
 
-  // if (!flag_mobility)
-  // {
-  //   ROS_INFO("EXCAVATOR: Recovering maneuver initialized.");
-  //   immobilityRecovery();
-  //   //flag_have_true_pose = true;
-  // }
+  if (!flag_mobility_excavator_)
+  {
+    ROS_INFO("EXCAVATOR: Recovering maneuver initialized.");
+    immobilityRecoveryExcavator();
+  }
 
   move_base_state_excavator_ = ac_excavator_.getState();
   int mb_state =(int) move_base_state_excavator_.state_;
@@ -594,7 +592,6 @@ void SmRd2::stateTraverse()
   std_msgs::Int64 state_msg;
   state_msg.data = _traverse;
   sm_state_pub_.publish(state_msg);
-
 }
 
 void SmRd2::stateVolatileHandler()
@@ -605,11 +602,12 @@ void SmRd2::stateVolatileHandler()
   ROS_WARN("Excavation State!");
 
   StartManipulation();
-
+  ros::Rate manipulation_rate(10);
   while(!flag_volatile_dug_excavator_)
   {
-    ROS_WARN("In Manipulatuion State Machine");
+    ROS_WARN_THROTTLE(10, "In Manipulatuion State Machine");
     ros::spinOnce();
+    manipulation_rate.sleep();
   }
 
   ros::Duration(10.0).sleep();
@@ -833,10 +831,10 @@ void SmRd2::manipulationFeedbackCallbackExcavator(const move_excavator::Excavati
 void SmRd2::UpdateGoalPoseExcavator(){
   double dx = goal_pose_excavator_.position.x - current_pose_excavator_.position.x;
   double dy = goal_pose_excavator_.position.y - current_pose_excavator_.position.y;
-  goal_yaw_excavator_ = atan2(-dy, -dx);
+  goal_yaw_excavator_ = atan2(dy, dx);
 
-  goal_pose_excavator_.position.x = goal_vol_pose_.position.x - dx / hypot(dx,dy) * 0.5;
-  goal_pose_excavator_.position.y = goal_vol_pose_.position.y - dy / hypot(dx,dy) * 0.5;
+  goal_pose_excavator_.position.x = goal_vol_pose_.position.x + dx / hypot(dx,dy) * 0.5;
+  goal_pose_excavator_.position.y = goal_vol_pose_.position.y + dy / hypot(dx,dy) * 0.5;
 }
 
 
