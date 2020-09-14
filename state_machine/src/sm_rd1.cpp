@@ -47,6 +47,7 @@ move_base_state_(actionlib::SimpleClientGoalState::LOST)
   detection_timer = ros::Time::now();
   not_detected_timer = ros::Time::now();
   last_time_laser_collision_ = ros::Time::now();
+  map_timer = ros::Time::now();
 }
 
 void SmRd1::run()
@@ -265,48 +266,26 @@ else{
 
   Brake(0.0);
 
-  Drive(-0.5, 3.0);
+  Drive(-0.3, 2.0);
 
-  Stop(2.0);
+  Stop(3.0);
 
   Brake(100.0);
 
-  // Brake(0.0);
+  Brake(0.0);
 
-  // RotateInPlace(0.2, 3.0);
+  RotateInPlace(0.2, 3.0);
 
-  // Stop(2.0);
+  Stop(3.0);
 
-  // Brake(100.0);
+  Brake(100.0);
 
   Brake(0.0);
-  // DriveCmdVel(-0.3, 0.0, 0.0, 5.0);
-
-  // Stop(5.0);
-
-  // Brake(100.0);
-
-  // Brake(0.0);
-  //
-  // DriveCmdVel(0.4, 0.0, 0.0, 5.0);
-  //
-  // Stop(10.0);
-  //
-  // Brake(100.0);
-  //
-  // Brake(0.0);
-
-  // RotateInPlace(0.2, 3.0);
-
-  // Stop(2.0);
-
-  // Brake(100.0);
 
   ToggleDetector(true);
 
   ClearCostmaps();
 
-  // Brake(0.0);
 
   waypoint_gen::StartWaypoint srv_wp_start;
   srv_wp_start.request.start  = true;
@@ -319,7 +298,6 @@ else{
   {
     ROS_ERROR("SCOUT: Failed  to call service Waypoint Start");
   }
-
 
 
   // make sure we dont latch to a vol we skipped while homing
@@ -506,12 +484,6 @@ void SmRd1::stateTraverse()
     }
   }
 
-  // if (!flag_mobility)
-  // {
-  //   ROS_INFO("SCOUT: Recovering maneuver initialized.");
-  //   immobilityRecovery();
-    // flag_have_true_pose = true;
-  // }
 
   move_base_state_ = ac.getState();
   int mb_state =(int) move_base_state_.state_;
@@ -526,6 +498,17 @@ void SmRd1::stateTraverse()
 
     ClearCostmaps();
   }
+
+  ros::Duration timeoutMap(30.0);
+
+  if (ros::Time::now() - map_timer > timeoutMap)
+  {
+    std_srvs::Empty emptymsg;
+    ros::service::call("/scout_1/move_base/clear_costmaps",emptymsg);
+    map_timer =ros::Time::now();
+    ROS_WARN("Map Cleared");
+  }
+
 
   std_msgs::Int64 state_msg;
   state_msg.data = _traverse;
@@ -646,19 +629,27 @@ else{
 
   Drive(-0.5, 3.0);
 
-  Stop(2.0);
+  Stop(3.0);
 
   Brake(100.0);
 
-  // Brake(0.0);
-
-  // RotateInPlace(0.2, 3.0);
-
-  // Stop(2.0);
-
-  // Brake(100.0);
-
   Brake(0.0);
+
+  // RotateInPlace(0.2, 1.5);
+  //
+  // Stop(2.0);
+  //
+  // Brake(100.0);
+  //
+  // Brake(0.0);
+  //
+  // Drive(0.3, 2.0);
+  //
+  // Stop(2.0);
+  //
+  // Brake(100.0);
+  //
+  // Brake(0.0);
 
   ToggleDetector(true);
 
@@ -889,6 +880,8 @@ void SmRd1::RotateToHeading(double desired_yaw)
 
      Drive (-0.3, 4.0);
 
+     Stop(3.0);
+
   //  immobilityRecovery(); //TODO: Use this instead of Stop and Drive at line 714 and 716
 
     flag_heading_fail=false;
@@ -918,7 +911,8 @@ void SmRd1::homingRecovery()
 
   Stop(0.0);
 
-  RotateInPlace(2.0, 1.5);// DriveCmdVel(-0.5,-0.5,0.0,3.0);
+  // RotateInPlace(2.0, 1.5);// DriveCmdVel(-0.5,-0.5,0.0,3.0);
+  RotateToHeading(yaw_ - M_PI/2);
 
   Stop(0.0);
 
@@ -947,22 +941,20 @@ void SmRd1::immobilityRecovery(int type)
 
   Brake(0.0);
   if (type == 2) {
-    DriveCmdVel(-0.4, -0.4, 0.0, 3.0);
+    Drive(-0.3, 4.0);
   }
   else
   {
     Drive(-0.3, 4.0);
   }
 
-
-  Stop(0.0);
+  Stop(2.0);
 
   Brake(100.0);
 
   Brake(0.0);
 
   flag_waypoint_unreachable=true;
-
 
 
 }
@@ -1041,7 +1033,7 @@ void SmRd1::Brake(double intensity)
     {
       flag_brake_engaged =true;
     }
-    ROS_INFO_STREAM("SCOUT: Called service SRCP2 Brake. Engaged?" << flag_brake_engaged);
+    ROS_INFO_STREAM("SCOUT: Called service SRCP2 Brake. Engaged?: " << flag_brake_engaged);
   }
   else
   {
@@ -1066,7 +1058,7 @@ void SmRd1::Drive(double throttle, double time)
   }
   else
   {
-    ROS_ERROR("SCOUT: Failed  to call service Drive");
+    ROS_ERROR("SCOUT: Failed to call service Drive");
   }
 }
 
@@ -1092,7 +1084,7 @@ void SmRd1::ToggleDetector(bool flag)
   srv_vol_detect.request.on  = flag;
   if (clt_vol_detect_.call(srv_vol_detect))
   {
-    ROS_INFO_STREAM("SCOUT: Called service ToggleDetector. Turned on?" << flag);
+    ROS_INFO_STREAM("SCOUT: Called service ToggleDetector. Turned on? " << flag);
   }
   else
   {
@@ -1107,7 +1099,7 @@ void SmRd1::RoverStatic(bool flag)
   srv_rover_static.request.rover_static  = flag;
   if (clt_rover_static_.call(srv_rover_static))
   {
-    ROS_INFO_STREAM("SCOUT: Called service RoverStatic. Turned on?" << flag);
+    ROS_INFO_STREAM("SCOUT: Called service RoverStatic. Turned on? " << flag);
   }
   else
   {
