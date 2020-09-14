@@ -56,7 +56,8 @@ void SmRd1::run()
   while(ros::ok())
   {
     // Debug prints +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-    ROS_INFO("flag_localized_base: %i",flag_localized_base);
+
+    ROS_INFO("flag_localized_base: %i", flag_localized_base);
     ROS_INFO("flag_mobility: %i",flag_mobility);
     ROS_INFO("flag_have_true_pose: %i",flag_have_true_pose);
     ROS_INFO("flag_waypoint_unreachable: %i",flag_waypoint_unreachable);
@@ -266,7 +267,7 @@ else{
 
   Brake(0.0);
 
-  Drive(-0.3, 2.0);
+  Drive(-0.3, 3.0);
 
   Stop(3.0);
 
@@ -274,7 +275,7 @@ else{
 
   Brake(0.0);
 
-  RotateInPlace(0.2, 3.0);
+  RotateToHeading(yaw_ - M_PI/2);
 
   Stop(3.0);
 
@@ -420,6 +421,7 @@ void SmRd1::statePlanning()
   ac.waitForServer();
   setPoseGoal(move_base_goal, goal_pose_.position.x, goal_pose_.position.y, goal_yaw_);
   ROS_INFO_STREAM("SCOUT: Sending goal to MoveBase: " << move_base_goal);
+  waypoint_timer_ = ros::Time::now();
   ac.sendGoal(move_base_goal, boost::bind(&SmRd1::doneCallback, this,_1,_2), boost::bind(&SmRd1::activeCallback, this), boost::bind(&SmRd1::feedbackCallback, this,_1));
   ac.waitForResult(ros::Duration(0.25));
 
@@ -485,6 +487,7 @@ void SmRd1::stateTraverse()
   }
 
 
+
   move_base_state_ = ac.getState();
   int mb_state =(int) move_base_state_.state_;
   ROS_WARN_STREAM("MoveBase status: "<< mb_state);
@@ -509,6 +512,18 @@ void SmRd1::stateTraverse()
     ROS_WARN("Map Cleared");
   }
 
+  ros::Duration timeoutWaypoint(120);
+  if (ros::Time::now() - waypoint_timer_ > timeoutWaypoint )
+  {
+    ROS_ERROR("Waypoint Unreachable");
+    flag_waypoint_unreachable= true;
+    Stop (1.0);
+    ClearCostmaps();
+  }
+  else
+  {
+    ROS_ERROR_STREAM_THROTTLE(1,"Remaining Time for Waypoint" << timeoutWaypoint - (ros::Time::now() - waypoint_timer_));
+  }
 
   std_msgs::Int64 state_msg;
   state_msg.data = _traverse;
@@ -635,21 +650,6 @@ else{
 
   Brake(0.0);
 
-  // RotateInPlace(0.2, 1.5);
-  //
-  // Stop(2.0);
-  //
-  // Brake(100.0);
-  //
-  // Brake(0.0);
-  //
-  // Drive(0.3, 2.0);
-  //
-  // Stop(2.0);
-  //
-  // Brake(100.0);
-  //
-  // Brake(0.0);
 
   ToggleDetector(true);
 
@@ -911,7 +911,6 @@ void SmRd1::homingRecovery()
 
   Stop(0.0);
 
-  // RotateInPlace(2.0, 1.5);// DriveCmdVel(-0.5,-0.5,0.0,3.0);
   RotateToHeading(yaw_ - M_PI/2);
 
   Stop(0.0);
@@ -923,6 +922,10 @@ void SmRd1::homingRecovery()
   Drive(0.3, 3.0);
 
   Stop(0.0);
+
+  Brake(100.0);
+
+  Brake(0.0);
 
 }
 
@@ -940,15 +943,10 @@ void SmRd1::immobilityRecovery(int type)
   Brake(100.0);
 
   Brake(0.0);
-  if (type == 2) {
-    Drive(-0.3, 4.0);
-  }
-  else
-  {
-    Drive(-0.3, 4.0);
-  }
 
-  Stop(2.0);
+  Drive(-0.3, 4.0);
+
+  Stop(3.0);
 
   Brake(100.0);
 
