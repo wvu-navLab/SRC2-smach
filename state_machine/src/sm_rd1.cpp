@@ -1089,7 +1089,6 @@ void SmRd1::BrakeRamp(double max_intensity, double time, int aggressivity)
     // ROS_INFO("Brake Logistics Curve.");
     for (int counter = 0; counter < num_steps; ++counter)
     {
-
       double multiplier = 2;
       double x = (static_cast<double>(counter + 1)/(freq * time)) * time * multiplier;
       double intensity =  max_intensity / (1 + exp(-x)) - max_intensity/2;

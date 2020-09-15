@@ -156,6 +156,8 @@ public:
   ros::ServiceClient clt_scoop_excavator_;
   ros::ServiceClient clt_extend_arm_excavator_ ;
   ros::ServiceClient clt_drop_volatile_excavator_;
+  ros::ServiceClient clt_set_base_excavator_ ;
+  ros::ServiceClient clt_location_of_base_excavator_;
 
   // HAULER
   ros::Publisher cmd_vel_pub_hauler_;
@@ -185,8 +187,8 @@ public:
   ros::ServiceClient clt_rover_static_hauler_;
   ros::ServiceClient clt_waypoint_checker_hauler_;
   ros::ServiceClient clt_srcp2_brake_rover_hauler_;
-  ros::ServiceClient clt_set_hauler_base_ ;
-  ros::ServiceClient clt_hauler_location_of_base_;
+  ros::ServiceClient clt_set_base_hauler_ ;
+  ros::ServiceClient clt_location_of_base_hauler_;
 
 
   MoveBaseClient ac_excavator_;
