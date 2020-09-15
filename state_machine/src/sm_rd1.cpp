@@ -900,6 +900,7 @@ void SmRd1::homingRecovery()
   ac.waitForResult(ros::Duration(0.25));
 
   ROS_WARN("Starting Homing Recovery.");
+  Lights("0.6");
 
   Stop(2.0);
 
