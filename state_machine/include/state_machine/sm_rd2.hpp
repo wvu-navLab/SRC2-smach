@@ -178,6 +178,7 @@ public:
   ros::ServiceClient clt_lights_hauler_;
   ros::ServiceClient clt_homing_hauler_;
   ros::ServiceClient clt_approach_base_hauler_;
+  ros::ServiceClient clt_approach_excavator_hauler_;
   ros::ServiceClient clt_rover_static_hauler_;
   ros::ServiceClient clt_waypoint_checker_hauler_;
   ros::ServiceClient clt_srcp2_brake_rover_hauler_;
@@ -255,6 +256,7 @@ public:
   void feedbackCallbackHauler(const move_base_msgs::MoveBaseFeedbackConstPtr& feedback);
 
   void RotateToHeadingHauler(double desired_yaw);
+  void UpdateGoalPoseHauler();
   void ClearCostmapsHauler();
   void LightsHauler(std::string intensity);
   void RotateInPlaceHauler(double throttle, double time);
