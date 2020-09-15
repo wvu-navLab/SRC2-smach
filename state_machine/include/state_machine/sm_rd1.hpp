@@ -65,7 +65,7 @@ public:
   bool flag_heading_fail=false;
   bool need_to_initialize_landmark=true;
 
-  ros::Time detection_timer, not_detected_timer;
+  ros::Time detection_timer, not_detected_timer, wp_checker_timer;
   ros::Time last_time_laser_collision_, map_timer, waypoint_timer_;
 
   const double VOLATILE_THRESH = 1.0;
@@ -100,7 +100,7 @@ public:
   ros::Subscriber localization_failure_sub;
   ros::Subscriber localization_sub;
   ros::Subscriber driving_mode_sub;
-  ros::Subscriber mobility_sub;
+  // ros::Subscriber mobility_sub;
   ros::Subscriber laserscan_sub;
 
   // ros::ServiceClient clt_true_pose_;

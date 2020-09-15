@@ -11,7 +11,7 @@ move_base_state_(actionlib::SimpleClientGoalState::PREEMPTED)
   pub_driving_mode_ = nh.advertise<std_msgs::Int64>("/scout_1/driving/driving_mode", 1);
   // Subscribers
   localized_base_sub = nh.subscribe("/state_machine/localized_base_scout", 1, &SmRd1::localizedBaseCallback, this);
-  mobility_sub = nh.subscribe("/state_machine/mobility_scout", 1, &SmRd1::mobilityCallback, this);
+  // mobility_sub = nh.subscribe("/state_machine/mobility_scout", 1, &SmRd1::mobilityCallback, this);
   waypoint_unreachable_sub = nh.subscribe("/state_machine/waypoint_unreachable", 1, &SmRd1::waypointUnreachableCallback, this);
   arrived_at_waypoint_sub = nh.subscribe("/state_machine/arrived_at_waypoint", 1, &SmRd1::arrivedAtWaypointCallback, this);
   volatile_detected_sub = nh.subscribe("/state_machine/volatile_detected", 1, &SmRd1::volatileDetectedCallback, this);
@@ -49,13 +49,14 @@ move_base_state_(actionlib::SimpleClientGoalState::PREEMPTED)
   not_detected_timer = ros::Time::now();
   last_time_laser_collision_ = ros::Time::now();
   map_timer = ros::Time::now();
+  wp_checker_timer=  ros::Time::now();
 }
 
 
 
 void SmRd1::run()
 {
-  ros::Rate loop_rate(15); // Hz
+  ros::Rate loop_rate(2); // Hz
   while(ros::ok())
   {
     // Debug prints +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -383,7 +384,8 @@ void SmRd1::statePlanning()
 
   waypoint_checker::CheckCollision srv_wp_check;
   bool is_colliding = true;
-  while (is_colliding)
+  int counter = 0;
+  while (is_colliding && counter<3)
   {
     srv_wp_check.request.x  = goal_pose_.position.x;
     srv_wp_check.request.y = goal_pose_.position.y;
@@ -410,6 +412,7 @@ void SmRd1::statePlanning()
 
           // Brake (100.0);
           BrakeRamp(100, 3, 0);
+          Brake (0.0);
         }
         else
         {
@@ -420,9 +423,12 @@ void SmRd1::statePlanning()
     else
     {
       ROS_ERROR("SCOUT: Failed to call service Waypoint Checker");
-    }
-  }
 
+
+  }
+  ros::spinOnce();
+  counter=counter+1;
+}
   ClearCostmaps();
 
   // Stop (2.0);
@@ -468,18 +474,20 @@ void SmRd1::stateTraverse()
     flag_waypoint_unreachable = false;
     flag_recovering_localization = false;
   }
-  bool is_colliding = false;
+  ros::Duration timeOutWPCheck(1.0);
+  if (ros::Time::now() - wp_checker_timer > timeOutWPCheck) {
+    bool is_colliding = false;
     waypoint_checker::CheckCollision srv_wp_check;
-    if (clt_waypoint_checker_.call(srv_wp_check))
-    {
+    if (clt_waypoint_checker_.call(srv_wp_check)) {
       ROS_INFO("SCOUT: Called service Waypoint Checker");
       is_colliding = srv_wp_check.response.collision;
-      if(is_colliding)
-      {
+      if (is_colliding) {
         ROS_INFO("SCOUT: Waypoint Unreachable. Sending to Planning");
-        flag_waypoint_unreachable=true;
+        flag_waypoint_unreachable = true;
       }
     }
+    wp_checker_timer = ros::Time::now();
+  }
   double distance_to_goal = std::hypot(goal_pose_.position.y - current_pose_.position.y, goal_pose_.position.x - current_pose_.position.x);
   if (distance_to_goal < 2.0)
   {
@@ -697,17 +705,16 @@ void SmRd1::localizedBaseCallback(const std_msgs::Int64::ConstPtr& msg)
   }
 }
 
-void SmRd1::mobilityCallback(const std_msgs::Int64::ConstPtr& msg)
-{
-  flag_mobility = msg->data;
-  if (flag_mobility) {
-    ROS_WARN_ONCE("Rover is traversing = %i",flag_mobility);
-  }
-  else {
-    ROS_ERROR("ROVER IMMOBILIZATION!  = %i",flag_mobility);
-    immobilityRecovery(1);
-  }
-}
+// void SmRd1::mobilityCallback(const std_msgs::Int64::ConstPtr& msg)
+// {
+// flag_mobility = msg->data;
+// if (flag_mobility == 0) {
+//   ROS_ERROR("ROVER IMMOBILIZATION!  = %i", flag_mobility);
+//   immobilityRecovery(1);
+// } else {
+//   ROS_WARN_ONCE("Rover is traversing = %i", flag_mobility);
+// }
+// }
 
 void SmRd1::waypointUnreachableCallback(const std_msgs::Bool::ConstPtr& msg)
 {
@@ -977,6 +984,8 @@ void SmRd1::immobilityRecovery(int type)
 
   Brake(0.0);
 
+  flag_mobility=true;
+
   flag_waypoint_unreachable=true;
 
 
@@ -1190,7 +1199,11 @@ void SmRd1::RoverStatic(bool flag)
 }
 
 bool SmRd1::setMobility_(state_machine::SetMobility::Request &req, state_machine::SetMobility::Response &res){
+  ROS_ERROR(" GOT MOBILITY IN SM %d", req.mobility);
   flag_mobility = req.mobility;
+  res.success = true;
+  return true;
+  immobilityRecovery(1);
 }
 
 //------------------------------------------------------------------------------------------------------------------------
