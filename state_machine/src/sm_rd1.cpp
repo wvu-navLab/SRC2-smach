@@ -52,7 +52,7 @@ move_base_state_(actionlib::SimpleClientGoalState::LOST)
 
 void SmRd1::run()
 {
-  ros::Rate loop_rate(5); // Hz
+  ros::Rate loop_rate(15); // Hz
   while(ros::ok())
   {
     // Debug prints +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
