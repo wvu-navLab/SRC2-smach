@@ -1040,6 +1040,45 @@ void SmRd1::Brake(double intensity)
   }
 }
 
+void SmRd1::BrakeRamp(double max_intensity, double time, int aggressivity)
+{
+  double freq = 10;
+  ros::Rate brake_rate(freq);
+  int num_steps = (int) freq * time;
+  if(aggressivity == 0)
+  {
+    ROS_INFO("Brake Ramp.");
+    for (int counter = 0; counter < num_steps; ++counter)
+    {
+      counter++;
+      double intensity = (counter/num_steps)*max_intensity;
+      ROS_INFO_STREAM("Brake intensity: " << intensity);
+      Brake(intensity);
+      brake_rate.sleep();
+    }
+  }
+  else if (aggressivity == 1)
+  {
+    ROS_INFO("Brake Logistics Curve.");
+    for (int counter = 0; counter < num_steps; ++counter)
+    {
+      counter++;
+      double multiplier = 2;
+      double x = (counter/num_steps) * time * multiplier;
+      double intensity =  max_intensity / (1 + exp(-x)) - max_intensity/2;
+      ROS_INFO_STREAM("Brake intensity: " << intensity);
+      Brake(intensity);
+      brake_rate.sleep();
+    }
+  }
+  else
+  {
+    ROS_INFO("Brake FULL.");
+    Brake(max_intensity);
+    ros::Duration(time).sleep();
+  }
+}
+
 void SmRd1::Drive(double throttle, double time)
 {
   driving_tools::MoveForward srv_drive;

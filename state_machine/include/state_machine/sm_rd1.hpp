@@ -164,5 +164,6 @@ public:
   void Brake(double intensity);
   void RoverStatic(bool flag);
   void DriveCmdVel(double vx, double vy, double wz, double time);
+  void BrakeRamp(double max_intensity, double time, int aggressivity);
 
 };

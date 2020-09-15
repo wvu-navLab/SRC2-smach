@@ -391,11 +391,14 @@ void SmRd2::statePlanning()
     ROS_ERROR("EXCAVATOR Failed to call service NextVolatileLocation.");
   }
 
+  goal_yaw_excavator_ = atan2(goal_vol_pose_.position.y - current_pose_excavator_.position.y, goal_vol_pose_.position.x - current_pose_excavator_.position.x);
+
   UpdateGoalPoseExcavator();
   BrakeExcavator (0.0);
   RotateToHeadingExcavator(goal_yaw_excavator_);
   BrakeExcavator (100.0);
 
+  goal_yaw_hauler_ = atan2(goal_vol_pose_.position.y - current_pose_hauler_.position.y, goal_vol_pose_.position.x - current_pose_hauler_.position.x);
 
   UpdateGoalPoseHauler();
   BrakeHauler (0.0);
