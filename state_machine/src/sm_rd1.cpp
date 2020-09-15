@@ -1052,8 +1052,8 @@ void SmRd1::BrakeRamp(double max_intensity, double time, int aggressivity)
     ROS_INFO("Brake Ramp.");
     for (int counter = 0; counter < num_steps; ++counter)
     {
-      counter++;
-      double intensity = (counter/num_steps)*max_intensity;
+      ROS_INFO_STREAM("Counter: " << counter);
+      double intensity = ((double) counter/(freq * time))*max_intensity;
       ROS_INFO_STREAM("Brake intensity: " << intensity);
       Brake(intensity);
       brake_rate.sleep();
@@ -1064,9 +1064,9 @@ void SmRd1::BrakeRamp(double max_intensity, double time, int aggressivity)
     ROS_INFO("Brake Logistics Curve.");
     for (int counter = 0; counter < num_steps; ++counter)
     {
-      counter++;
+      ROS_INFO_STREAM("Counter: " << counter);
       double multiplier = 2;
-      double x = (counter/num_steps) * time * multiplier;
+      double x = ((double) counter/(freq * time)) * time * multiplier;
       double intensity =  max_intensity / (1 + exp(-x)) - max_intensity/2;
       ROS_INFO_STREAM("Brake intensity: " << intensity);
       Brake(intensity);

@@ -225,6 +225,10 @@ void SmRd2::stateInitialize()
   ExecuteHomeArmExcavator(0.0, 1.0);
   BrakeExcavator(0.0);
 
+  // TODO: Hauler needs to disappear from sight
+  // 1. Set higher confidence
+  // 2. Filter by color?
+
   // LightsExcavator("0.8");
 
   while (!clt_approach_base_excavator_.waitForExistence())
@@ -338,6 +342,9 @@ void SmRd2::stateInitialize()
   {
     ROS_ERROR("HAULER: Failed  to call service Pose Update");
   }
+
+  // TODO: Set Base Station position for Hauler.
+
 
   ClearCostmapsExcavator();
   BrakeExcavator(0.0);
@@ -581,6 +588,12 @@ void SmRd2::stateVolatileHandler()
   bool approachSuccessHauler = false;
   ros::Time start_time = ros::Time::now();
 
+  // TODO: Location of Base Station:
+  // This service will give (x,y) in global frame of hauler
+  // Subtract (x,y) estimate of the hauler
+  // Put some sanity check
+
+  // OUTER LOOP : CHECK FOR SOME TIMEOUT. MOVES EXCAVATOR +/-dx +/-dy
   while(!flag_volatile_dug_excavator_)
   {
     if (approachSuccessHauler == false && ros::Time::now()-start_time>ros::Duration(20))
