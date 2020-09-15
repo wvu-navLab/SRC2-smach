@@ -1187,7 +1187,7 @@ bool SmRd1::setMobility_(state_machine::SetMobility::Request &req, state_machine
   ROS_ERROR(" GOT MOBILITY IN SM %d", req.mobility);
   flag_mobility = req.mobility;
   immobilityRecovery(1);
-  ros::Duration(2).sleep();
+  //ros::Duration(2).sleep();
   res.success = true;
   return true;
 }
