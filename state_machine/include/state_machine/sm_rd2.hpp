@@ -34,6 +34,9 @@
 #include <srcp2_msgs/BrakeRoverSrv.h>
 #include <move_excavator/ExcavationStatus.h>
 #include <round2_volatile_handler/NextVolatileLocation.h>
+#include <sensor_fusion/SetBaseLocation.h>
+#include <range_to_base/LocationOfBase.h>
+
 
 #include <move_excavator/HomeArm.h>
 #include <move_excavator/DigVolatile.h>
@@ -182,6 +185,8 @@ public:
   ros::ServiceClient clt_rover_static_hauler_;
   ros::ServiceClient clt_waypoint_checker_hauler_;
   ros::ServiceClient clt_srcp2_brake_rover_hauler_;
+  ros::ServiceClient clt_set_hauler_base_ ;
+  ros::ServiceClient clt_hauler_location_of_base_;
 
 
   MoveBaseClient ac_excavator_;
