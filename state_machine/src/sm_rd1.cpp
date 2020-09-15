@@ -49,6 +49,7 @@ move_base_state_(actionlib::SimpleClientGoalState::PREEMPTED)
   not_detected_timer = ros::Time::now();
   last_time_laser_collision_ = ros::Time::now();
   map_timer = ros::Time::now();
+  wp_checker_timer=  ros::Time::now();
 }
 
 
@@ -473,18 +474,20 @@ void SmRd1::stateTraverse()
     flag_waypoint_unreachable = false;
     flag_recovering_localization = false;
   }
-  bool is_colliding = false;
+  ros::Duration timeOutWPCheck(1.0);
+  if (ros::Time::now() - wp_checker_timer > timeOutWPCheck) {
+    bool is_colliding = false;
     waypoint_checker::CheckCollision srv_wp_check;
-    if (clt_waypoint_checker_.call(srv_wp_check))
-    {
+    if (clt_waypoint_checker_.call(srv_wp_check)) {
       ROS_INFO("SCOUT: Called service Waypoint Checker");
       is_colliding = srv_wp_check.response.collision;
-      if(is_colliding)
-      {
+      if (is_colliding) {
         ROS_INFO("SCOUT: Waypoint Unreachable. Sending to Planning");
-        flag_waypoint_unreachable=true;
+        flag_waypoint_unreachable = true;
       }
     }
+    wp_checker_timer = ros::Time::now();
+  }
   double distance_to_goal = std::hypot(goal_pose_.position.y - current_pose_.position.y, goal_pose_.position.x - current_pose_.position.x);
   if (distance_to_goal < 2.0)
   {
@@ -1185,9 +1188,11 @@ void SmRd1::RoverStatic(bool flag)
 }
 
 bool SmRd1::setMobility_(state_machine::SetMobility::Request &req, state_machine::SetMobility::Response &res){
+  ROS_ERROR(" GOT MOBILITY IN SM %d", req.mobility);
   flag_mobility = req.mobility;
   res.success = true;
   return true;
+  immobilityRecovery(1);
 }
 
 //------------------------------------------------------------------------------------------------------------------------

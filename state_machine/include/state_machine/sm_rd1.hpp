@@ -65,7 +65,7 @@ public:
   bool flag_heading_fail=false;
   bool need_to_initialize_landmark=true;
 
-  ros::Time detection_timer, not_detected_timer;
+  ros::Time detection_timer, not_detected_timer, wp_checker_timer;
   ros::Time last_time_laser_collision_, map_timer, waypoint_timer_;
 
   const double VOLATILE_THRESH = 1.0;
