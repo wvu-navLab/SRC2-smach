@@ -56,7 +56,7 @@ move_base_state_(actionlib::SimpleClientGoalState::PREEMPTED)
 
 void SmRd1::run()
 {
-  ros::Rate loop_rate(2); // Hz
+  ros::Rate loop_rate(5); // Hz
   while(ros::ok())
   {
     // Debug prints +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -331,12 +331,6 @@ void SmRd1::statePlanning()
   ac.cancelGoal();
   ac.waitForResult(ros::Duration(0.25));
 
-  // Stop(1.0);
-
-  // Brake(100.0);
-
-  // ROS_INFO_STREAM("goal pose: " << goal_pose);
-  // Generate Goal
   while (!clt_wp_gen_.waitForExistence())
   {
     ROS_ERROR("SCOUT: Waiting for Waypoint Gen service");
@@ -410,7 +404,6 @@ void SmRd1::statePlanning()
 
           RotateToHeading(goal_yaw_);
 
-          // Brake (100.0);
           BrakeRamp(100, 3, 0);
           Brake (0.0);
         }
@@ -474,7 +467,26 @@ void SmRd1::stateTraverse()
     flag_waypoint_unreachable = false;
     flag_recovering_localization = false;
   }
-  ros::Duration timeOutWPCheck(1.0);
+
+  double distance_to_goal = std::hypot(goal_pose_.position.y - current_pose_.position.y, goal_pose_.position.x - current_pose_.position.x);
+  if (distance_to_goal < 2.0)
+  {
+    ROS_INFO("SCOUT: Close to goal, getting new waypoint.");
+    flag_arrived_at_waypoint = true;
+    flag_waypoint_unreachable = false;
+    if(waypoint_type_ ==0 )
+    {
+      flag_localization_failure = false;
+    }
+    else
+    {
+      ROS_INFO(" Reached a Waypoint Designated for Localization Update Type : %f ",waypoint_type_ );
+      flag_localization_failure = true;
+      waypoint_type_=0; // just to account for triggered homing update
+    }
+  }
+
+  ros::Duration timeOutWPCheck(3.0);
   if (ros::Time::now() - wp_checker_timer > timeOutWPCheck) {
     bool is_colliding = false;
     waypoint_checker::CheckCollision srv_wp_check;
@@ -487,23 +499,6 @@ void SmRd1::stateTraverse()
       }
     }
     wp_checker_timer = ros::Time::now();
-  }
-  double distance_to_goal = std::hypot(goal_pose_.position.y - current_pose_.position.y, goal_pose_.position.x - current_pose_.position.x);
-  if (distance_to_goal < 2.0)
-  {
-    ROS_INFO("SCOUT: Close to goal, getting new waypoint.");
-    flag_arrived_at_waypoint = true;
-    flag_waypoint_unreachable = false;
-    if(waypoint_type_ ==0 )
-    {
-    	flag_localization_failure = false;
-    }
-    else
-    {
-      ROS_INFO(" Reached a Waypoint Designated for Localization Update Type : %f ",waypoint_type_ );
-      flag_localization_failure = true;
-      waypoint_type_=0; // just to account for triggered homing update
-    }
   }
 
 
@@ -976,7 +971,7 @@ void SmRd1::immobilityRecovery(int type)
 
   Brake(0.0);
 
-  DriveCmdVel(-0.4,0.0,0.0,3.0);
+  DriveCmdVel(-0.5,0.0,0.0,3.0);
 
   // Stop(3.0); //TODO: CMDvelZero try
 
@@ -1080,24 +1075,32 @@ void SmRd1::BrakeRamp(double max_intensity, double time, int aggressivity)
   int num_steps = (int) freq * time;
   if(aggressivity == 0)
   {
-    ROS_INFO("Brake Ramp.");
+    // ROS_INFO("Brake Ramp.");
     for (int counter = 0; counter < num_steps; ++counter)
     {
       double intensity = (static_cast<double>(counter + 1)/(freq * time))*max_intensity;
+<<<<<<< HEAD
       ROS_INFO_STREAM("Brake intensity: " << intensity);
+=======
+      // ROS_INFO_STREAM("Brake intensity: " << intensity);
+>>>>>>> cc2a4a28434af89f9e1e743c9ea040be2e283d54
       Brake(intensity);
       brake_rate.sleep();
     }
   }
   else if (aggressivity == 1)
   {
-    ROS_INFO("Brake Logistics Curve.");
+    // ROS_INFO("Brake Logistics Curve.");
     for (int counter = 0; counter < num_steps; ++counter)
     {
+<<<<<<< HEAD
+=======
+
+>>>>>>> cc2a4a28434af89f9e1e743c9ea040be2e283d54
       double multiplier = 2;
       double x = (static_cast<double>(counter + 1)/(freq * time)) * time * multiplier;
       double intensity =  max_intensity / (1 + exp(-x)) - max_intensity/2;
-      ROS_INFO_STREAM("Brake intensity: " << intensity);
+      // ROS_INFO_STREAM("Brake intensity: " << intensity);
       Brake(intensity);
       brake_rate.sleep();
     }
@@ -1190,9 +1193,10 @@ void SmRd1::RoverStatic(bool flag)
 bool SmRd1::setMobility_(state_machine::SetMobility::Request &req, state_machine::SetMobility::Response &res){
   ROS_ERROR(" GOT MOBILITY IN SM %d", req.mobility);
   flag_mobility = req.mobility;
+  immobilityRecovery(1);
+  ros::Duration(2).sleep();
   res.success = true;
   return true;
-  immobilityRecovery(1);
 }
 
 //------------------------------------------------------------------------------------------------------------------------

@@ -40,8 +40,8 @@ move_base_state_hauler_(actionlib::SimpleClientGoalState::LOST)
   clt_waypoint_checker_excavator_ = nh.serviceClient<waypoint_checker::CheckCollision>("/excavator_1/waypoint_checker");
   clt_srcp2_brake_rover_excavator_ = nh.serviceClient<srcp2_msgs::BrakeRoverSrv>("/excavator_1/brake_rover");
   clt_next_vol_excavator_ = nh.serviceClient<round2_volatile_handler::NextVolatileLocation>("/excavator_1/volatile/next");
-  clt_set_hauler_base_ = nh.serviceClient<sensor_fusion::SetBaseLocation>("/hauler_1/set_base_location");
-  clt_hauler_location_of_base_ = nh.serviceClient<sensor_fusion::SetBaseLocation>("/hauler_1/location_of_base_service");
+  clt_set_base_excavator_ = nh.serviceClient<sensor_fusion::SetBaseLocation>("/excavator_1/set_base_location");
+  clt_location_of_base_excavator_ = nh.serviceClient<sensor_fusion::SetBaseLocation>("/excavator_1/location_of_base_service");
 
   clt_home_arm_excavator_ = nh.serviceClient<move_excavator::HomeArm>("/excavator_1/manipulation/home_arm");
   clt_dig_volatile_excavator_ = nh.serviceClient<move_excavator::DigVolatile>("/excavator_1/manipulation/dig_volatile");
@@ -82,11 +82,11 @@ move_base_state_hauler_(actionlib::SimpleClientGoalState::LOST)
   clt_sf_true_pose_hauler_ = nh.serviceClient<sensor_fusion::GetTruePose>("/hauler_1/true_pose");
   clt_waypoint_checker_hauler_ = nh.serviceClient<waypoint_checker::CheckCollision>("/hauler_1/waypoint_checker");
   clt_srcp2_brake_rover_hauler_= nh.serviceClient<srcp2_msgs::BrakeRoverSrv>("/hauler_1/brake_rover");
-  clt_set_hauler_base_ =  nh.serviceClient<sensor_fusion::SetBaseLocation>("/hauler_1/set_base_location");
-  clt_hauler_location_of_base_ =  nh.serviceClient<range_to_base::LocationOfBase>("/hauler_1/location_of_base_service");
-
+  clt_set_base_hauler_ = nh.serviceClient<sensor_fusion::SetBaseLocation>("/hauler_1/set_base_location");
+  clt_location_of_base_hauler_ = nh.serviceClient<sensor_fusion::SetBaseLocation>("/hauler_1/location_of_base_service");
 
   need_to_initialize_landmark_excavator_=true;
+  need_to_initialize_landmark_hauler_=true;
 
   // detection_timer = ros::Time::now();
   // not_detected_timer = ros::Time::now();
@@ -310,6 +310,7 @@ void SmRd2::stateInitialize()
       {
       base_location_ = srv_homing.response.base_location;
       need_to_initialize_landmark_hauler_ = false;
+      need_to_initialize_landmark_excavator_ = false;
       }
       else
       {
@@ -317,9 +318,9 @@ void SmRd2::stateInitialize()
       }
 
       // pass the base location to Excavator
-      sensor_fusion::SetBaseLocation srv_set_excavator_base;
-      srv_set_excavator_base.request.base_location = base_location_;
-      if(clt_set_excavator_base_.call(srv_set_excavator_base))
+      sensor_fusion::SetBaseLocation srv_set_base_excavator;
+      srv_set_base_excavator.request.base_location = base_location_;
+      if(clt_set_base_excavator_.call(srv_set_base_excavator))
       {
         ROS_INFO("EXCAVATOR: Sent the Base Location to Excavator's Homing Node");
       }
