@@ -40,6 +40,8 @@
   <!-- waypoint checker -->
   <include file="$(find waypoint_checker)/launch/scout_waypoint_checker.launch"/>
 
+  <include file="$(find mobility_checker)/launch/scout_mobility_checker.launch"/>
+
   <!-- state machine for Scout -->
   <include file="$(find state_machine)/launch/scout_state_machine_rd1.launch"/>
 

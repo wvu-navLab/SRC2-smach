@@ -474,7 +474,26 @@ void SmRd1::stateTraverse()
     flag_waypoint_unreachable = false;
     flag_recovering_localization = false;
   }
-  ros::Duration timeOutWPCheck(1.0);
+
+  double distance_to_goal = std::hypot(goal_pose_.position.y - current_pose_.position.y, goal_pose_.position.x - current_pose_.position.x);
+  if (distance_to_goal < 2.0)
+  {
+    ROS_INFO("SCOUT: Close to goal, getting new waypoint.");
+    flag_arrived_at_waypoint = true;
+    flag_waypoint_unreachable = false;
+    if(waypoint_type_ ==0 )
+    {
+      flag_localization_failure = false;
+    }
+    else
+    {
+      ROS_INFO(" Reached a Waypoint Designated for Localization Update Type : %f ",waypoint_type_ );
+      flag_localization_failure = true;
+      waypoint_type_=0; // just to account for triggered homing update
+    }
+  }
+
+  ros::Duration timeOutWPCheck(3.0);
   if (ros::Time::now() - wp_checker_timer > timeOutWPCheck) {
     bool is_colliding = false;
     waypoint_checker::CheckCollision srv_wp_check;
@@ -487,23 +506,6 @@ void SmRd1::stateTraverse()
       }
     }
     wp_checker_timer = ros::Time::now();
-  }
-  double distance_to_goal = std::hypot(goal_pose_.position.y - current_pose_.position.y, goal_pose_.position.x - current_pose_.position.x);
-  if (distance_to_goal < 2.0)
-  {
-    ROS_INFO("SCOUT: Close to goal, getting new waypoint.");
-    flag_arrived_at_waypoint = true;
-    flag_waypoint_unreachable = false;
-    if(waypoint_type_ ==0 )
-    {
-    	flag_localization_failure = false;
-    }
-    else
-    {
-      ROS_INFO(" Reached a Waypoint Designated for Localization Update Type : %f ",waypoint_type_ );
-      flag_localization_failure = true;
-      waypoint_type_=0; // just to account for triggered homing update
-    }
   }
 
 
@@ -976,7 +978,7 @@ void SmRd1::immobilityRecovery(int type)
 
   Brake(0.0);
 
-  DriveCmdVel(-0.4,0.0,0.0,3.0);
+  DriveCmdVel(-0.5,0.0,0.0,3.0);
 
   // Stop(3.0); //TODO: CMDvelZero try
 
@@ -1190,9 +1192,10 @@ void SmRd1::RoverStatic(bool flag)
 bool SmRd1::setMobility_(state_machine::SetMobility::Request &req, state_machine::SetMobility::Response &res){
   ROS_ERROR(" GOT MOBILITY IN SM %d", req.mobility);
   flag_mobility = req.mobility;
+  immobilityRecovery(1);
+  ros::Duration(2),sleep;
   res.success = true;
   return true;
-  immobilityRecovery(1);
 }
 
 //------------------------------------------------------------------------------------------------------------------------
