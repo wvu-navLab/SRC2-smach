@@ -39,7 +39,7 @@ move_base_state_(actionlib::SimpleClientGoalState::PREEMPTED)
   clt_waypoint_checker_ = nh.serviceClient<waypoint_checker::CheckCollision>("/scout_1/waypoint_checker");
   clt_srcp2_brake_rover_= nh.serviceClient<srcp2_msgs::BrakeRoverSrv>("/scout_1/brake_rover");
 
-
+  setMobilityService_ = nh.advertiseService("/state_machine/mobility_service_scout",&SmRd1::setMobility_, this);
 
   driving_mode_=0;
   waypoint_type_ =0;
@@ -50,6 +50,8 @@ move_base_state_(actionlib::SimpleClientGoalState::PREEMPTED)
   last_time_laser_collision_ = ros::Time::now();
   map_timer = ros::Time::now();
 }
+
+
 
 void SmRd1::run()
 {
@@ -1174,6 +1176,10 @@ void SmRd1::RoverStatic(bool flag)
     ROS_ERROR("SCOUT: Failed to call service RoverStatic");
   }
 
+}
+
+bool SmRd1::setMobility_(state_machine::SetMobility::Request &req, state_machine::SetMobility::Response &res){
+  flag_mobility = req.mobility;
 }
 
 //------------------------------------------------------------------------------------------------------------------------
