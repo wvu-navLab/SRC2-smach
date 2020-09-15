@@ -269,7 +269,7 @@ else{
 
   Drive(-0.3, 3.0);
 
-  Stop(3.0);
+  Stop(3.0); //Drive (0.0, 3.0)
 
   Brake(100.0);
 
@@ -640,6 +640,8 @@ else{
 
   Lights ("0.6");
 
+  // SIMILAR TO INIT
+
   Brake(0.0);
 
   Drive(-0.3, 3.0);
@@ -908,6 +910,7 @@ void SmRd1::homingRecovery()
   Brake(0.0);
 
   Drive(-0.3, 3.0);
+  // DriveCmdVel(-0.3,-0.3, 0.0, 3.0); TODO: TEST THIS AGAIN
 
   Stop(0.0);
 
@@ -944,12 +947,11 @@ void SmRd1::immobilityRecovery(int type)
 
   Brake(0.0);
 
-
   Drive(-0.3, 4.0);
 
-  Stop(3.0);
+  Stop(3.0); //TODO: CMDvelZero try
 
-  Brake(100.0);
+  Brake(100.0); //TODO: Brake RAmp
 
   Brake(0.0);
 
