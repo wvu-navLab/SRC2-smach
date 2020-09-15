@@ -218,156 +218,156 @@ void SmRd2::stateInitialize()
   flag_arrived_at_waypoint_excavator_ = false;
   flag_waypoint_unreachable_excavator_ = false;
 
-  // ToggleDetectorExcavator(false);
-  while(!clt_lights_hauler_.waitForExistence()){
-      ROS_WARN("Hauler: Waiting for Light service");
+  while(!clt_lights_hauler_.waitForExistence())
+  {
+    ROS_WARN("HAULER: Waiting for Light service");
   }
+
+  LightsExcavator("0.8");
+  ExecuteHomeArmExcavator(0.0, 1.0);
+  BrakeExcavator(100.0);
+
   LightsHauler("0.6");
   StopHauler(1.0);
   BrakeHauler(100.0);
-
-  BrakeExcavator(100.0);
-  ExecuteHomeArmExcavator(0.0, 1.0);
-  BrakeExcavator(0.0);
 
   // TODO: Hauler needs to disappear from sight
   // 1. Set higher confidence
   // 2. Filter by color?
 
-  // LightsExcavator("0.8");
-
-  while (!clt_approach_base_excavator_.waitForExistence())
+  while (!clt_approach_base_hauler_.waitForExistence())
   {
-    ROS_WARN("EXCAVATOR: Waiting for ApproachBaseStation service");
+    ROS_WARN("HAULER: Waiting for ApproachBaseStation service");
   }
 
   // Approach Base Station
   src2_object_detection::ApproachBaseStation srv_approach_base;
   srv_approach_base.request.approach_base_station.data= true;
-  bool approachSuccessExcavator = false;
-  int homingRecoveryCountExcavator = 0;
-  while(!approachSuccessExcavator && homingRecoveryCountExcavator<3){
-    if (clt_approach_base_excavator_.call(srv_approach_base))
+  bool approachSuccessHauler = false;
+  int homingRecoveryCountHauler = 0;
+  while(!approachSuccessHauler && homingRecoveryCountHauler<3)
+  {
+    if (clt_approach_base_hauler_.call(srv_approach_base))
     {
-      ROS_INFO("EXCAVATOR: Called service ApproachBaseStation");
-      ROS_INFO_STREAM("Success finding the Base? "<< srv_approach_base.response.success.data);
+      ROS_INFO("HAULER: Called service ApproachBaseStation");
+      ROS_INFO_STREAM("HAULER: Success finding the Base? "<< srv_approach_base.response.success.data);
       if(!srv_approach_base.response.success.data){
-        homingRecoveryExcavator();
+        homingRecoveryHauler();
       }
       else
       {
-        approachSuccessExcavator=true;
+        approachSuccessHauler=true;
       }
-
     }
-
     else
     {
-      ROS_ERROR("EXCAVATOR: Failed  to call service ApproachBaseStation");
+      ROS_ERROR("HAULER: Failed to call service ApproachBaseStation");
     }
-    homingRecoveryCountExcavator=homingRecoveryCountExcavator+1;
+    homingRecoveryCountHauler=homingRecoveryCountHauler+1;
   }
 
-  BrakeExcavator(100.0);
+  BrakeHauler(100.0);
 
+  while (!clt_sf_true_pose_hauler_ .waitForExistence())
+  {
+    ROS_ERROR("HAULER: Waiting for TruePose service");
+  }
+
+  // Update SF with True Pose
+  sensor_fusion::GetTruePose srv_sf_true_pose;
+  srv_sf_true_pose.request.start = true;
+  if (clt_sf_true_pose_hauler_ .call(srv_sf_true_pose))
+  {
+    ROS_INFO("HAULER: Called service TruePose");
+    ROS_INFO_STREAM("HAULER: Status of SF True Pose: "<< srv_sf_true_pose.response.success);
+    flag_have_true_pose_hauler_ = true;
+  }
+  else
+  {
+    ROS_ERROR("HAULER: Failed to call service Pose Update");
+  }
+
+  RoverStaticHauler(true);
+
+  while (!clt_homing_hauler_.waitForExistence())
+  {
+    ROS_WARN("HAULER: Waiting for Homing service");
+  }
+
+  sensor_fusion::HomingUpdate srv_homing;
+  if(approachSuccessHauler)
+  {
+    // Homing - Initialize Base Station Landmark
+    ros::spinOnce();
+
+    srv_homing.request.angle = pitch_hauler_ + .4; // pitch up is negative number
+    ROS_ERROR("HAULER: Requesting Angle for LIDAR %f",srv_homing.request.angle);
+    srv_homing.request.initializeLandmark = need_to_initialize_landmark_hauler_;
+    if (clt_homing_hauler_.call(srv_homing))
+    {
+      ROS_INFO("HAULER: Called service HomingUpdate");
+      if(srv_homing.response.success)
+      {
+      base_location_ = srv_homing.response.base_location;
+      need_to_initialize_landmark_hauler_ = false;
+      }
+      else
+      {
+        ROS_ERROR("HAULER: Initial Homing Fail, Starting Without Base Location");
+      }
+
+      // pass the base location to Excavator
+      sensor_fusion::SetBaseLocation srv_set_excavator_base;
+      srv_set_excavator_base.request.base_location = base_location_;
+      if(clt_set_excavator_base_.call(srv_set_excavator_base))
+      {
+        ROS_INFO("EXCAVATOR: Sent the Base Location to Excavator's Homing Node");
+      }
+      else{
+        ROS_INFO("EXCAVATOR: Failed to Send the Base Location to Excavator's Homing Node");
+      }
+
+
+    }
+    else
+    {
+      ROS_ERROR("HAULER: Failed to call service HomingUpdate");
+    }
+  }
+  else
+  {
+    ROS_ERROR("HAULER: Initial Homing Fail, Starting Without Base Location");
+  }
+
+  RoverStaticHauler(false);
+
+  LightsHauler("0.6");
+  BrakeHauler(0.0);
+  DriveHauler(-0.3, 3.0);
+  StopHauler(3.0);
+  RotateInPlaceHauler(0.3, 3.0);
+  StopHauler(3.0);
+  BrakeHauler(100.0);
+
+
+  BrakeExcavator(100.0);
   while (!clt_sf_true_pose_excavator_ .waitForExistence())
   {
     ROS_ERROR("EXCAVATOR: Waiting for TruePose service");
   }
 
   // Update SF with True Pose
-  sensor_fusion::GetTruePose srv_sf_true_pose;
   srv_sf_true_pose.request.start = true;
   if (clt_sf_true_pose_excavator_ .call(srv_sf_true_pose))
   {
     ROS_INFO("EXCAVATOR: Called service TruePose");
-    ROS_INFO_STREAM("Status of SF True Pose: "<< srv_sf_true_pose.response.success);
+    ROS_INFO_STREAM("EXCAVATOR: Status of SF True Pose: "<< srv_sf_true_pose.response.success);
     flag_have_true_pose_excavator_ = true;
   }
   else
   {
     ROS_ERROR("EXCAVATOR: Failed  to call service Pose Update");
   }
-
-  RoverStaticExcavator(true);
-  while (!clt_homing_excavator_.waitForExistence())
-  {
-    ROS_WARN("EXCAVATOR: Waiting for Homing service");
-  }
-  sensor_fusion::HomingUpdate srv_homing;
-  if(approachSuccessExcavator){
-    // Homing - Initialize Base Station Landmark
-    ros::spinOnce();
-
-    srv_homing.request.angle = pitch_excavator_ + .4; // pitch up is negative number
-    ROS_ERROR("Requesting Angle for LIDAR %f",srv_homing.request.angle);
-    srv_homing.request.initializeLandmark = need_to_initialize_landmark_excavator_;
-    if (clt_homing_excavator_.call(srv_homing))
-    {
-      ROS_INFO("EXCAVATOR: Called service HomingUpdate");
-      if(srv_homing.response.success){
-      base_location_ = srv_homing.response.base_location;
-      need_to_initialize_landmark_excavator_ = false;
-      }else{
-        ROS_ERROR(" Initial Homing Fail, Starting Without Base Location");
-      }
-      // pass the base location to hauler
-      sensor_fusion::SetBaseLocation srv_set_hauler_base;
-      srv_set_hauler_base.request.base_location = base_location_;
-      if(clt_set_hauler_base_.call(srv_set_hauler_base))
-      {
-        ROS_INFO("Sent the Base Location to Hauler's Homing Node");
-      }
-      else{
-        ROS_INFO("Failed to Send the Base Location to Hauler's Homing Node");
-      }
-
-
-    }
-    else
-    {
-      ROS_ERROR("EXCAVATOR: Failed to call service HomingUpdate");
-    }
-  }
-  else{
-    ROS_ERROR(" Initial Homing Fail, Starting Without Base Location");
-  }
-
-
-
-
-  RoverStaticExcavator(false);
-
-  LightsExcavator("0.6");
-  BrakeExcavator(0.0);
-  DriveExcavator(-0.3, 3.0);
-  StopExcavator(3.0);
-  RotateInPlaceExcavator(0.3, 3.0);
-  StopExcavator(3.0);
-  BrakeExcavator(100.0);
-
-  BrakeHauler(100.0);
-
-  while (!clt_sf_true_pose_hauler_ .waitForExistence())
-  {
-    ROS_ERROR("EXCAVATOR: Waiting for TruePose service");
-  }
-
-  // Update SF with True Pose
-  srv_sf_true_pose.request.start = true;
-  if (clt_sf_true_pose_hauler_ .call(srv_sf_true_pose))
-  {
-    ROS_INFO("HAULER: Called service TruePose");
-    ROS_INFO_STREAM("Status of SF True Pose: "<< srv_sf_true_pose.response.success);
-    flag_have_true_pose_hauler_ = true;
-  }
-  else
-  {
-    ROS_ERROR("HAULER: Failed  to call service Pose Update");
-  }
-
-  // TODO: Set Base Station position for Hauler.
-
 
   ClearCostmapsExcavator();
   BrakeExcavator(0.0);
