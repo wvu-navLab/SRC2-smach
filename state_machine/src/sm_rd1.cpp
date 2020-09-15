@@ -2,7 +2,7 @@
 
 SmRd1::SmRd1() :
 ac("/scout_1/move_base", true),
-move_base_state_(actionlib::SimpleClientGoalState::LOST)
+move_base_state_(actionlib::SimpleClientGoalState::PREEMPTED)
 {
   // Initialize ROS, Subs, and Pubs *******************************************
   // Publishers
@@ -42,6 +42,7 @@ move_base_state_(actionlib::SimpleClientGoalState::LOST)
 
 
   driving_mode_=0;
+  waypoint_type_ =0;
   need_to_initialize_landmark=true;
 
   detection_timer = ros::Time::now();
@@ -328,6 +329,10 @@ void SmRd1::statePlanning()
 
   // ROS_INFO_STREAM("goal pose: " << goal_pose);
   // Generate Goal
+  while (!clt_wp_gen_.waitForExistence())
+  {
+    ROS_ERROR("SCOUT: Waiting for Waypoint Gen service");
+  }
   waypoint_gen::GenerateWaypoint srv_wp_gen;
 
   srv_wp_gen.request.start  = true;
