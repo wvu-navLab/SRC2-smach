@@ -642,7 +642,7 @@ else{
 
   Brake(0.0);
 
-  Drive(-0.5, 3.0);
+  Drive(-0.3, 3.0);
 
   Stop(3.0);
 
@@ -943,13 +943,9 @@ void SmRd1::immobilityRecovery(int type)
   Brake(100.0);
 
   Brake(0.0);
-  double cmd = -0.3;
-  if(pitch_>0.0)
-  {
-  cmd = cmd - (pitch_/0.52)*0.3;
-  }
 
-  Drive(cmd, 4.0);
+
+  Drive(-0.3, 4.0);
 
   Stop(3.0);
 
@@ -1047,7 +1043,13 @@ void SmRd1::Brake(double intensity)
 void SmRd1::Drive(double throttle, double time)
 {
   driving_tools::MoveForward srv_drive;
+
+  if (pitch_ > 0.0 && throttle < 0.0) {
+   throttle = throttle - (pitch_ / 0.52) * 0.3;
+  }
   srv_drive.request.throttle = throttle;
+
+
   if (clt_drive_.call(srv_drive))
   {
     ros::Time start_time = ros::Time::now();
