@@ -422,7 +422,8 @@ void SmRd1::statePlanning()
     else
     {
       ROS_ERROR("SCOUT: Failed to call service Waypoint Checker");
-    }
+
+    ros::spinOnce();
     counter=counter+1;
   }
 
