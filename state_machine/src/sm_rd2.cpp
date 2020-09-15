@@ -628,7 +628,7 @@ void SmRd2::stateVolatileHandler()
         }
         else
         {
-          ROS_ERROR("HAULER: Failed  to call service ApproachBaseStation");
+          ROS_ERROR("HAULER: Failed  to call service ApproachExcavator");
         }
         homingRecoveryCountHauler=homingRecoveryCountHauler+1;
       }
@@ -642,6 +642,8 @@ void SmRd2::stateVolatileHandler()
   }
 
   ros::Duration(10.0).sleep(); // TODO: MAKE HAULER BACK OFF
+
+  
 
 
   // TODO: SETUP FLAGS TO GO TO PLANNING

@@ -383,7 +383,8 @@ void SmRd1::statePlanning()
 
   waypoint_checker::CheckCollision srv_wp_check;
   bool is_colliding = true;
-  while (is_colliding)
+  int counter = 0;
+  while (is_colliding && counter<3)
   {
     srv_wp_check.request.x  = goal_pose_.position.x;
     srv_wp_check.request.y = goal_pose_.position.y;
@@ -410,6 +411,7 @@ void SmRd1::statePlanning()
 
           // Brake (100.0);
           BrakeRamp(100, 3, 0);
+          Brake (0.0);
         }
         else
         {
@@ -421,6 +423,7 @@ void SmRd1::statePlanning()
     {
       ROS_ERROR("SCOUT: Failed to call service Waypoint Checker");
     }
+    counter=counter+1;
   }
 
   ClearCostmaps();
