@@ -56,7 +56,7 @@ move_base_state_(actionlib::SimpleClientGoalState::PREEMPTED)
 
 void SmRd1::run()
 {
-  ros::Rate loop_rate(2); // Hz
+  ros::Rate loop_rate(5); // Hz
   while(ros::ok())
   {
     // Debug prints +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -331,12 +331,6 @@ void SmRd1::statePlanning()
   ac.cancelGoal();
   ac.waitForResult(ros::Duration(0.25));
 
-  // Stop(1.0);
-
-  // Brake(100.0);
-
-  // ROS_INFO_STREAM("goal pose: " << goal_pose);
-  // Generate Goal
   while (!clt_wp_gen_.waitForExistence())
   {
     ROS_ERROR("SCOUT: Waiting for Waypoint Gen service");
@@ -410,7 +404,6 @@ void SmRd1::statePlanning()
 
           RotateToHeading(goal_yaw_);
 
-          // Brake (100.0);
           BrakeRamp(100, 3, 0);
           Brake (0.0);
         }
@@ -978,7 +971,7 @@ void SmRd1::immobilityRecovery(int type)
 
   Brake(0.0);
 
-  DriveCmdVel(-0.6,0.0,0.0,3.0);
+  DriveCmdVel(-0.5,0.0,0.0,3.0);
 
   // Stop(3.0); //TODO: CMDvelZero try
 
@@ -1082,7 +1075,7 @@ void SmRd1::BrakeRamp(double max_intensity, double time, int aggressivity)
   int num_steps = (int) freq * time;
   if(aggressivity == 0)
   {
-    ROS_INFO("Brake Ramp.");
+    // ROS_INFO("Brake Ramp.");
     for (int counter = 0; counter < num_steps; ++counter)
     {
       double intensity = (static_cast<double>(counter + 1)/(freq * time))*max_intensity;
@@ -1093,14 +1086,14 @@ void SmRd1::BrakeRamp(double max_intensity, double time, int aggressivity)
   }
   else if (aggressivity == 1)
   {
-    ROS_INFO("Brake Logistics Curve.");
+    // ROS_INFO("Brake Logistics Curve.");
     for (int counter = 0; counter < num_steps; ++counter)
     {
 
       double multiplier = 2;
       double x = (static_cast<double>(counter + 1)/(freq * time)) * time * multiplier;
       double intensity =  max_intensity / (1 + exp(-x)) - max_intensity/2;
-      ROS_INFO_STREAM("Brake intensity: " << intensity);
+      // ROS_INFO_STREAM("Brake intensity: " << intensity);
       Brake(intensity);
       brake_rate.sleep();
     }
@@ -1194,7 +1187,7 @@ bool SmRd1::setMobility_(state_machine::SetMobility::Request &req, state_machine
   ROS_ERROR(" GOT MOBILITY IN SM %d", req.mobility);
   flag_mobility = req.mobility;
   immobilityRecovery(1);
-  ros::Duration(2),sleep;
+  ros::Duration(2).sleep();
   res.success = true;
   return true;
 }
