@@ -11,7 +11,7 @@ move_base_state_(actionlib::SimpleClientGoalState::PREEMPTED)
   pub_driving_mode_ = nh.advertise<std_msgs::Int64>("/scout_1/driving/driving_mode", 1);
   // Subscribers
   localized_base_sub = nh.subscribe("/state_machine/localized_base_scout", 1, &SmRd1::localizedBaseCallback, this);
-  mobility_sub = nh.subscribe("/state_machine/mobility_scout", 1, &SmRd1::mobilityCallback, this);
+  // mobility_sub = nh.subscribe("/state_machine/mobility_scout", 1, &SmRd1::mobilityCallback, this);
   waypoint_unreachable_sub = nh.subscribe("/state_machine/waypoint_unreachable", 1, &SmRd1::waypointUnreachableCallback, this);
   arrived_at_waypoint_sub = nh.subscribe("/state_machine/arrived_at_waypoint", 1, &SmRd1::arrivedAtWaypointCallback, this);
   volatile_detected_sub = nh.subscribe("/state_machine/volatile_detected", 1, &SmRd1::volatileDetectedCallback, this);
@@ -55,7 +55,7 @@ move_base_state_(actionlib::SimpleClientGoalState::PREEMPTED)
 
 void SmRd1::run()
 {
-  ros::Rate loop_rate(15); // Hz
+  ros::Rate loop_rate(2); // Hz
   while(ros::ok())
   {
     // Debug prints +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -702,17 +702,16 @@ void SmRd1::localizedBaseCallback(const std_msgs::Int64::ConstPtr& msg)
   }
 }
 
-void SmRd1::mobilityCallback(const std_msgs::Int64::ConstPtr& msg)
-{
-  flag_mobility = msg->data;
-  if (flag_mobility) {
-    ROS_WARN_ONCE("Rover is traversing = %i",flag_mobility);
-  }
-  else {
-    ROS_ERROR("ROVER IMMOBILIZATION!  = %i",flag_mobility);
-    immobilityRecovery(1);
-  }
-}
+// void SmRd1::mobilityCallback(const std_msgs::Int64::ConstPtr& msg)
+// {
+// flag_mobility = msg->data;
+// if (flag_mobility == 0) {
+//   ROS_ERROR("ROVER IMMOBILIZATION!  = %i", flag_mobility);
+//   immobilityRecovery(1);
+// } else {
+//   ROS_WARN_ONCE("Rover is traversing = %i", flag_mobility);
+// }
+// }
 
 void SmRd1::waypointUnreachableCallback(const std_msgs::Bool::ConstPtr& msg)
 {
@@ -981,6 +980,8 @@ void SmRd1::immobilityRecovery(int type)
   BrakeRamp(100, 3, 0);
 
   Brake(0.0);
+
+  flag_mobility=true;
 
   flag_waypoint_unreachable=true;
 

@@ -100,7 +100,7 @@ public:
   ros::Subscriber localization_failure_sub;
   ros::Subscriber localization_sub;
   ros::Subscriber driving_mode_sub;
-  ros::Subscriber mobility_sub;
+  // ros::Subscriber mobility_sub;
   ros::Subscriber laserscan_sub;
 
   // ros::ServiceClient clt_true_pose_;
