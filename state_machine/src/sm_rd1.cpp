@@ -894,7 +894,7 @@ void SmRd1::RotateToHeading(double desired_yaw)
 
      Stop(2.0);
 
-     DriveCmdVel (-0.5, 4.0);
+     DriveCmdVel (-0.5, 0.0, 0.0, 4.0);
 
      BrakeRamp(100, 3, 0);
 
@@ -919,7 +919,7 @@ void SmRd1::homingRecovery()
   ac.waitForResult(ros::Duration(0.25));
 
   ROS_WARN("Starting Homing Recovery.");
-  
+
   Lights("0.6");
 
   Stop(2.0);
