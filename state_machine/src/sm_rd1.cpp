@@ -1185,6 +1185,8 @@ void SmRd1::RoverStatic(bool flag)
 
 bool SmRd1::setMobility_(state_machine::SetMobility::Request &req, state_machine::SetMobility::Response &res){
   flag_mobility = req.mobility;
+  res.success = true;
+  return true;
 }
 
 //------------------------------------------------------------------------------------------------------------------------
