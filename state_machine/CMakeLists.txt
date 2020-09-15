@@ -29,6 +29,7 @@ find_package(catkin REQUIRED COMPONENTS
   src2_object_detection
   std_srvs
   waypoint_checker
+  message_generation
 )
 
 find_package(Eigen3 3.3 REQUIRED)
@@ -73,12 +74,11 @@ find_package(Eigen3 3.3 REQUIRED)
 #   Message2.msg
 # )
 
-## Generate services in the 'srv' folder
-# add_service_files(
-#   FILES
-#   Service1.srv
-#   Service2.srv
-# )
+# Generate services in the 'srv' folder
+ add_service_files(
+   FILES
+   SetMobility.srv
+ )
 
 ## Generate actions in the 'action' folder
 # add_action_files(
@@ -87,11 +87,11 @@ find_package(Eigen3 3.3 REQUIRED)
 #   Action2.action
 # )
 
-## Generate added messages and services with any dependencies listed here
-# generate_messages(
-#   DEPENDENCIES
-#   std_msgs  # Or other packages containing msgs
-# )
+# Generate added messages and services with any dependencies listed here
+ generate_messages(
+   DEPENDENCIES
+   std_msgs  # Or other packages containing msgs
+ )
 
 ################################################
 ## Declare ROS dynamic reconfigure parameters ##
@@ -182,6 +182,7 @@ target_link_libraries(sm_utils
 add_executable(utils_test_node utils/utils_test_node.cpp)
 
 add_executable(state_machine_rd1_node src/sm_rd1_node.cpp)
+add_dependencies(state_machine_rd1_node state_machine_generate_messages_cpp)
 add_executable(state_machine_rd2_node src/sm_rd2_node.cpp)
 add_executable(state_machine_rd3_node src/sm_rd3_node.cpp)
 ## Rename C++ executable without prefix

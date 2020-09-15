@@ -33,6 +33,7 @@
 #include <waypoint_checker/CheckCollision.h>
 #include <boost/bind.hpp>
 #include <srcp2_msgs/BrakeRoverSrv.h>
+#include <state_machine/SetMobility.h>
 
 typedef actionlib::SimpleActionClient<move_base_msgs::MoveBaseAction> MoveBaseClient;
 
@@ -122,6 +123,14 @@ public:
   ros::ServiceClient clt_waypoint_checker_;
   ros::ServiceClient clt_srcp2_brake_rover_;
 
+  ros::ServiceServer setMobilityService_;
+
+
+
+
+
+
+
   MoveBaseClient ac;
   actionlib::SimpleClientGoalState move_base_state_;
 
@@ -153,6 +162,7 @@ public:
   void doneCallback(const actionlib::SimpleClientGoalState& state, const move_base_msgs::MoveBaseResultConstPtr& result);
   void activeCallback();
   void feedbackCallback(const move_base_msgs::MoveBaseFeedbackConstPtr& feedback);
+  bool setMobility_(state_machine::SetMobility::Request &req, state_machine::SetMobility::Response &res);
 
   void RotateToHeading(double desired_yaw);
   void ClearCostmaps();

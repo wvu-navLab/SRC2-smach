@@ -69,6 +69,7 @@
   <buildtool_depend>std_srvs</buildtool_depend>
   <buildtool_depend>waypoint_checker</buildtool_depend>
   <buildtool_depend>sensor_msgs</buildtool_depend>
+  <buildtool_depend>message_generation</buildtool_depend>
 
   <build_depend>catkin</build_depend>
   <build_depend>roscpp</build_depend>
@@ -91,6 +92,7 @@
   <build_depend>std_srvs</build_depend>
   <build_depend>waypoint_checker</build_depend>
   <build_depend>sensor_msgs</build_depend>
+  <build_depend>message_generation</build_depend>
 
   <build_export_depend>catkin</build_export_depend>
   <build_export_depend>roscpp</build_export_depend>
@@ -113,6 +115,7 @@
   <build_export_depend>std_srvs</build_export_depend>
   <build_export_depend>waypoint_checker</build_export_depend>
   <build_export_depend>sensor_msgs</build_export_depend>
+  <build_export_depend>message_generation</build_export_depend>
 
   <exec_depend>catkin</exec_depend>
   <exec_depend>roscpp</exec_depend>
@@ -135,6 +138,7 @@
   <exec_depend>std_srvs</exec_depend>
   <exec_depend>waypoint_checker</exec_depend>
   <exec_depend>sensor_msgs</exec_depend>
+  <exec_depend>message_generation</exec_depend>
 
   <!-- The export tag contains other, unspecified, tags -->
   <export>

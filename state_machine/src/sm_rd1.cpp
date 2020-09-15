@@ -2,7 +2,7 @@
 
 SmRd1::SmRd1() :
 ac("/scout_1/move_base", true),
-move_base_state_(actionlib::SimpleClientGoalState::LOST)
+move_base_state_(actionlib::SimpleClientGoalState::PREEMPTED)
 {
   // Initialize ROS, Subs, and Pubs *******************************************
   // Publishers
@@ -38,10 +38,11 @@ move_base_state_(actionlib::SimpleClientGoalState::LOST)
   clt_sf_true_pose_ = nh.serviceClient<sensor_fusion::GetTruePose>("/scout_1/true_pose");
   clt_waypoint_checker_ = nh.serviceClient<waypoint_checker::CheckCollision>("/scout_1/waypoint_checker");
   clt_srcp2_brake_rover_= nh.serviceClient<srcp2_msgs::BrakeRoverSrv>("/scout_1/brake_rover");
-  // this is a comment
 
+  setMobilityService_ = nh.advertiseService("/state_machine/mobility_service_scout",&SmRd1::setMobility_, this);
 
   driving_mode_=0;
+  waypoint_type_ =0;
   need_to_initialize_landmark=true;
 
   detection_timer = ros::Time::now();
@@ -49,6 +50,8 @@ move_base_state_(actionlib::SimpleClientGoalState::LOST)
   last_time_laser_collision_ = ros::Time::now();
   map_timer = ros::Time::now();
 }
+
+
 
 void SmRd1::run()
 {
@@ -176,6 +179,10 @@ void SmRd1::stateInitialize()
 
   ToggleDetector(false);
 
+  while (!clt_lights_.waitForExistence())
+  {
+      ROS_WARN("SCOUT: Waiting for Lights");
+  }
   Lights("0.8");
 
   while (!clt_approach_base_.waitForExistence())
@@ -236,6 +243,10 @@ void SmRd1::stateInitialize()
 
   if(approachSuccess){
   // Homing - Initialize Base Station Landmark
+  while (!clt_homing_.waitForExistence())
+  {
+      ROS_WARN("SCOUT: Waiting for Homing Service");
+  }
   sensor_fusion::HomingUpdate srv_homing;
   ros::spinOnce();
 
@@ -265,21 +276,18 @@ else{
 
   Lights("0.6");
 
+  // Minimal Maneuvers to keep the localization good and get rid of BaseStation obstacle before generating initial path.
   Brake(0.0);
 
-  Drive(-0.3, 3.0);
+  DriveCmdVel(-0.5,0.0,0.0,4);
 
-  Stop(3.0); //TODO: Drive (0.0, 3.0)
-
-  Brake(100.0);
+  BrakeRamp(100, 3, 0);
 
   Brake(0.0);
 
-  RotateToHeading(yaw_ - M_PI/2);
+  RotateInPlace(0.2, 3);
 
-  Stop(3.0);
-
-  Brake(100.0);
+  BrakeRamp(100, 3, 0);
 
   Brake(0.0);
 
@@ -328,6 +336,10 @@ void SmRd1::statePlanning()
 
   // ROS_INFO_STREAM("goal pose: " << goal_pose);
   // Generate Goal
+  while (!clt_wp_gen_.waitForExistence())
+  {
+    ROS_ERROR("SCOUT: Waiting for Waypoint Gen service");
+  }
   waypoint_gen::GenerateWaypoint srv_wp_gen;
 
   srv_wp_gen.request.start  = true;
@@ -341,7 +353,6 @@ void SmRd1::statePlanning()
     flag_waypoint_unreachable=false;
     srv_wp_gen.request.next  = true;
   }
-
 
   else
   {
@@ -366,8 +377,8 @@ void SmRd1::statePlanning()
 
   RotateToHeading(goal_yaw_);
 
-  Brake (100.0);
-
+  // Brake (100.0);
+  BrakeRamp(100, 3, 0);
   // check waypoint
 
   waypoint_checker::CheckCollision srv_wp_check;
@@ -397,7 +408,8 @@ void SmRd1::statePlanning()
 
           RotateToHeading(goal_yaw_);
 
-          Brake (100.0);
+          // Brake (100.0);
+          BrakeRamp(100, 3, 0);
         }
         else
         {
@@ -413,7 +425,7 @@ void SmRd1::statePlanning()
 
   ClearCostmaps();
 
-  Stop (2.0);
+  // Stop (2.0);
 
   Brake (0.0);
 
@@ -604,7 +616,8 @@ void SmRd1::stateLost()
   }
 
 
-  Brake (100.0);
+  // Brake (100.0);
+  BrakeRamp(100, 3, 0);
   if(approachSuccess){
   // Homing - Measurement Update
   sensor_fusion::HomingUpdate srv_homing;
@@ -640,15 +653,18 @@ else{
 
   Lights ("0.6");
 
-  // SIMILAR TO INIT
+  //Similar to initial homing, keep the localization good after homing.
+  Brake(0.0);
+
+  DriveCmdVel(-0.5,0.0,0.0,4);
+
+  BrakeRamp(100, 3, 0);
 
   Brake(0.0);
 
-  Drive(-0.3, 3.0);
+  RotateInPlace(0.2, 3);
 
-  Stop(3.0);
-
-  Brake(100.0);
+  BrakeRamp(100, 3, 0);
 
   Brake(0.0);
 
@@ -880,9 +896,12 @@ void SmRd1::RotateToHeading(double desired_yaw)
 
      Stop(2.0);
 
-     Drive (-0.3, 4.0);
+     DriveCmdVel (-0.5, 0.0, 0.0, 4.0);
 
-     Stop(3.0);
+     BrakeRamp(100, 3, 0);
+
+     Brake(0.0);
+     // Stop(2.0);
 
   //  immobilityRecovery(); //TODO: Use this instead of Stop and Drive at line 714 and 716
 
@@ -903,30 +922,33 @@ void SmRd1::homingRecovery()
 
   ROS_WARN("Starting Homing Recovery.");
 
+  Lights("0.6");
+
   Stop(2.0);
 
-  Brake(100.0);
+  // Brake(100.0);
+  BrakeRamp(100, 3, 0);
 
   Brake(0.0);
 
-  Drive(-0.3, 3.0);
-  // DriveCmdVel(-0.3,-0.3, 0.0, 3.0); TODO: TEST THIS AGAIN
+  // Drive(-0.3, 3.0);
+  DriveCmdVel(-0.3,-0.6, 0.0, 4.0); //TODO: TEST THIS AGAIN
 
   Stop(0.0);
 
-  RotateToHeading(yaw_ - M_PI/2);
+  RotateToHeading(yaw_ - M_PI/4);
 
   Stop(0.0);
 
-  Brake(100.0);
+  BrakeRamp(100, 3, 0);
 
   Brake(0.0);
 
-  Drive(0.3, 3.0);
+  DriveCmdVel(0.7,0.0,0.0,4.0);
 
   Stop(0.0);
 
-  Brake(100.0);
+  BrakeRamp(100, 3, 0);
 
   Brake(0.0);
 
@@ -947,11 +969,11 @@ void SmRd1::immobilityRecovery(int type)
 
   Brake(0.0);
 
-  Drive(-0.3, 4.0);
+  DriveCmdVel(-0.4,0.0,0.0,3.0);
 
-  Stop(3.0); //TODO: CMDvelZero try
+  // Stop(3.0); //TODO: CMDvelZero try
 
-  Brake(100.0); //TODO: Brake RAmp
+  BrakeRamp(100, 3, 0);
 
   Brake(0.0);
 
@@ -1052,8 +1074,12 @@ void SmRd1::BrakeRamp(double max_intensity, double time, int aggressivity)
     ROS_INFO("Brake Ramp.");
     for (int counter = 0; counter < num_steps; ++counter)
     {
+<<<<<<< HEAD
       ROS_INFO_STREAM("Counter: " << counter);
       double intensity = ((double) counter/(freq * time))*max_intensity;
+=======
+      double intensity = (static_cast<double>(counter + 1)/(freq * time))*max_intensity;
+>>>>>>> 5dd9646226cd6052b6ab9b12dbe5dbb47d200128
       ROS_INFO_STREAM("Brake intensity: " << intensity);
       Brake(intensity);
       brake_rate.sleep();
@@ -1064,9 +1090,14 @@ void SmRd1::BrakeRamp(double max_intensity, double time, int aggressivity)
     ROS_INFO("Brake Logistics Curve.");
     for (int counter = 0; counter < num_steps; ++counter)
     {
+<<<<<<< HEAD
       ROS_INFO_STREAM("Counter: " << counter);
       double multiplier = 2;
       double x = ((double) counter/(freq * time)) * time * multiplier;
+=======
+      double multiplier = 2;
+      double x = (static_cast<double>(counter + 1)/(freq * time)) * time * multiplier;
+>>>>>>> 5dd9646226cd6052b6ab9b12dbe5dbb47d200128
       double intensity =  max_intensity / (1 + exp(-x)) - max_intensity/2;
       ROS_INFO_STREAM("Brake intensity: " << intensity);
       Brake(intensity);
@@ -1111,6 +1142,10 @@ void SmRd1::Drive(double throttle, double time)
 
 void SmRd1::DriveCmdVel(double vx, double vy, double wz, double time)
 {
+  if (pitch_ > 0.0 && vx < 0.0)
+  {
+   vx = vx + (pitch_ / 0.52) * vx;
+  }
   geometry_msgs::Twist cmd_vel;
   cmd_vel.linear.x = vx;
   cmd_vel.linear.y = vy;
@@ -1152,6 +1187,10 @@ void SmRd1::RoverStatic(bool flag)
     ROS_ERROR("SCOUT: Failed to call service RoverStatic");
   }
 
+}
+
+bool SmRd1::setMobility_(state_machine::SetMobility::Request &req, state_machine::SetMobility::Response &res){
+  flag_mobility = req.mobility;
 }
 
 //------------------------------------------------------------------------------------------------------------------------
