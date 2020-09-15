@@ -38,7 +38,7 @@ move_base_state_(actionlib::SimpleClientGoalState::LOST)
   clt_sf_true_pose_ = nh.serviceClient<sensor_fusion::GetTruePose>("/scout_1/true_pose");
   clt_waypoint_checker_ = nh.serviceClient<waypoint_checker::CheckCollision>("/scout_1/waypoint_checker");
   clt_srcp2_brake_rover_= nh.serviceClient<srcp2_msgs::BrakeRoverSrv>("/scout_1/brake_rover");
-  // this is a comment
+
 
 
   driving_mode_=0;
@@ -265,21 +265,18 @@ else{
 
   Lights("0.6");
 
+  // Minimal Maneuvers to keep the localization good and get rid of BaseStation obstacle before generating initial path.
   Brake(0.0);
 
-  Drive(-0.3, 3.0);
+  DriveCmdVel(-0.5,0.0,0.0,4);
 
-  Stop(3.0); //TODO: Drive (0.0, 3.0)
-
-  Brake(100.0);
+  BrakeRamp(100, 3, 0);
 
   Brake(0.0);
 
-  RotateToHeading(yaw_ - M_PI/2);
+  RotateInPlace(0.2, 3);
 
-  Stop(3.0);
-
-  Brake(100.0);
+  BrakeRamp(100, 3, 0);
 
   Brake(0.0);
 
@@ -342,7 +339,6 @@ void SmRd1::statePlanning()
     srv_wp_gen.request.next  = true;
   }
 
-
   else
   {
   srv_wp_gen.request.next  = false;
@@ -366,8 +362,8 @@ void SmRd1::statePlanning()
 
   RotateToHeading(goal_yaw_);
 
-  Brake (100.0);
-
+  // Brake (100.0);
+  BrakeRamp(100, 3, 0);
   // check waypoint
 
   waypoint_checker::CheckCollision srv_wp_check;
@@ -397,7 +393,8 @@ void SmRd1::statePlanning()
 
           RotateToHeading(goal_yaw_);
 
-          Brake (100.0);
+          // Brake (100.0);
+          BrakeRamp(100, 3, 0);
         }
         else
         {
@@ -413,7 +410,7 @@ void SmRd1::statePlanning()
 
   ClearCostmaps();
 
-  Stop (2.0);
+  // Stop (2.0);
 
   Brake (0.0);
 
@@ -604,7 +601,8 @@ void SmRd1::stateLost()
   }
 
 
-  Brake (100.0);
+  // Brake (100.0);
+  BrakeRamp(100, 3, 0);
   if(approachSuccess){
   // Homing - Measurement Update
   sensor_fusion::HomingUpdate srv_homing;
@@ -640,15 +638,18 @@ else{
 
   Lights ("0.6");
 
-  // SIMILAR TO INIT
+  //Similar to initial homing, keep the localization good after homing.
+  Brake(0.0);
+
+  DriveCmdVel(-0.5,0.0,0.0,4);
+
+  BrakeRamp(100, 3, 0);
 
   Brake(0.0);
 
-  Drive(-0.3, 3.0);
+  RotateInPlace(0.2, 3);
 
-  Stop(3.0);
-
-  Brake(100.0);
+  BrakeRamp(100, 3, 0);
 
   Brake(0.0);
 
@@ -880,9 +881,12 @@ void SmRd1::RotateToHeading(double desired_yaw)
 
      Stop(2.0);
 
-     Drive (-0.3, 4.0);
+     DriveCmdVel (-0.5, 4.0);
 
-     Stop(3.0);
+     BrakeRamp(100, 3, 0);
+
+     Brake(0.0);
+     // Stop(2.0);
 
   //  immobilityRecovery(); //TODO: Use this instead of Stop and Drive at line 714 and 716
 
@@ -905,28 +909,29 @@ void SmRd1::homingRecovery()
 
   Stop(2.0);
 
-  Brake(100.0);
+  // Brake(100.0);
+  BrakeRamp(100, 3, 0);
 
   Brake(0.0);
 
-  Drive(-0.3, 3.0);
-  // DriveCmdVel(-0.3,-0.3, 0.0, 3.0); TODO: TEST THIS AGAIN
+  // Drive(-0.3, 3.0);
+  DriveCmdVel(-0.3,-0.6, 0.0, 4.0); //TODO: TEST THIS AGAIN
 
   Stop(0.0);
 
-  RotateToHeading(yaw_ - M_PI/2);
+  RotateToHeading(yaw_ - M_PI/4);
 
   Stop(0.0);
 
-  Brake(100.0);
+  BrakeRamp(100, 3, 0);
 
   Brake(0.0);
 
-  Drive(0.3, 3.0);
+  DriveCmdVel(0.7,0.0,0.0,4.0);
 
   Stop(0.0);
 
-  Brake(100.0);
+  BrakeRamp(100, 3, 0);
 
   Brake(0.0);
 
@@ -947,11 +952,11 @@ void SmRd1::immobilityRecovery(int type)
 
   Brake(0.0);
 
-  Drive(-0.3, 4.0);
+  DriveCmdVel(-0.4,0.0,0.0,3.0);
 
-  Stop(3.0); //TODO: CMDvelZero try
+  // Stop(3.0); //TODO: CMDvelZero try
 
-  Brake(100.0); //TODO: Brake RAmp
+  BrakeRamp(100, 3, 0);
 
   Brake(0.0);
 
@@ -1052,8 +1057,7 @@ void SmRd1::BrakeRamp(double max_intensity, double time, int aggressivity)
     ROS_INFO("Brake Ramp.");
     for (int counter = 0; counter < num_steps; ++counter)
     {
-      counter++;
-      double intensity = (counter/num_steps)*max_intensity;
+      double intensity = (static_cast<double>(counter + 1)/(freq * time))*max_intensity;
       ROS_INFO_STREAM("Brake intensity: " << intensity);
       Brake(intensity);
       brake_rate.sleep();
@@ -1064,9 +1068,8 @@ void SmRd1::BrakeRamp(double max_intensity, double time, int aggressivity)
     ROS_INFO("Brake Logistics Curve.");
     for (int counter = 0; counter < num_steps; ++counter)
     {
-      counter++;
       double multiplier = 2;
-      double x = (counter/num_steps) * time * multiplier;
+      double x = (static_cast<double>(counter + 1)/(freq * time)) * time * multiplier;
       double intensity =  max_intensity / (1 + exp(-x)) - max_intensity/2;
       ROS_INFO_STREAM("Brake intensity: " << intensity);
       Brake(intensity);
@@ -1111,6 +1114,10 @@ void SmRd1::Drive(double throttle, double time)
 
 void SmRd1::DriveCmdVel(double vx, double vy, double wz, double time)
 {
+  if (pitch_ > 0.0 && vx < 0.0)
+  {
+   vx = vx + (pitch_ / 0.52) * vx;
+  }
   geometry_msgs::Twist cmd_vel;
   cmd_vel.linear.x = vx;
   cmd_vel.linear.y = vy;
