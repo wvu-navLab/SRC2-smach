@@ -696,9 +696,10 @@ void SmRd2::stateVolatileHandler()
   std::vector<double> vy {-0.0, 0.0, -1.0, 2.0};
 
   int position_counter = 0;
-  while(position_counter < 3)
+
+  while(position_counter < 4)
   {
-    while(!flag_volatile_found_excavator_)
+    while(!flag_volatile_dug_excavator_)
     {
       if(approachSuccessHauler)
       {
@@ -709,9 +710,17 @@ void SmRd2::stateVolatileHandler()
         // TODO: What?
       }
 
-      ROS_WARN_THROTTLE(10, "In Manipulation State Machine");
+      ROS_WARN_THROTTLE(10, "In Manipulation State Machine.");
       ros::spinOnce();
       manipulation_rate.sleep();
+    }
+    if (!flag_volatile_found_excavator_)
+    {
+      flag_volatile_dug_excavator_ = false;
+    }
+    else
+    {
+      break;
     }
     position_counter++;
     BrakeExcavator(0.0);
