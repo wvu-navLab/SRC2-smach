@@ -392,7 +392,7 @@ void SmRd2::statePlanning()
 {
   ROS_INFO("Planning!\n");
   flag_arrived_at_waypoint_excavator_ = false;
-  flag_waypoint_unreachable_excavator_=false;
+  flag_waypoint_unreachable_excavator_= false;
 
   ROS_INFO("EXCAVATOR: Canceling MoveBase goal.");
   ac_excavator_.waitForServer();
@@ -612,50 +612,63 @@ void SmRd2::stateVolatileHandler()
   StartManipulation();
 
   ros::Rate manipulation_rate(10);
-  bool approachSuccessHauler = false;
-  ros::Time start_time = ros::Time::now();
 
   // TODO: Location of Base Station:
   // This service will give (x,y) in global frame of hauler
   // Subtract (x,y) estimate of the hauler
   // Put some sanity check
+  bool approachSuccessHauler = false;
 
-  // OUTER LOOP : CHECK FOR SOME TIMEOUT. MOVES EXCAVATOR +/-dx +/-dy
-  while(!flag_volatile_dug_excavator_)
+  src2_object_detection::ApproachBaseStation srv_approach_base;
+  srv_approach_base.request.approach_base_station.data= true;
+  int homingRecoveryCountHauler = 0;
+  while(!approachSuccessHauler && homingRecoveryCountHauler<3)
   {
-    if (approachSuccessHauler == false && ros::Time::now()-start_time>ros::Duration(20))
+    if (clt_approach_excavator_hauler_.call(srv_approach_base))
     {
-      src2_object_detection::ApproachBaseStation srv_approach_base;
-      srv_approach_base.request.approach_base_station.data= true;
-      int homingRecoveryCountHauler = 0;
-      while(!approachSuccessHauler && homingRecoveryCountHauler<3)
+      ROS_INFO("HAULER: Called service ApproachExcavator");
+      ROS_INFO_STREAM("Success finding the Excavator? "<< srv_approach_base.response.success.data);
+      if(!srv_approach_base.response.success.data)
       {
-        if (clt_approach_excavator_hauler_.call(srv_approach_base))
-        {
-          ROS_INFO("HAULER: Called service ApproachExcavator");
-          ROS_INFO_STREAM("Success finding the Excavator? "<< srv_approach_base.response.success.data);
-          if(!srv_approach_base.response.success.data)
-          {
-            homingRecoveryHauler();
-          }
-          else
-          {
-            approachSuccessHauler = true;
-          }
-        }
-        else
-        {
-          ROS_ERROR("HAULER: Failed  to call service ApproachExcavator");
-        }
-        homingRecoveryCountHauler=homingRecoveryCountHauler+1;
+        homingRecoveryHauler();
       }
-      start_time = ros::Time::now();
-      homingRecoveryCountHauler = 0;
+      else
+      {
+        approachSuccessHauler = true;
+      }
     }
+    else
+    {
+      ROS_ERROR("HAULER: Failed  to call service ApproachExcavator");
+    }
+    homingRecoveryCountHauler=homingRecoveryCountHauler+1;
+  }
 
-    ROS_WARN_THROTTLE(10, "In Manipulatuion State Machine");
-    ros::spinOnce();
-    manipulation_rate.sleep();
+  std::vector<double> vx {-1.0, 2.0, -1.0, 0.01};
+  std::vector<double> vy {-0.0, 0.0, -1.0, 2.0};
+
+  int position_counter = 0;
+  while(position_counter < 3)
+  {
+    while(!flag_volatile_dug_excavator_)
+    {
+      if(approachSuccessHauler)
+      {
+        // TODO: Service come closer and send relative yaw
+      }
+      else
+      { 
+        // TODO: What?
+      }
+
+      ROS_WARN_THROTTLE(10, "In Manipulation State Machine");
+      ros::spinOnce();
+      manipulation_rate.sleep();
+    }
+    position_counter++;
+    BrakeExcavator(0.0);
+    DriveCmdVelExcavator(vx[position_counter], vy[position_counter], 0.0, 2.0);
+    BrakeRampExcavator(100, 3.0, 0);
   }
 
   DriveCmdVelHauler(-0.5, 0.0, 0.0, 4.0);
@@ -874,8 +887,16 @@ void SmRd2::feedbackCallbackExcavator(const move_base_msgs::MoveBaseFeedback::Co
 void SmRd2::manipulationFeedbackCallbackExcavator(const move_excavator::ExcavationStatus::ConstPtr& msg)
 {
   excavation_finished_excavator_ = msg->isFinished;
-  collected_mass_excavator_ = msg->collectedMass;
+  excavation_found_volatile_ = msg->foundVolatile;
+  collected_mass_excavator_ = collected_mass_excavator_ + msg->collectedMass;
+
   if(excavation_finished_excavator_)
+  {
+    ROS_INFO_STREAM("EXCAVATOR: Let's finish manipulation.");
+    flag_volatile_dug_excavator_ = true;
+  }
+
+  if(excavation_found_volatile_)
   {
     ROS_INFO_STREAM("EXCAVATOR: Let's finish manipulation.");
     flag_volatile_dug_excavator_ = true;
