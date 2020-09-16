@@ -928,7 +928,6 @@ void SmRd1::homingRecovery()
 
   Stop(2.0);
 
-  // Brake(100.0);
   BrakeRamp(100, 3, 0);
 
   Brake(0.0);

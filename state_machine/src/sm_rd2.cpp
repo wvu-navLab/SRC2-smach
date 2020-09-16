@@ -2,9 +2,9 @@
 
 SmRd2::SmRd2() :
 ac_excavator_("/excavator_1/move_base", true),
-move_base_state_excavator_(actionlib::SimpleClientGoalState::LOST),
+move_base_state_excavator_(actionlib::SimpleClientGoalState::PREEMPTED),
 ac_hauler_("/hauler_1/move_base", true),
-move_base_state_hauler_(actionlib::SimpleClientGoalState::LOST)
+move_base_state_hauler_(actionlib::SimpleClientGoalState::PREEMPTED)
 {
   // Initialize ROS, Subs, and Pubs *******************************************
   // Publishers Excavator
@@ -94,7 +94,7 @@ move_base_state_hauler_(actionlib::SimpleClientGoalState::LOST)
 
 void SmRd2::run()
 {
-  ros::Rate loop_rate(2); // Hz
+  ros::Rate loop_rate(5); // Hz
   while(ros::ok())
   {
     // Debug prints +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -217,6 +217,10 @@ void SmRd2::stateInitialize()
   ROS_WARN("Initialization State!\n");
   flag_arrived_at_waypoint_excavator_ = false;
   flag_waypoint_unreachable_excavator_ = false;
+
+  // ToggleDetectorExcavator(false);
+
+  // ToggleDetectorHauler(false);
 
   while(!clt_lights_hauler_.waitForExistence())
   {
@@ -368,12 +372,18 @@ void SmRd2::stateInitialize()
 
 
   LightsHauler("0.6");
+  // BrakeHauler(0.0);
+  // DriveHauler(-0.3, 3.0);
+  // StopHauler(3.0);
+  // RotateInPlaceHauler(0.3, 3.0);
+  // StopHauler(3.0);
+  // BrakeHauler(100.0);
+
+  DriveCmdVelHauler(-0.5,0.0,0.0,4);
+  BrakeRampHauler(100, 3, 0);
   BrakeHauler(0.0);
-  DriveHauler(-0.3, 3.0);
-  StopHauler(3.0);
-  RotateInPlaceHauler(0.3, 3.0);
-  StopHauler(3.0);
-  BrakeHauler(100.0);
+  RotateInPlaceHauler(0.2, 3);
+  BrakeRampHauler(100, 3, 0);
 
 
 
@@ -432,12 +442,12 @@ void SmRd2::statePlanning()
   UpdateGoalPoseExcavator();
   BrakeExcavator (0.0);
   RotateToHeadingExcavator(goal_yaw_excavator_);
-  BrakeExcavator (100.0);
+  BrakeRampExcavator (100, 3, 0);
 
   UpdateGoalPoseHauler();
   BrakeHauler (0.0);
   RotateToHeadingHauler(goal_yaw_hauler_);
-  BrakeHauler (100.0);
+  BrakeRampHauler (100, 3, 0);
 
   ROS_INFO_STREAM("EXCAVATOR: Goal Pose: "<< goal_pose_excavator_);
   ROS_INFO_STREAM("HAULER: Goal Pose: "<< goal_pose_hauler_);
@@ -529,19 +539,6 @@ void SmRd2::stateTraverse()
     flag_recovering_localization_excavator_ = false;
   }
 
-  bool is_colliding = false;
-  waypoint_checker::CheckCollision srv_wp_check;
-  if (clt_waypoint_checker_excavator_.call(srv_wp_check))
-  {
-    ROS_INFO("EXCAVATOR: Called service Waypoint Checker");
-    is_colliding = srv_wp_check.response.collision;
-    if(is_colliding)
-    {
-      ROS_INFO("EXCAVATOR: Waypoint Unreachable. Sending to Planning");
-      flag_waypoint_unreachable_excavator_=true;
-    }
-  }
-
   double distance_to_goal = std::hypot(goal_pose_excavator_.position.y - current_pose_excavator_.position.y, goal_pose_excavator_.position.x - current_pose_excavator_.position.x);
   if (distance_to_goal < 2.0)
   {
@@ -558,6 +555,19 @@ void SmRd2::stateTraverse()
     ac_excavator_.waitForResult(ros::Duration(0.25));
 
     BrakeExcavator(100.0);
+  }
+
+  bool is_colliding = false;
+  waypoint_checker::CheckCollision srv_wp_check;
+  if (clt_waypoint_checker_excavator_.call(srv_wp_check))
+  {
+    ROS_INFO("EXCAVATOR: Called service Waypoint Checker");
+    is_colliding = srv_wp_check.response.collision;
+    if(is_colliding)
+    {
+      ROS_INFO("EXCAVATOR: Waypoint Unreachable. Sending to Planning");
+      flag_waypoint_unreachable_excavator_=true;
+    }
   }
 
   if (!flag_mobility_excavator_)
@@ -597,6 +607,44 @@ void SmRd2::stateTraverse()
     StopExcavator (2.0);
     ClearCostmapsHauler();
   }
+//////////////////////////////////////////////////////////////////////////
+// IF IT'S NEEDED THE TIMEOUT FOR CLEARING COSTMAP AND WAYPOINT IS here //
+//////////////////////////////////////////////////////////////////////////
+
+// ros::Duration timeoutMapHauler(30.0);
+//
+// if (ros::Time::now() - map_timerHauler > timeoutMapHauler)
+// {
+//   std_srvs::Empty emptymsg;
+//   ros::service::call("/hauler_1/move_base/clear_costmaps",emptymsg);
+//   map_timerHauler =ros::Time::now();
+//   ROS_WARN("Map Cleared for Hauler");
+// }
+//
+// if (ros::Time::now() - map_timerExcavator > timeoutMapExcavator)
+// {
+//   std_srvs::Empty emptymsg;
+//   ros::service::call("/excavator_1/move_base/clear_costmaps",emptymsg);
+//   map_timerExcavator =ros::Time::now();
+//   ROS_WARN("Map Cleared for Excavator");
+// }
+//
+// ros::Duration timeoutWaypointHauler(120);
+// if (ros::Time::now() - waypoint_timer_Hauler > timeoutWaypointHauler )
+// {
+//   ROS_ERROR("Waypoint Unreachable for Hauler");
+//   flag_waypoint_unreachable_hauler_= true;
+//   StopHauler (1.0);
+//   ClearCostmapsHauler();
+// }
+// ros::Duration timeoutWaypointExcavator(120);
+// if (ros::Time::now() - waypoint_timer_Excavator > timeoutWaypointExcavator )
+// {
+//   ROS_ERROR("Waypoint Unreachable for Excavator");
+//   flag_waypoint_unreachable_excavator_= true;
+//   StopExcavator (1.0);
+//   ClearCostmapsExcavator();
+// }
 
 
   std_msgs::Int64 state_msg;
@@ -770,15 +818,29 @@ else{
 
   LightsExcavator ("0.6");
 
-  BrakeExcavator (0.0);
+  // BrakeExcavator (0.0);
+  //
+  // DriveExcavator (-0.3, 2.0);
+  //
+  // StopExcavator (3.0);
+  //
+  // RotateInPlaceExcavator (0.2, 3.0);
+  //
+  // StopExcavator (3.0);
 
-  DriveExcavator (-0.3, 2.0);
+  BrakeExcavator(0.0);
 
-  StopExcavator (3.0);
+  DriveCmdVelExcavator(-0.5,0.0,0.0,4);
 
-  RotateInPlaceExcavator (0.2, 3.0);
+  BrakeRampExcavator(100, 3, 0);
 
-  StopExcavator (3.0);
+  BrakeExcavator(0.0);
+
+  RotateInPlaceExcavator(0.2, 3);
+
+  BrakeRampExcavator(100, 3, 0);
+
+  BrakeExcavator(0.0);
 
   // ToggleDetectorExcavator(true);
 
@@ -796,11 +858,11 @@ void SmRd2::localizedBaseCallbackExcavator(const std_msgs::Int64::ConstPtr& msg)
 {
   flag_localized_base_excavator_ = msg->data;
   if (flag_localized_base_excavator_) {
-    ROS_WARN_ONCE("Initial Localization Successful = %i",flag_localized_base_excavator_);
+    ROS_WARN_ONCE("EXCAVATOR Initial Localization Successful = %i",flag_localized_base_excavator_);
 
   }
   else {
-    ROS_INFO("Waiting for Initial Localization  = %i",flag_localized_base_excavator_);
+    ROS_INFO("EXCAVATOR Waiting for Initial Localization  = %i",flag_localized_base_excavator_);
   }
 }
 
@@ -808,10 +870,10 @@ void SmRd2::mobilityCallbackExcavator(const std_msgs::Int64::ConstPtr& msg)
 {
   flag_mobility_excavator_ = msg->data;
   if (flag_mobility_excavator_) {
-    ROS_WARN_ONCE("Rover is traversing = %i",flag_mobility_excavator_);
+    ROS_WARN_ONCE("EXCAVATOR Rover is traversing = %i",flag_mobility_excavator_);
   }
   else {
-    ROS_ERROR("ROVER IMMOBILIZATION!  = %i",flag_mobility_excavator_);
+    ROS_ERROR("EXCAVATOR OVER IMMOBILIZATION!  = %i",flag_mobility_excavator_);
     immobilityRecoveryExcavator();
   }
 }
@@ -881,7 +943,7 @@ void SmRd2::activeCallbackExcavator()
 }
 void SmRd2::feedbackCallbackExcavator(const move_base_msgs::MoveBaseFeedback::ConstPtr& feedback)
 {
-    ROS_INFO("Got feedback");
+    // ROS_INFO("Got feedback");
 }
 
 void SmRd2::manipulationFeedbackCallbackExcavator(const move_excavator::ExcavationStatus::ConstPtr& msg)
@@ -905,7 +967,7 @@ void SmRd2::RotateToHeadingExcavator(double desired_yaw)
 {
   ros::Rate raterotateToHeading(20);
 
-  ROS_INFO("Starting yaw control.");
+  ROS_INFO("EXCAVATOR: Starting yaw control.");
 
   double yaw_thres = 0.1;
 
@@ -952,7 +1014,7 @@ void SmRd2::RotateToHeadingExcavator(double desired_yaw)
 
     if (ros::Time::now() - start_time > timeoutHeading)
     {
-      ROS_ERROR("Yaw Control Failed. Possibly stuck. Break control.");
+      ROS_ERROR("EXCAVATOR: Yaw Control Failed. Possibly stuck. Break control.");
       flag_heading_fail_excavator_ = true;
       break;
     }
@@ -960,11 +1022,15 @@ void SmRd2::RotateToHeadingExcavator(double desired_yaw)
 
   if (flag_heading_fail_excavator_)
   {
-    ROS_WARN("Recovery action initiated in yaw control.");
+    ROS_WARN("EXCAVATOR: Recovery action initiated in yaw control.");
 
-     StopExcavator(2.0);
+    StopExcavator(2.0);
 
-     DriveExcavator (-0.3, 4.0);
+    DriveCmdVelExcavator(-0.5, 0.0, 0.0, 4.0);
+
+    BrakeRampExcavator(100, 3, 0);
+
+    BrakeExcavator(0.0);
 
   //  immobilityRecovery(); //TODO: Use this instead of Stop and Drive at line 714 and 716
 
@@ -987,21 +1053,27 @@ void SmRd2::homingRecoveryExcavator()
 
   StopExcavator(2.0);
 
-  BrakeExcavator(100.0);
+  BrakeRampExcavator(100, 3, 0);
 
   BrakeExcavator(0.0);
 
-  DriveExcavator(-0.3, 4.0);
+  DriveCmdVelExcavator(-0.3,-0.6, 0.0, 4.0);
 
   StopExcavator(0.0);
 
-  RotateInPlaceExcavator(.5,2.0);
+  RotateToHeadingExcavator(yaw_excavator_ - M_PI/4);
 
   StopExcavator(0.0);
 
-  DriveExcavator(0.3, 4.0);
+  BrakeRampExcavator(100, 3, 0);
 
-  BrakeExcavator(100.0);
+  BrakeExcavator(0.0);
+
+  DriveCmdVelExcavator(0.7,0.0,0.0,4.0);
+
+  StopExcavator(0.0);
+
+  BrakeRampExcavator(100, 3, 0);
 
   BrakeExcavator(0.0);
 
@@ -1024,11 +1096,17 @@ void SmRd2::immobilityRecoveryExcavator()
 
   BrakeExcavator(0.0);
 
-  DriveExcavator(-0.3, 4.0);
+  DriveCmdVelExcavator(-0.5,0.0,0.0,3.0);
 
-  StopExcavator(0.0);
+  BrakeRampExcavator(100, 3, 0);
 
-  BrakeExcavator(100.0);
+  BrakeExcavator(0.0);
+
+  DriveCmdVelExcavator(-0.3,-0.6, 0.0, 4.0);
+
+  // Stop(3.0); //TODO: CMDvelZero try
+
+  BrakeRampExcavator(100, 3, 0);
 
   BrakeExcavator(0.0);
 
@@ -1318,11 +1396,11 @@ void SmRd2::localizedBaseCallbackHauler(const std_msgs::Int64::ConstPtr& msg)
 {
   flag_localized_base_hauler_ = msg->data;
   if (flag_localized_base_hauler_) {
-    ROS_WARN_ONCE("Initial Localization Successful = %i",flag_localized_base_hauler_);
+    ROS_WARN_ONCE("HAULER: Initial Localization Successful = %i",flag_localized_base_hauler_);
 
   }
   else {
-    ROS_INFO("Waiting for Initial Localization  = %i",flag_localized_base_hauler_);
+    ROS_INFO("HAULER: Waiting for Initial Localization  = %i",flag_localized_base_hauler_);
   }
 }
 
@@ -1330,10 +1408,10 @@ void SmRd2::mobilityCallbackHauler(const std_msgs::Int64::ConstPtr& msg)
 {
   flag_mobility_hauler_ = msg->data;
   if (flag_mobility_hauler_) {
-    ROS_WARN_ONCE("Rover is traversing = %i",flag_mobility_hauler_);
+    ROS_WARN_ONCE("HAULER: Rover is traversing = %i",flag_mobility_hauler_);
   }
   else {
-    ROS_ERROR("ROVER IMMOBILIZATION!  = %i",flag_mobility_hauler_);
+    ROS_ERROR("HAULER: ROVER IMMOBILIZATION!  = %i",flag_mobility_hauler_);
     immobilityRecoveryHauler();
   }
 }
@@ -1410,14 +1488,14 @@ void SmRd2::activeCallbackHauler()
 }
 void SmRd2::feedbackCallbackHauler(const move_base_msgs::MoveBaseFeedback::ConstPtr& feedback)
 {
-    ROS_INFO("Got feedback");
+    // ROS_INFO("Got feedback");
 }
 
 void SmRd2::RotateToHeadingHauler(double desired_yaw)
 {
   ros::Rate raterotateToHeading(20);
 
-  ROS_INFO("Starting yaw control.");
+  ROS_INFO("HAULER: Starting yaw control.");
 
   double yaw_thres = 0.1;
 
@@ -1464,7 +1542,7 @@ void SmRd2::RotateToHeadingHauler(double desired_yaw)
 
     if (ros::Time::now() - start_time > timeoutHeading)
     {
-      ROS_ERROR("Yaw Control Failed. Possibly stuck. Break control.");
+      ROS_ERROR("HAULER: Yaw Control Failed. Possibly stuck. Break control.");
       flag_heading_fail_hauler_ = true;
       break;
     }
@@ -1472,11 +1550,15 @@ void SmRd2::RotateToHeadingHauler(double desired_yaw)
 
   if (flag_heading_fail_hauler_)
   {
-    ROS_WARN("Recovery action initiated in yaw control.");
+    ROS_WARN("HAULER: Recovery action initiated in yaw control.");
 
-     StopHauler(2.0);
+    StopHauler(2.0);
 
-     DriveHauler (-0.3, 4.0);
+    DriveCmdVelHauler (-0.5, 0.0, 0.0, 4.0);
+
+    BrakeRampHauler(100, 3, 0);
+
+    BrakeHauler(0.0);
 
   //  immobilityRecovery(); //TODO: Use this instead of Stop and Drive at line 714 and 716
 
@@ -1499,21 +1581,23 @@ void SmRd2::homingRecoveryHauler()
 
   StopHauler(2.0);
 
-  BrakeHauler(100.0);
+  BrakeRampHauler(100, 3, 0);
 
   BrakeHauler(0.0);
 
-  DriveHauler(-0.3, 4.0);
+  DriveCmdVelHauler(-0.3,-0.6, 0.0, 4.0);
 
   StopHauler(0.0);
 
-  RotateInPlaceHauler(.5,2.0);
+  RotateToHeadingHauler(yaw_hauler_ - M_PI/4);
 
   StopHauler(0.0);
 
-  DriveHauler(0.3, 4.0);
+  BrakeRampHauler(100, 3, 0);
 
-  BrakeHauler(100.0);
+  DriveCmdVelHauler(0.7,0.0,0.0,4.0);
+
+  BrakeRampHauler(100, 3, 0);
 
   BrakeHauler(0.0);
 
@@ -1536,13 +1620,20 @@ void SmRd2::immobilityRecoveryHauler()
 
   BrakeHauler(0.0);
 
-  DriveHauler(-0.3, 4.0);
+  DriveCmdVelHauler(-0.5,0.0, 0.0, 3.0);
 
-  StopHauler(0.0);
+  BrakeRampHauler(100, 3, 0);
 
-  BrakeHauler(100.0);
+  // BrakeHauler(100.0);
+  BrakeHauler(0.0);
+
+  DriveCmdVelHauler(-0.3,-0.6, 0.0, 4.0);
+
+  BrakeRampHauler(100, 3, 0);
 
   BrakeHauler(0.0);
+
+  flag_mobility_hauler_=true;
 
   flag_waypoint_unreachable_hauler_=true;
 
@@ -1719,6 +1810,5 @@ void SmRd2::RoverStaticHauler(bool flag)
   }
 
 }
-
 
 //------------------------------------------------------------------------------------------------------------------------
