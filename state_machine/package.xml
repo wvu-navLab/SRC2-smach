@@ -53,7 +53,6 @@
   <buildtool_depend>rospy</buildtool_depend>
   <buildtool_depend>message_runtime</buildtool_depend>
   <buildtool_depend>roslib</buildtool_depend>
-  <buildtool_depend>pose_update</buildtool_depend>
   <buildtool_depend>waypoint_nav</buildtool_depend>
   <buildtool_depend>volatile_handler</buildtool_depend>
   <buildtool_depend>round2_volatile_handler</buildtool_depend>
@@ -76,7 +75,6 @@
   <build_depend>rospy</build_depend>
   <build_depend>message_runtime</build_depend>
   <build_depend>roslib</build_depend>
-  <build_depend>pose_update</build_depend>
   <build_depend>waypoint_nav</build_depend>
   <build_depend>waypoint_gen</build_depend>
   <build_depend>driving_tools</build_depend>
@@ -99,7 +97,6 @@
   <build_export_depend>rospy</build_export_depend>
   <build_export_depend>message_runtime</build_export_depend>
   <build_export_depend>roslib</build_export_depend>
-  <build_export_depend>pose_update</build_export_depend>
   <build_export_depend>waypoint_nav</build_export_depend>
   <build_export_depend>waypoint_gen</build_export_depend>
   <build_export_depend>driving_tools</build_export_depend>
@@ -122,7 +119,6 @@
   <exec_depend>rospy</exec_depend>
   <exec_depend>message_runtime</exec_depend>
   <exec_depend>roslib</exec_depend>
-  <exec_depend>pose_update</exec_depend>
   <exec_depend>waypoint_nav</exec_depend>
   <exec_depend>waypoint_gen</exec_depend>
   <exec_depend>volatile_handler</exec_depend>

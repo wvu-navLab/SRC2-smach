@@ -125,7 +125,7 @@ find_package(Eigen3 3.3 REQUIRED)
 catkin_package(
  INCLUDE_DIRS include
 #  LIBRARIES state_machine
-  CATKIN_DEPENDS sensor_msgs waypoint_checker src2_object_detection std_msgs std_srvs geometry_msgs nav_msgs pose_update sensor_fusion driving_tools actionlib move_excavator volatile_handler round2_volatile_handler waypoint_nav waypoint_gen
+  CATKIN_DEPENDS sensor_msgs waypoint_checker src2_object_detection std_msgs std_srvs geometry_msgs nav_msgs sensor_fusion driving_tools actionlib move_excavator volatile_handler round2_volatile_handler waypoint_nav waypoint_gen
 #  DEPENDS system_lib
 )
 
