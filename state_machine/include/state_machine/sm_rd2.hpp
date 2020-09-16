@@ -73,6 +73,7 @@ public:
   bool flag_heading_fail_excavator_=false;
   bool need_to_initialize_landmark_excavator_=true;
   bool flag_volatile_dug_excavator_ = true;
+  bool flag_volatile_found_excavator_ = false;
 
   int flag_localized_base_hauler_ = 0;
   int flag_mobility_hauler_ = 1;

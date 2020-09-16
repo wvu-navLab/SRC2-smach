@@ -650,7 +650,7 @@ void SmRd2::stateVolatileHandler()
   int position_counter = 0;
   while(position_counter < 3)
   {
-    while(!flag_volatile_dug_excavator_)
+    while(!flag_volatile_found_excavator_)
     {
       if(approachSuccessHauler)
       {
@@ -886,21 +886,9 @@ void SmRd2::feedbackCallbackExcavator(const move_base_msgs::MoveBaseFeedback::Co
 
 void SmRd2::manipulationFeedbackCallbackExcavator(const move_excavator::ExcavationStatus::ConstPtr& msg)
 {
-  excavation_finished_excavator_ = msg->isFinished;
-  excavation_found_volatile_ = msg->foundVolatile;
   collected_mass_excavator_ = collected_mass_excavator_ + msg->collectedMass;
-
-  if(excavation_finished_excavator_)
-  {
-    ROS_INFO_STREAM("EXCAVATOR: Let's finish manipulation.");
-    flag_volatile_dug_excavator_ = true;
-  }
-
-  if(excavation_found_volatile_)
-  {
-    ROS_INFO_STREAM("EXCAVATOR: Let's finish manipulation.");
-    flag_volatile_dug_excavator_ = true;
-  }
+  flag_volatile_dug_excavator_ = msg->isFinished;
+  flag_volatile_found_excavator_ = msg->foundVolatile;
 }
 
 void SmRd2::UpdateGoalPoseExcavator(){
