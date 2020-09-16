@@ -934,7 +934,7 @@ void SmRd1::homingRecovery()
   Brake(0.0);
 
   // Drive(-0.3, 3.0);
-  DriveCmdVel(-0.3,-0.6, 0.0, 4.0); //TODO: TEST THIS AGAIN
+  DriveCmdVel(-0.3,-0.6, 0.0, 4.0);
 
   Stop(0.0);
 
@@ -972,6 +972,12 @@ void SmRd1::immobilityRecovery(int type)
   Brake(0.0);
 
   DriveCmdVel(-0.5,0.0,0.0,3.0);
+
+  BrakeRamp(100, 3, 0);
+
+  Brake(0.0);
+
+  DriveCmdVel(-0.3,-0.6, 0.0, 4.0);
 
   // Stop(3.0); //TODO: CMDvelZero try
 
