@@ -658,13 +658,14 @@ void SmRd2::stateVolatileHandler()
     manipulation_rate.sleep();
   }
 
-  ros::Duration(10.0).sleep(); // TODO: MAKE HAULER BACK OFF
+  DriveCmdVelHauler(-0.5, 0.0, 0.0, 4.0);
+  BrakeRampHauler(100,3.0,0);
 
-
-
+  BrakeExcavator(0.0);
+  BrakeHauler(0.0);
 
   // TODO: SETUP FLAGS TO GO TO PLANNING
-  flag_waypoint_unreachable_excavator_ = true;
+  flag_arrived_at_waypoint_excavator_ = true;
 
   std_msgs::Int64 state_msg;
   state_msg.data = _volatile_handler;

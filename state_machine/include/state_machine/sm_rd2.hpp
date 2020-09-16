@@ -256,6 +256,8 @@ public:
   void drivingModeCallbackHauler(const std_msgs::Int64::ConstPtr& msg);
   void immobilityRecoveryHauler();
   void homingRecoveryHauler();
+  void BrakeRampExcavator(double max_intensity, double time, int aggressivity);
+
 
   void setPoseGoalHauler(move_base_msgs::MoveBaseGoal& poseGoal, double x, double y, double yaw); // m, m, rad
   void doneCallbackHauler(const actionlib::SimpleClientGoalState& state, const move_base_msgs::MoveBaseResultConstPtr& result);
@@ -273,5 +275,6 @@ public:
   void BrakeHauler(double intensity);
   void RoverStaticHauler(bool flag);
   void DriveCmdVelHauler(double vx, double vy, double wz, double time);
+  void BrakeRampHauler(double max_intensity, double time, int aggressivity);
 
 };
