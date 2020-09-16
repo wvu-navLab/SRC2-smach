@@ -429,14 +429,10 @@ void SmRd2::statePlanning()
     ROS_ERROR("EXCAVATOR Failed to call service NextVolatileLocation.");
   }
 
-  goal_yaw_excavator_ = atan2(goal_vol_pose_.position.y - current_pose_excavator_.position.y, goal_vol_pose_.position.x - current_pose_excavator_.position.x);
-
   UpdateGoalPoseExcavator();
   BrakeExcavator (0.0);
   RotateToHeadingExcavator(goal_yaw_excavator_);
   BrakeExcavator (100.0);
-
-  goal_yaw_hauler_ = atan2(goal_vol_pose_.position.y - current_pose_hauler_.position.y, goal_vol_pose_.position.x - current_pose_hauler_.position.x);
 
   UpdateGoalPoseHauler();
   BrakeHauler (0.0);
@@ -886,12 +882,12 @@ void SmRd2::manipulationFeedbackCallbackExcavator(const move_excavator::Excavati
 }
 
 void SmRd2::UpdateGoalPoseExcavator(){
-  double dx = goal_pose_excavator_.position.x - current_pose_excavator_.position.x;
-  double dy = goal_pose_excavator_.position.y - current_pose_excavator_.position.y;
+  double dx = goal_vol_pose_.position.x - current_pose_excavator_.position.x;
+  double dy = goal_vol_pose_.position.y - current_pose_excavator_.position.y;
   goal_yaw_excavator_ = atan2(dy, dx);
 
-  goal_pose_excavator_.position.x = goal_vol_pose_.position.x + dx / hypot(dx,dy) * 0.5;
-  goal_pose_excavator_.position.y = goal_vol_pose_.position.y + dy / hypot(dx,dy) * 0.5;
+  goal_pose_excavator_.position.x = goal_vol_pose_.position.x - dx / hypot(dx,dy) * 0.5;
+  goal_pose_excavator_.position.y = goal_vol_pose_.position.y - dy / hypot(dx,dy) * 0.5;
 }
 
 
@@ -1150,6 +1146,43 @@ void SmRd2::DriveCmdVelExcavator(double vx, double vy, double wz, double time)
   }
 }
 
+void SmRd2::BrakeRampExcavator(double max_intensity, double time, int aggressivity)
+{
+  double freq = 10;
+  ros::Rate brake_rate(freq);
+  int num_steps = (int) freq * time;
+  if(aggressivity == 0)
+  {
+    // ROS_INFO("EXCAVATOR: Brake Ramp.");
+    for (int counter = 0; counter < num_steps; ++counter)
+    {
+      double intensity = (static_cast<double>(counter + 1)/(freq * time))*max_intensity;
+      // ROS_INFO_STREAM("Brake intensity: " << intensity);
+      BrakeExcavator(intensity);
+      brake_rate.sleep();
+    }
+  }
+  else if (aggressivity == 1)
+  {
+    // ROS_INFO("EXCAVATOR: Brake Logistics Curve.");
+    for (int counter = 0; counter < num_steps; ++counter)
+    {
+      double multiplier = 2;
+      double x = (static_cast<double>(counter + 1)/(freq * time)) * time * multiplier;
+      double intensity =  max_intensity / (1 + exp(-x)) - max_intensity/2;
+      // ROS_INFO_STREAM("Brake intensity: " << intensity);
+      BrakeExcavator(intensity);
+      brake_rate.sleep();
+    }
+  }
+  else
+  {
+    ROS_INFO("EXCAVATOR: Brake FULL.");
+    BrakeExcavator(max_intensity);
+    ros::Duration(time).sleep();
+  }
+}
+
 void SmRd2::RoverStaticExcavator(bool flag)
 {
   // Start attitude constraints for static rover
@@ -1327,8 +1360,8 @@ void SmRd2::localizationCallbackHauler(const nav_msgs::Odometry::ConstPtr& msg)
 }
 
 void SmRd2::UpdateGoalPoseHauler(){
-  double dx = goal_pose_hauler_.position.x - current_pose_hauler_.position.x;
-  double dy = goal_pose_hauler_.position.y - current_pose_hauler_.position.y;
+  double dx = goal_vol_pose_.position.x - current_pose_hauler_.position.x;
+  double dy = goal_vol_pose_.position.y - current_pose_hauler_.position.y;
   goal_yaw_hauler_ = atan2(dy, dx);
 
   goal_pose_hauler_.position.x = goal_vol_pose_.position.x - dx / hypot(dx,dy) * 4;
@@ -1621,6 +1654,43 @@ void SmRd2::DriveCmdVelHauler(double vx, double vy, double wz, double time)
   while (ros::Time::now() - start_time < timeout)
   {
     cmd_vel_pub_hauler_.publish(cmd_vel);
+  }
+}
+
+void SmRd2::BrakeRampHauler(double max_intensity, double time, int aggressivity)
+{
+  double freq = 10;
+  ros::Rate brake_rate(freq);
+  int num_steps = (int) freq * time;
+  if(aggressivity == 0)
+  {
+    // ROS_INFO("HAULER: Brake Ramp.");
+    for (int counter = 0; counter < num_steps; ++counter)
+    {
+      double intensity = (static_cast<double>(counter + 1)/(freq * time))*max_intensity;
+      // ROS_INFO_STREAM("Brake intensity: " << intensity);
+      BrakeHauler(intensity);
+      brake_rate.sleep();
+    }
+  }
+  else if (aggressivity == 1)
+  {
+    // ROS_INFO("HAULER: Brake Logistics Curve.");
+    for (int counter = 0; counter < num_steps; ++counter)
+    {
+      double multiplier = 2;
+      double x = (static_cast<double>(counter + 1)/(freq * time)) * time * multiplier;
+      double intensity =  max_intensity / (1 + exp(-x)) - max_intensity/2;
+      // ROS_INFO_STREAM("Brake intensity: " << intensity);
+      BrakeHauler(intensity);
+      brake_rate.sleep();
+    }
+  }
+  else
+  {
+    ROS_INFO("HAULER: Brake FULL.");
+    BrakeHauler(max_intensity);
+    ros::Duration(time).sleep();
   }
 }
 
