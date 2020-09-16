@@ -230,6 +230,7 @@ void SmRd2::stateInitialize()
   LightsHauler("0.6");
   StopHauler(1.0);
   BrakeHauler(100.0);
+  BrakeHauler(0.0);
 
   // TODO: Hauler needs to disappear from sight
   // 1. Set higher confidence
@@ -267,7 +268,7 @@ void SmRd2::stateInitialize()
   }
 
   BrakeHauler(100.0);
-
+  RoverStaticHauler(true);
   while (!clt_sf_true_pose_hauler_ .waitForExistence())
   {
     ROS_ERROR("HAULER: Waiting for TruePose service");
@@ -287,12 +288,36 @@ void SmRd2::stateInitialize()
     ROS_ERROR("HAULER: Failed to call service Pose Update");
   }
 
-  RoverStaticHauler(true);
+  RoverStaticHauler(false);
+
+  BrakeExcavator(100.0);
+  RoverStaticExcavator(true);
+
+  while (!clt_sf_true_pose_excavator_ .waitForExistence())
+  {
+    ROS_ERROR("EXCAVATOR: Waiting for TruePose service");
+  }
+
+  // Update SF with True Pose
+  srv_sf_true_pose.request.start = true;
+  if (clt_sf_true_pose_excavator_ .call(srv_sf_true_pose))
+  {
+    ROS_INFO("EXCAVATOR: Called service TruePose");
+    ROS_INFO_STREAM("EXCAVATOR: Status of SF True Pose: "<< srv_sf_true_pose.response.success);
+    flag_have_true_pose_excavator_ = true;
+  }
+  else
+  {
+    ROS_ERROR("EXCAVATOR: Failed  to call service Pose Update");
+  }
+
+  RoverStaticExcavator(false);
 
   while (!clt_homing_hauler_.waitForExistence())
   {
     ROS_WARN("HAULER: Waiting for Homing service");
   }
+
 
   sensor_fusion::HomingUpdate srv_homing;
   if(approachSuccessHauler)
@@ -340,7 +365,7 @@ void SmRd2::stateInitialize()
     ROS_ERROR("HAULER: Initial Homing Fail, Starting Without Base Location");
   }
 
-  RoverStaticHauler(false);
+
 
   LightsHauler("0.6");
   BrakeHauler(0.0);
@@ -351,24 +376,6 @@ void SmRd2::stateInitialize()
   BrakeHauler(100.0);
 
 
-  BrakeExcavator(100.0);
-  while (!clt_sf_true_pose_excavator_ .waitForExistence())
-  {
-    ROS_ERROR("EXCAVATOR: Waiting for TruePose service");
-  }
-
-  // Update SF with True Pose
-  srv_sf_true_pose.request.start = true;
-  if (clt_sf_true_pose_excavator_ .call(srv_sf_true_pose))
-  {
-    ROS_INFO("EXCAVATOR: Called service TruePose");
-    ROS_INFO_STREAM("EXCAVATOR: Status of SF True Pose: "<< srv_sf_true_pose.response.success);
-    flag_have_true_pose_excavator_ = true;
-  }
-  else
-  {
-    ROS_ERROR("EXCAVATOR: Failed  to call service Pose Update");
-  }
 
   ClearCostmapsExcavator();
   BrakeExcavator(0.0);
@@ -657,7 +664,7 @@ void SmRd2::stateVolatileHandler()
 
   ros::Duration(10.0).sleep(); // TODO: MAKE HAULER BACK OFF
 
-  
+
 
 
   // TODO: SETUP FLAGS TO GO TO PLANNING
@@ -1324,8 +1331,8 @@ void SmRd2::UpdateGoalPoseHauler(){
   double dy = goal_pose_hauler_.position.y - current_pose_hauler_.position.y;
   goal_yaw_hauler_ = atan2(dy, dx);
 
-  goal_pose_hauler_.position.x = goal_vol_pose_.position.x + dx / hypot(dx,dy) * 4;
-  goal_pose_hauler_.position.y = goal_vol_pose_.position.y + dy / hypot(dx,dy) * 4;
+  goal_pose_hauler_.position.x = goal_vol_pose_.position.x - dx / hypot(dx,dy) * 4;
+  goal_pose_hauler_.position.y = goal_vol_pose_.position.y - dy / hypot(dx,dy) * 4;
 }
 
 void SmRd2::setPoseGoalHauler(move_base_msgs::MoveBaseGoal &poseGoal, double x, double y, double yaw) // m, m, rad
