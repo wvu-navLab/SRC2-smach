@@ -656,85 +656,103 @@ void SmRd2::stateVolatileHandler()
 {
   ROS_WARN("Excavation State\n");
 
-  BrakeExcavator(100.0);
-  StartManipulation();
-
   ros::Rate manipulation_rate(10);
 
-  // TODO: Location of Base Station:
-  // This service will give (x,y) in global frame of hauler
-  // Subtract (x,y) estimate of the hauler
-  // Put some sanity check
-  bool approachSuccessHauler = false;
+  BrakeExcavator(100.0);
 
-  src2_object_detection::ApproachBaseStation srv_approach_base;
-  srv_approach_base.request.approach_base_station.data= true;
-  int homingRecoveryCountHauler = 0;
-  while(!approachSuccessHauler && homingRecoveryCountHauler<3)
+  waypoint_checker::CheckCollision srv_wp_check;
+  srv_wp_check.request.x  = goal_vol_pose_.position.x;
+  srv_wp_check.request.y = goal_vol_pose_.position.y;
+  if (clt_waypoint_checker_excavator_.call(srv_wp_check))
   {
-    if (clt_approach_excavator_hauler_.call(srv_approach_base))
+    ROS_INFO("EXCAVATOR: Called service Waypoint Checker");
+    bool is_colliding = srv_wp_check.response.collision;
+    if(!is_colliding)
     {
-      ROS_INFO("HAULER: Called service ApproachExcavator");
-      ROS_INFO_STREAM("Success finding the Excavator? "<< srv_approach_base.response.success.data);
-      if(!srv_approach_base.response.success.data)
+      StartManipulation();
+
+      // TODO: Location of Base Station:
+      // This service will give (x,y) in global frame of hauler
+      // Subtract (x,y) estimate of the hauler
+      // Put some sanity check
+      bool approachSuccessHauler = false;
+
+      src2_object_detection::ApproachBaseStation srv_approach_base;
+      srv_approach_base.request.approach_base_station.data= true;
+      int homingRecoveryCountHauler = 0;
+      while(!approachSuccessHauler && homingRecoveryCountHauler<3)
       {
-        homingRecoveryHauler();
+        if (clt_approach_excavator_hauler_.call(srv_approach_base))
+        {
+          ROS_INFO("HAULER: Called service ApproachExcavator");
+          ROS_INFO_STREAM("Success finding the Excavator? "<< srv_approach_base.response.success.data);
+          if(!srv_approach_base.response.success.data)
+          {
+            homingRecoveryHauler();
+          }
+          else
+          {
+            approachSuccessHauler = true;
+          }
+        }
+        else
+        {
+          ROS_ERROR("HAULER: Failed  to call service ApproachExcavator");
+        }
+        homingRecoveryCountHauler=homingRecoveryCountHauler+1;
       }
-      else
+
+      std::vector<double> vx {-1.0, 2.0, -1.0, 0.01};
+      std::vector<double> vy {-0.0, 0.0, -1.0, 2.0};
+
+      int position_counter = 0;
+
+      while(position_counter < 4)
       {
-        approachSuccessHauler = true;
+        while(!flag_volatile_dug_excavator_)
+        {
+          if(approachSuccessHauler)
+          {
+            // TODO: Service come closer and send relative yaw
+          }
+          else
+          { 
+            // TODO: What?
+          }
+
+          ROS_WARN_THROTTLE(10, "In Manipulation State Machine.");
+          ros::spinOnce();
+          manipulation_rate.sleep();
+        }
+        if (!flag_volatile_found_excavator_)
+        {
+          flag_volatile_dug_excavator_ = false;
+        }
+        else
+        {
+          break;
+        }
+        position_counter++;
+        BrakeExcavator(0.0);
+        DriveCmdVelExcavator(vx[position_counter], vy[position_counter], 0.0, 2.0);
+        BrakeRampExcavator(100, 3.0, 0);
+        StartManipulation();
       }
+
+      DriveCmdVelHauler(-0.5, 0.0, 0.0, 4.0);
+      BrakeRampHauler(100,3.0,0);
     }
-    else
-    {
-      ROS_ERROR("HAULER: Failed  to call service ApproachExcavator");
-    }
-    homingRecoveryCountHauler=homingRecoveryCountHauler+1;
   }
-
-  std::vector<double> vx {-1.0, 2.0, -1.0, 0.01};
-  std::vector<double> vy {-0.0, 0.0, -1.0, 2.0};
-
-  int position_counter = 0;
-
-  while(position_counter < 4)
+  else
   {
-    while(!flag_volatile_dug_excavator_)
-    {
-      if(approachSuccessHauler)
-      {
-        // TODO: Service come closer and send relative yaw
-      }
-      else
-      { 
-        // TODO: What?
-      }
-
-      ROS_WARN_THROTTLE(10, "In Manipulation State Machine.");
-      ros::spinOnce();
-      manipulation_rate.sleep();
-    }
-    if (!flag_volatile_found_excavator_)
-    {
-      flag_volatile_dug_excavator_ = false;
-    }
-    else
-    {
-      break;
-    }
-    position_counter++;
-    BrakeExcavator(0.0);
-    DriveCmdVelExcavator(vx[position_counter], vy[position_counter], 0.0, 2.0);
-    BrakeRampExcavator(100, 3.0, 0);
+    ROS_ERROR("EXCAVATOR: Failed to call service Waypoint Checker");
   }
-
-  DriveCmdVelHauler(-0.5, 0.0, 0.0, 4.0);
-  BrakeRampHauler(100,3.0,0);
 
   BrakeExcavator(0.0);
   BrakeHauler(0.0);
 
   // TODO: SETUP FLAGS TO GO TO PLANNING
+  flag_volatile_dug_excavator_ = true;
   flag_arrived_at_waypoint_excavator_ = true;
 
   std_msgs::Int64 state_msg;
