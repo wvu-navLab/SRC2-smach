@@ -537,7 +537,7 @@ void SmRd2::stateTraverse()
   }
 
   double distance_to_goal_excavator = std::hypot(goal_pose_excavator_.position.y - current_pose_excavator_.position.y, goal_pose_excavator_.position.x - current_pose_excavator_.position.x);
-  if (distance_to_goal_excavator < 2.0)
+  if (distance_to_goal_excavator < 1.8)
   {
     ROS_INFO("EXCAVATOR: Close to goal, getting new waypoint.");
     flag_arrived_at_waypoint_excavator_ = true;
@@ -688,7 +688,6 @@ void SmRd2::stateVolatileHandler()
     bool is_colliding = srv_wp_check.response.collision;
     if(!is_colliding)
     {
-
       // TODO: Location of Base Station:
       // This service will give (x,y) in global frame of hauler
       // Subtract (x,y) estimate of the hauler
@@ -731,14 +730,7 @@ void SmRd2::stateVolatileHandler()
       {
         while(!flag_volatile_dug_excavator_)
         {
-          if(approachSuccessHauler)
-          {
-            // TODO: Service come closer and send relative yaw
-          }
-          else
-          {
-            // TODO: What?
-          }
+          
           ROS_WARN_THROTTLE(10, "In Manipulation State Machine.");
           ros::spinOnce();
           manipulation_rate.sleep();
@@ -752,6 +744,28 @@ void SmRd2::stateVolatileHandler()
           break;
         }
         position_counter++;
+
+        if(!flag_hauler_in_range_excavator_)
+        {
+          src2_object_detection::ApproachBaseStation srv_approach_base;
+          srv_approach_base.request.approach_base_station.data= true;
+        
+          if (clt_approach_excavator_hauler_.call(srv_approach_base))
+          {
+            ROS_INFO("HAULER: Called service ApproachExcavator");
+            ROS_INFO_STREAM("Success finding the Excavator? "<< srv_approach_base.response.success.data);
+            if(!srv_approach_base.response.success.data)
+            {
+              homingRecoveryHauler();
+            }
+            else
+            {
+              approachSuccessHauler = true;
+              DriveCmdVelHauler(0.1, 0.0, 0.0, 0.1);
+            }
+          }
+        }
+      
         BrakeExcavator(0.0);
         DriveCmdVelExcavator(vx[position_counter], vy[position_counter], 0.0, 0.1);
         BrakeRampExcavator(100, 3.0, 0);
@@ -774,6 +788,7 @@ void SmRd2::stateVolatileHandler()
   flag_volatile_dug_excavator_ = true;
   flag_arrived_at_waypoint_excavator_ = true;
   flag_arrived_at_waypoint_hauler_ = true;
+  flag_hauler_in_range_excavator_ = false;
 
   std_msgs::Int64 state_msg;
   state_msg.data = _volatile_handler;
@@ -997,6 +1012,7 @@ void SmRd2::manipulationFeedbackCallbackExcavator(const move_excavator::Excavati
   collected_mass_excavator_ = collected_mass_excavator_ + msg->collectedMass;
   flag_volatile_dug_excavator_ = msg->isFinished;
   flag_volatile_found_excavator_ = msg->foundVolatile;
+  flag_hauler_in_range_excavator_ = msg->haulerInRange;
 }
 
 void SmRd2::UpdateGoalPoseExcavator(){
@@ -1643,7 +1659,12 @@ void SmRd2::homingRecoveryHauler()
 
   BrakeHauler(0.0);
 
+  RotateToHeadingHauler(goal_yaw_excavator_);
+
+  BrakeRampHauler (100, 3, 0);
+
   ClearCostmapsHauler();
+
   BrakeHauler (0.0);
 
   move_base_msgs::MoveBaseGoal move_base_goal;
@@ -1687,8 +1708,12 @@ void SmRd2::immobilityRecoveryHauler()
 
   flag_waypoint_unreachable_hauler_=true;
 
+  RotateToHeadingHauler(goal_yaw_excavator_);
+
+  BrakeRampHauler (100, 3, 0);
 
   ClearCostmapsHauler();
+
   BrakeHauler (0.0);
 
   move_base_msgs::MoveBaseGoal move_base_goal;
