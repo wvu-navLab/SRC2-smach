@@ -144,11 +144,11 @@ void SmRd2::run()
     {
       state_to_exec.at(_planning) = 1;
     }
-    else if((!flag_arrived_at_waypoint_excavator_ && !flag_waypoint_unreachable_excavator_) && !flag_brake_engaged_excavator_)
+    else if(((!flag_arrived_at_waypoint_excavator_ || !flag_arrived_at_waypoint_hauler_) && !flag_waypoint_unreachable_excavator_) && !flag_brake_engaged_excavator_)
     {
       state_to_exec.at(_traverse) = 1;
     }
-    else if(!flag_volatile_dug_excavator_ && flag_brake_engaged_excavator_)
+    else if((flag_arrived_at_waypoint_excavator_ && flag_arrived_at_waypoint_hauler_) && !flag_volatile_dug_excavator_ && flag_brake_engaged_excavator_)
     {
       state_to_exec.at(_volatile_handler) = 1;
     }
@@ -372,20 +372,18 @@ void SmRd2::stateInitialize()
 
 
   LightsHauler("0.6");
-  // BrakeHauler(0.0);
   // DriveHauler(-0.3, 3.0);
   // StopHauler(3.0);
   // RotateInPlaceHauler(0.3, 3.0);
   // StopHauler(3.0);
   // BrakeHauler(100.0);
 
+  BrakeHauler(0.0);
   DriveCmdVelHauler(-0.5,0.0,0.0,4);
   BrakeRampHauler(100, 3, 0);
   BrakeHauler(0.0);
   RotateInPlaceHauler(0.2, 3);
   BrakeRampHauler(100, 3, 0);
-
-
 
   ClearCostmapsExcavator();
   BrakeExcavator(0.0);
@@ -539,8 +537,8 @@ void SmRd2::stateTraverse()
     flag_recovering_localization_excavator_ = false;
   }
 
-  double distance_to_goal = std::hypot(goal_pose_excavator_.position.y - current_pose_excavator_.position.y, goal_pose_excavator_.position.x - current_pose_excavator_.position.x);
-  if (distance_to_goal < 2.0)
+  double distance_to_goal_excavator = std::hypot(goal_pose_excavator_.position.y - current_pose_excavator_.position.y, goal_pose_excavator_.position.x - current_pose_excavator_.position.x);
+  if (distance_to_goal_excavator < 2.0)
   {
     ROS_INFO("EXCAVATOR: Close to goal, getting new waypoint.");
     flag_arrived_at_waypoint_excavator_ = true;
@@ -555,6 +553,21 @@ void SmRd2::stateTraverse()
     ac_excavator_.waitForResult(ros::Duration(0.25));
 
     BrakeExcavator(100.0);
+  }
+
+  double distance_to_goal_hauler = std::hypot(goal_pose_hauler_.position.y - current_pose_hauler_.position.y, goal_pose_hauler_.position.x - current_pose_hauler_.position.x);
+  if (distance_to_goal_hauler < 2.0)
+  {
+    ROS_INFO("HAULER: Close to goal, getting new waypoint.");
+    flag_arrived_at_waypoint_hauler_ = true;
+    flag_waypoint_unreachable_hauler_ = false;
+
+    ROS_INFO("HAULER: Canceling MoveBase goal.");
+    ac_hauler_.waitForServer();
+    ac_hauler_.cancelGoal();
+    ac_hauler_.waitForResult(ros::Duration(0.25));
+
+    DriveCmdVelHauler(0.0, 0.0, 0.0, 0.0);
   }
 
   bool is_colliding = false;
@@ -658,7 +671,14 @@ void SmRd2::stateVolatileHandler()
 
   ros::Rate manipulation_rate(10);
 
-  BrakeExcavator(100.0);
+  BrakeExcavator(500.0);
+
+  ros::Duration(10).sleep();
+
+  ROS_INFO("HAULER: Canceling MoveBase goal.");
+  ac_hauler_.waitForServer();
+  ac_hauler_.cancelGoal();
+  ac_hauler_.waitForResult(ros::Duration(0.25));
 
   waypoint_checker::CheckCollision srv_wp_check;
   srv_wp_check.request.x  = goal_vol_pose_.position.x;
@@ -669,7 +689,6 @@ void SmRd2::stateVolatileHandler()
     bool is_colliding = srv_wp_check.response.collision;
     if(!is_colliding)
     {
-      StartManipulation();
 
       // TODO: Location of Base Station:
       // This service will give (x,y) in global frame of hauler
@@ -693,6 +712,8 @@ void SmRd2::stateVolatileHandler()
           else
           {
             approachSuccessHauler = true;
+            DriveCmdVelHauler(0.1, 0.0, 0.0, 0.1);
+            StartManipulation();
           }
         }
         else
@@ -716,10 +737,9 @@ void SmRd2::stateVolatileHandler()
             // TODO: Service come closer and send relative yaw
           }
           else
-          { 
+          {
             // TODO: What?
           }
-
           ROS_WARN_THROTTLE(10, "In Manipulation State Machine.");
           ros::spinOnce();
           manipulation_rate.sleep();
@@ -779,6 +799,7 @@ void SmRd2::stateLost()
 
   LightsExcavator ("0.8");
 
+  BrakeExcavator (100.0);
 
   // Approach Base Station
   src2_object_detection::ApproachBaseStation srv_approach_base;
@@ -808,7 +829,6 @@ void SmRd2::stateLost()
   }
 
 
-  BrakeExcavator (100.0);
   if(approachSuccess){
   // Homing - Measurement Update
   sensor_fusion::HomingUpdate srv_homing;
