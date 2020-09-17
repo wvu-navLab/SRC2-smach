@@ -327,7 +327,6 @@ void SmRd2::stateInitialize()
   if(approachSuccessHauler)
   {
     // Homing - Initialize Base Station Landmark
-    ros::spinOnce();
 
     srv_homing.request.angle = pitch_hauler_ + .4; // pitch up is negative number
     ROS_ERROR("HAULER: Requesting Angle for LIDAR %f",srv_homing.request.angle);
@@ -1644,7 +1643,15 @@ void SmRd2::homingRecoveryHauler()
 
   BrakeHauler(0.0);
 
+  ClearCostmapsHauler();
+  BrakeHauler (0.0);
 
+  move_base_msgs::MoveBaseGoal move_base_goal;
+  ac_hauler_.waitForServer();
+  setPoseGoalHauler(move_base_goal, goal_pose_hauler_.position.x, goal_pose_hauler_.position.y, goal_yaw_hauler_);
+  ROS_INFO_STREAM("HAULER: Sending goal to MoveBase: " << move_base_goal);
+  ac_hauler_.sendGoal(move_base_goal, boost::bind(&SmRd2::doneCallbackHauler, this,_1,_2), boost::bind(&SmRd2::activeCallbackHauler, this), boost::bind(&SmRd2::feedbackCallbackHauler, this,_1));
+  ac_hauler_.waitForResult(ros::Duration(0.25));
 
 }
 
@@ -1681,6 +1688,15 @@ void SmRd2::immobilityRecoveryHauler()
   flag_waypoint_unreachable_hauler_=true;
 
 
+  ClearCostmapsHauler();
+  BrakeHauler (0.0);
+
+  move_base_msgs::MoveBaseGoal move_base_goal;
+  ac_hauler_.waitForServer();
+  setPoseGoalHauler(move_base_goal, goal_pose_hauler_.position.x, goal_pose_hauler_.position.y, goal_yaw_hauler_);
+  ROS_INFO_STREAM("HAULER: Sending goal to MoveBase: " << move_base_goal);
+  ac_hauler_.sendGoal(move_base_goal, boost::bind(&SmRd2::doneCallbackHauler, this,_1,_2), boost::bind(&SmRd2::activeCallbackHauler, this), boost::bind(&SmRd2::feedbackCallbackHauler, this,_1));
+  ac_hauler_.waitForResult(ros::Duration(0.25));
 
 }
 
