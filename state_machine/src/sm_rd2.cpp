@@ -671,7 +671,7 @@ void SmRd2::stateVolatileHandler()
 
   ros::Rate manipulation_rate(10);
 
-  BrakeExcavator(100.0);
+  BrakeExcavator(500.0);
 
   ros::Duration(10).sleep();
 
@@ -712,6 +712,7 @@ void SmRd2::stateVolatileHandler()
           else
           {
             approachSuccessHauler = true;
+            DriveCmdVelHauler(0.1, 0.0, 0.0, 0.1);
             StartManipulation();
           }
         }
@@ -798,6 +799,7 @@ void SmRd2::stateLost()
 
   LightsExcavator ("0.8");
 
+  BrakeExcavator (100.0);
 
   // Approach Base Station
   src2_object_detection::ApproachBaseStation srv_approach_base;
@@ -827,7 +829,6 @@ void SmRd2::stateLost()
   }
 
 
-  BrakeExcavator (100.0);
   if(approachSuccess){
   // Homing - Measurement Update
   sensor_fusion::HomingUpdate srv_homing;
