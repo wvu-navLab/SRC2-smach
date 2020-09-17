@@ -537,8 +537,8 @@ void SmRd2::stateTraverse()
     flag_recovering_localization_excavator_ = false;
   }
 
-  double distance_to_goal = std::hypot(goal_pose_excavator_.position.y - current_pose_excavator_.position.y, goal_pose_excavator_.position.x - current_pose_excavator_.position.x);
-  if (distance_to_goal < 2.0)
+  double distance_to_goal_excavator = std::hypot(goal_pose_excavator_.position.y - current_pose_excavator_.position.y, goal_pose_excavator_.position.x - current_pose_excavator_.position.x);
+  if (distance_to_goal_excavator < 2.0)
   {
     ROS_INFO("EXCAVATOR: Close to goal, getting new waypoint.");
     flag_arrived_at_waypoint_excavator_ = true;
@@ -552,8 +552,22 @@ void SmRd2::stateTraverse()
     ac_excavator_.cancelGoal();
     ac_excavator_.waitForResult(ros::Duration(0.25));
 
-
     BrakeExcavator(100.0);
+  }
+
+  double distance_to_goal_hauler = std::hypot(goal_pose_hauler_.position.y - current_pose_hauler_.position.y, goal_pose_hauler_.position.x - current_pose_hauler_.position.x);
+  if (distance_to_goal_hauler < 2.0)
+  {
+    ROS_INFO("HAULER: Close to goal, getting new waypoint.");
+    flag_arrived_at_waypoint_hauler_ = true;
+    flag_waypoint_unreachable_hauler_ = false;
+
+    ROS_INFO("HAULER: Canceling MoveBase goal.");
+    ac_hauler_.waitForServer();
+    ac_hauler_.cancelGoal();
+    ac_hauler_.waitForResult(ros::Duration(0.25));
+
+    DriveCmdVelHauler(0.0, 0.0, 0.0, 0.0);
   }
 
   bool is_colliding = false;
@@ -661,11 +675,10 @@ void SmRd2::stateVolatileHandler()
       
   double hauler_distance_to_goal = std::hypot(goal_pose_hauler_.position.y - current_pose_hauler_.position.y, goal_pose_hauler_.position.x - current_pose_hauler_.position.x);
 
-  // while (hauler_distance_to_goal > 3.0)
-  // {
-  //   ros::spinOnce();
-  //   manipulation_rate.sleep();
-  // }
+  ROS_INFO("HAULER: Canceling MoveBase goal.");
+  ac_hauler_.waitForServer();
+  ac_hauler_.cancelGoal();
+  ac_hauler_.waitForResult(ros::Duration(0.25));
 
   waypoint_checker::CheckCollision srv_wp_check;
   srv_wp_check.request.x  = goal_vol_pose_.position.x;
