@@ -658,7 +658,7 @@ void SmRd2::stateVolatileHandler()
   ros::Rate manipulation_rate(10);
 
   BrakeExcavator(100.0);
-      
+
   double hauler_distance_to_goal = std::hypot(goal_pose_hauler_.position.y - current_pose_hauler_.position.y, goal_pose_hauler_.position.x - current_pose_hauler_.position.x);
 
   // while (hauler_distance_to_goal > 3.0)
@@ -666,7 +666,7 @@ void SmRd2::stateVolatileHandler()
   //   ros::spinOnce();
   //   manipulation_rate.sleep();
   // }
-
+  ros::Duration(10).sleep();
   waypoint_checker::CheckCollision srv_wp_check;
   srv_wp_check.request.x  = goal_vol_pose_.position.x;
   srv_wp_check.request.y = goal_vol_pose_.position.y;
@@ -676,7 +676,7 @@ void SmRd2::stateVolatileHandler()
     bool is_colliding = srv_wp_check.response.collision;
     if(!is_colliding)
     {
-      StartManipulation();
+
 
       // TODO: Location of Base Station:
       // This service will give (x,y) in global frame of hauler
@@ -700,6 +700,7 @@ void SmRd2::stateVolatileHandler()
           else
           {
             approachSuccessHauler = true;
+            StartManipulation();
           }
         }
         else
@@ -723,7 +724,7 @@ void SmRd2::stateVolatileHandler()
             // TODO: Service come closer and send relative yaw
           }
           else
-          { 
+          {
             // TODO: What?
           }
           ROS_WARN_THROTTLE(10, "In Manipulation State Machine.");
