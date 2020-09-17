@@ -614,10 +614,10 @@ void SmRd2::stateTraverse()
 
   if(mb_state_hauler==5 || mb_state_hauler==7)
   {
-    ROS_ERROR("EXCAVATOR: MoveBase has failed to make itself useful.");
-    flag_waypoint_unreachable_excavator_= true;
+    ROS_ERROR("HAULER: MoveBase has failed to make itself useful.");
+    flag_waypoint_unreachable_hauler_= true;
 
-    StopExcavator (2.0);
+    StopHauler (2.0);
     ClearCostmapsHauler();
   }
 //////////////////////////////////////////////////////////////////////////
@@ -723,8 +723,8 @@ void SmRd2::stateVolatileHandler()
         homingRecoveryCountHauler=homingRecoveryCountHauler+1;
       }
 
-      std::vector<double> vx {-1.0, 2.0, -1.0, 0.01};
-      std::vector<double> vy {-0.0, 0.0, -1.0, 2.0};
+      std::vector<double> vx {-0.3, 0.3, -0.6, 0.01};
+      std::vector<double> vy {-0.0, 0.0, -0.6, 0.6};
 
       int position_counter = 0;
 
@@ -754,7 +754,7 @@ void SmRd2::stateVolatileHandler()
         }
         position_counter++;
         BrakeExcavator(0.0);
-        DriveCmdVelExcavator(vx[position_counter], vy[position_counter], 0.0, 2.0);
+        DriveCmdVelExcavator(vx[position_counter], vy[position_counter], 0.0, 0.1);
         BrakeRampExcavator(100, 3.0, 0);
         StartManipulation();
       }
@@ -774,6 +774,7 @@ void SmRd2::stateVolatileHandler()
   // TODO: SETUP FLAGS TO GO TO PLANNING
   flag_volatile_dug_excavator_ = true;
   flag_arrived_at_waypoint_excavator_ = true;
+  flag_arrived_at_waypoint_hauler_ = true;
 
   std_msgs::Int64 state_msg;
   state_msg.data = _volatile_handler;
@@ -784,7 +785,6 @@ void SmRd2::stateLost()
 {
   ROS_ERROR("LOST STATE!\n");
   flag_recovering_localization_excavator_ = false;
-
   flag_localizing_volatile_excavator_ = false;
   flag_arrived_at_waypoint_excavator_ = false;
   flag_waypoint_unreachable_excavator_ = false;
@@ -833,7 +833,7 @@ void SmRd2::stateLost()
   // Homing - Measurement Update
   sensor_fusion::HomingUpdate srv_homing;
 
-  ros::spinOnce();
+  // ros::spinOnce();
 
   srv_homing.request.angle = pitch_excavator_ + .4; // pitch up is negative number
   ROS_INFO("Requesting Angle for LIDAR %f",srv_homing.request.angle);
@@ -1124,8 +1124,6 @@ void SmRd2::homingRecoveryExcavator()
 
   BrakeExcavator(0.0);
 
-
-
 }
 
 void SmRd2::immobilityRecoveryExcavator()
@@ -1158,8 +1156,6 @@ void SmRd2::immobilityRecoveryExcavator()
   BrakeExcavator(0.0);
 
   flag_waypoint_unreachable_excavator_=true;
-
-
 
 }
 
@@ -1199,7 +1195,7 @@ void SmRd2::RotateInPlaceExcavator(double throttle, double time)
   srv_turn.request.throttle  = throttle;
   if (clt_rip_excavator_.call(srv_turn))
   {
-    ROS_INFO("EXCAVATOR: Called service RotateInPlace");
+    ROS_INFO_THROTTLE(10,"EXCAVATOR: Called service RotateInPlace");
     ros::Duration(time).sleep();
   }
   else
@@ -1237,7 +1233,6 @@ void SmRd2::BrakeExcavator(double intensity)
     {
       flag_brake_engaged_excavator_ =true;
     }
-    ROS_INFO_STREAM("EXCAVATOR: Called service SRCP2 Brake. Engaged?" << flag_brake_engaged_excavator_);
   }
   else
   {
@@ -1316,6 +1311,7 @@ void SmRd2::BrakeRampExcavator(double max_intensity, double time, int aggressivi
     BrakeExcavator(max_intensity);
     ros::Duration(time).sleep();
   }
+  ROS_INFO_STREAM("EXCAVATOR: Called service SRCP2 Brake. Engaged?" << flag_brake_engaged_excavator_);
 }
 
 void SmRd2::RoverStaticExcavator(bool flag)
@@ -1724,7 +1720,7 @@ void SmRd2::RotateInPlaceHauler(double throttle, double time)
   srv_turn.request.throttle  = throttle;
   if (clt_rip_hauler_.call(srv_turn))
   {
-    ROS_INFO("HAULER: Called service RotateInPlace");
+    ROS_INFO_THROTTLE(10,"HAULER: Called service RotateInPlace");
     ros::Duration(time).sleep();
   }
   else
@@ -1762,7 +1758,6 @@ void SmRd2::BrakeHauler(double intensity)
     {
       flag_brake_engaged_hauler_ =true;
     }
-    ROS_INFO_STREAM("HAULER: Called service SRCP2 Brake. Engaged?" << flag_brake_engaged_hauler_);
   }
   else
   {
@@ -1840,6 +1835,7 @@ void SmRd2::BrakeRampHauler(double max_intensity, double time, int aggressivity)
     BrakeHauler(max_intensity);
     ros::Duration(time).sleep();
   }
+  ROS_INFO_STREAM("HAULER: Called service SRCP2 Brake. Engaged?" << flag_brake_engaged_hauler_);
 }
 
 void SmRd2::RoverStaticHauler(bool flag)

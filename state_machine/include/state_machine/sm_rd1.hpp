@@ -68,9 +68,6 @@ public:
   ros::Time detection_timer, not_detected_timer, wp_checker_timer;
   ros::Time last_time_laser_collision_, map_timer, waypoint_timer_;
 
-  const double VOLATILE_THRESH = 1.0;
-  const double TIMER_THRESH = 15;
-  const double NOT_DETECTED_THRESH = 6;
   int timer_counter = 0;
   double pitch_ = 0, roll_ = 0, yaw_ = 0, yaw_prev_ = 0;
   double goal_yaw_;
@@ -79,7 +76,7 @@ public:
   geometry_msgs::Point base_location_;
   double waypoint_type_;
   int driving_mode_;
-  const double LASER_THRESH = 0.2;
+  const double LASER_THRESH = 0.3;
   const int LASER_SET_SIZE = 20;
   const int LASER_COUNTER_THRESH = 20;
 
