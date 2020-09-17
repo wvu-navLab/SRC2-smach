@@ -249,7 +249,7 @@ void SmRd1::stateInitialize()
       ROS_WARN("SCOUT: Waiting for Homing Service");
   }
   sensor_fusion::HomingUpdate srv_homing;
-  ros::spinOnce();
+  // ros::spinOnce();
 
   srv_homing.request.angle = pitch_ + .4; // pitch up is negative number
   ROS_ERROR("Requesting Angle for LIDAR %f",srv_homing.request.angle);
@@ -603,12 +603,11 @@ void SmRd1::stateLost()
         ROS_INFO_STREAM("Success finding the Base? "<< srv_approach_base.response.success.data);
         if(!srv_approach_base.response.success.data){
         homingRecovery();
-      }
-      else
-      {
-        approachSuccess=true;
-      }
-
+        }
+        else
+        {
+          approachSuccess=true;
+        }
     }
 
     else
@@ -624,7 +623,7 @@ void SmRd1::stateLost()
   if(approachSuccess){
   // Homing - Measurement Update
   sensor_fusion::HomingUpdate srv_homing;
-  ros::spinOnce();
+  // ros::spinOnce();
 
   srv_homing.request.angle = pitch_ + .4; // pitch up is negative number
   ROS_INFO("Requesting Angle for LIDAR %f",srv_homing.request.angle);
@@ -670,7 +669,6 @@ else{
   BrakeRamp(100, 3, 0);
 
   Brake(0.0);
-
 
   ToggleDetector(true);
 
