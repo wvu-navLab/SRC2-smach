@@ -280,7 +280,7 @@ else{
   // Minimal Maneuvers to keep the localization good and get rid of BaseStation obstacle before generating initial path.
   Brake(0.0);
 
-  DriveCmdVel(-0.5,0.0,0.0,4);
+  DriveCmdVel(-0.5,0.0,0.0,5);
 
   BrakeRamp(100, 3, 0);
 
@@ -295,6 +295,9 @@ else{
   ToggleDetector(true);
 
   ClearCostmaps();
+  BrakeRamp(100, 2, 0);
+  Brake(0.0);
+
 
 
   waypoint_gen::StartWaypoint srv_wp_start;
@@ -423,10 +426,9 @@ void SmRd1::statePlanning()
   counter=counter+1;
 }
   ClearCostmaps();
+  BrakeRamp(100, 2, 0);
+  Brake(0.0);
 
-  // Stop (2.0);
-
-  Brake (0.0);
 
   move_base_msgs::MoveBaseGoal move_base_goal;
   ac.waitForServer();
@@ -515,15 +517,23 @@ void SmRd1::stateTraverse()
     Stop (1.0);
 
     ClearCostmaps();
+    BrakeRamp(100, 2, 0);
+    Brake(0.0);
+
   }
 
-  ros::Duration timeoutMap(30.0);
+  ros::Duration timeoutMap(90.0);
 
   if (ros::Time::now() - map_timer > timeoutMap)
   {
     std_srvs::Empty emptymsg;
     ros::service::call("/scout_1/move_base/clear_costmaps",emptymsg);
     map_timer =ros::Time::now();
+    BrakeRamp(100, 2, 0); // Give more time
+    Brake(0.0);
+
+    ROS_ERROR("Rover is stopped to clear the Map");
+    ROS_WARN_STREAM("Move Base State: "<< mb_state);
     ROS_WARN("Map Cleared");
   }
 
@@ -534,6 +544,9 @@ void SmRd1::stateTraverse()
     flag_waypoint_unreachable= true;
     Stop (1.0);
     ClearCostmaps();
+    BrakeRamp(100, 2, 0);
+    Brake(0.0);
+
   }
   else
   {
@@ -658,7 +671,7 @@ else{
   //Similar to initial homing, keep the localization good after homing.
   Brake(0.0);
 
-  DriveCmdVel(-0.5,0.0,0.0,4);
+  DriveCmdVel(-0.5,0.0,0.0,5);
 
   BrakeRamp(100, 3, 0);
 
@@ -673,6 +686,9 @@ else{
   ToggleDetector(true);
 
   ClearCostmaps();
+  BrakeRamp(100, 2, 0);
+  Brake(0.0);
+
 
   // make sure we dont latch to a vol we skipped while homing
   volatile_detected_distance = -1.0;
@@ -935,7 +951,7 @@ void SmRd1::homingRecovery()
 
   Stop(0.0);
 
-  RotateToHeading(yaw_ - M_PI/4);
+  DriveCmdVel(0.0,0.0,0.25,4.0);
 
   Stop(0.0);
 
