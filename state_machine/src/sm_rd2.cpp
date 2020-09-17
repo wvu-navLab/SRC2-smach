@@ -144,11 +144,11 @@ void SmRd2::run()
     {
       state_to_exec.at(_planning) = 1;
     }
-    else if((!flag_arrived_at_waypoint_excavator_ && !flag_waypoint_unreachable_excavator_) && !flag_brake_engaged_excavator_)
+    else if(((!flag_arrived_at_waypoint_excavator_ || !flag_arrived_at_waypoint_hauler_) && !flag_waypoint_unreachable_excavator_) && !flag_brake_engaged_excavator_)
     {
       state_to_exec.at(_traverse) = 1;
     }
-    else if(!flag_volatile_dug_excavator_ && flag_brake_engaged_excavator_)
+    else if((flag_arrived_at_waypoint_excavator_ && flag_arrived_at_waypoint_hauler_) && !flag_volatile_dug_excavator_ && flag_brake_engaged_excavator_)
     {
       state_to_exec.at(_volatile_handler) = 1;
     }
