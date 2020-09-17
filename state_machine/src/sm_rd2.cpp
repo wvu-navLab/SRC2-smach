@@ -401,21 +401,18 @@ void SmRd2::statePlanning()
   flag_arrived_at_waypoint_excavator_ = false;
   flag_waypoint_unreachable_excavator_= false;
 
+  BrakeExcavator(100.0);
+  BrakeHauler(100.0);
+
   ROS_INFO("EXCAVATOR: Canceling MoveBase goal.");
   ac_excavator_.waitForServer();
   ac_excavator_.cancelGoal();
   ac_excavator_.waitForResult(ros::Duration(0.25));
 
-  StopExcavator(3.0);
-  BrakeExcavator(100.0);
-
   ROS_INFO("HAULER: Canceling MoveBase goal.");
   ac_hauler_.waitForServer();
   ac_hauler_.cancelGoal();
   ac_hauler_.waitForResult(ros::Duration(0.25));
-
-  StopHauler(3.0);
-  BrakeHauler(100.0);
 
   // Generate Goal
   round2_volatile_handler::NextVolatileLocation srv_next_vol;
