@@ -933,7 +933,7 @@ void SmRd1::homingRecovery()
   Brake(0.0);
 
   // Drive(-0.3, 3.0);
-  DriveCmdVel(-0.3,-0.6, 0.0, 4.0);
+  DriveCmdVel(-0.3,-0.6, 0.0, 4.5);
 
   Stop(0.0);
 
@@ -945,7 +945,7 @@ void SmRd1::homingRecovery()
 
   Brake(0.0);
 
-  DriveCmdVel(0.7,0.0,0.0,4.0);
+  DriveCmdVel(0.6,0.0,0.0,4.0);
 
   Stop(0.0);
 
@@ -1144,6 +1144,9 @@ void SmRd1::DriveCmdVel(double vx, double vy, double wz, double time)
   if (pitch_ > 0.0 && vx < 0.0)
   {
    vx = vx + (pitch_ / 0.52) * vx;
+   if (vx < -0.7){
+     vx = -0.7;
+   }
   }
   geometry_msgs::Twist cmd_vel;
   cmd_vel.linear.x = vx;
