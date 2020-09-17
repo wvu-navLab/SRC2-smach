@@ -1063,7 +1063,7 @@ void SmRd1::Brake(double intensity)
     {
       flag_brake_engaged =true;
     }
-    ROS_INFO_STREAM("SCOUT: Called service SRCP2 Brake. Engaged?: " << flag_brake_engaged);
+    //ROS_INFO_STREAM("SCOUT: Called service SRCP2 Brake. Engaged?: " << flag_brake_engaged);
   }
   else
   {
@@ -1106,6 +1106,7 @@ void SmRd1::BrakeRamp(double max_intensity, double time, int aggressivity)
     Brake(max_intensity);
     ros::Duration(time).sleep();
   }
+  ROS_INFO_STREAM("SCOUT: Called service SRCP2 Brake. Engaged? " << flag_brake_engaged);
 }
 
 void SmRd1::Drive(double throttle, double time)
