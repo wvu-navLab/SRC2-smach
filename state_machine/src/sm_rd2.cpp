@@ -716,9 +716,15 @@ void SmRd2::stateVolatileHandler()
           ROS_INFO("HAULER: Called service ApproachExcavator");
           ROS_INFO_STREAM("Success finding the Excavator? "<< srv_approach_base.response.success.data);
           if(!srv_approach_base.response.success.data)
-          {
-
-            homingRecoveryHauler();
+          { 
+            if (homingRecoveryCountHauler == 2)
+            {
+              homingRecoveryHauler();
+            }
+            else
+            {
+              approachExcavatorRecoveryHauler(homingRecoveryCountHauler);
+            }
           }
           else
           {
@@ -1732,6 +1738,56 @@ void SmRd2::homingRecoveryHauler()
   BrakeHauler (0.0);
 
 }
+
+void SmRd2::approachExcavatorRecoveryHauler(int number)
+{
+
+  ac_hauler_.waitForServer();
+  ac_hauler_.cancelGoal();
+  ac_hauler_.waitForResult(ros::Duration(0.25));
+
+  ROS_WARN("Starting Approach Excavator Recovery.");
+
+  double sign = 1;
+  if(number == 0)
+  {
+    sign = -1; 
+  }
+
+  StopHauler(2.0);
+
+  BrakeRampHauler(100, 3, 0);
+
+  BrakeHauler(0.0);
+
+  DriveCmdVelHauler(-0.3, sign*0.6, 0.0, 2.0);
+
+  DriveCmdVelHauler(-0.002, sign*0.6, 0.0, 4.0);
+
+  BrakeRampHauler(100, 3, 0);
+
+  BrakeHauler(0.0);
+
+  DriveCmdVelHauler(0.0, 0.0, 0.25, 4.0);
+
+  BrakeRampHauler(100, 3, 0);
+
+  BrakeHauler(0.0);
+
+  RotateToHeadingHauler(goal_yaw_excavator_);
+
+  BrakeRampHauler (100, 3, 0);
+
+  BrakeHauler (0.0);
+
+  ClearCostmapsHauler();
+
+  BrakeRampHauler (100, 2, 0);
+
+  BrakeHauler (0.0);
+
+}
+
 
 void SmRd2::immobilityRecoveryHauler()
 {

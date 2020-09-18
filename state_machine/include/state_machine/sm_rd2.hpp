@@ -258,6 +258,7 @@ public:
   void drivingModeCallbackHauler(const std_msgs::Int64::ConstPtr& msg);
   void immobilityRecoveryHauler();
   void homingRecoveryHauler();
+  void approachExcavatorRecoveryHauler(int number);
   void BrakeRampExcavator(double max_intensity, double time, int aggressivity);
 
 
