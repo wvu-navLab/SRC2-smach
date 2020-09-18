@@ -764,8 +764,7 @@ void SmRd2::stateVolatileHandler()
         }
 
         BrakeExcavator(0.0);
-        DriveCmdVelExcavator(vx[position_counter], vy[position_counter], 0.0, 0.1);
-        DriveCmdVelHauler(vx[position_counter], vy[position_counter], 0.0, 0.1);
+        DriveCmdVelExcavatorAndHauler(vx[position_counter], vy[position_counter], 0.0, 0.1);
         BrakeRampExcavator(100, 3.0, 0);
         StartManipulation();
       }
@@ -1894,3 +1893,20 @@ void SmRd2::RoverStaticHauler(bool flag)
 }
 
 //------------------------------------------------------------------------------------------------------------------------
+
+
+void SmRd2::DriveCmdVelExcavatorAndHauler(double vx, double vy, double wz, double time)
+{
+  geometry_msgs::Twist cmd_vel;
+  cmd_vel.linear.x = vx;
+  cmd_vel.linear.y = vy;
+  cmd_vel.angular.z = wz;
+  ros::Time start_time = ros::Time::now();
+  ros::Duration timeout(time); // Timeout of 20 seconds
+  ROS_ERROR("EXCAVATOR AND HAULER: Drive Cmd Vel publisher.");
+  while (ros::Time::now() - start_time < timeout)
+  {
+    cmd_vel_pub_excavator_.publish(cmd_vel);
+    cmd_vel_pub_hauler_.publish(cmd_vel);
+  }
+}

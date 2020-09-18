@@ -279,4 +279,6 @@ public:
   void DriveCmdVelHauler(double vx, double vy, double wz, double time);
   void BrakeRampHauler(double max_intensity, double time, int aggressivity);
 
+  void DriveCmdVelExcavatorAndHauler(double vx, double vy, double wz, double time);
+
 };
