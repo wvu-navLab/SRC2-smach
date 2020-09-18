@@ -407,6 +407,9 @@ void SmRd2::statePlanning()
   flag_arrived_at_waypoint_excavator_ = false;
   flag_waypoint_unreachable_excavator_= false;
 
+  LightsHauler("0.6");
+  LightsExcavator("0.6");
+
   BrakeExcavator(100.0);
   BrakeHauler(100.0);
 
@@ -675,6 +678,9 @@ void SmRd2::stateVolatileHandler()
 {
   ROS_WARN("Excavation State\n");
 
+  LightsHauler("0.6");
+  LightsExcavator("0.6");
+
   ros::Rate manipulation_rate(10);
 
   BrakeExcavator(500.0);
@@ -873,6 +879,8 @@ void SmRd2::stateLost()
   StopExcavator (2.0);
 
   LightsExcavator ("0.8");
+
+  LightsHauler("0.6");
 
   BrakeExcavator (100.0);
 
@@ -1179,6 +1187,8 @@ void SmRd2::homingRecoveryExcavator()
 
   ROS_WARN("Starting Homing Recovery.");
 
+  LightsExcavator("0.6");
+
   StopExcavator(2.0);
 
   BrakeRampExcavator(100, 3, 0);
@@ -1215,6 +1225,8 @@ void SmRd2::immobilityRecoveryExcavator()
   ac_excavator_.waitForResult(ros::Duration(0.25));
 
   ROS_WARN("Starting Recovery.");
+
+  LightsExcavator("0.6");
 
   StopExcavator(2.0);
 
@@ -1703,6 +1715,8 @@ void SmRd2::homingRecoveryHauler()
 
   ROS_WARN("Starting Homing Recovery.");
 
+  LightsHauler("0.6");
+
   StopHauler(2.0);
 
   BrakeRampHauler(100, 3, 0);
@@ -1747,6 +1761,8 @@ void SmRd2::approachExcavatorRecoveryHauler(int number)
   ac_hauler_.waitForResult(ros::Duration(0.25));
 
   ROS_WARN("Starting Approach Excavator Recovery.");
+
+  LightsHauler("0.6");
 
   double sign = 1;
   if(number == 0)
@@ -1797,6 +1813,8 @@ void SmRd2::immobilityRecoveryHauler()
   ac_hauler_.waitForResult(ros::Duration(0.25));
 
   ROS_WARN("Starting Recovery.");
+
+  LightsHauler("0.6");
 
   StopHauler(2.0);
 
