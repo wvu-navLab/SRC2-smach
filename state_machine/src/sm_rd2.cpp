@@ -1189,7 +1189,7 @@ void SmRd2::homingRecoveryExcavator()
 
   StopExcavator(0.0);
 
-  DriveCmdVelExcavator(0.0, 0.0, 0.25, 4.0);
+  DriveCmdVelExcavator(0.0, 0.0, -0.25, 4.0);
 
   StopExcavator(0.0);
 
@@ -1713,7 +1713,7 @@ void SmRd2::homingRecoveryHauler()
 
   StopHauler(0.0);
 
-  DriveCmdVelHauler(0.0, 0.0, 0.25, 4.0);
+  DriveCmdVelHauler(0.0, 0.0, -0.25, 4.0);
 
   StopHauler(0.0);
 
@@ -1768,11 +1768,11 @@ void SmRd2::approachExcavatorRecoveryHauler(int number)
 
   BrakeHauler(0.0);
 
-  DriveCmdVelHauler(0.0, 0.0, 0.25, 4.0);
+  //DriveCmdVelHauler(0.0, 0.0, 0.25, 4.0);
 
-  BrakeRampHauler(100, 3, 0);
+  //BrakeRampHauler(100, 3, 0);
 
-  BrakeHauler(0.0);
+  //BrakeHauler(0.0);
 
   RotateToHeadingHauler(goal_yaw_excavator_);
 
