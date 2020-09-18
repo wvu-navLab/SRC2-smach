@@ -947,7 +947,7 @@ void SmRd1::homingRecovery()
   Brake(0.0);
 
   // Drive(-0.3, 3.0);
-  DriveCmdVel(-0.3,-0.6, 0.0, 4.5);
+  DriveCmdVel(-0.3,-0.6, 0.0, 5.0);
 
   Stop(0.0);
 
@@ -959,7 +959,7 @@ void SmRd1::homingRecovery()
 
   Brake(0.0);
 
-  DriveCmdVel(0.6,0.0,0.0,4.0);
+  DriveCmdVel(0.6,0.0,0.0,4.5);
 
   Stop(0.0);
 

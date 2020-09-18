@@ -722,7 +722,7 @@ void SmRd2::stateVolatileHandler()
           ROS_INFO("HAULER: Called service ApproachExcavator");
           ROS_INFO_STREAM("Success finding the Excavator? "<< srv_approach_base.response.success.data);
           if(!srv_approach_base.response.success.data)
-          { 
+          {
             if (homingRecoveryCountHauler == 2)
             {
               homingRecoveryHauler();
@@ -1195,7 +1195,7 @@ void SmRd2::homingRecoveryExcavator()
 
   BrakeExcavator(0.0);
 
-  DriveCmdVelExcavator(-0.3,-0.6, 0.0, 4.5);
+  DriveCmdVelExcavator(-0.3,-0.6, 0.0, 5.0);
 
   StopExcavator(0.0);
 
@@ -1207,7 +1207,7 @@ void SmRd2::homingRecoveryExcavator()
 
   BrakeExcavator(0.0);
 
-  DriveCmdVelExcavator(0.6,0.0,0.0,4.0);
+  DriveCmdVelExcavator(0.6,0.0,0.0,4.5);
 
   StopExcavator(0.0);
 
@@ -1723,7 +1723,7 @@ void SmRd2::homingRecoveryHauler()
 
   BrakeHauler(0.0);
 
-  DriveCmdVelHauler(-0.3,-0.6, 0.0, 4.5);
+  DriveCmdVelHauler(-0.3,-0.6, 0.0, 5.0);
 
   StopHauler(0.0);
 
@@ -1733,7 +1733,7 @@ void SmRd2::homingRecoveryHauler()
 
   BrakeRampHauler(100, 3, 0);
 
-  DriveCmdVelHauler(0.6,0.0,0.0,4.0);
+  DriveCmdVelHauler(0.6,0.0,0.0,4.5);
 
   BrakeRampHauler(100, 3, 0);
 
@@ -1767,7 +1767,7 @@ void SmRd2::approachExcavatorRecoveryHauler(int number)
   double sign = 1;
   if(number == 0)
   {
-    sign = -1; 
+    sign = -1;
   }
 
   StopHauler(2.0);
