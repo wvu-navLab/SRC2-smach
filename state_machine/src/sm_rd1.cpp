@@ -951,7 +951,7 @@ void SmRd1::homingRecovery()
 
   Stop(0.0);
 
-  DriveCmdVel(0.0,0.0,0.25,4.0);
+  DriveCmdVel(0.0,0.0,-0.25,4.0);
 
   Stop(0.0);
 
