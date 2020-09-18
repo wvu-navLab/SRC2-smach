@@ -219,7 +219,13 @@ void SmRd2::stateInitialize()
   flag_waypoint_unreachable_excavator_ = false;
 
   // ToggleDetectorExcavator(false);
-
+  ROS_INFO("HAULER: Canceling MoveBase goal.");
+  ac_hauler_.waitForServer();
+  ac_hauler_.cancelGoal();
+  ac_hauler_.waitForResult(ros::Duration(0.25));
+  move_base_state_hauler_ = ac_hauler_.getState();
+  int mb_state_hauler =(int) move_base_state_hauler_.state_;
+  ROS_WARN_STREAM("HAULER: MoveBase status: "<< mb_state_hauler);
   // ToggleDetectorHauler(false);
 
   while(!clt_lights_hauler_.waitForExistence())
@@ -680,6 +686,11 @@ void SmRd2::stateVolatileHandler()
   ac_hauler_.cancelGoal();
   ac_hauler_.waitForResult(ros::Duration(0.25));
 
+  std::vector<double> vx {-0.5, 0.5, -1.0, 0.01};
+  std::vector<double> vy {-0.0, 0.0, -1.0, 1.0};
+
+  int position_counter = 0;
+
   waypoint_checker::CheckCollision srv_wp_check;
   srv_wp_check.request.x  = goal_vol_pose_.position.x;
   srv_wp_check.request.y = goal_vol_pose_.position.y;
@@ -706,6 +717,7 @@ void SmRd2::stateVolatileHandler()
           ROS_INFO_STREAM("Success finding the Excavator? "<< srv_approach_base.response.success.data);
           if(!srv_approach_base.response.success.data)
           {
+
             homingRecoveryHauler();
           }
           else
@@ -722,32 +734,73 @@ void SmRd2::stateVolatileHandler()
         homingRecoveryCountHauler=homingRecoveryCountHauler+1;
       }
 
-      std::vector<double> vx {-0.5, 0.5, -1.0, 0.01};
-      std::vector<double> vy {-0.0, 0.0, -1.0, 1.0};
+      if (!approachSuccessHauler)
+      {
+          goal_pose_hauler_ = goal_pose_excavator_;
+          move_base_msgs::MoveBaseGoal move_base_goal;
+          ac_hauler_.waitForServer();
+          setPoseGoalHauler(move_base_goal, goal_pose_hauler_.position.x, goal_pose_hauler_.position.y, goal_yaw_excavator_);
+          ROS_INFO_STREAM("HAULER: Sending goal to MoveBase: " << move_base_goal);
+          ac_hauler_.sendGoal(move_base_goal, boost::bind(&SmRd2::doneCallbackHauler, this,_1,_2), boost::bind(&SmRd2::activeCallbackHauler, this), boost::bind(&SmRd2::feedbackCallbackHauler, this,_1));
+          ac_hauler_.waitForResult(ros::Duration(0.25));
+      }
 
-      int position_counter = 0;
-
+      bool hauler_out_of_range = false;
+      ros::Time start_time = ros::Time::now();
       while(position_counter < 4)
       {
+        ROS_WARN_STREAM("Position counter: "<< position_counter);
         while(!flag_volatile_dug_excavator_)
         {
-
           ROS_WARN_THROTTLE(10, "In Manipulation State Machine.");
+
+          double distance_to_goal_hauler = std::hypot(goal_pose_hauler_.position.y - current_pose_hauler_.position.y, goal_pose_hauler_.position.x - current_pose_hauler_.position.x);
+          if (distance_to_goal_hauler < 2.0)
+          {
+            ROS_INFO_THROTTLE(10,"HAULER: Close to goal, getting new waypoint.");
+            flag_arrived_at_waypoint_hauler_ = true;
+            flag_waypoint_unreachable_hauler_ = false;
+
+            ROS_INFO_THROTTLE(10,"HAULER: Canceling MoveBase goal.");
+            ac_hauler_.waitForServer();
+            ac_hauler_.cancelGoal();
+            ac_hauler_.waitForResult(ros::Duration(0.25));
+
+            DriveCmdVelHauler(0.0, 0.0, 0.0, 0.0);
+          }
+          move_base_state_hauler_ = ac_hauler_.getState();
+          int mb_state_hauler =(int) move_base_state_hauler_.state_;
+          if((mb_state_hauler == 5 || distance_to_goal_hauler>10.0) && ros::Time::now()-start_time > ros::Duration(60))
+          {
+            hauler_out_of_range = true;
+            break;
+          }
+
           ros::spinOnce();
           manipulation_rate.sleep();
         }
+
+        if(hauler_out_of_range == true)
+        {
+          break;
+        }
+
         if (!flag_volatile_found_excavator_)
         {
+          ROS_WARN("Didnt found the volatile, next position.");
           flag_volatile_dug_excavator_ = false;
         }
         else
         {
+          ROS_WARN("Found the volatile, breaking position loop.");
           break;
         }
+
         position_counter++;
 
         if(!flag_hauler_in_range_excavator_)
         {
+          ROS_WARN("Hauler not in Range, calling aprroach excavator.");
           src2_object_detection::ApproachBaseStation srv_approach_base;
           srv_approach_base.request.approach_base_station.data= true;
 
@@ -770,9 +823,10 @@ void SmRd2::stateVolatileHandler()
         BrakeExcavator(0.0);
         DriveCmdVelExcavatorAndHauler(vx[position_counter], vy[position_counter], 0.0, 0.1);
         BrakeRampExcavator(100, 3.0, 0);
+        DriveCmdVelHauler(0.0, 0.0, 0.0, 0.1);
         StartManipulation();
       }
-
+      ROS_INFO("Backing off the Hauler");
       DriveCmdVelHauler(-0.5, 0.0, 0.0, 4.0);
       BrakeRampHauler(100,3.0,0);
     }
@@ -842,6 +896,8 @@ void SmRd2::stateLost()
     }
     homingRecoveryCount=homingRecoveryCount+1;
   }
+
+
 
 
   if(approachSuccess){
@@ -1675,13 +1731,6 @@ void SmRd2::homingRecoveryHauler()
 
   BrakeHauler (0.0);
 
-  move_base_msgs::MoveBaseGoal move_base_goal;
-  ac_hauler_.waitForServer();
-  setPoseGoalHauler(move_base_goal, goal_pose_hauler_.position.x, goal_pose_hauler_.position.y, goal_yaw_hauler_);
-  ROS_INFO_STREAM("HAULER: Sending goal to MoveBase: " << move_base_goal);
-  ac_hauler_.sendGoal(move_base_goal, boost::bind(&SmRd2::doneCallbackHauler, this,_1,_2), boost::bind(&SmRd2::activeCallbackHauler, this), boost::bind(&SmRd2::feedbackCallbackHauler, this,_1));
-  ac_hauler_.waitForResult(ros::Duration(0.25));
-
 }
 
 void SmRd2::immobilityRecoveryHauler()
@@ -1727,13 +1776,6 @@ void SmRd2::immobilityRecoveryHauler()
   BrakeRampHauler (100, 2, 0);
 
   BrakeHauler (0.0);
-
-  move_base_msgs::MoveBaseGoal move_base_goal;
-  ac_hauler_.waitForServer();
-  setPoseGoalHauler(move_base_goal, goal_pose_hauler_.position.x, goal_pose_hauler_.position.y, goal_yaw_hauler_);
-  ROS_INFO_STREAM("HAULER: Sending goal to MoveBase: " << move_base_goal);
-  ac_hauler_.sendGoal(move_base_goal, boost::bind(&SmRd2::doneCallbackHauler, this,_1,_2), boost::bind(&SmRd2::activeCallbackHauler, this), boost::bind(&SmRd2::feedbackCallbackHauler, this,_1));
-  ac_hauler_.waitForResult(ros::Duration(0.25));
 
 }
 
