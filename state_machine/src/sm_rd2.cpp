@@ -602,6 +602,8 @@ void SmRd2::stateTraverse()
 
     StopExcavator (2.0);
     ClearCostmapsExcavator();
+    BrakeRampExcavator(100,2,0);
+    BrakeExcavator(0.0);
   }
 
   move_base_state_hauler_ = ac_hauler_.getState();
@@ -615,6 +617,8 @@ void SmRd2::stateTraverse()
 
     StopHauler (2.0);
     ClearCostmapsHauler();
+    BrakeRampHauler(100,2,0);
+    BrakeHauler(0.0);
   }
 //////////////////////////////////////////////////////////////////////////
 // IF IT'S NEEDED THE TIMEOUT FOR CLEARING COSTMAP AND WAYPOINT IS here //
@@ -727,7 +731,7 @@ void SmRd2::stateVolatileHandler()
       {
         while(!flag_volatile_dug_excavator_)
         {
-          
+
           ROS_WARN_THROTTLE(10, "In Manipulation State Machine.");
           ros::spinOnce();
           manipulation_rate.sleep();
@@ -746,7 +750,7 @@ void SmRd2::stateVolatileHandler()
         {
           src2_object_detection::ApproachBaseStation srv_approach_base;
           srv_approach_base.request.approach_base_station.data= true;
-        
+
           if (clt_approach_excavator_hauler_.call(srv_approach_base))
           {
             ROS_INFO("HAULER: Called service ApproachExcavator");
@@ -762,7 +766,7 @@ void SmRd2::stateVolatileHandler()
             }
           }
         }
-      
+
         BrakeExcavator(0.0);
         DriveCmdVelExcavator(vx[position_counter], vy[position_counter], 0.0, 0.1);
         BrakeRampExcavator(100, 3.0, 0);
@@ -903,6 +907,9 @@ else{
   // ToggleDetectorExcavator(true);
 
   ClearCostmapsExcavator();
+  BrakeRampExcavator(100, 3, 0);
+
+  BrakeExcavator(0.0);
 
   std_msgs::Int64 state_msg;
   state_msg.data = _lost;
@@ -1120,7 +1127,7 @@ void SmRd2::homingRecoveryExcavator()
 
   StopExcavator(0.0);
 
-  RotateToHeadingExcavator(yaw_excavator_ - M_PI/4);
+  DriveCmdVelExcavator(0.0, 0.0, 0.25, 4.0);
 
   StopExcavator(0.0);
 
@@ -1644,7 +1651,7 @@ void SmRd2::homingRecoveryHauler()
 
   StopHauler(0.0);
 
-  RotateToHeadingHauler(yaw_hauler_ - M_PI/4);
+  DriveCmdVelHauler(0.0, 0.0, 0.25, 4.0);
 
   StopHauler(0.0);
 
@@ -1660,7 +1667,11 @@ void SmRd2::homingRecoveryHauler()
 
   BrakeRampHauler (100, 3, 0);
 
+  BrakeHauler (0.0);
+
   ClearCostmapsHauler();
+
+  BrakeRampHauler (100, 2, 0);
 
   BrakeHauler (0.0);
 
@@ -1709,7 +1720,11 @@ void SmRd2::immobilityRecoveryHauler()
 
   BrakeRampHauler (100, 3, 0);
 
+  BrakeHauler (0.0);
+
   ClearCostmapsHauler();
+
+  BrakeRampHauler (100, 2, 0);
 
   BrakeHauler (0.0);
 
