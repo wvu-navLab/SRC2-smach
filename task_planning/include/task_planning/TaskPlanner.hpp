@@ -8,73 +8,24 @@
 #ifndef TaskPlanner_HPP
 #define TaskPlanner_HPP
 
+#include <string>
+
+#include <ros/ros.h>
+#include <std_msgs/String.h>
+#include <std_msgs/Bool.h>
+#include <ros/console.h>
+#include <ros/transport_hints.h>
+
+#include <task_planning/CostFunction.hpp>
+
+
 namespace mac {
 
 class TaskPlanner {
   public:
     /** \brief  */
-    inline TaskPlanner(const CostFunction       & cost_function,
-                       const std::vector<Robot> & robots) {
-      cost_function_ = cost_function;
-      robots_ = robots;
-
-      //setup robot subscribers
-      int index_sub_scout = 1;
-      int index_sub_excavator = 1;
-      int index_sub_hauler = 1;
-      for (int i=0; i<robots.size(); i++) {
-        switch(robots[i].type) {
-          case SCOUT:
-            std::string topic = "/scout_" + std::to_string(index_sub_scout) + "/localization/odometry/sensor_fusion";
-            subs_robots_[i] = nh_.subscribe(topic, 10, &TaskPlanner::scout_callback, this);
-            index_sub_scout++;
-            break;
-          case EXCAVATOR:
-            std::string topic = "/excavator_" + std::to_string(index_sub_excavator) + "/localization/odometry/sensor_fusion";
-            subs_robots_[i] = nh_.subscribe(topic, 10, &TaskPlanner::excavator_callback, this);
-            index_sub_excavator++;
-            break;
-          case HAULER:
-            std::string topic = "/hauler_" + std::to_string(index_sub_hauler) + "/localization/odometry/sensor_fusion";
-            subs_robots_[i] = nh_.subscribe(topic, 10, &TaskPlanner::hauler_callback, this);
-            index_sub_hauler++;
-            break;
-          default:
-            ROS_ERROR("TaskPlanner::TaskPlanner: robot type invalid!");
-            break;
-        }
-      }
-
-      //setup robot publishers
-      int index_pub_scout = 1;
-      int index_pub_excavator = 1;
-      int index_pub_hauler = 1;
-      for (int i=0; i<robots.size(); i++) {
-        switch(robots[i].type) {
-          case SCOUT:
-            std::string topic = "/scout_" + std::to_string(index_pub_scout) + "/plan";
-            pubs_plans_[i] = nh_.advertise<std_msgs::String>(topic, 10);
-            index_pub_scout++;
-            break;
-          case EXCAVATOR:
-            std::string topic = "/excavator_" + std::to_string(index_pub_excavator) + "/plan";
-            pubs_plans_[i] = nh_.advertise<std_msgs::String>(topic, 10);
-            index_pub_excavator++;
-            break;
-          case HAULER:
-            std::string topic = "/hauler_" + std::to_string(index_pub_hauler) + "/plan";
-            pubs_plans_[i] = nh_.advertise<std_msgs::String>(topic, 10);
-            index_pub_hauler++;
-            break;
-          default:
-            ROS_ERROR("TaskPlanner::TaskPlanner: robot type invalid!");
-            break;
-        }
-      }
-
-      //setup volatile subscribers
-      //TODO
-    }
+    TaskPlanner(const CostFunction       & cost_function);//,
+                       //const std::vector<Robot> & robots);
 
     /** \brief  */
     void plan() const;
@@ -84,10 +35,10 @@ class TaskPlanner {
     CostFunction cost_function_;
 
     /** \brief  */
-    std::vector<Volatile> volatiles_;
+    //std::vector<Volatile> volatiles_;
 
     /** \brief  */
-    std::vector<Robot> robots_;
+    //std::vector<Robot> robots_;
 
     /** \brief  */
     ros::NodeHandle nh_;
@@ -96,19 +47,39 @@ class TaskPlanner {
     std::vector<ros::Subscriber> subs_volatiles_;
 
     /** \brief  */
-    std::vector<ros::Subscriber> subs_robots_;
+    //std::vector<
+    ros::Subscriber subs_robots_;
 
     /** \brief  */
     std::vector<ros::Publisher> pubs_plans_;
 
     /** \brief  */
-    void scout_callback(const nav_msgs::Odometry::ConstPtr &msg);
+    void timeCallback(const rosgraph_msgs::Clock::ConstPtr &msg);
 
     /** \brief  */
-    void excavator_callback(const nav_msgs::Odometry::ConstPtr &msg);
+    //void volatileListCallback(const vol_data_type &msg);
 
     /** \brief  */
-    void hauler_callback(const nav_msgs::Odometry::ConstPtr &msg);
+    void scout_pose_callback(const ros::MessageEvent<std_msgs::Bool const>& event);
+
+    /** \brief  */
+    void scout_monitor_callback(const ros::MessageEvent<std_msgs::String const>& event);
+
+    /** \brief  */
+    void excavator_pose_callback(const ros::MessageEvent<std_msgs::String const>& event);
+
+    /** \brief  */
+    void excavator_monitor_callback(const ros::MessageEvent<std_msgs::String const>& event);
+
+    /** \brief  */
+    void hauler_pose_callback(const ros::MessageEvent<std_msgs::String const>& event);
+
+    /** \brief  */
+    void hauler_monitor_callback(const ros::MessageEvent<std_msgs::String const>& event);
+
+    long unsigned int SCOUT_STR_LOC = 13; //index ~SHOULD BE~ at 14th position
+    long unsigned int EXCAVATOR_STR_LOC = 17; //index ~SHOULD BE~ at 18th position
+    long unsigned int HAULER_STR_LOC = 14; //index ~SHOULD BE~ at 15th position
 
 };
 

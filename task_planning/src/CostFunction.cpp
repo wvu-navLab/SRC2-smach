@@ -5,10 +5,10 @@
  */
 //-----------------------------------------------------------------------------
 
-#include <CostFunction.hpp>
+#include <task_planning/CostFunction.hpp>
 
 namespace mac {
-
+/**
 void CostFunction::
 compute_cost(const Volatile & volatile,
              const Robot    & robot) const {
@@ -27,6 +27,6 @@ compute_cost(const Volatile & volatile,
       break;
   }
 
-};
+};*/
 
 }
