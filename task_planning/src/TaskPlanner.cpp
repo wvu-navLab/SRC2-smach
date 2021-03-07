@@ -35,59 +35,63 @@ void TaskPlanner::scout_pose_callback(const ros::MessageEvent<std_msgs::Bool con
 
   const ros::M_string& header = event.getConnectionHeader();
   std::string topic = header.at("topic");
-  //ROS_WARN("HRMM %s",topic.c_str());
   char ind = topic.c_str()[SCOUT_STR_LOC];
   int index = std::atoi(&ind);
   const std_msgs::BoolConstPtr& msg = event.getMessage();
-
+  //ROS_WARN("HRMM %s",topic.c_str());
   ROS_WARN("%i",index);// << std::endl;
   //ROS_DEBUG("%d",msg->data);
 
 }
 
-void TaskPlanner::scout_monitor_callback(const ros::MessageEvent<std_msgs::String const>& event)
+void TaskPlanner::scout_monitor_callback(const ros::MessageEvent<std_msgs::Bool const>& event)
 {
   const ros::M_string& header = event.getConnectionHeader();
   std::string topic = header.at("topic");
-  int index = std::stoi(topic,&SCOUT_STR_LOC);
-  const std_msgs::StringConstPtr& msg = event.getMessage();
+  char ind = topic.c_str()[SCOUT_STR_LOC];
+  int index = std::atoi(&ind);
+  const std_msgs::BoolConstPtr& msg = event.getMessage();
 
 }
 
-void TaskPlanner::excavator_pose_callback(const ros::MessageEvent<std_msgs::String const>& event)
+void TaskPlanner::excavator_pose_callback(const ros::MessageEvent<std_msgs::Bool const>& event)
 {
   const ros::M_string& header = event.getConnectionHeader();
   std::string topic = header.at("topic");
-  int index = std::stoi(topic,&EXCAVATOR_STR_LOC);
-  const std_msgs::StringConstPtr& msg = event.getMessage();
+  char ind = topic.c_str()[EXCAVATOR_STR_LOC];
+  int index = std::atoi(&ind);
+  const std_msgs::BoolConstPtr& msg = event.getMessage();
 
 }
 
-void TaskPlanner::excavator_monitor_callback(const ros::MessageEvent<std_msgs::String const>& event)
+void TaskPlanner::excavator_monitor_callback(const ros::MessageEvent<std_msgs::Bool const>& event)
 {
   const ros::M_string& header = event.getConnectionHeader();
   std::string topic = header.at("topic");
-  int index = std::stoi(topic,&EXCAVATOR_STR_LOC);
-  const std_msgs::StringConstPtr& msg = event.getMessage();
+  char ind = topic.c_str()[EXCAVATOR_STR_LOC];
+  int index = std::atoi(&ind);
+  const std_msgs::BoolConstPtr& msg = event.getMessage();
 
 }
 
-void TaskPlanner::hauler_pose_callback(const ros::MessageEvent<std_msgs::String const>& event)
+void TaskPlanner::hauler_pose_callback(const ros::MessageEvent<std_msgs::Bool const>& event)
 {
   const ros::M_string& header = event.getConnectionHeader();
   std::string topic = header.at("topic");
-  int index = std::stoi(topic,&HAULER_STR_LOC);
-  const std_msgs::StringConstPtr& msg = event.getMessage();
+  char ind = topic.c_str()[HAULER_STR_LOC];
+  int index = std::atoi(&ind);
+  const std_msgs::BoolConstPtr& msg = event.getMessage();
 
 
 }
 
-void TaskPlanner::hauler_monitor_callback(const ros::MessageEvent<std_msgs::String const>& event)
+void TaskPlanner::hauler_monitor_callback(const ros::MessageEvent<std_msgs::Bool const>& event)
 {
   const ros::M_string& header = event.getConnectionHeader();
   std::string topic = header.at("topic");
-  int index = std::stoi(topic,&HAULER_STR_LOC);
-  const std_msgs::StringConstPtr& msg = event.getMessage();
+  char ind = topic.c_str()[HAULER_STR_LOC];
+  int index = std::atoi(&ind);
+  const std_msgs::BoolConstPtr& msg = event.getMessage();
 
 
 }

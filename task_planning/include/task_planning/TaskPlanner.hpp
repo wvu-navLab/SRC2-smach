@@ -63,23 +63,23 @@ class TaskPlanner {
     void scout_pose_callback(const ros::MessageEvent<std_msgs::Bool const>& event);
 
     /** \brief  */
-    void scout_monitor_callback(const ros::MessageEvent<std_msgs::String const>& event);
+    void scout_monitor_callback(const ros::MessageEvent<std_msgs::Bool const>& event);
 
     /** \brief  */
-    void excavator_pose_callback(const ros::MessageEvent<std_msgs::String const>& event);
+    void excavator_pose_callback(const ros::MessageEvent<std_msgs::Bool const>& event);
 
     /** \brief  */
-    void excavator_monitor_callback(const ros::MessageEvent<std_msgs::String const>& event);
+    void excavator_monitor_callback(const ros::MessageEvent<std_msgs::Bool const>& event);
 
     /** \brief  */
-    void hauler_pose_callback(const ros::MessageEvent<std_msgs::String const>& event);
+    void hauler_pose_callback(const ros::MessageEvent<std_msgs::Bool const>& event);
 
     /** \brief  */
-    void hauler_monitor_callback(const ros::MessageEvent<std_msgs::String const>& event);
+    void hauler_monitor_callback(const ros::MessageEvent<std_msgs::Bool const>& event);
 
-    long unsigned int SCOUT_STR_LOC = 13; //index ~SHOULD BE~ at 14th position
-    long unsigned int EXCAVATOR_STR_LOC = 17; //index ~SHOULD BE~ at 18th position
-    long unsigned int HAULER_STR_LOC = 14; //index ~SHOULD BE~ at 15th position
+    const int SCOUT_STR_LOC = 13; //index ~SHOULD BE~ at 14th position
+    const int EXCAVATOR_STR_LOC = 17; //index ~SHOULD BE~ at 18th position
+    const int HAULER_STR_LOC = 14; //index ~SHOULD BE~ at 15th position
 
 };
 
