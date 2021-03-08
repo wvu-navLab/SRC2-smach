@@ -13,9 +13,11 @@
 #include <ros/ros.h>
 #include <std_msgs/String.h>
 #include <std_msgs/Bool.h>
+#include <nav_msgs/Odometry.h>
 #include <ros/console.h>
 #include <ros/transport_hints.h>
 
+#include <task_planning/Types.hpp>
 #include <task_planning/CostFunction.hpp>
 
 
@@ -24,8 +26,8 @@ namespace mac {
 class TaskPlanner {
   public:
     /** \brief  */
-    TaskPlanner(const CostFunction       & cost_function);//,
-                       //const std::vector<Robot> & robots);
+    TaskPlanner(const CostFunction       & cost_function,
+                const std::vector<mac::Robot> & robots);
 
     /** \brief  */
     void plan() const;
@@ -44,11 +46,10 @@ class TaskPlanner {
     ros::NodeHandle nh_;
 
     /** \brief  */
-    std::vector<ros::Subscriber> subs_volatiles_;
+    ros::Subscriber sub_clock_, sub_volatiles_;
 
     /** \brief  */
-    //std::vector<
-    ros::Subscriber subs_robots_;
+    std::vector<ros::Subscriber> subs_robots_;
 
     /** \brief  */
     std::vector<ros::Publisher> pubs_plans_;
@@ -77,6 +78,7 @@ class TaskPlanner {
     /** \brief  */
     void hauler_monitor_callback(const ros::MessageEvent<std_msgs::Bool const>& event);
 
+  private:
     const int SCOUT_STR_LOC = 13; //index ~SHOULD BE~ at 14th position
     const int EXCAVATOR_STR_LOC = 17; //index ~SHOULD BE~ at 18th position
     const int HAULER_STR_LOC = 14; //index ~SHOULD BE~ at 15th position

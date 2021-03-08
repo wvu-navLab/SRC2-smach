@@ -9,16 +9,18 @@
 #ifndef Types_HPP
 #define Types_HPP
 
+#include <nav_msgs/Odometry.h>
+
 namespace mac
 {
 
-const SCOUT = 0;
-const EXCAVATOR = 1;
-const HAULER = 2;
+const int SCOUT = 0;
+const int EXCAVATOR = 1;
+const int HAULER = 2;
 
 struct Robot {
-    std::string id;
-    std::string type;
+    int id;
+    int type;
     nav_msgs::Odometry odom;
     bool is_initialized = false;
 };
