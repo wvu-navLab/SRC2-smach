@@ -24,15 +24,19 @@
 namespace mac {
 
 class TaskPlanner {
+
   public:
     /** \brief  */
     TaskPlanner(const CostFunction       & cost_function,
-                const std::vector<mac::Robot> & robots);
+                const std::vector<mac::Robot> & robots, const PlanningParams &planning_params);
 
     /** \brief  */
     void plan() const;
 
   protected:
+    /** \brief  */
+    PlanningParams planning_params_;
+
     /** \brief  */
     CostFunction cost_function_;
 
@@ -40,7 +44,7 @@ class TaskPlanner {
     //std::vector<Volatile> volatiles_;
 
     /** \brief  */
-    //std::vector<Robot> robots_;
+    std::vector<mac::Robot> robots_;
 
     /** \brief  */
     ros::NodeHandle nh_;
@@ -61,22 +65,11 @@ class TaskPlanner {
     //void volatileListCallback(const vol_data_type &msg);
 
     /** \brief  */
-    void scout_pose_callback(const ros::MessageEvent<std_msgs::Bool const>& event);
-
+    void pose_callback(const ros::MessageEvent<std_msgs::Bool const>& event);
+      //nav_msgs::Odometry
     /** \brief  */
-    void scout_monitor_callback(const ros::MessageEvent<std_msgs::Bool const>& event);
+    void monitor_callback(const ros::MessageEvent<std_msgs::Bool const>& event);
 
-    /** \brief  */
-    void excavator_pose_callback(const ros::MessageEvent<std_msgs::Bool const>& event);
-
-    /** \brief  */
-    void excavator_monitor_callback(const ros::MessageEvent<std_msgs::Bool const>& event);
-
-    /** \brief  */
-    void hauler_pose_callback(const ros::MessageEvent<std_msgs::Bool const>& event);
-
-    /** \brief  */
-    void hauler_monitor_callback(const ros::MessageEvent<std_msgs::Bool const>& event);
 
   private:
     const int SCOUT_STR_LOC = 13; //index ~SHOULD BE~ at 14th position

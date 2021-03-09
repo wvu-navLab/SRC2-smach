@@ -31,6 +31,11 @@ struct Volatile {
     bool is_initialized = false;
 };
 
+struct PlanningParams {
+    int max_time;
+    int timeout;
+};
+
 }
 
 #endif // Types_HPP

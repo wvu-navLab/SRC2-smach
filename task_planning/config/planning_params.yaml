@@ -1,3 +1,12 @@
 num_scouts: 2
 num_excavators: 2
 num_haulers: 2
+clock_max_time_sec: 7200
+planner:
+  planning_timeout_sec: 30
+  planner_type: "type1"
+  num_nodes: 500
+  num_iterations: 5
+cost_function:
+  type: "type1"
+  params: [0.0, 1, 5.0]

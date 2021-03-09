@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.0.2)
 project(task_planning)
 
 ## Compile as C++11, supported in ROS Kinetic and newer
-# add_compile_options(-std=c++11)
+add_compile_options(-std=c++11)
 
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
@@ -149,6 +149,13 @@ target_link_libraries(TaskPlannerLib
 # add_executable(${PROJECT_NAME}_node src/task_planning_node.cpp)
 add_executable(scouting_task_node src/scouting_task_node.cpp)
 target_link_libraries(scouting_task_node
+    TaskPlannerLib
+    CostFunctionLib
+		${catkin_LIBRARIES}
+)
+
+add_executable(excavation_task_node src/excavation_task_node.cpp)
+target_link_libraries(excavation_task_node
     TaskPlannerLib
     CostFunctionLib
 		${catkin_LIBRARIES}
