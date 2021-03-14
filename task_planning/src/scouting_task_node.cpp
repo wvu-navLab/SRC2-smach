@@ -32,8 +32,9 @@ int main(int argc, char** argv)
 
 		std::vector<double> cf_params;
 		nh.getParam("/cost_function/params", cf_params);
-		std::string cf_type, planner_type;
-		nh.getParam("/cost_function/type", cf_type);
+		std::string planner_type;
+		int cost_type;
+		nh.getParam("/cost_function/type", cost_type);
 		nh.getParam("/planner/planning_type", planner_type);
 		nh.getParam("/planner/planning_timeout_sec", timeout);
 
@@ -52,7 +53,7 @@ int main(int argc, char** argv)
 		}
 
 		// Initialize Cost Function
-		const mac::CostFunction cf("type1");
+		const mac::CostFunction cf(cost_type);
 
 		mac::PlanningParams planning_params;
 		planning_params.max_time = max_time;

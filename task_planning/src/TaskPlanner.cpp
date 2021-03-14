@@ -12,6 +12,13 @@ namespace mac {
 void TaskPlanner::
 plan() const {
   //do stuff
+  bool is_data_loaded = false;
+  while(is_data_loaded) {
+    //check if data is loaded
+    ros::spinOnce();
+  }
+
+  //do planning
 };
 
 
@@ -27,7 +34,7 @@ void TaskPlanner::timeCallback(const rosgraph_msgs::Clock::ConstPtr &msg)
 
 /**void TaskPlanner::volatileListCallback(const vol_data_type &msg)
 {
-
+ // volatiles: point value of volatile, amount left?, position, type, uncertainty
 }*/
 
 void TaskPlanner::pose_callback(const ros::MessageEvent<std_msgs::Bool const>& event)

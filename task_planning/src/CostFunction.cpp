@@ -8,17 +8,18 @@
 #include <task_planning/CostFunction.hpp>
 
 namespace mac {
-/**
-void CostFunction::
-compute_cost(const Volatile & volatile,
+
+double CostFunction::
+compute_cost(const Volatile & volatile_objective,
              const Robot    & robot) const {
 
-  switch(cost_type_) {
-    case "A":
+  switch(cost_type_)
+  {
+    case A :
       //do stuff
       break;
 
-    case "B":
+    case B:
       //do stuff
       break;
 
@@ -27,6 +28,6 @@ compute_cost(const Volatile & volatile,
       break;
   }
 
-};*/
+};
 
 }
