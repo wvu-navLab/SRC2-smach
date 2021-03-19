@@ -54,8 +54,6 @@
   <buildtool_depend>message_runtime</buildtool_depend>
   <buildtool_depend>roslib</buildtool_depend>
   <buildtool_depend>waypoint_nav</buildtool_depend>
-  <buildtool_depend>volatile_handler</buildtool_depend>
-  <buildtool_depend>round2_volatile_handler</buildtool_depend>
   <buildtool_depend>waypoint_gen</buildtool_depend>
   <buildtool_depend>driving_tools</buildtool_depend>
   <buildtool_depend>geometry_msgs</buildtool_depend>
@@ -78,8 +76,6 @@
   <build_depend>waypoint_nav</build_depend>
   <build_depend>waypoint_gen</build_depend>
   <build_depend>driving_tools</build_depend>
-  <build_depend>volatile_handler</build_depend>
-  <build_depend>round2_volatile_handler</build_depend>
   <build_depend>geometry_msgs</build_depend>
   <build_depend>std_msgs</build_depend>
   <build_depend>nav_msgs</build_depend>
@@ -100,8 +96,6 @@
   <build_export_depend>waypoint_nav</build_export_depend>
   <build_export_depend>waypoint_gen</build_export_depend>
   <build_export_depend>driving_tools</build_export_depend>
-  <build_export_depend>volatile_handler</build_export_depend>
-  <build_export_depend>round2_volatile_handler</build_export_depend>
   <build_export_depend>geometry_msgs</build_export_depend>
   <build_export_depend>std_msgs</build_export_depend>
   <build_export_depend>nav_msgs</build_export_depend>
@@ -121,8 +115,6 @@
   <exec_depend>roslib</exec_depend>
   <exec_depend>waypoint_nav</exec_depend>
   <exec_depend>waypoint_gen</exec_depend>
-  <exec_depend>volatile_handler</exec_depend>
-  <exec_depend>round2_volatile_handler</exec_depend>
   <exec_depend>driving_tools</exec_depend>
   <exec_depend>geometry_msgs</exec_depend>
   <exec_depend>std_msgs</exec_depend>
