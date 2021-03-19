@@ -18,7 +18,6 @@ find_package(catkin REQUIRED COMPONENTS
   sensor_msgs
   driving_tools
   volatile_handler
-  round2_volatile_handler
   waypoint_nav
   waypoint_gen
   srcp2_msgs
