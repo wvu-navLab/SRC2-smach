@@ -10,20 +10,20 @@
 #include <geometry_msgs/Twist.h>
 #include <waypoint_gen/GenerateWaypoint.h>
 #include <waypoint_gen/StartWaypoint.h>
-#include <waypoint_nav/SetGoal.h>
-#include <waypoint_nav/Interrupt.h>
+// #include <waypoint_nav/SetGoal.h>
+// #include <waypoint_nav/Interrupt.h>
 #include <driving_tools/Stop.h>
 #include <driving_tools/MoveForward.h>
 #include <driving_tools/CirculateBaseStation.h>
 #include <driving_tools/RotateInPlace.h>
-#include <volatile_handler/VolatileReport.h>
-#include <volatile_handler/ToggleDetector.h>
+// #include <volatile_handler/VolatileReport.h>
+// #include <volatile_handler/ToggleDetector.h>
 #include <nav_msgs/Odometry.h>
 #include <tf2/LinearMath/Quaternion.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 #include <actionlib/client/simple_action_client.h>
 #include <move_base_msgs/MoveBaseAction.h>
-#include <srcp2_msgs/ToggleLightSrv.h>
+#include <srcp2_msgs/SpotLightSrv.h>
 #include <srcp2_msgs/BrakeRoverSrv.h>
 #include <src2_object_detection/ApproachBaseStation.h>
 #include <sensor_fusion/RoverStatic.h>
@@ -104,14 +104,14 @@ public:
   ros::ServiceClient clt_sf_true_pose_;
   ros::ServiceClient clt_wp_gen_;
   ros::ServiceClient clt_wp_start_;
-  ros::ServiceClient clt_wp_nav_set_goal_;
-  ros::ServiceClient clt_wp_nav_interrupt_;
+  // ros::ServiceClient clt_wp_nav_set_goal_;
+  // ros::ServiceClient clt_wp_nav_interrupt_;
   ros::ServiceClient clt_vh_report_;
   ros::ServiceClient clt_stop_;
   ros::ServiceClient clt_rip_;
   ros::ServiceClient clt_drive_;
-  ros::ServiceClient clt_vol_report_;
-  ros::ServiceClient clt_vol_detect_;
+  // ros::ServiceClient clt_vol_report_;
+  // ros::ServiceClient clt_vol_detect_;
   ros::ServiceClient clt_brake_;
   ros::ServiceClient clt_lights_;
   ros::ServiceClient clt_homing_;
@@ -163,11 +163,11 @@ public:
 
   void RotateToHeading(double desired_yaw);
   void ClearCostmaps();
-  void Lights(std::string intensity);
+  void Lights(double intensity);
   void RotateInPlace(double throttle, double time);
   void Stop(double time);
   void Drive(double throttle, double time);
-  void ToggleDetector(bool flag);
+  // void ToggleDetector(bool flag);
   void Brake(double intensity);
   void RoverStatic(bool flag);
   void DriveCmdVel(double vx, double vy, double wz, double time);

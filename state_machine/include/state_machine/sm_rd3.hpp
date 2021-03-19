@@ -8,8 +8,8 @@
 #include <geometry_msgs/Point.h>
 #include <sensor_msgs/LaserScan.h>
 #include <waypoint_gen/GenerateWaypoint.h>
-#include <waypoint_nav/SetGoal.h>
-#include <waypoint_nav/Interrupt.h>
+// #include <waypoint_nav/SetGoal.h>
+// #include <waypoint_nav/Interrupt.h>
 #include <driving_tools/Stop.h>
 #include <driving_tools/MoveForward.h>
 #include <driving_tools/CirculateBaseStation.h>

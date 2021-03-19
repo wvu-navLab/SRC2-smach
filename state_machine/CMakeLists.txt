@@ -17,7 +17,7 @@ find_package(catkin REQUIRED COMPONENTS
   geometry_msgs
   sensor_msgs
   driving_tools
-  waypoint_nav
+  # waypoint_nav
   waypoint_gen
   srcp2_msgs
   nav_msgs
@@ -123,7 +123,7 @@ find_package(Eigen3 3.3 REQUIRED)
 catkin_package(
  INCLUDE_DIRS include
 #  LIBRARIES state_machine
-  CATKIN_DEPENDS sensor_msgs waypoint_checker src2_object_detection std_msgs std_srvs geometry_msgs nav_msgs sensor_fusion driving_tools actionlib move_excavator volatile_handler round2_volatile_handler waypoint_nav waypoint_gen
+  CATKIN_DEPENDS sensor_msgs waypoint_checker src2_object_detection std_msgs std_srvs geometry_msgs nav_msgs sensor_fusion driving_tools actionlib move_excavator waypoint_gen
 #  DEPENDS system_lib
 )
 
@@ -135,6 +135,7 @@ catkin_package(
 ## Your package locations should be listed before other locations
 include_directories(
  include
+ ~/ros_workspace/install/include
  ${catkin_INCLUDE_DIRS}
 )
 
@@ -149,17 +150,17 @@ add_library(sm_utils
 # add_library(sm_rd2
 #    src/sm_rd2.cpp
 # )
-  add_library(sm_rd3
-    src/sm_rd3.cpp
- )
+#  add_library(sm_rd3
+#    src/sm_rd3.cpp
+ #)
 ## Add cmake target dependencies of the library
 ## as an example, code may need to be generated before libraries
 ## either from message generation or dynamic reconfigure
 add_dependencies(sm_utils ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 add_dependencies(sm_rd1 ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-add_dependencies(sm_rd2 ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-add_dependencies(sm_rd3 ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+# add_dependencies(sm_rd2 ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+#add_dependencies(sm_rd3 ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 target_link_libraries(sm_utils
   ${catkin_LIBRARIES}
  )
@@ -170,9 +171,9 @@ target_link_libraries(sm_utils
 # target_link_libraries(sm_rd2
 #   ${catkin_LIBRARIES}
 # )
- target_link_libraries(sm_rd3
-   ${catkin_LIBRARIES}
- )
+ #target_link_libraries(sm_rd3
+#   ${catkin_LIBRARIES}
+ #)
 ## Declare a C++ executable
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
@@ -182,7 +183,7 @@ add_executable(utils_test_node utils/utils_test_node.cpp)
 add_executable(state_machine_rd1_node src/sm_rd1_node.cpp)
 add_dependencies(state_machine_rd1_node state_machine_generate_messages_cpp)
 # add_executable(state_machine_rd2_node src/sm_rd2_node.cpp)
-add_executable(state_machine_rd3_node src/sm_rd3_node.cpp)
+#add_executable(state_machine_rd3_node src/sm_rd3_node.cpp)
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
 ## target back to the shorter version for ease of user use
@@ -195,7 +196,7 @@ add_executable(state_machine_rd3_node src/sm_rd3_node.cpp)
 
  add_dependencies(state_machine_rd1_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
  # add_dependencies(state_machine_rd2_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
- add_dependencies(state_machine_rd3_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+ #add_dependencies(state_machine_rd3_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Specify libraries to link a library or executable target against
 target_link_libraries(utils_test_node
@@ -212,10 +213,10 @@ target_link_libraries(utils_test_node
 #   sm_rd2
 #   sm_utils
 # )
- target_link_libraries(state_machine_rd3_node
-    ${catkin_LIBRARIES}
-    sm_rd3
- )
+ #target_link_libraries(state_machine_rd3_node
+  #  ${catkin_LIBRARIES}
+  #  sm_rd3
+ #)
 #############
 ## Install ##
 #############
