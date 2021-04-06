@@ -53,10 +53,7 @@
   <buildtool_depend>rospy</buildtool_depend>
   <buildtool_depend>message_runtime</buildtool_depend>
   <buildtool_depend>roslib</buildtool_depend>
-  <buildtool_depend>pose_update</buildtool_depend>
   <buildtool_depend>waypoint_nav</buildtool_depend>
-  <buildtool_depend>volatile_handler</buildtool_depend>
-  <buildtool_depend>round2_volatile_handler</buildtool_depend>
   <buildtool_depend>waypoint_gen</buildtool_depend>
   <buildtool_depend>driving_tools</buildtool_depend>
   <buildtool_depend>geometry_msgs</buildtool_depend>
@@ -68,18 +65,17 @@
   <buildtool_depend>src2_object_detection</buildtool_depend>
   <buildtool_depend>std_srvs</buildtool_depend>
   <buildtool_depend>waypoint_checker</buildtool_depend>
+  <buildtool_depend>sensor_msgs</buildtool_depend>
+  <buildtool_depend>message_generation</buildtool_depend>
 
   <build_depend>catkin</build_depend>
   <build_depend>roscpp</build_depend>
   <build_depend>rospy</build_depend>
   <build_depend>message_runtime</build_depend>
   <build_depend>roslib</build_depend>
-  <build_depend>pose_update</build_depend>
   <build_depend>waypoint_nav</build_depend>
   <build_depend>waypoint_gen</build_depend>
   <build_depend>driving_tools</build_depend>
-  <build_depend>volatile_handler</build_depend>
-  <build_depend>round2_volatile_handler</build_depend>
   <build_depend>geometry_msgs</build_depend>
   <build_depend>std_msgs</build_depend>
   <build_depend>nav_msgs</build_depend>
@@ -89,18 +85,17 @@
   <build_depend>src2_object_detection</build_depend>
   <build_depend>std_srvs</build_depend>
   <build_depend>waypoint_checker</build_depend>
+  <build_depend>sensor_msgs</build_depend>
+  <build_depend>message_generation</build_depend>
 
   <build_export_depend>catkin</build_export_depend>
   <build_export_depend>roscpp</build_export_depend>
   <build_export_depend>rospy</build_export_depend>
   <build_export_depend>message_runtime</build_export_depend>
   <build_export_depend>roslib</build_export_depend>
-  <build_export_depend>pose_update</build_export_depend>
   <build_export_depend>waypoint_nav</build_export_depend>
   <build_export_depend>waypoint_gen</build_export_depend>
   <build_export_depend>driving_tools</build_export_depend>
-  <build_export_depend>volatile_handler</build_export_depend>
-  <build_export_depend>round2_volatile_handler</build_export_depend>
   <build_export_depend>geometry_msgs</build_export_depend>
   <build_export_depend>std_msgs</build_export_depend>
   <build_export_depend>nav_msgs</build_export_depend>
@@ -110,17 +105,16 @@
   <build_export_depend>src2_object_detection</build_export_depend>
   <build_export_depend>std_srvs</build_export_depend>
   <build_export_depend>waypoint_checker</build_export_depend>
+  <build_export_depend>sensor_msgs</build_export_depend>
+  <build_export_depend>message_generation</build_export_depend>
 
   <exec_depend>catkin</exec_depend>
   <exec_depend>roscpp</exec_depend>
   <exec_depend>rospy</exec_depend>
   <exec_depend>message_runtime</exec_depend>
   <exec_depend>roslib</exec_depend>
-  <exec_depend>pose_update</exec_depend>
   <exec_depend>waypoint_nav</exec_depend>
   <exec_depend>waypoint_gen</exec_depend>
-  <exec_depend>volatile_handler</exec_depend>
-  <exec_depend>round2_volatile_handler</exec_depend>
   <exec_depend>driving_tools</exec_depend>
   <exec_depend>geometry_msgs</exec_depend>
   <exec_depend>std_msgs</exec_depend>
@@ -131,6 +125,8 @@
   <exec_depend>src2_object_detection</exec_depend>
   <exec_depend>std_srvs</exec_depend>
   <exec_depend>waypoint_checker</exec_depend>
+  <exec_depend>sensor_msgs</exec_depend>
+  <exec_depend>message_generation</exec_depend>
 
   <!-- The export tag contains other, unspecified, tags -->
   <export>

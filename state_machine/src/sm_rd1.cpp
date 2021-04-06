@@ -1,34 +1,36 @@
 #include <state_machine/sm_rd1.hpp>
 
 SmRd1::SmRd1() :
-ac("/move_base", true),
-move_base_state_(actionlib::SimpleClientGoalState::LOST)
+ac("move_base", true),
+move_base_state_(actionlib::SimpleClientGoalState::PREEMPTED)
 {
   // Initialize ROS, Subs, and Pubs *******************************************
   // Publishers
-  sm_state_pub = nh.advertise<std_msgs::Int64>("state_machine/state", 1);
-
+  sm_state_pub = nh.advertise<std_msgs::Int64>("/state_machine/state", 1);
+  cmd_vel_pub = nh.advertise<geometry_msgs::Twist>("driving/cmd_vel", 1);
+  pub_driving_mode_ = nh.advertise<std_msgs::Int64>("driving/driving_mode", 1);
   // Subscribers
-  localized_base_sub = nh.subscribe("state_machine/localized_base_scout", 1, &SmRd1::localizedBaseCallback, this);
-  waypoint_unreachable_sub = nh.subscribe("state_machine/waypoint_unreachable", 1, &SmRd1::waypointUnreachableCallback, this);
-  arrived_at_waypoint_sub = nh.subscribe("state_machine/arrived_at_waypoint", 1, &SmRd1::arrivedAtWaypointCallback, this);
-  volatile_detected_sub = nh.subscribe("state_machine/volatile_detected", 1, &SmRd1::volatileDetectedCallback, this);
-  volatile_recorded_sub = nh.subscribe("state_machine/volatile_recorded", 1, &SmRd1::volatileRecordedCallback, this);
-  localization_failure_sub = nh.subscribe("state_machine/localization_failure", 1, &SmRd1::localizationFailureCallback, this);
+  localized_base_sub = nh.subscribe("/state_machine/localized_base_scout", 1, &SmRd1::localizedBaseCallback, this);
+  // mobility_sub = nh.subscribe("/state_machine/mobility_scout", 1, &SmRd1::mobilityCallback, this);
+  waypoint_unreachable_sub = nh.subscribe("/state_machine/waypoint_unreachable", 1, &SmRd1::waypointUnreachableCallback, this);
+  arrived_at_waypoint_sub = nh.subscribe("/state_machine/arrived_at_waypoint", 1, &SmRd1::arrivedAtWaypointCallback, this);
+  volatile_detected_sub = nh.subscribe("/state_machine/volatile_detected", 1, &SmRd1::volatileDetectedCallback, this);
+  volatile_recorded_sub = nh.subscribe("/state_machine/volatile_recorded", 1, &SmRd1::volatileRecordedCallback, this);
+  localization_failure_sub = nh.subscribe("/state_machine/localization_failure", 1, &SmRd1::localizationFailureCallback, this);
   localization_sub  = nh.subscribe("localization/odometry/sensor_fusion", 1, &SmRd1::localizationCallback, this);
   driving_mode_sub =nh.subscribe("driving/driving_mode",1, &SmRd1::drivingModeCallback, this);
-
+  laserscan_sub =nh.subscribe("laser/scan",1, &SmRd1::laserCallback, this);
   // Clients
-  // clt_true_pose_ = nh.serviceClient<pose_update::PoseUpdate>("localization/true_pose_update");
-
   clt_wp_gen_ = nh.serviceClient<waypoint_gen::GenerateWaypoint>("navigation/generate_goal");
-  clt_wp_nav_set_goal_ = nh.serviceClient<waypoint_nav::SetGoal>("navigation/set_goal");
-  clt_wp_nav_interrupt_ = nh.serviceClient<waypoint_nav::Interrupt>("navigation/interrupt");
+  clt_wp_start_ = nh.serviceClient<waypoint_gen::StartWaypoint>("navigation/start");
+  // clt_wp_nav_set_goal_ = nh.serviceClient<waypoint_nav::SetGoal>("navigation/set_goal");
+  // clt_wp_nav_interrupt_ = nh.serviceClient<waypoint_nav::Interrupt>("navigation/interrupt");
   clt_stop_ = nh.serviceClient<driving_tools::Stop>("driving/stop");
   clt_rip_ = nh.serviceClient<driving_tools::RotateInPlace>("driving/rotate_in_place");
   clt_drive_ = nh.serviceClient<driving_tools::MoveForward>("driving/move_forward");
-  clt_vol_report_ = nh.serviceClient<volatile_handler::VolatileReport>("volatile/report");
-  clt_lights_ = nh.serviceClient<srcp2_msgs::ToggleLightSrv>("toggle_light");
+  // clt_vol_report_ = nh.serviceClient<volatile_handler::VolatileReport>("volatile/report");
+  // clt_vol_detect_ = nh.serviceClient<volatile_handler::ToggleDetector>("volatile/toggle_detector");
+  clt_lights_ = nh.serviceClient<srcp2_msgs::SpotLightSrv>("spot_light");
   clt_brake_ = nh.serviceClient<srcp2_msgs::BrakeRoverSrv>("brake_rover");
   clt_approach_base_ = nh.serviceClient<src2_object_detection::ApproachBaseStation>("approach_base_station");
   clt_rover_static_ = nh.serviceClient<sensor_fusion::RoverStatic>("sensor_fusion/toggle_rover_static");
@@ -36,29 +38,38 @@ move_base_state_(actionlib::SimpleClientGoalState::LOST)
   clt_sf_true_pose_ = nh.serviceClient<sensor_fusion::GetTruePose>("true_pose");
   clt_waypoint_checker_ = nh.serviceClient<waypoint_checker::CheckCollision>("waypoint_checker");
   clt_srcp2_brake_rover_= nh.serviceClient<srcp2_msgs::BrakeRoverSrv>("brake_rover");
-  // this is a comment
 
+  setMobilityService_ = nh.advertiseService("/state_machine/mobility_service_scout",&SmRd1::setMobility_, this);
 
   driving_mode_=0;
+  waypoint_type_ =0;
+  need_to_initialize_landmark=true;
 
   detection_timer = ros::Time::now();
   not_detected_timer = ros::Time::now();
+  last_time_laser_collision_ = ros::Time::now();
+  map_timer = ros::Time::now();
+  wp_checker_timer=  ros::Time::now();
 }
+
+
 
 void SmRd1::run()
 {
-  ros::Rate loop_rate(2); // Hz
+  ros::Rate loop_rate(5); // Hz
   while(ros::ok())
   {
     // Debug prints +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-    ROS_INFO("flag_localized_base: %i",flag_localized_base);
+
+    ROS_INFO("flag_localized_base: %i", flag_localized_base);
+    ROS_INFO("flag_mobility: %i",flag_mobility);
     ROS_INFO("flag_have_true_pose: %i",flag_have_true_pose);
     ROS_INFO("flag_waypoint_unreachable: %i",flag_waypoint_unreachable);
     ROS_INFO("flag_arrived_at_waypoint: %i",flag_arrived_at_waypoint);
-    ROS_INFO("volatile_detected_distance: %f",volatile_detected_distance);
-    // ROS_INFO("flag_localizing_volatile: %i",flag_localizing_volatile);
+  //  ROS_INFO("volatile_detected_distance: %f",volatile_detected_distance);
+  //  ROS_INFO("flag_localizing_volatile: %i",flag_localizing_volatile);
     ROS_INFO("flag_volatile_recorded: %i",flag_volatile_recorded);
-    // ROS_INFO("flag_volatile_unreachable: %i",flag_volatile_unreachable);
+    ROS_INFO("flag_volatile_unreachable: %i",flag_volatile_unreachable);
     ROS_INFO("flag_localization_failure: %i",flag_localization_failure);
     ROS_INFO("flag_brake_engaged: %i",flag_brake_engaged);
     ROS_INFO("flag_fallthrough_condition: %i",flag_fallthrough_condition);
@@ -167,227 +178,143 @@ void SmRd1::stateInitialize()
   flag_arrived_at_waypoint = false;
   flag_waypoint_unreachable = false;
 
+  // ToggleDetector(false);
 
-  // Turn on the Lights
-  srcp2_msgs::ToggleLightSrv srv_lights;
-  srv_lights.request.data  = "0.8";
-  if (clt_lights_.call(srv_lights))
+  while (!clt_lights_.waitForExistence())
   {
-    // ROS_INFO_STREAM("Success? "<< srv_stop.response.success);
+      ROS_WARN("SCOUT: Waiting for Lights");
   }
-  else
+  Lights(20);
+
+  while (!clt_approach_base_.waitForExistence())
   {
-    ROS_ERROR("Failed to call service ToggleLight");
+    ROS_WARN("SCOUT: Waiting for ApproachBaseStation service");
   }
 
   // Approach Base Station
   src2_object_detection::ApproachBaseStation srv_approach_base;
   srv_approach_base.request.approach_base_station.data= true;
-  while (!clt_approach_base_.waitForExistence())
-  {
-    ROS_ERROR("WAITING for approach_base");
-  }
-  if (clt_approach_base_.call(srv_approach_base))
-  {
-    // ROS_INFO_STREAM("Success? "<< srv_approach_base.response.success.data);
+  bool approachSuccess = false;
+  int homingRecoveryCount = 0;
+  while(!approachSuccess && homingRecoveryCount<3){
+      if (clt_approach_base_.call(srv_approach_base))
+      {
+        ROS_INFO("SCOUT: Called service ApproachBaseStation");
+        ROS_INFO_STREAM("Success finding the Base? "<< srv_approach_base.response.success.data);
+        if(!srv_approach_base.response.success.data){
+        homingRecovery();
+      }
+      else
+      {
+        approachSuccess=true;
+      }
 
+    }
 
-  }
-  else
-  {
-    ROS_ERROR("Failed to call service ApproachBaseStation");
-  }
-
-  // Break Rover
-  driving_tools::Stop srv_stop;
-  srv_stop.request.enableStop  = true;
-  if (clt_stop_.call(srv_stop))
-  {
-    // ROS_INFO_STREAM("Success? "<< srv_stop.response.success);
-  }
-  else
-  {
-    ROS_ERROR("Failed to call service Stop");
+    else
+    {
+      ROS_ERROR("SCOUT: Failed  to call service ApproachBaseStation");
+    }
+    homingRecoveryCount=homingRecoveryCount+1;
   }
 
-  srcp2_msgs::BrakeRoverSrv srv_brake;
+  Stop(2.0);
 
-  srv_brake.request.brake_force  = 100.0;
-  if (clt_srcp2_brake_rover_.call(srv_brake))
+  Brake(100.0);
+
+  while (!clt_sf_true_pose_.waitForExistence())
   {
-     ROS_INFO_STREAM("SM: Brake Enabled? "<< srv_brake.response.finished);
-
+    ROS_ERROR("SCOUT: Waiting for TruePose service");
   }
-  else
-  {
-      ROS_ERROR("Failed to call service Brake");
-  }
-
-  // // Get True Pose
-  // pose_update::PoseUpdate srv_upd_pose;
-  // srv_upd_pose.request.start  = true;
-  // if (clt_true_pose_.call(srv_upd_pose))
-  // {
-  //   // ROS_INFO_STREAM("Success? "<< srv_upd_pose.response.success);
-  // }
-  // else
-  // {
-  //   ROS_ERROR("Failed to call service Pose Update");
-  // }
 
   // Update SF with True Pose
   sensor_fusion::GetTruePose srv_sf_true_pose;
   srv_sf_true_pose.request.start = true;
-
-  while (!clt_sf_true_pose_.waitForExistence())
-  {
-    ROS_ERROR("WAITING FOR TRUE POSE");
-  }
   if (clt_sf_true_pose_.call(srv_sf_true_pose))
   {
-    ROS_INFO_STREAM("Success STATUS OF srv_sf_true_pose? "<< srv_sf_true_pose.response.success);
+    ROS_INFO("SCOUT: Called service TruePose");
+    ROS_INFO_STREAM("Status of SF True Pose: "<< srv_sf_true_pose.response.success);
   }
   else
   {
-    ROS_INFO_STREAM("STATUS OF srv_sf_true_pose" << srv_sf_true_pose.response.success);
-    ROS_ERROR("Failed to call service Pose Update");
+    ROS_ERROR("SCOUT: Failed  to call service Pose Update");
   }
 
-  // Start attitude constraints for static rover
-  sensor_fusion::RoverStatic srv_rover_static;
-  srv_rover_static.request.rover_static  = true;
-  if (clt_rover_static_.call(srv_rover_static))
-  {
-    // ROS_INFO_STREAM("Success? "<< srv_rover_static.response.success);
-  }
-  else
-  {
-    ROS_ERROR("Failed to call service RoverStatic");
-  }
+  RoverStatic(true);
 
+  if(approachSuccess){
   // Homing - Initialize Base Station Landmark
+  while (!clt_homing_.waitForExistence())
+  {
+      ROS_WARN("SCOUT: Waiting for Homing Service");
+  }
   sensor_fusion::HomingUpdate srv_homing;
-  srv_homing.request.initializeLandmark = true;
+  // ros::spinOnce();
+
+  srv_homing.request.angle = pitch_ + .4; // pitch up is negative number
+  ROS_ERROR("Requesting Angle for LIDAR %f",srv_homing.request.angle);
+  srv_homing.request.initializeLandmark = need_to_initialize_landmark;
   if (clt_homing_.call(srv_homing))
   {
+    ROS_INFO("SCOUT: Called service HomingUpdate");
+    if(srv_homing.response.success){
     base_location_ = srv_homing.response.base_location;
-    // ROS_INFO_STREAM("Success? "<< srv_homing.response.success);
+    need_to_initialize_landmark = false;
+  }else{
+    ROS_ERROR(" Initial Homing Fail, Starting Without Base Location");
+  }
   }
   else
   {
-    ROS_ERROR("Failed to call service HomingUpdate");
+    ROS_ERROR("SCOUT: Failed to call service HomingUpdate");
   }
+}
+else{
+  ROS_ERROR(" Initial Homing Fail, Starting Without Base Location");
+}
 
-  // Stop attitude constraints for static rover
-  srv_rover_static.request.rover_static  = false;
-  if (clt_rover_static_.call(srv_rover_static))
+  RoverStatic(false);
+
+  Lights(20);
+
+  // Minimal Maneuvers to keep the localization good and get rid of BaseStation obstacle before generating initial path.
+  Brake(0.0);
+
+  DriveCmdVel(-0.5,0.0,0.0,5);
+
+  BrakeRamp(100, 3, 0);
+
+  Brake(0.0);
+
+  RotateInPlace(0.2, 3);
+
+  BrakeRamp(100, 3, 0);
+
+  Brake(0.0);
+
+  // ToggleDetector(true);
+
+  ClearCostmaps();
+  BrakeRamp(100, 2, 0);
+  Brake(0.0);
+
+
+
+  waypoint_gen::StartWaypoint srv_wp_start;
+  srv_wp_start.request.start  = true;
+
+  if (clt_wp_start_.call(srv_wp_start))
   {
-    // ROS_INFO_STREAM("Success? "<< srv_rover_static.response.success);
+    ROS_INFO("Starting Waypoint Gen");
   }
   else
   {
-    ROS_ERROR("Failed to call service RoverStatic");
+    ROS_ERROR("SCOUT: Failed  to call service Waypoint Start");
   }
 
-  // Turn on the Lights
-  srv_lights.request.data  = "0.2";
-  if (clt_lights_.call(srv_lights))
-  {
-    // ROS_INFO_STREAM("Success? "<< srv_lights.response.success);
-  }
-  else
-  {
-    ROS_ERROR("Failed to call service ToggleLight");
-  }
 
-  srv_brake.request.brake_force  = 0.0;
-  if (clt_srcp2_brake_rover_.call(srv_brake))
-  {
-     ROS_INFO_STREAM("SM: Brake Enabled? "<< srv_brake.response.finished);
-
-  }
-  else
-  {
-      ROS_ERROR("Failed to call service Brake");
-  }
-  // Move Backward first
-  driving_tools::MoveForward srv_drive;
-  srv_drive.request.throttle  = -0.3;
-  if (clt_drive_.call(srv_drive))
-  {
-          ros::Duration(2.0).sleep();
-          ROS_INFO_STREAM("SM: Backward Drive Enabled? "<< srv_drive.response);
-  }
-  else
-  {
-          ROS_ERROR("Failed to call service Drive");
-  }
-
-  srv_stop.request.enableStop  = true;
-  if (clt_stop_.call(srv_stop))
-  {
-    ros::Duration(2.0).sleep();
-  }
-  else
-  {
-    ROS_ERROR("Failed to call service Stop");
-  }
-
- // Then Rotate in Place
-
-  driving_tools::RotateInPlace srv_turn;
-
-  srv_turn.request.throttle  = 0.2;
-   ros::Duration(1.0).sleep();
-  if (clt_rip_.call(srv_turn))
-  {
-          ROS_INFO_STREAM("SM: Rotating Enabled? "<< srv_turn.response);
-          ros::Duration(5.0).sleep();
-  }
-  else
-  {
-          ROS_ERROR("Failed to call service Stop");
-  }
-
-  // driving_tools::Stop srv_stop;
-  srv_stop.request.enableStop  = true;
-  if (clt_stop_.call(srv_stop))
-  {
-    ros::Duration(2.0).sleep();// ROS_INFO_STREAM("Success? "<< srv_stop.response.success);
-  }
-  else
-  {
-    ROS_ERROR("Failed to call service Stop");
-  }
-
-  // driving_tools::MoveForward srv_drive;
-  // srv_drive.request.throttle  = 0.3;
-  // if (clt_drive_.call(srv_drive))
-  // {
-  //         ros::Duration(2.0).sleep();
-  //         ROS_INFO_STREAM("SM: Drive Enabled? "<< srv_drive.response);
-  // }
-  // else
-  // {
-  //         ROS_ERROR("Failed to call service Drive");
-  // }
-  //
-  // srv_stop.request.enableStop  = true;
-  // if (clt_stop_.call(srv_stop))
-  // {
-  //   ros::Duration(0.5).sleep();// ROS_INFO_STREAM("Success? "<< srv_stop.response.success);
-  // }
-  // else
-  // {
-  //   ROS_ERROR("Failed to call service Stop");
-  // }
-
-  // Clear the costmap
-  clearCostmaps_();
-
-
-// make sure we dont latch to a vol we skipped while homing
-volatile_detected_distance = -1.0;
+  // make sure we dont latch to a vol we skipped while homing
+  volatile_detected_distance = -1.0;
   std_msgs::Int64 state_msg;
   state_msg.data = _initialize;
   sm_state_pub.publish(state_msg);
@@ -397,30 +324,26 @@ void SmRd1::statePlanning()
 {
   ROS_INFO("Planning!\n");
   flag_arrived_at_waypoint = false;
-  flag_waypoint_unreachable = false;
+  if(waypoint_type_==1)
+  {
+    flag_waypoint_unreachable=false;
+  }
 
+  ROS_INFO("SCOUT: Canceling MoveBase goal.");
   ac.waitForServer();
   ac.cancelGoal();
   ac.waitForResult(ros::Duration(0.25));
 
-  // Break
-  driving_tools::Stop srv_stop;
-  srv_stop.request.enableStop  = true;
-  if (clt_stop_.call(srv_stop))
+  while (!clt_wp_gen_.waitForExistence())
   {
-    // ROS_INFO_STREAM("Success? "<< srv_stop.response.success);
+    ROS_ERROR("SCOUT: Waiting for Waypoint Gen service");
   }
-  else
-  {
-    ROS_ERROR("Failed to call service Stop");
-  }
-
-  // ROS_INFO_STREAM("goal pose: " << goal_pose);
-  // Generate Goal
   waypoint_gen::GenerateWaypoint srv_wp_gen;
+
   srv_wp_gen.request.start  = true;
-  if(flag_completed_homing ){
-    flag_completed_homing=false;
+  if(flag_completed_homing)
+  {
+    flag_completed_homing = false;
     srv_wp_gen.request.next  = true;
   }
   else if(flag_waypoint_unreachable)
@@ -428,101 +351,111 @@ void SmRd1::statePlanning()
     flag_waypoint_unreachable=false;
     srv_wp_gen.request.next  = true;
   }
-  else{
+
+  else
+  {
   srv_wp_gen.request.next  = false;
   }
+
   if (clt_wp_gen_.call(srv_wp_gen))
   {
-    // ROS_INFO_STREAM("Success? "<< srv_wp_gen.response.success);
-
+    ROS_INFO("SCOUT: Called service Generate Waypoint");
     goal_pose_ = srv_wp_gen.response.goal;
     waypoint_type_ = srv_wp_gen.response.type;
   }
   else
   {
-    ROS_ERROR("Failed to call service Generate Waypoint");
+    ROS_ERROR("SCOUT: Failed  to call service Generate Waypoint");
   }
-  ROS_INFO_STREAM("goal pose: " << goal_pose_);
+  ROS_INFO_STREAM("SCOUT: WP Generation: Goal pose: " << goal_pose_);
 
+  goal_yaw_ = atan2(goal_pose_.position.y - current_pose_.position.y, goal_pose_.position.x - current_pose_.position.x);
+
+  Brake (0.0);
+
+  RotateToHeading(goal_yaw_);
+
+  // Brake (100.0);
+  BrakeRamp(100, 3, 0);
   // check waypoint
 
   waypoint_checker::CheckCollision srv_wp_check;
   bool is_colliding = true;
-  while (is_colliding)
+  int counter = 0;
+  while (is_colliding && counter<3)
   {
     srv_wp_check.request.x  = goal_pose_.position.x;
     srv_wp_check.request.y = goal_pose_.position.y;
     if (clt_waypoint_checker_.call(srv_wp_check))
     {
-      // ROS_INFO_STREAM("Success? "<< srv_wp_gen.response.success);
+      ROS_INFO("SCOUT: Called service Waypoint Checker");
       is_colliding = srv_wp_check.response.collision;
       if(is_colliding)
       {
+        ROS_INFO("SCOUT: Waypoint Unreachable. Getting new waypoint");
         srv_wp_gen.request.start  = true;
         srv_wp_gen.request.next  = true;
         if (clt_wp_gen_.call(srv_wp_gen))
         {
-          // ROS_INFO_STREAM("Success? "<< srv_wp_gen.response.success);
+          ROS_INFO("SCOUT: Called service Generate Waypoint");
           goal_pose_ = srv_wp_gen.response.goal;
 	        waypoint_type_ = srv_wp_gen.response.type;
 
+          goal_yaw_ = atan2(goal_pose_.position.y - current_pose_.position.y, goal_pose_.position.x - current_pose_.position.x);
+
+          Brake (0.0);
+
+          RotateToHeading(goal_yaw_);
+
+          BrakeRamp(100, 3, 0);
+          Brake (0.0);
         }
         else
         {
-          ROS_ERROR("Failed to call service Generate Waypoint");
+          ROS_ERROR("SCOUT: Failed to call service Generate Waypoint");
         }
       }
     }
     else
     {
-      ROS_ERROR("Failed to call service Waypoint checker");
-    }
+      ROS_ERROR("SCOUT: Failed to call service Waypoint Checker");
+
+
   }
+  ros::spinOnce();
+  counter=counter+1;
+}
+  ClearCostmaps();
+  BrakeRamp(100, 2, 0);
+  Brake(0.0);
 
-  goal_yaw_ = atan2(goal_pose_.position.y - current_pose_.position.y, goal_pose_.position.x - current_pose_.position.x);
-
-  rotateToHeading(goal_yaw_);
 
   move_base_msgs::MoveBaseGoal move_base_goal;
   ac.waitForServer();
   setPoseGoal(move_base_goal, goal_pose_.position.x, goal_pose_.position.y, goal_yaw_);
-  ROS_INFO_STREAM("goal pose after SetposeGOAL: " << move_base_goal);
+  ROS_INFO_STREAM("SCOUT: Sending goal to MoveBase: " << move_base_goal);
+  waypoint_timer_ = ros::Time::now();
   ac.sendGoal(move_base_goal, boost::bind(&SmRd1::doneCallback, this,_1,_2), boost::bind(&SmRd1::activeCallback, this), boost::bind(&SmRd1::feedbackCallback, this,_1));
   ac.waitForResult(ros::Duration(0.25));
-
-  // // Get True Pose
-  // waypoint_nav::SetGoal srv_wp_nav;
-  // srv_wp_nav.request.start = true;
-  // srv_wp_nav.request.goal = goal_pose;
-  // if (clt_wp_nav_set_goal_.call(srv_wp_nav))
-  // {
-  //   // ROS_INFO_STREAM("Success? "<< srv_wp_nav.response.success);
-  // }
-  // else
-  // {
-  //   ROS_ERROR("Failed to call service Drive to Waypoint");
-  // }
-
-  clearCostmaps_();
 
   std_msgs::Int64 state_msg;
   state_msg.data = _planning;
   sm_state_pub.publish(state_msg);
 }
-
 void SmRd1::stateTraverse()
 {
   ROS_WARN("Traverse State\n");
 
-
   if(flag_localized_base && !flag_have_true_pose)
   {
+    ROS_INFO("SCOUT: Localized but don't have true pose.");
     flag_have_true_pose = true;
     flag_arrived_at_waypoint = true;
     flag_waypoint_unreachable = false;
   }
   if(flag_volatile_recorded)
   {
+    ROS_INFO("SCOUT: Volatile recorded.");
     volatile_detected_distance = -1.0;
     flag_localizing_volatile = false;
     flag_volatile_recorded = false;
@@ -531,46 +464,93 @@ void SmRd1::stateTraverse()
   }
   if(flag_recovering_localization && !flag_localization_failure)
   {
+    ROS_INFO("SCOUT: Recovering localization or failure in localization.");
     flag_arrived_at_waypoint = true;
     flag_waypoint_unreachable = false;
     flag_recovering_localization = false;
   }
+
   double distance_to_goal = std::hypot(goal_pose_.position.y - current_pose_.position.y, goal_pose_.position.x - current_pose_.position.x);
   if (distance_to_goal < 2.0)
   {
+    ROS_INFO("SCOUT: Close to goal, getting new waypoint.");
     flag_arrived_at_waypoint = true;
     flag_waypoint_unreachable = false;
-    if(waypoint_type_ ==0 ){
-
-    	flag_localization_failure = false;
-    }
-    else{
-    ROS_INFO(" Reached a Waypoint Designated for Localization Update Type : %f ",waypoint_type_ );
-    flag_localization_failure = true;
-
-    }
-  }
-
-  move_base_state_ = ac.getState();
-  int mb_state =(int) move_base_state_.state_;
-  ROS_WARN_STREAM("Para a nossa alegria: "<< mb_state);
-  std::cout << "/* message */" << '\n';
-  if(mb_state==5 || mb_state==7){
-    flag_waypoint_unreachable= true;
-    driving_tools::Stop srv_stop;
-    srv_stop.request.enableStop  = true;
-    if (clt_stop_.call(srv_stop))
+    if(waypoint_type_ ==0 )
     {
-      ros::Duration(0.5).sleep();
+      flag_localization_failure = false;
     }
     else
     {
-      ROS_ERROR("Failed to call service Stop");
+      ROS_INFO(" Reached a Waypoint Designated for Localization Update Type : %f ",waypoint_type_ );
+      flag_localization_failure = true;
+      waypoint_type_=0; // just to account for triggered homing update
     }
+  }
 
-    clearCostmaps_();
+  ros::Duration timeOutWPCheck(3.0);
+  if (ros::Time::now() - wp_checker_timer > timeOutWPCheck) {
+    bool is_colliding = false;
+    waypoint_checker::CheckCollision srv_wp_check;
+    if (clt_waypoint_checker_.call(srv_wp_check)) {
+      ROS_INFO("SCOUT: Called service Waypoint Checker");
+      is_colliding = srv_wp_check.response.collision;
+      if (is_colliding) {
+        ROS_INFO("SCOUT: Waypoint Unreachable. Sending to Planning");
+        flag_waypoint_unreachable = true;
+      }
+    }
+    wp_checker_timer = ros::Time::now();
+  }
 
 
+
+  move_base_state_ = ac.getState();
+  int mb_state =(int) move_base_state_.state_;
+  ROS_WARN_STREAM("MoveBase status: "<< mb_state);
+
+  if(mb_state==5 || mb_state==7)
+  {
+    ROS_ERROR("SCOUT: MoveBase has failed to make itself useful.");
+    flag_waypoint_unreachable= true;
+
+    Stop (1.0);
+
+    ClearCostmaps();
+    BrakeRamp(100, 2, 0);
+    Brake(0.0);
+
+  }
+
+  ros::Duration timeoutMap(90.0);
+
+  if (ros::Time::now() - map_timer > timeoutMap)
+  {
+    std_srvs::Empty emptymsg;
+    ros::service::call("move_base/clear_costmaps",emptymsg);
+    map_timer =ros::Time::now();
+    BrakeRamp(100, 2, 0); // Give more time
+    Brake(0.0);
+
+    ROS_ERROR("Rover is stopped to clear the Map");
+    ROS_WARN_STREAM("Move Base State: "<< mb_state);
+    ROS_WARN("Map Cleared");
+  }
+
+  ros::Duration timeoutWaypoint(120);
+  if (ros::Time::now() - waypoint_timer_ > timeoutWaypoint )
+  {
+    ROS_ERROR("Waypoint Unreachable");
+    flag_waypoint_unreachable= true;
+    Stop (1.0);
+    ClearCostmaps();
+    BrakeRamp(100, 2, 0);
+    Brake(0.0);
+
+  }
+  else
+  {
+    ROS_ERROR_STREAM_THROTTLE(1,"Remaining Time for Waypoint" << timeoutWaypoint - (ros::Time::now() - waypoint_timer_));
   }
 
   std_msgs::Int64 state_msg;
@@ -578,540 +558,11 @@ void SmRd1::stateTraverse()
   sm_state_pub.publish(state_msg);
 
 }
-void SmRd1::clearCostmaps_(){
-  // Clear the costmap
-  std_srvs::Empty emptymsg;
-  ros::service::waitForService("/move_base/clear_costmaps",ros::Duration(3.0));
-  if (ros::service::call("/move_base/clear_costmaps",emptymsg))
-  {
-     ROS_INFO("costmap layers are cleared");
-  }
-  else
-  {
-     ROS_ERROR("failed calling clear_costmaps service");
-  }
-}
+
 void SmRd1::stateVolatileHandler()
 {
 
   ROS_WARN("Volatile Handling State!");
-
-  // waypoint_nav::Interrupt srv_wp_nav;
-  // srv_wp_nav.request.interrupt = true;
-  // if (clt_wp_nav_interrupt_.call(srv_wp_nav))
-  // {
-  //   ROS_INFO_STREAM("Called service Interrupt.");
-  // }
-  // else
-  // {
-  //   ROS_ERROR("Failed to call service Interrupt.");
-
-  // }
-  //ros::Duration(2.0).sleep();
-  srcp2_msgs::BrakeRoverSrv srv_brake;
-  if(volatile_detected_distance< VOLATILE_THRESH){
-    ac.waitForServer();
-    ac.cancelGoal();
-    ac.waitForResult(ros::Duration(0.25));
-
-  driving_tools::Stop srv_stop;
-  srv_stop.request.enableStop  = true;
-  if (clt_stop_.call(srv_stop))
-  {
-     ROS_INFO_STREAM("SM: Stopping Enabled? "<< srv_stop.response);
-
-  }
-  else
-  {
-      ROS_ERROR("Failed to call service Stop");
-  }
-
-  srcp2_msgs::BrakeRoverSrv srv_brake;
-
-  srv_brake.request.brake_force  = 100.0;
-  if (clt_srcp2_brake_rover_.call(srv_brake))
-  {
-     ROS_INFO_STREAM("SM: Brake Enabled? "<< srv_brake.response.finished);
-
-  }
-  else
-  {
-      ROS_ERROR("Failed to call service Brake");
-  }
-
-
-
-    //  ros::Duration(2.0).sleep();
-
-
-  volatile_handler::VolatileReport srv_vol_rep;
-  srv_vol_rep.request.start = false;
-  srv_vol_rep.request.x_offset = 0.0;
-  srv_vol_rep.request.y_offset = 0.0;
-   ros::Time serviceWatchDog;
-  //if (fabs(pitch_) > M_PI/6.0 || fabs(roll_) > M_PI/6.0)
-  //{
-
-    srv_vol_rep.request.start = true;
-    srv_vol_rep.request.x_offset = 0.0;
-    srv_vol_rep.request.y_offset = 0.0;
-    if (clt_vol_report_.call(srv_vol_rep))
-
-    {
-            ROS_INFO_STREAM("SM: Volatile Accepted? "<< srv_vol_rep.response);
-            flag_volatile_recorded=true;
-            flag_arrived_at_waypoint = false;
-             prev_volatile_detected_distance = 30;
-             flag_waypoint_unreachable = false;
-             volatile_detected_distance = -1.0;
-             std_msgs::Int64 state_msg;
-             state_msg.data = _volatile_handler;
-             sm_state_pub.publish(state_msg);
-             //detection_timer = ros::Time::now();
-           //  min_volatile_detected_distance = 30;
-            ros::Duration(3.0).sleep();
-            ros::spinOnce();
-            clearCostmaps_();
-             ROS_WARN("VolatileHandler Exit %f\n",   volatile_detected_distance);
-             srcp2_msgs::BrakeRoverSrv srv_brake;
-
-             srv_brake.request.brake_force  = 0.0;
-             if (clt_srcp2_brake_rover_.call(srv_brake))
-             {
-                ROS_INFO_STREAM("SM: Brake Enabled? "<< srv_brake.response.finished);
-
-             }
-             else
-             {
-                 ROS_ERROR("Failed to call service Brake");
-             }
-             return;
-
-    }
-    else
-    {
-            serviceWatchDog =  ros::Time::now();
-            ROS_ERROR("Service Did not Collect Points");
-    }
-
-
-
-    if( serviceWatchDog.isValid()){
-          while( (ros::Time::now().toSec() - serviceWatchDog.toSec() ) < TIMER_THRESH*2.0) {
-            ROS_WARN_ONCE("Waiting for volatile serviate to be available %f",TIMER_THRESH*2.0-(ros::Time::now().toSec() - serviceWatchDog.toSec() ));
-            ros::spinOnce();
-      }
-    }
-      srv_vol_rep.request.start = true;
-      srv_vol_rep.request.x_offset = 0.0;
-      srv_vol_rep.request.y_offset = -1.0;
-      if (clt_vol_report_.call(srv_vol_rep))
-      {
-              ROS_INFO_STREAM("SM: Volatile Accepted? "<< srv_vol_rep.response);
-              flag_volatile_recorded=true;
-              flag_arrived_at_waypoint = false;
-               prev_volatile_detected_distance = 30;
-               flag_waypoint_unreachable = false;
-               volatile_detected_distance = -1.0;
-               std_msgs::Int64 state_msg;
-               state_msg.data = _volatile_handler;
-               sm_state_pub.publish(state_msg);
-               //detection_timer = ros::Time::now();
-             //  min_volatile_detected_distance = 30;
-               ros::spinOnce();
-               ros::Duration(3.0).sleep();
-               clearCostmaps_();
-               ROS_WARN("VolatileHandler Exit %f\n",   volatile_detected_distance);
-
-               srv_brake.request.brake_force  = 0.0;
-
-               if (clt_srcp2_brake_rover_.call(srv_brake))
-               {
-                  ROS_INFO_STREAM("SM: Brake Enabled? "<< srv_brake.response.finished);
-
-               }
-               else
-               {
-                   ROS_ERROR("Failed to call service Brake");
-               }
-               return;
-
-
-      }
-      else
-      {
-              serviceWatchDog =  ros::Time::now();
-              ROS_ERROR("Service Did not Collect Points");
-      }
-      if( serviceWatchDog.isValid()){
-            while( (ros::Time::now().toSec() - serviceWatchDog.toSec() ) < TIMER_THRESH*2.0) {
-              ROS_WARN_ONCE("Waiting for volatile serviate to be available %f",TIMER_THRESH*2.0-(ros::Time::now().toSec() - serviceWatchDog.toSec() ));
-              ros::spinOnce();
-        }
-      }
-      srv_vol_rep.request.start = true;
-      srv_vol_rep.request.x_offset = 0.0;
-      srv_vol_rep.request.y_offset = 1.0;
-      if (clt_vol_report_.call(srv_vol_rep))
-
-      {
-              ROS_INFO_STREAM("SM: Volatile Accepted? "<< srv_vol_rep.response);
-              flag_volatile_recorded=true;
-              flag_arrived_at_waypoint = false;
-  	           prev_volatile_detected_distance = 30;
-               flag_waypoint_unreachable = false;
-               volatile_detected_distance = -1.0;
-               std_msgs::Int64 state_msg;
-               state_msg.data = _volatile_handler;
-               sm_state_pub.publish(state_msg);
-               ros::Duration(3.0).sleep();
-               //detection_timer = ros::Time::now();
-             //  min_volatile_detected_distance = 30;
-               clearCostmaps_();
-               ROS_WARN("VolatileHandler Exit %f\n",   volatile_detected_distance);
-               ros::spinOnce();
-
-               srv_brake.request.brake_force  = 0.0;
-
-               if (clt_srcp2_brake_rover_.call(srv_brake))
-               {
-                  ROS_INFO_STREAM("SM: Brake Enabled? "<< srv_brake.response.finished);
-
-               }
-               else
-               {
-                   ROS_ERROR("Failed to call service Brake");
-               }
-               return;
-
-      }
-      else
-      {
-              serviceWatchDog =  ros::Time::now();
-              ROS_ERROR("Service Did not Collect Points");
-              flag_volatile_recorded=true; //JN
-              flag_arrived_at_waypoint = false;
-               prev_volatile_detected_distance = 30;
-               flag_waypoint_unreachable = false;
-               volatile_detected_distance = -1.0;
-               std_msgs::Int64 state_msg;
-               state_msg.data = _volatile_handler;
-               sm_state_pub.publish(state_msg);
-               clearCostmaps_();
-      }
-
-}
-
-//
-//   int count = 0;
-//
-//   int max_count = 5;
-//   ros::Rate rateVol(20);
-//   double diff;
-//   const double MAX_TIME = 10;
-//
-//
-//   while(count < max_count && !flag_localization_failure && !flag_volatile_recorded)
-//   {
-//           ROS_INFO_STREAM("While: " << count <<  " " << volatile_detected_distance);
-//           bool rot_in_place = true;
-//           int step = 0;
-//           ros::Time timeout = ros::Time::now();
-//
-// 	        double direction =1.0;
-//           diff = ros::Time::now().toSec() -timeout.toSec();
-//           double angle_change = 0;
-//           while(step < 2 && !flag_localization_failure && !flag_volatile_recorded && diff < MAX_TIME && angle_change < 4*M_PI)
-//           {
-//                   ROS_INFO_STREAM("step: " << step << " " << volatile_detected_distance);
-//                   bool isCurrentDistFalse = volatile_detected_distance > 0;
-//                   bool isPrevDistFalse = prev_volatile_detected_distance > 0;
-//                   //bool distXOR = ( (isCurrentDistFalse) && (!isPrevDistFalse) );// ||
-//                   bool distXOR = ( (!isCurrentDistFalse));// && (isPrevDistFalse) );
-//                   bool minDist = fabs(volatile_detected_distance - prev_volatile_detected_distance) > 0.01;
-//                   //volatile_detected_distance > min_volatile_detected_distance &&
-//                   if ( volatile_detected_distance > prev_volatile_detected_distance && minDist || distXOR )
-//                   {
-//                           if (direction > 0)
-//                           {
-//                                   direction = -1.0;
-//                                   timeout = ros::Time::now();
-//                                   angle_change = 0;
-//                           } else
-//                           {
-//                                   direction = 1.0;
-//                                   timeout = ros::Time::now();
-//                                   angle_change = 0;
-//                           }
-//                           ++step;
-//
-//                   }
-//
-//                   driving_tools::RotateInPlace srv_turn;
-//
-//                   srv_turn.request.throttle  = direction*0.1;
-//
-//                   if (clt_rip_.call(srv_turn))
-//                   {
-//                           ROS_INFO_STREAM("SM: Rotating Enabled? "<< srv_turn.response);
-//                   }
-//                   else
-//                   {
-//                           ROS_ERROR("Failed to call service Rotate");
-//                   }
-//
-//                   ROS_INFO_STREAM("SM: Direction "<< direction);
-//
-//                   if (volatile_detected_distance < VOLATILE_MIN_THRESH && volatile_detected_distance > 0)
-//                   {
-//                     srv_stop.request.enableStop  = true;
-//
-// 		                  if (clt_stop_.call(srv_stop))
-//                     {
-//                        ROS_INFO_STREAM("SM: Stopping Enabled? "<< srv_stop.response);
-//                     }
-//                     else
-//                     {
-//                         ROS_ERROR("Failed to call service Stop");
-//                     }
-//                           ROS_INFO_STREAM("SM: In Vol Range");
-// // 			                    if( serviceWatchDog.isValid()){
-// //                         	while( (ros::Time::now().toSec() - serviceWatchDog.toSec() ) < TIMER_THRESH ){
-// //                               		ROS_WARN_ONCE( " Wating to Call Score Service When Valid %f " , (TIMER_THRESH- (ros::Time::now().toSec() - serviceWatchDog.toSec()) ));
-// // //ros::spinOnce();
-// //                        		 }
-// //}
-//
-//                           srv_vol_rep.request.start = true;
-//                           if (clt_vol_report_.call(srv_vol_rep))
-//                           {
-//                                   ROS_INFO_STREAM("SM: Volatile Accepted? "<< srv_vol_rep.response);
-//                                   flag_volatile_recorded=true; //JNG CHANGED THIS TO UNCOMMENT 8/12/20
-//                                   flag_arrived_at_waypoint = false;
-//
-//                           }
-//                           else
-//                           {
-//
-// 				                          serviceWatchDog =  ros::Time::now();
-//
-//                                   ROS_ERROR("Service Did not Collect Points");
-//                                   // flag_arrived_at_waypoint = true;
-//                           }
-//                             ros::spinOnce();
-//                   }
-//                   if ( volatile_detected_distance > prev_volatile_detected_distance && minDist || distXOR )
-//                   {
-//                     ros::Duration(2.0).sleep();
-//                   }
-//
-//                  rateVol.sleep();
-//                   ros::spinOnce();
-//                   diff = ros::Time::now().toSec() -timeout.toSec();
-//                   angle_change += fabs(yaw_ - yaw_prev_);
-//
-//           }
-//
-//           direction = 1.0;
-//           step = 0;
-//           ros::Duration(.1).sleep();
-//           timeout = ros::Time::now();
-//           while(step < 2 && !flag_localization_failure && !flag_volatile_recorded && diff < MAX_TIME && angle_change < 4*M_PI)
-//           {
-//                   ROS_INFO_STREAM("step: " << step);
-//                   bool isCurrentDistFalse = volatile_detected_distance > 0;
-//                   bool isPrevDistFalse = prev_volatile_detected_distance > 0;
-//                   //bool distXOR = ( (isCurrentDistFalse) && (!isPrevDistFalse) );// ||
-//                   bool distXOR = ( (!isCurrentDistFalse));// && (isPrevDistFalse) );
-//                   bool minDist = fabs(volatile_detected_distance - prev_volatile_detected_distance) > 0.01;
-//                   //volatile_detected_distance > min_volatile_detected_distance &&
-//                   if ( volatile_detected_distance > prev_volatile_detected_distance && minDist || distXOR )
-//                   {
-//                           if (direction > 0)
-//                           {
-//                                   direction = -1.0;
-//                                   timeout = ros::Time::now();
-//                           } else
-//                           {
-//                                   direction = 1.0;
-//                                   timeout = ros::Time::now();
-//                           }
-//                           ++step;
-//
-//                   }
-//
-//                   ROS_INFO_STREAM("SM: Drive");
-//                   if( volatile_detected_distance > prev_volatile_detected_distance && minDist || distXOR )
-//                   {
-//                           driving_tools::MoveForward srv_drive;
-//                           srv_drive.request.throttle  = direction*0.1;
-//                           if (clt_drive_.call(srv_drive))
-//                           {
-//                                   ROS_INFO_STREAM("SM: Drive Enabled? "<< srv_drive.response);
-//                           }
-//                           else
-//                           {
-//                                   ROS_ERROR("Failed to call service Stop");
-//                           }
-//
-//                           rateVol.sleep();
-//                           ros::spinOnce();
-//
-//                   }
-//
-//                   ROS_INFO_STREAM("SM: Direction "<< direction);
-//
-//                   if (volatile_detected_distance < VOLATILE_MIN_THRESH && volatile_detected_distance > 0)
-//                   {
-//                     srv_stop.request.enableStop  = true;
-//                     if (clt_stop_.call(srv_stop))
-//                     {
-//                        ROS_INFO_STREAM("SM: Stopping Enabled? "<< srv_stop.response);
-//                     }
-//                     else
-//                     {
-//                         ROS_ERROR("Failed to call service Stop");
-//                     }
-//                           ROS_INFO_STREAM("SM: In Vol Range");
-//                           srv_vol_rep.request.start = true;
-//                           if (clt_vol_report_.call(srv_vol_rep))
-//                           {
-//                                   ROS_INFO_STREAM("SM: Volatile Accepted? "<< srv_vol_rep.response);
-//                                   flag_volatile_recorded=true; //JNG CHANGED THIS TO UNCOMMENT 8/12/20
-//                                   flag_arrived_at_waypoint = false;
-//
-//                           }
-//                           else
-//                           {
-//                                   ROS_ERROR("Service Did not Collect Points");
-//                                   // flag_arrived_at_waypoint = true;
-//                           }
-//
-//                   }
-//                   if ( volatile_detected_distance > prev_volatile_detected_distance && minDist || distXOR )
-//                   {
-//                     ros::Duration(2.0).sleep();
-//                   }
-//
-//                   rateVol.sleep();
-//                   ros::spinOnce();
-//                   diff = ros::Time::now().toSec() -timeout.toSec();
-//
-//
-//           }
-//           if (volatile_detected_distance < VOLATILE_MIN_THRESH && volatile_detected_distance > 0)
-//           {
-//                   ROS_INFO_STREAM("SM: In Vol Range");
-//                   srv_vol_rep.request.start = true;
-//                   if (clt_vol_report_.call(srv_vol_rep))
-//                   {
-//                           ROS_INFO_STREAM("SM: Volatile Accepted? "<< srv_vol_rep.response);
-//                           flag_volatile_recorded=true; //JNG CHANGED THIS TO UNCOMMENT 8/12/20
-//                           flag_arrived_at_waypoint = false;
-//
-//                   }
-//                   else
-//                   {
-//                           ROS_ERROR("Service Did not Collect Points");
-//                           // flag_arrived_at_waypoint = true;
-//                   }
-//
-//           } else
-//           {
-//
-//                   ROS_INFO_STREAM("SM: Drive");
-//                   while(volatile_detected_distance < prev_volatile_detected_distance && volatile_detected_distance > 0 && prev_volatile_detected_distance > 0 && !flag_localization_failure && !flag_volatile_recorded)
-//                   {
-//                           driving_tools::MoveForward srv_drive;
-//                           srv_drive.request.throttle  = 1.0;
-//                           if (clt_drive_.call(srv_drive))
-//                           {
-//                                   ROS_INFO_STREAM("SM: Drive Enabled? "<< srv_drive.response);
-//                           }
-//                           else
-//                           {
-//                                   ROS_ERROR("Failed to call service Stop");
-//                           }
-//
-//                           rateVol.sleep();
-//                           ros::spinOnce();
-//                   }
-//           }
-//
-//
-//           ++count;
-//         //  diff = timeout.toSec() - ros::Time::now().toSec();
-//   }
-//
-//   // fallback on too many visits. just assume it can't be reached
-//   if (count > max_count || diff > MAX_TIME)
-//   {
-//           if (!srv_vol_rep.request.start)
-//           {
-//                   srv_vol_rep.request.start = true;
-//                   if (clt_vol_report_.call(srv_vol_rep))
-//                   {
-//                           ROS_INFO_STREAM("SM: Volatile Accepted? "<< srv_vol_rep.response);
-//                           flag_volatile_recorded=true; //JNG CHANGED THIS TO UNCOMMENT 8/12/20
-//                           flag_arrived_at_waypoint = false;
-//                           volatile_detected_distance = -1.0;
-//
-//                   }
-//                   else
-//                   {
-//                           ROS_ERROR("Service Did not Collect Points");
-//                           flag_volatile_recorded=false;
-//                           flag_arrived_at_waypoint = false;
-//                           volatile_detected_distance = -1.0;
-//                           flag_localization_failure =  true;
-//
-//                   }
-//           }else
-//           {
-//                   flag_volatile_recorded=true; //JNG CHANGED THIS TO UNCOMMENT 8/12/20
-//                   flag_arrived_at_waypoint = false;
-//                   volatile_detected_distance = -1.0;
-//
-//           }
-//   }
-//   }
-
-
-  // srv_wp_nav.request.interrupt = false;
-  // if (clt_wp_nav_interrupt_.call(srv_wp_nav))
-  // {
-  //       ROS_INFO_STREAM("I called service interrupt ");
-  // }
-  // else
-  // {
-  //       ROS_ERROR("Failed to call service Interrupt Nav");
-  // }
-
-  srv_brake.request.brake_force  = 0.0;
-  if (clt_srcp2_brake_rover_.call(srv_brake))
-  {
-     ROS_INFO_STREAM("SM: Brake Enabled? "<< srv_brake.response.finished);
-
-  }
-  else
-  {
-      ROS_ERROR("Failed to call service Brake");
-  }
-
-  ROS_WARN("VolatileHandler\n");
-  //flag_arrived_at_waypoint = false;
-  flag_waypoint_unreachable = false;
-  volatile_detected_distance = -1.0;
-  //flag_localizing_volatile = true;
-  // flag_arrived_at_waypoint = true; // This is temporary for hackathon, since volatile reporting doesn't have all info and doesn't command a waypoint yet.
-  std_msgs::Int64 state_msg;
-  state_msg.data = _volatile_handler;
-  sm_state_pub.publish(state_msg);
-  //detection_timer = ros::Time::now();
-//  min_volatile_detected_distance = 30;
-
-  ROS_WARN("VolatileHandler Exit %f\n",   volatile_detected_distance);
-  //++timer_counter;
 }
 
 void SmRd1::stateLost()
@@ -1123,188 +574,124 @@ void SmRd1::stateLost()
   flag_arrived_at_waypoint = false;
   flag_waypoint_unreachable = false;
 
-
+  ROS_INFO("SCOUT: Canceling MoveBase goal.");
   ac.waitForServer();
   ac.cancelGoal();
   ac.waitForResult(ros::Duration(0.25));
 
-  // Break
-  driving_tools::Stop srv_stop;
-  srv_stop.request.enableStop  = true;
-  if (clt_stop_.call(srv_stop))
-  {
-    ROS_INFO_STREAM("SM: Stopping Enabled? "<< srv_stop.response);
-  }
-  else
-  {
-    ROS_ERROR("Failed to call service Stop");
-  }
 
+  Stop (2.0);
 
-  // Turn on the Lights
-  srcp2_msgs::ToggleLightSrv srv_lights;
-  srv_lights.request.data  = "0.8";
-  if (clt_lights_.call(srv_lights))
-  {
-    // ROS_INFO_STREAM("Success? "<< srv_stop.response.success);
-  }
-  else
-  {
-    ROS_ERROR("Failed to call service ToggleLight");
-  }
+  // if(pow(pow(base_location_.x - current_pose_.position.x,2)+pow(base_location_.y - current_pose_.position.y,2),.5)>10.0){
+  //
+  //
+  // ROS_INFO_STREAM("Defining goal from base location");
+  //
+  // goal_yaw_ = atan2(base_location_.y - current_pose_.position.y, base_location_.x - current_pose_.position.x);
+  //
+  // RotateToHeading(goal_yaw_);
+  //
+  // move_base_msgs::MoveBaseGoal move_base_goal;
+  // ac.waitForServer();
+  // setPoseGoal(move_base_goal, base_location_.x, base_location_.y, goal_yaw_);
+  // ROS_INFO_STREAM("SCOUT: Sending goal to MoveBase: " << move_base_goal);
+  // ac.sendGoal(move_base_goal, boost::bind(&SmRd1::doneCallback, this,_1,_2), boost::bind(&SmRd1::activeCallback, this), boost::bind(&SmRd1::feedbackCallback, this,_1));
+  // ac.waitForResult(ros::Duration(0.25));
+  // // set as a waypoint type 1 so it will come back here.
+  // waypoint_type_=1;
+  // return;
+  // }
+  Lights (20);
+
 
   // Approach Base Station
   src2_object_detection::ApproachBaseStation srv_approach_base;
   srv_approach_base.request.approach_base_station.data= true;
-  if (clt_approach_base_.call(srv_approach_base))
-  {
-    // ROS_INFO_STREAM("Success? "<< srv_stop.response.success);
-
-    if(!srv_approach_base.response.success.data)
-    {
-      ROS_INFO_STREAM("Defining goal from base location");
-
-      goal_yaw_ = atan2(base_location_.y - current_pose_.position.y, base_location_.x - current_pose_.position.x);
-
-      rotateToHeading(goal_yaw_);
-
-      move_base_msgs::MoveBaseGoal move_base_goal;
-      ac.waitForServer();
-      setPoseGoal(move_base_goal, base_location_.x, base_location_.y, goal_yaw_);
-      ROS_INFO_STREAM("goal pose after SetposeGOAL: " << move_base_goal);
-      ac.sendGoal(move_base_goal, boost::bind(&SmRd1::doneCallback, this,_1,_2), boost::bind(&SmRd1::activeCallback, this), boost::bind(&SmRd1::feedbackCallback, this,_1));
-      ac.waitForResult(ros::Duration(0.25));
+  bool approachSuccess = false;
+  int homingRecoveryCount=0;
+  while(!approachSuccess && homingRecoveryCount<3){
+      if (clt_approach_base_.call(srv_approach_base))
+      {
+        ROS_INFO("SCOUT: Called service ApproachBaseStation");
+        ROS_INFO_STREAM("Success finding the Base? "<< srv_approach_base.response.success.data);
+        if(!srv_approach_base.response.success.data){
+        homingRecovery();
+        }
+        else
+        {
+          approachSuccess=true;
+        }
     }
 
-  }
-  else
-  {
-    ROS_ERROR("Failed to call service ApproachBaseStation");
-  }
-  srcp2_msgs::BrakeRoverSrv srv_brake;
-  srv_brake.request.brake_force  = 500.0;
-  if (clt_srcp2_brake_rover_.call(srv_brake))
-  {
-     ROS_INFO_STREAM("SM: Brake Enabled? "<< srv_brake.response.finished);
-
-  }
-  else
-  {
-      ROS_ERROR("Failed to call service Brake");
+    else
+    {
+      ROS_ERROR("SCOUT: Failed  to call service ApproachBaseStation");
+    }
+    homingRecoveryCount=homingRecoveryCount+1;
   }
 
+
+  // Brake (100.0);
+  BrakeRamp(100, 3, 0);
+  if(approachSuccess){
   // Homing - Measurement Update
   sensor_fusion::HomingUpdate srv_homing;
-  srv_homing.request.initializeLandmark = false;
+  // ros::spinOnce();
+
+  srv_homing.request.angle = pitch_ + .4; // pitch up is negative number
+  ROS_INFO("Requesting Angle for LIDAR %f",srv_homing.request.angle);
+  srv_homing.request.initializeLandmark = need_to_initialize_landmark;
   if (clt_homing_.call(srv_homing))
   {
-    // ROS_INFO_STREAM("Success? "<< srv_upd_pose.response.success);
+    ROS_INFO("SCOUT: Called service Homing [Update]");
+    if(srv_homing.request.initializeLandmark && srv_homing.response.success){
+        base_location_ = srv_homing.response.base_location;
+        ROS_WARN("SCOUT: Saving Base Location %f %f",base_location_.x, base_location_.y);
+    }
     flag_localization_failure=false;
     flag_arrived_at_waypoint = true;
     flag_completed_homing = true;
+    if(srv_homing.response.success){
+      need_to_initialize_landmark=false;
+    }
   }
   else
   {
-    ROS_ERROR("Failed to call service LocationOfBase");
+    ROS_ERROR("SCOUT: Failed to call service Homing [Update]");
   }
 
-  // Turn on the Lights
-  srv_lights.request.data  = "0.2";
-  if (clt_lights_.call(srv_lights))
-  {
-    // ROS_INFO_STREAM("Success? "<< srv_lights.response.success);
-  }
-  else
-  {
-    ROS_ERROR("Failed to call service ToggleLight");
-  }
-  srv_brake.request.brake_force  = 0.0;
-  if (clt_srcp2_brake_rover_.call(srv_brake))
-  {
-     ROS_INFO_STREAM("SM: Brake Enabled? "<< srv_brake.response.finished);
+}
+else{
+  ROS_ERROR(" Homing Attempt Failed, Just Moving On For Now");
 
-  }
-  else
-  {
-      ROS_ERROR("Failed to call service Brake");
-  }
-  // Move Backward first
-  driving_tools::MoveForward srv_drive;
-  srv_drive.request.throttle  = -0.3;
-  if (clt_drive_.call(srv_drive))
-  {
-          ros::Duration(2.0).sleep();
-          ROS_INFO_STREAM("SM: Backward Drive Enabled? "<< srv_drive.response);
-  }
-  else
-  {
-          ROS_ERROR("Failed to call service Drive");
-  }
+}
 
-  srv_stop.request.enableStop  = true;
-  if (clt_stop_.call(srv_stop))
-  {
-    ros::Duration(2).sleep();
-  }
-  else
-  {
-    ROS_ERROR("Failed to call service Stop");
-  }
+  Lights (20);
 
- // Then Rotate in Place
+  //Similar to initial homing, keep the localization good after homing.
+  Brake(0.0);
 
-  driving_tools::RotateInPlace srv_turn;
+  DriveCmdVel(-0.5,0.0,0.0,5);
 
-  srv_turn.request.throttle  = 0.2;
-   ros::Duration(1.0).sleep();
-  if (clt_rip_.call(srv_turn))
-  {
-          ROS_INFO_STREAM("SM: Rotating Enabled? "<< srv_turn.response);
-          ros::Duration(5.0).sleep();
-  }
-  else
-  {
-          ROS_ERROR("Failed to call service Stop");
-  }
+  BrakeRamp(100, 3, 0);
 
-  // driving_tools::Stop srv_stop;
-  srv_stop.request.enableStop  = true;
-  if (clt_stop_.call(srv_stop))
-  {
-    ros::Duration(2.0).sleep();// ROS_INFO_STREAM("Success? "<< srv_stop.response.success);
-  }
-  else
-  {
-    ROS_ERROR("Failed to call service Stop");
-  }
+  Brake(0.0);
 
-  // // driving_tools::MoveForward srv_drive;
-  // srv_drive.request.throttle  = 0.3;
-  // if (clt_drive_.call(srv_drive))
-  // {
-  //         ros::Duration(2.0).sleep();
-  //         ROS_INFO_STREAM("SM: Drive Enabled? "<< srv_drive.response);
-  // }
-  // else
-  // {
-  //         ROS_ERROR("Failed to call service Drive");
-  // }
-  //
-  // srv_stop.request.enableStop  = true;
-  // if (clt_stop_.call(srv_stop))
-  // {
-  //   ros::Duration(0.5).sleep();// ROS_INFO_STREAM("Success? "<< srv_stop.response.success);
-  // }
-  // else
-  // {
-  //   ROS_ERROR("Failed to call service Stop");
-  // }
+  RotateInPlace(0.2, 3);
 
-  // Clear the costmap
-  clearCostmaps_();
-    // make sure we dont latch to a vol we skipped while homing
-    volatile_detected_distance = -1.0;
+  BrakeRamp(100, 3, 0);
 
+  Brake(0.0);
+
+  // ToggleDetector(true);
+
+  ClearCostmaps();
+  BrakeRamp(100, 2, 0);
+  Brake(0.0);
+
+
+  // make sure we dont latch to a vol we skipped while homing
+  volatile_detected_distance = -1.0;
 
   //flag_completed_homing = true;
   std_msgs::Int64 state_msg;
@@ -1315,7 +702,6 @@ void SmRd1::stateLost()
 
 
 // Callbacks +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-// void SmRd1::localizedBaseCallback(const std_msgs::Bool::ConstPtr& msg)
 void SmRd1::localizedBaseCallback(const std_msgs::Int64::ConstPtr& msg)
 {
   flag_localized_base = msg->data;
@@ -1327,6 +713,17 @@ void SmRd1::localizedBaseCallback(const std_msgs::Int64::ConstPtr& msg)
     ROS_INFO("Waiting for Initial Localization  = %i",flag_localized_base);
   }
 }
+
+// void SmRd1::mobilityCallback(const std_msgs::Int64::ConstPtr& msg)
+// {
+// flag_mobility = msg->data;
+// if (flag_mobility == 0) {
+//   ROS_ERROR("ROVER IMMOBILIZATION!  = %i", flag_mobility);
+//   immobilityRecovery(1);
+// } else {
+//   ROS_WARN_ONCE("Rover is traversing = %i", flag_mobility);
+// }
+// }
 
 void SmRd1::waypointUnreachableCallback(const std_msgs::Bool::ConstPtr& msg)
 {
@@ -1340,22 +737,9 @@ void SmRd1::arrivedAtWaypointCallback(const std_msgs::Bool::ConstPtr& msg)
 
 void SmRd1::volatileDetectedCallback(const std_msgs::Float32::ConstPtr& msg)
 {
-  // if (!timer_counter || ros::Time::now().toSec() - detection_timer.toSec() > TIMER_THRESH)
-  // {
-  //         ROS_INFO("Setting Vol Distance Callback %f",msg->data);
-          prev_volatile_detected_distance = volatile_detected_distance;
-          volatile_detected_distance = msg->data;
 
-
-  //         if (volatile_detected_distance > 0 && volatile_detected_distance < min_volatile_detected_distance)
-  //         {
-  //                 min_volatile_detected_distance = volatile_detected_distance;
-  //         }
-  //
-  // }
-  // else{
-  //   volatile_detected_distance = -1;
-  // }
+  prev_volatile_detected_distance = volatile_detected_distance;
+  volatile_detected_distance = msg->data;
 
 }
 
@@ -1394,6 +778,41 @@ void SmRd1::localizationCallback(const nav_msgs::Odometry::ConstPtr& msg)
 
 }
 
+void SmRd1::laserCallback(const sensor_msgs::LaserScan::ConstPtr& msg)
+{
+  std::vector<float> ranges = msg->ranges;
+  std::sort (ranges.begin(), ranges.end());
+  float min_range = 0;
+  for (int i = 0; i < LASER_SET_SIZE; ++i)
+  {
+    min_range = min_range + ranges[i];
+  }
+  min_range = min_range/LASER_SET_SIZE;
+  ROS_INFO_STREAM_THROTTLE(2,"SCOUT: Minimum range average: " << min_range);
+
+  if (min_range < LASER_THRESH)
+  {
+    if (ros::Time::now() - last_time_laser_collision_ < ros::Duration(20))
+    {
+      ROS_WARN("SCOUT: Close to wall.");
+      counter_laser_collision_++;
+      ROS_INFO_STREAM("SCOUT: Counter laser:" << counter_laser_collision_);
+    }
+    else
+    {
+      counter_laser_collision_ = 0;
+      ROS_INFO_STREAM("SCOUT: Counter laser RESET!");
+    }
+    last_time_laser_collision_ = ros::Time::now();
+  }
+
+  if (counter_laser_collision_ > LASER_COUNTER_THRESH)
+  {
+    counter_laser_collision_ =0;
+    ROS_ERROR("SCOUT: LASER COUNTER > 20 ! Starting Recovery.");
+    immobilityRecovery(2);
+  }
+}
 
 void SmRd1::setPoseGoal(move_base_msgs::MoveBaseGoal &poseGoal, double x, double y, double yaw) // m, m, rad
 {
@@ -1419,31 +838,26 @@ void SmRd1::setPoseGoal(move_base_msgs::MoveBaseGoal &poseGoal, double x, double
 void SmRd1::doneCallback(const actionlib::SimpleClientGoalState& state, const move_base_msgs::MoveBaseResult::ConstPtr& result)
 {
     actionDone_ = true;
-
-    ROS_INFO("goal done");
+    // ROS_INFO("Goal done");
 }
 void SmRd1::activeCallback()
 {
-    ROS_INFO("goal went active");
+    // ROS_INFO("Goal went active");
 }
 void SmRd1::feedbackCallback(const move_base_msgs::MoveBaseFeedback::ConstPtr& feedback)
 {
-    ROS_INFO("got feedback");
+  //  ROS_INFO("Got feedback");
 }
 
-void SmRd1::rotateToHeading(double desired_yaw)
+void SmRd1::RotateToHeading(double desired_yaw)
 {
-  ros::Rate rateRotateToHeading(20);
-
-
+  ros::Rate raterotateToHeading(20);
 
   ROS_INFO("Starting yaw control.");
 
   double yaw_thres = 0.1;
 
   ros::spinOnce();
-
-  ROS_INFO_STREAM("BEFORE WHILE Yaw: "<<yaw_<<", desired yaw: "<< desired_yaw);
 
   double yaw_error = desired_yaw - yaw_;
   if (fabs(yaw_error) > M_PI)
@@ -1457,26 +871,18 @@ void SmRd1::rotateToHeading(double desired_yaw)
       yaw_error = yaw_error + 2*M_PI;
     }
   }
+  flag_heading_fail=false;
+  ros::Time start_time = ros::Time::now();
+  ros::Duration timeoutHeading(10.0); // Timeout of 20 seconds
 
   while(fabs(yaw_error) > yaw_thres)
   {
-    driving_tools::RotateInPlace srv_turn;
-    srv_turn.request.throttle  = copysign(0.1*(1 + fabs(yaw_error)/M_PI), -yaw_error);
+    RotateInPlace(copysign(0.1*(1 + fabs(yaw_error)/M_PI), -yaw_error),0.0);
 
-    if (clt_rip_.call(srv_turn))
-    {
-      ROS_INFO_STREAM("SM: Rotating Enabled? "<< srv_turn.response);
-    }
-    else
-    {
-      ROS_ERROR("Failed to call service Stop");
-    }
-
-    rateRotateToHeading.sleep();
+    raterotateToHeading.sleep();
     ros::spinOnce();
-    ROS_WARN("Trying to control yaw to desired angles.");
+
     yaw_error = desired_yaw - yaw_;
-    ROS_INFO_STREAM("Yaw error: "<<yaw_error);
     if (fabs(yaw_error) > M_PI)
     {
       if(yaw_error > 0)
@@ -1488,22 +894,324 @@ void SmRd1::rotateToHeading(double desired_yaw)
         yaw_error = yaw_error + 2*M_PI;
       }
     }
+    // ROS_INFO_STREAM("Trying to control yaw to desired angles. Yaw error: "<<yaw_error);
+
+    // ROS_ERROR_STREAM("TIME: "<<ros::Time::now() - start_time << ", TIMEOUT: " << timeoutHeading);
+
+    if (ros::Time::now() - start_time > timeoutHeading)
+    {
+      ROS_ERROR("Yaw Control Failed. Possibly stuck. Break control.");
+      flag_heading_fail = true;
+      break;
+    }
   }
 
+  if (flag_heading_fail)
+  {
+    ROS_WARN("Recovery action initiated in yaw control.");
+
+     Stop(2.0);
+
+     DriveCmdVel (-0.5, 0.0, 0.0, 4.0);
+
+     BrakeRamp(100, 3, 0);
+
+     Brake(0.0);
+     // Stop(2.0);
+
+  //  immobilityRecovery(); //TODO: Use this instead of Stop and Drive at line 714 and 716
+
+    flag_heading_fail=false;
+  }
+  else
+  {
+    Stop(0.0);
+  }
+}
+
+void SmRd1::homingRecovery()
+{
+
+  ac.waitForServer();
+  ac.cancelGoal();
+  ac.waitForResult(ros::Duration(0.25));
+
+  ROS_WARN("Starting Homing Recovery.");
+
+  Lights(20);
+
+  Stop(2.0);
+
+  BrakeRamp(100, 3, 0);
+
+  Brake(0.0);
+
+  // Drive(-0.3, 3.0);
+  DriveCmdVel(-0.3,-0.6, 0.0, 5.0);
+
+  Stop(0.0);
+
+  DriveCmdVel(0.0,0.0,-0.25,4.0);
+
+  Stop(0.0);
+
+  BrakeRamp(100, 3, 0);
+
+  Brake(0.0);
+
+  DriveCmdVel(0.6,0.0,0.0,4.5);
+
+  Stop(0.0);
+
+  BrakeRamp(100, 3, 0);
+
+  Brake(0.0);
+
+}
+
+void SmRd1::immobilityRecovery(int type)
+{
+
+  ac.waitForServer();
+  ac.cancelGoal();
+  ac.waitForResult(ros::Duration(0.25));
+
+  ROS_WARN("Starting Recovery.");
+
+  Stop(2.0);
+
+  Brake(100.0);
+
+  Brake(0.0);
+
+  DriveCmdVel(-0.5,0.0,0.0,3.0);
+
+  BrakeRamp(100, 3, 0);
+
+  Brake(0.0);
+
+  DriveCmdVel(-0.3,-0.6, 0.0, 4.0);
+
+  // Stop(3.0); //TODO: CMDvelZero try
+
+  BrakeRamp(100, 3, 0);
+
+  Brake(0.0);
+
+  flag_mobility=true;
+
+  flag_waypoint_unreachable=true;
+
+
+}
+
+void SmRd1::ClearCostmaps()
+{
+  // Clear the costmap
+  std_srvs::Empty emptymsg;
+  ros::service::waitForService("move_base/clear_costmaps",ros::Duration(3.0));
+  if (ros::service::call("move_base/clear_costmaps",emptymsg))
+  {
+     ROS_INFO("SCOUT: Called service to clear costmap layers.");
+  }
+  else
+  {
+     ROS_ERROR("SCOUT: Failed calling clear_costmaps service.");
+  }
+}
+
+void SmRd1::Lights(double intensity)
+{
+  // Turn on the Lights
+  srcp2_msgs::SpotLightSrv srv_lights;
+  srv_lights.request.range  = intensity;
+  if (clt_lights_.call(srv_lights))
+  {
+    ROS_INFO("SCOUT: Called service SpotLight");
+  }
+  else
+  {
+    ROS_ERROR("SCOUT: Failed  to call service SpotLight");
+  }
+}
+
+void SmRd1::RotateInPlace(double throttle, double time)
+{
+  driving_tools::RotateInPlace srv_turn;
+  srv_turn.request.throttle  = throttle;
+  if (clt_rip_.call(srv_turn))
+  {
+    ROS_INFO_THROTTLE(5,"SCOUT: Called service RotateInPlace");
+    ros::Duration(time).sleep();
+  }
+  else
+  {
+    ROS_INFO("SCOUT: Failed to call service RotateInPlace");
+  }
+}
+
+void SmRd1::Stop(double time)
+{
   driving_tools::Stop srv_stop;
   srv_stop.request.enableStop  = true;
   if (clt_stop_.call(srv_stop))
   {
-    ROS_INFO_STREAM("SM: Stopping Enabled? "<< srv_stop.response);
+    ROS_INFO("SCOUT: Called service Stop");
+    ros::Duration(time).sleep();
   }
   else
   {
-    ROS_ERROR("Failed to call service Stop");
+    ROS_ERROR("SCOUT: Failed  to call service Stop");
+  }
+}
+
+void SmRd1::Brake(double intensity)
+{
+  srcp2_msgs::BrakeRoverSrv srv_brake;
+  srv_brake.request.brake_force  = intensity;
+  if (clt_srcp2_brake_rover_.call(srv_brake))
+  {
+    if (intensity < 0.01)
+    {
+      flag_brake_engaged =false;
+    }
+    else
+    {
+      flag_brake_engaged =true;
+    }
+    //ROS_INFO_STREAM("SCOUT: Called service SRCP2 Brake. Engaged?: " << flag_brake_engaged);
+  }
+  else
+  {
+      ROS_ERROR("SCOUT: Failed  to call service Brake");
+  }
+}
+
+void SmRd1::BrakeRamp(double max_intensity, double time, int aggressivity)
+{
+  double freq = 10;
+  ros::Rate brake_rate(freq);
+  int num_steps = (int) freq * time;
+  if(aggressivity == 0)
+  {
+    // ROS_INFO("Brake Ramp.");
+    for (int counter = 0; counter < num_steps; ++counter)
+    {
+      double intensity = (static_cast<double>(counter + 1)/(freq * time))*max_intensity;
+      // ROS_INFO_STREAM("Brake intensity: " << intensity);
+      Brake(intensity);
+      brake_rate.sleep();
+    }
+  }
+  else if (aggressivity == 1)
+  {
+    // ROS_INFO("Brake Logistics Curve.");
+    for (int counter = 0; counter < num_steps; ++counter)
+    {
+      double multiplier = 2;
+      double x = (static_cast<double>(counter + 1)/(freq * time)) * time * multiplier;
+      double intensity =  max_intensity / (1 + exp(-x)) - max_intensity/2;
+      // ROS_INFO_STREAM("Brake intensity: " << intensity);
+      Brake(intensity);
+      brake_rate.sleep();
+    }
+  }
+  else
+  {
+    ROS_INFO("Brake FULL.");
+    Brake(max_intensity);
+    ros::Duration(time).sleep();
+  }
+  ROS_INFO_STREAM("SCOUT: Called service SRCP2 Brake. Engaged? " << flag_brake_engaged);
+}
+
+void SmRd1::Drive(double throttle, double time)
+{
+  driving_tools::MoveForward srv_drive;
+
+  if (pitch_ > 0.0 && throttle < 0.0) {
+   throttle = throttle - (pitch_ / 0.52) * 0.3;
+  }
+  srv_drive.request.throttle = throttle;
+
+
+  if (clt_drive_.call(srv_drive))
+  {
+    ros::Time start_time = ros::Time::now();
+    ROS_INFO("SCOUT: Called service Drive");
+    while(ros::Time::now() - start_time < ros::Duration(time))
+    {
+      std_msgs::Int64 mode;
+      mode.data = 2;
+      pub_driving_mode_.publish(mode);
+    }
+  }
+  else
+  {
+    ROS_ERROR("SCOUT: Failed to call service Drive");
   }
 }
 
 
+void SmRd1::DriveCmdVel(double vx, double vy, double wz, double time)
+{
+  if (pitch_ > 0.0 && vx < 0.0)
+  {
+   vx = vx + (pitch_ / 0.52) * vx;
+   if (vx < -0.7){
+     vx = -0.7;
+   }
+  }
+  geometry_msgs::Twist cmd_vel;
+  cmd_vel.linear.x = vx;
+  cmd_vel.linear.y = vy;
+  cmd_vel.angular.z = wz;
+  ros::Time start_time = ros::Time::now();
+  ros::Duration timeout(time); // Timeout of 20 seconds
+  ROS_ERROR("Drive Cmd Vel publisher.");
+  while (ros::Time::now() - start_time < timeout)
+  {
+    cmd_vel_pub.publish(cmd_vel);
+  }
+}
 
+// void SmRd1::ToggleDetector(bool flag)
+// {
+//   volatile_handler::ToggleDetector srv_vol_detect;
+//   srv_vol_detect.request.on  = flag;
+//   if (clt_vol_detect_.call(srv_vol_detect))
+//   {
+//     ROS_INFO_STREAM("SCOUT: Called service ToggleDetector. Turned on? " << flag);
+//   }
+//   else
+//   {
+//     ROS_ERROR("SCOUT: Failed  to call service ToggleDetector");
+//   }
+// }
 
+void SmRd1::RoverStatic(bool flag)
+{
+  // Start attitude constraints for static rover
+  sensor_fusion::RoverStatic srv_rover_static;
+  srv_rover_static.request.rover_static  = flag;
+  if (clt_rover_static_.call(srv_rover_static))
+  {
+    ROS_INFO_STREAM("SCOUT: Called service RoverStatic. Turned on? " << flag);
+  }
+  else
+  {
+    ROS_ERROR("SCOUT: Failed to call service RoverStatic");
+  }
+
+}
+
+bool SmRd1::setMobility_(state_machine::SetMobility::Request &req, state_machine::SetMobility::Response &res){
+  ROS_ERROR(" GOT MOBILITY IN SM %d", req.mobility);
+  flag_mobility = req.mobility;
+  immobilityRecovery(1);
+  //ros::Duration(2).sleep();
+  res.success = true;
+  return true;
+}
 
 //------------------------------------------------------------------------------------------------------------------------

@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.0.2)
-project(state_machine)
+project(task_planning)
 
 ## Compile as C++11, supported in ROS Kinetic and newer
 add_compile_options(-std=c++11)
@@ -7,30 +7,12 @@ add_compile_options(-std=c++11)
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
-find_package(catkin REQUIRED COMPONENTS
-  roscpp
-  rospy
+find_package(catkin REQUIRED roscpp rospy roslib
+  message_generation
   message_runtime
-  roslib
   std_msgs
   nav_msgs
-  geometry_msgs
-  sensor_msgs
-  driving_tools
-  # waypoint_nav
-  waypoint_gen
-  srcp2_msgs
-  nav_msgs
-  move_excavator
-  actionlib
-  sensor_fusion
-  src2_object_detection
-  std_srvs
-  waypoint_checker
-  message_generation
 )
-
-find_package(Eigen3 3.3 REQUIRED)
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
@@ -66,17 +48,18 @@ find_package(Eigen3 3.3 REQUIRED)
 ##   * add every package in MSG_DEP_SET to generate_messages(DEPENDENCIES ...)
 
 ## Generate messages in the 'msg' folder
-# add_message_files(
-#   FILES
-#   Message1.msg
-#   Message2.msg
-# )
-
-# Generate services in the 'srv' folder
- add_service_files(
+add_message_files(
    FILES
-   SetMobility.srv
- )
+   Robot_Status.msg
+#   Message2.msg
+)
+
+## Generate services in the 'srv' folder
+# add_service_files(
+#   FILES
+#   Service1.srv
+#   Service2.srv
+# )
 
 ## Generate actions in the 'action' folder
 # add_action_files(
@@ -85,10 +68,10 @@ find_package(Eigen3 3.3 REQUIRED)
 #   Action2.action
 # )
 
-# Generate added messages and services with any dependencies listed here
+## Generate added messages and services with any dependencies listed here
  generate_messages(
    DEPENDENCIES
-   std_msgs  # Or other packages containing msgs
+#   std_msgs  # Or other packages containing msgs
  )
 
 ################################################
@@ -121,9 +104,9 @@ find_package(Eigen3 3.3 REQUIRED)
 ## CATKIN_DEPENDS: catkin_packages dependent projects also need
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
- INCLUDE_DIRS include
-#  LIBRARIES state_machine
-  CATKIN_DEPENDS sensor_msgs waypoint_checker src2_object_detection std_msgs std_srvs geometry_msgs nav_msgs sensor_fusion driving_tools actionlib move_excavator waypoint_gen
+#  INCLUDE_DIRS include
+#  LIBRARIES task_planning
+#  CATKIN_DEPENDS other_catkin_pkg
 #  DEPENDS system_lib
 )
 
@@ -135,55 +118,48 @@ catkin_package(
 ## Your package locations should be listed before other locations
 include_directories(
  include
- ~/ros_workspace/install/include
  ${catkin_INCLUDE_DIRS}
 )
 
 ## Declare a C++ library
-add_library(sm_utils
-  utils/sm_utils.cpp
+# add_library(${PROJECT_NAME}
+#   src/${PROJECT_NAME}/task_planning.cpp
+# )
+add_library(CostFunctionLib src/CostFunction.cpp)
+target_link_libraries(CostFunctionLib
+	#/usr/local/lib
+  ${catkin_LIBRARIES}
 )
 
- add_library(sm_rd1
-   src/sm_rd1.cpp
- )
-# add_library(sm_rd2
-#    src/sm_rd2.cpp
-# )
-#  add_library(sm_rd3
-#    src/sm_rd3.cpp
- #)
+add_library(TaskPlannerLib src/TaskPlanner.cpp)
+target_link_libraries(TaskPlannerLib
+	#/usr/local/lib
+  ${catkin_LIBRARIES}
+)
+
+
 ## Add cmake target dependencies of the library
 ## as an example, code may need to be generated before libraries
 ## either from message generation or dynamic reconfigure
-add_dependencies(sm_utils ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+# add_dependencies(${PROJECT_NAME} ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
-add_dependencies(sm_rd1 ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-# add_dependencies(sm_rd2 ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-#add_dependencies(sm_rd3 ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-target_link_libraries(sm_utils
-  ${catkin_LIBRARIES}
- )
-
- target_link_libraries(sm_rd1
-   ${catkin_LIBRARIES}
-  )
-# target_link_libraries(sm_rd2
-#   ${catkin_LIBRARIES}
-# )
- #target_link_libraries(sm_rd3
-#   ${catkin_LIBRARIES}
- #)
 ## Declare a C++ executable
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
-# add_executable(${PROJECT_NAME}_node src/state_machine_node.cpp)
-add_executable(utils_test_node utils/utils_test_node.cpp)
+# add_executable(${PROJECT_NAME}_node src/task_planning_node.cpp)
+add_executable(scouting_task_node src/scouting_task_node.cpp)
+target_link_libraries(scouting_task_node
+    TaskPlannerLib
+    CostFunctionLib
+		${catkin_LIBRARIES}
+)
 
-add_executable(state_machine_rd1_node src/sm_rd1_node.cpp)
-add_dependencies(state_machine_rd1_node state_machine_generate_messages_cpp)
-# add_executable(state_machine_rd2_node src/sm_rd2_node.cpp)
-#add_executable(state_machine_rd3_node src/sm_rd3_node.cpp)
+add_executable(excavation_task_node src/excavation_task_node.cpp)
+target_link_libraries(excavation_task_node
+    TaskPlannerLib
+    CostFunctionLib
+		${catkin_LIBRARIES}
+)
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
 ## target back to the shorter version for ease of user use
@@ -192,31 +168,13 @@ add_dependencies(state_machine_rd1_node state_machine_generate_messages_cpp)
 
 ## Add cmake target dependencies of the executable
 ## same as for the library above
- add_dependencies(utils_test_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-
- add_dependencies(state_machine_rd1_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
- # add_dependencies(state_machine_rd2_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
- #add_dependencies(state_machine_rd3_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+# add_dependencies(${PROJECT_NAME}_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Specify libraries to link a library or executable target against
-target_link_libraries(utils_test_node
-  ${catkin_LIBRARIES}
-  sm_utils
-)
-
- target_link_libraries(state_machine_rd1_node
-   ${catkin_LIBRARIES}
-   sm_rd1
- )
-# target_link_libraries(state_machine_rd2_node
+# target_link_libraries(${PROJECT_NAME}_node
 #   ${catkin_LIBRARIES}
-#   sm_rd2
-#   sm_utils
 # )
- #target_link_libraries(state_machine_rd3_node
-  #  ${catkin_LIBRARIES}
-  #  sm_rd3
- #)
+
 #############
 ## Install ##
 #############
@@ -246,11 +204,11 @@ target_link_libraries(utils_test_node
 # )
 
 ## Mark cpp header files for installation
-install(DIRECTORY include/${PROJECT_NAME}/
-  DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
-  FILES_MATCHING PATTERN "*.h"
-  PATTERN ".svn" EXCLUDE
-)
+# install(DIRECTORY include/${PROJECT_NAME}/
+#   DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
+#   FILES_MATCHING PATTERN "*.h"
+#   PATTERN ".svn" EXCLUDE
+# )
 
 ## Mark other files for installation (e.g. launch and bag files, etc.)
 # install(FILES
@@ -264,7 +222,7 @@ install(DIRECTORY include/${PROJECT_NAME}/
 #############
 
 ## Add gtest based cpp test target and link libraries
-# catkin_add_gtest(${PROJECT_NAME}-test test/test_state_machine.cpp)
+# catkin_add_gtest(${PROJECT_NAME}-test test/test_task_planning.cpp)
 # if(TARGET ${PROJECT_NAME}-test)
 #   target_link_libraries(${PROJECT_NAME}-test ${PROJECT_NAME})
 # endif()
