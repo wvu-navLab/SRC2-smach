@@ -1,5 +1,6 @@
 <launch>
 
+
   <!-- pcl_obstacle_avoidance launch file -->
   <include file="$(find pcl_obstacle_detection)/launch/scout_pcl_obj_detection.launch"/>
   <include file="$(find pcl_obstacle_detection)/launch/scout_pcl_homing.launch"/>
@@ -16,14 +17,14 @@
   <include file="$(find sensor_fusion)/launch/scout_sensor_fusion.launch"/>
 
   <!-- scout_driving_tools launch file -->
-  <!-- <include file="$(find waypoint_nav)/launch/scout_waypoint_nav.launch"/> -->
+  <include file="$(find waypoint_nav)/launch/scout_waypoint_nav.launch"/>
 
   <!-- scout_waypoint_gen launch file -->
   <include file="$(find waypoint_gen)/launch/scout_waypoint_gen.launch"/>
 
   <!-- scout_volatile handler launch file -->
 
-  <!-- <include file="$(find src2_object_detection)/launch/object_detection_round1.launch"/> -->
+  <include file="$(find src2_object_detection)/launch/scout_object_detection.launch"/>
 
   <!-- scout_move_base launch files -->
   <include file="$(find src2_move_base)/launch/scout_map_server.launch"/>
@@ -42,6 +43,8 @@
   <!-- <include file="$(find mobility_checker)/launch/scout_mobility_checker.launch"/> -->
 
   <!-- state machine for Scout -->
-  <include file="$(find state_machine)/launch/scout_state_machine_rd1.launch"/>
+  <include file="$(find state_machine)/launch/scout_state_machine.launch"/>
+
+
 
 </launch>
