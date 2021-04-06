@@ -1,0 +1,6 @@
+<?xml version="1.0"?>
+<launch>
+<group ns = "small_excavator_1">
+  <node name="state_machine" pkg="state_machine" type="state_machine_rd1_node" output="screen" launch-prefix="bash -c 'sleep 20.0; $0 $@' "/>
+</group>
+</launch>
