@@ -1,0 +1,50 @@
+<launch>
+
+
+  <!-- pcl_obstacle_avoidance launch file -->
+  <include file="$(find pcl_obstacle_detection)/launch/excavator_pcl_obj_detection.launch"/>
+  <include file="$(find pcl_obstacle_detection)/launch/excavator_pcl_homing.launch"/>
+  <!-- scout_motion_control launch file -->
+  <include file="$(find driving_control)/launch/excavator_driving_control.launch"/>
+
+  <!-- dead_reckoning launch file -->
+  <include file="$(find rover_deadreckoning)/launch/excavator_dead_reckoning.launch"/>
+
+  <!-- vo_ launch file -->
+  <include file="$(find wvu_vo_ros)/launch/vo_pipelineExcavator.launch"/>
+
+  <!-- sensor_fusion launch file -->
+  <include file="$(find sensor_fusion)/launch/excavator_sensor_fusion.launch"/>
+
+  <!-- scout_driving_tools launch file -->
+  <include file="$(find waypoint_nav)/launch/excavator_waypoint_nav.launch"/>
+
+  <!-- scout_waypoint_gen launch file -->
+  <include file="$(find waypoint_gen)/launch/excavator_waypoint_gen.launch"/>
+
+  <!-- scout_volatile handler launch file -->
+
+  <include file="$(find src2_object_detection)/launch/excavator_object_detection.launch"/>
+
+  <!-- scout_move_base launch files -->
+  <include file="$(find src2_move_base)/launch/excavator_map_server.launch"/>
+  <include file="$(find src2_move_base)/launch/excavator_move_base.launch"/>
+
+  <!-- laser tools  -->
+  <include file="$(find laser_tools_src2)/launch/excavator_laser_tools.launch"/>
+
+  <!-- homing service -->
+  <include file="$(find range_to_base)/launch/excavator_homing_service.launch"/>
+  <include file="$(find sensor_fusion)/launch/excavator_homing.launch"/>
+
+  <!-- waypoint checker -->
+  <include file="$(find waypoint_checker)/launch/excavator_waypoint_checker.launch"/>
+
+  <!-- <include file="$(find mobility_checker)/launch/scout_mobility_checker.launch"/> -->
+
+  <!-- state machine for Scout -->
+  <include file="$(find state_machine)/launch/excavator_state_machine.launch"/>
+
+
+
+</launch>
