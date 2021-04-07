@@ -20,10 +20,11 @@
 
   <!-- scout_waypoint_gen launch file -->
   <include file="$(find waypoint_gen)/launch/scout_waypoint_gen.launch"/>
+<!-- list of points to load into state maching, fed into move base: have move_base running and call service to check -->
 
   <!-- scout_volatile handler launch file -->
 
-  <!-- <include file="$(find src2_object_detection)/launch/object_detection_round1.launch"/> -->
+  <include file="$(find src2_object_detection)/launch/object_detection_round1.launch"/>
 
   <!-- scout_move_base launch files -->
   <include file="$(find src2_move_base)/launch/scout_map_server.launch"/>
@@ -38,10 +39,11 @@
 
   <!-- waypoint checker -->
   <include file="$(find waypoint_checker)/launch/scout_waypoint_checker.launch"/>
+  <!-- checks disparity for point cloud to see if waypoint unreachable, may or may not work properly -->
 
   <!-- <include file="$(find mobility_checker)/launch/scout_mobility_checker.launch"/> -->
 
   <!-- state machine for Scout -->
-  <include file="$(find state_machine)/launch/scout_state_machine_rd1.launch"/>
+  <!-- <include file="$(find state_machine)/launch/scout_state_machine_rd1.launch"/> -->
 
 </launch>

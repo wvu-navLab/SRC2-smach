@@ -6,17 +6,17 @@ move_base_state_(actionlib::SimpleClientGoalState::PREEMPTED)
 {
   // Initialize ROS, Subs, and Pubs *******************************************
   // Publishers
-  sm_state_pub = nh.advertise<std_msgs::Int64>("/state_machine/state", 1);
+  sm_state_pub = nh.advertise<std_msgs::Int64>("state_machine/state", 1);
   cmd_vel_pub = nh.advertise<geometry_msgs::Twist>("driving/cmd_vel", 1);
   pub_driving_mode_ = nh.advertise<std_msgs::Int64>("driving/driving_mode", 1);
   // Subscribers
-  localized_base_sub = nh.subscribe("/state_machine/localized_base_scout", 1, &SmRd1::localizedBaseCallback, this);
+  localized_base_sub = nh.subscribe("state_machine/localized_base", 1, &SmRd1::localizedBaseCallback, this);
   // mobility_sub = nh.subscribe("/state_machine/mobility_scout", 1, &SmRd1::mobilityCallback, this);
-  waypoint_unreachable_sub = nh.subscribe("/state_machine/waypoint_unreachable", 1, &SmRd1::waypointUnreachableCallback, this);
-  arrived_at_waypoint_sub = nh.subscribe("/state_machine/arrived_at_waypoint", 1, &SmRd1::arrivedAtWaypointCallback, this);
-  volatile_detected_sub = nh.subscribe("/state_machine/volatile_detected", 1, &SmRd1::volatileDetectedCallback, this);
-  volatile_recorded_sub = nh.subscribe("/state_machine/volatile_recorded", 1, &SmRd1::volatileRecordedCallback, this);
-  localization_failure_sub = nh.subscribe("/state_machine/localization_failure", 1, &SmRd1::localizationFailureCallback, this);
+  waypoint_unreachable_sub = nh.subscribe("state_machine/waypoint_unreachable", 1, &SmRd1::waypointUnreachableCallback, this);
+  arrived_at_waypoint_sub = nh.subscribe("state_machine/arrived_at_waypoint", 1, &SmRd1::arrivedAtWaypointCallback, this);
+  volatile_detected_sub = nh.subscribe("state_machine/volatile_detected", 1, &SmRd1::volatileDetectedCallback, this);
+  volatile_recorded_sub = nh.subscribe("state_machine/volatile_recorded", 1, &SmRd1::volatileRecordedCallback, this);
+  localization_failure_sub = nh.subscribe("state_machine/localization_failure", 1, &SmRd1::localizationFailureCallback, this);
   localization_sub  = nh.subscribe("localization/odometry/sensor_fusion", 1, &SmRd1::localizationCallback, this);
   driving_mode_sub =nh.subscribe("driving/driving_mode",1, &SmRd1::drivingModeCallback, this);
   laserscan_sub =nh.subscribe("laser/scan",1, &SmRd1::laserCallback, this);
@@ -39,7 +39,7 @@ move_base_state_(actionlib::SimpleClientGoalState::PREEMPTED)
   clt_waypoint_checker_ = nh.serviceClient<waypoint_checker::CheckCollision>("waypoint_checker");
   clt_srcp2_brake_rover_= nh.serviceClient<srcp2_msgs::BrakeRoverSrv>("brake_rover");
 
-  setMobilityService_ = nh.advertiseService("/state_machine/mobility_service_scout",&SmRd1::setMobility_, this);
+  setMobilityService_ = nh.advertiseService("state_machine/mobility_service",&SmRd1::setMobility_, this);
 
   driving_mode_=0;
   waypoint_type_ =0;
@@ -825,7 +825,12 @@ void SmRd1::setPoseGoal(move_base_msgs::MoveBaseGoal &poseGoal, double x, double
     double cp = cos(pitch * 0.5);
     double sp = sin(pitch * 0.5);
 
-    poseGoal.target_pose.header.frame_id = "scout_1_tf/odom";
+
+
+
+    
+//********************************************************************************************************
+    poseGoal.target_pose.header.frame_id = "small_scout_1_odom";
     poseGoal.target_pose.pose.position.x = x;
     poseGoal.target_pose.pose.position.y = y;
     poseGoal.target_pose.pose.position.z = 0.0;
