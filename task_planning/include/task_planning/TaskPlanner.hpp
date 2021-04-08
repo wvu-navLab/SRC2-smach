@@ -17,9 +17,12 @@
 #include <ros/console.h>
 #include <ros/transport_hints.h>
 
+
 #include <task_planning/Types.hpp>
 #include <task_planning/CostFunction.hpp>
 #include <task_planning/Robot_Status.h>
+#include <volatile_map/VolatileMap.h>
+
 
 
 //TODO:
@@ -61,7 +64,7 @@ class TaskPlanner {
     CostFunction cost_function_;
 
     /** \brief  */
-    //std::vector<Volatile> volatiles_;
+    volatile_map::VolatileMap volatile_map_;
 
     /** \brief  */
     std::vector<mac::Robot> robots_;
@@ -79,16 +82,20 @@ class TaskPlanner {
     std::vector<ros::Publisher> pubs_plans_;
 
     /** \brief  */
+    ros::Time time_;
+
+
+    /** \brief  */
     void timeCallback(const rosgraph_msgs::Clock::ConstPtr &msg);
 
     /** \brief  */
-    //void volatileListCallback(const vol_data_type &msg);
+    void volatileMapCallback(const volatile_map::VolatileMap::ConstPtr &msg);
 
     /** \brief  */
-    void pose_callback(const ros::MessageEvent<std_msgs::Bool const>& event);
+    void poseCallback(const ros::MessageEvent<nav_msgs::Odometry const>& event);
       //nav_msgs::Odometry
     /** \brief  */
-    void monitor_callback(const ros::MessageEvent<std_msgs::Bool const>& event);
+    //void taskStatusCallback(const ros::MessageEvent<std_msgs::Bool const>& event);
 
     //maybe track internal state of robots or something along the lines of that
       // how full is hauler
@@ -102,6 +109,8 @@ class TaskPlanner {
     const int SCOUT_STR_LOC = 13; //index ~SHOULD BE~ at 14th position
     const int EXCAVATOR_STR_LOC = 17; //index ~SHOULD BE~ at 18th position
     const int HAULER_STR_LOC = 14; //index ~SHOULD BE~ at 15th position
+
+    int getRobotIndex(char robot_type, int robot_id);
 
 };
 

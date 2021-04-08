@@ -21,6 +21,7 @@ const int HAULER = 2;
 struct Robot {
     int id;
     int type;
+    double status;
     nav_msgs::Odometry odom;
     bool is_initialized = false;
 };
@@ -34,6 +35,7 @@ struct Volatile {
 struct PlanningParams {
     int max_time;
     int timeout;
+    bool demo;
 };
 
 }

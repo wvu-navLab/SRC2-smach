@@ -12,6 +12,7 @@ find_package(catkin REQUIRED roscpp rospy roslib
   message_runtime
   std_msgs
   nav_msgs
+  volatile_map
 )
 
 ## System dependencies are found with CMake's conventions

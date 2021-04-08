@@ -44,6 +44,8 @@ int main(int argc, char** argv)
 		nh.getParam("/planner/num_nodes", num_nodes);
 		nh.getParam("/planner/num_iterations", num_iterations);
 
+		bool demo;
+		nh.getParam("/demo", demo);
     /**----------------- Initialize -----------------------------*/
 		// Initialize Robots
 		std::vector<mac::Robot> robots;
@@ -65,6 +67,8 @@ int main(int argc, char** argv)
 
 		mac::PlanningParams planning_params;
 		planning_params.max_time = max_time;
+		planning_params.timeout = timeout;
+		planning_params.demo = demo;
 
 		mac::TaskPlanner tp(cf,robots, planning_params);
 
