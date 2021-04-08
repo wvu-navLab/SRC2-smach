@@ -22,6 +22,7 @@ struct Robot {
     int id;
     int type;
     double status;
+    double current_task;
     nav_msgs::Odometry odom;
     bool is_initialized = false;
 };

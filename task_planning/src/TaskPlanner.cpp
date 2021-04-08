@@ -11,14 +11,60 @@ namespace mac {
 
 void TaskPlanner::
 plan() const {
-  //do stuff
-  bool is_data_loaded = false;
-  while(is_data_loaded) {
-    //check if data is loaded
-    ros::spinOnce();
+  int nearest_int, min_distance;
+  std::vector<double> pose_min, vol_pose, default_pose, current_pose;
+  default_pose.push_back(0);
+  default_pose.push_back(0);
+  vol_pose = default_pose;
+  current_pose = default_pose;
+  for (int i = 0; i < volatile_map_.vol.size(); ++i)
+  {
+    nearest_int = -1;
+    min_distance = 5000;
+    pose_min = default_pose;
+    vol_pose[0] = volatile_map_.vol[i].position.point.x;
+    vol_pose[1] = volatile_map_.vol[i].position.point.y;
+    for (int j = 0; j < robots_.size() ; ++j)
+    {
+        if (nearest_int != -1)
+        {
+          current_pose[0] = robots_[i].odom.pose.pose.position.x;
+          current_pose[1] = robots_[i].odom.pose.pose.position.y;// robot of nearest in pose
+
+          // robot of current in pose
+          double distance = TaskPlanner::dist(current_pose, vol_pose);
+          if (distance < min_distance)
+          {
+            min_distance = distance;
+            nearest_int = j;
+            pose_min = current_pose;
+          }
+
+        } else if (robots_[i].current_task < 0)
+        {
+          nearest_int = i;
+          pose_min[0] = robots_[i].odom.pose.pose.position.x;
+          pose_min[1] = robots_[i].odom.pose.pose.position.y;
+
+
+        }
+        if (nearest_int != -1){
+          geometry_msgs::PointStamped msg;
+          msg = volatile_map_.vol[nearest_int].position;
+          pubs_plans_[nearest_int].publish(msg);
+        }
+    }
+
   }
+  //do stuff
+  //bool is_data_loaded = false;
+  //while(is_data_loaded) {
+    //check if data is loaded
+  //  ros::spinOnce();
+  //}
 
   //do planning
+
 };
 
 
@@ -166,17 +212,17 @@ TaskPlanner::TaskPlanner(const CostFunction       & cost_function,
     switch(robots[i].type) {
       case mac::SCOUT:
         topic = "/small_scout_" + std::to_string(index_pub_scout) + monitor_topic;
-        pubs_plans_.push_back(nh_.advertise<std_msgs::String>(topic, 10));
+        pubs_plans_.push_back(nh_.advertise<geometry_msgs::PointStamped>(topic, 10));
         index_pub_scout++;
         break;
       case mac::EXCAVATOR:
         topic = "/small_excavator_" + std::to_string(index_pub_excavator) + monitor_topic;
-        pubs_plans_.push_back(nh_.advertise<std_msgs::String>(topic, 10));
+        pubs_plans_.push_back(nh_.advertise<geometry_msgs::PointStamped>(topic, 10));
         index_pub_excavator++;
         break;
       case mac::HAULER:
         topic = "/small_hauler_" + std::to_string(index_pub_hauler) + monitor_topic;
-        pubs_plans_.push_back(nh_.advertise<std_msgs::String>(topic, 10));
+        pubs_plans_.push_back(nh_.advertise<geometry_msgs::PointStamped>(topic, 10));
         index_pub_hauler++;
         break;
       default:
@@ -208,5 +254,22 @@ int TaskPlanner::getRobotIndex(char robot_type, int robot_id)
   }
   return index;
 }
+
+double TaskPlanner::dist(const std::vector<double> p1, const std::vector<double> p2) {
+if(p1.size() != p2.size())
+{
+std::cout << "Error! p1.size() != p2.size() for computing distance!\n";
+exit(1); //TODO: remove exit
+}
+
+double val=0;
+for(int i=0; i<p1.size(); i++)
+{
+double diff = p1[i] - p2[i];
+val = val + diff*diff;
+}
+val = std::sqrt(val);
+return val;
+};
 
 }

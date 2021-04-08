@@ -80,13 +80,11 @@ int main(int argc, char** argv)
     {
 
       /**----------------- Update Rover Cost ------------------------------*/
-
+			tp.plan();
       /**----------------- Perform Online Planning ------------------------------*/
       // This could be a part of the cost steps.
 
       /**----------------- Publish Objectives ------------------------------*/
-			msg.data = true;
-			pub.publish(msg);
 
 			ros::spinOnce();
     }

@@ -111,7 +111,7 @@ class TaskPlanner {
     const int HAULER_STR_LOC = 14; //index ~SHOULD BE~ at 15th position
 
     int getRobotIndex(char robot_type, int robot_id);
-
+    static double dist(const std::vector<double> p1, const std::vector<double> p2);
 };
 
 }
