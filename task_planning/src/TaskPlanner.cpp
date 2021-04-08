@@ -9,6 +9,13 @@
 
 namespace mac {
 
+//WARNING:
+//planner sets volatiles forever
+
+//TODO:
+//maybe, change the publisher to a service that can be called by robots
+//need a status topic from each robot, so the planner can know what the robots are doing
+
 void TaskPlanner::
 plan() const {
   int nearest_int, min_distance;
@@ -24,6 +31,7 @@ plan() const {
     pose_min = default_pose;
     vol_pose[0] = volatile_map_.vol[i].position.point.x;
     vol_pose[1] = volatile_map_.vol[i].position.point.y;
+    std::cout << "robots_.size() = " << robots_.size() << std::endl;
     for (int j = 0; j < robots_.size() ; ++j)
     {
         if (nearest_int != -1)
@@ -52,6 +60,7 @@ plan() const {
           geometry_msgs::PointStamped msg;
           msg = volatile_map_.vol[nearest_int].position;
           pubs_plans_[nearest_int].publish(msg);
+          std::cout << "publishing" << std::endl;
         }
     }
 
@@ -207,21 +216,21 @@ TaskPlanner::TaskPlanner(const CostFunction       & cost_function,
   int index_pub_scout = 1;
   int index_pub_excavator = 1;
   int index_pub_hauler = 1;
-  std::string monitor_topic = "/system_monitor";
+  std::string task_topic = "/task";
   for (int i=0; i<robots.size(); i++) {
     switch(robots[i].type) {
       case mac::SCOUT:
-        topic = "/small_scout_" + std::to_string(index_pub_scout) + monitor_topic;
+        topic = "/small_scout_" + std::to_string(index_pub_scout) + task_topic;
         pubs_plans_.push_back(nh_.advertise<geometry_msgs::PointStamped>(topic, 10));
         index_pub_scout++;
         break;
       case mac::EXCAVATOR:
-        topic = "/small_excavator_" + std::to_string(index_pub_excavator) + monitor_topic;
+        topic = "/small_excavator_" + std::to_string(index_pub_excavator) + task_topic;
         pubs_plans_.push_back(nh_.advertise<geometry_msgs::PointStamped>(topic, 10));
         index_pub_excavator++;
         break;
       case mac::HAULER:
-        topic = "/small_hauler_" + std::to_string(index_pub_hauler) + monitor_topic;
+        topic = "/small_hauler_" + std::to_string(index_pub_hauler) + task_topic;
         pubs_plans_.push_back(nh_.advertise<geometry_msgs::PointStamped>(topic, 10));
         index_pub_hauler++;
         break;

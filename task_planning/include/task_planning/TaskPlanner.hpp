@@ -26,13 +26,12 @@
 
 
 //TODO:
-//  Make a diagram for interaction between high level planner and state machines
-//  Test on some dummy variables
-//  figure out volatile representation -> tag-up with Bernardo/Jason/Cagri to settle on interface
+//X  Make a diagram for interaction between high level planner and state machines
+//X  Test on some dummy variables
+//X  figure out volatile representation -> tag-up with Bernardo/Jason/Cagri to settle on interface
 //  demo planner/cost functions
-//  add variables for time/pose/plan/etc
-//  settle on when to trigger planning (currently think robots do it as needed,
-//      alternative is to trigger based on event updates such as new volatile added to list)
+//X  add variables for time/pose/plan/etc
+//X  settle on when to trigger planning (currently think robots do it as needed, alternative is to trigger based on event updates such as new volatile added to list)
 //  add in interrupt functionality so that high level planner can override state machine's objectives
 //      need to make sure that if robot is homing that it doesn't necessarily cancel that mission
 //  adapt nodes to operate as services
@@ -41,6 +40,15 @@
 
 // Planner maintain queue of plans
 // Robot calls planner and whether it was successful or as state of the robot
+
+//WARNING:
+//planner sets volatiles forever
+
+//TODO:
+//maybe, change the publisher to a service that can be called by robots
+//need a status topic from each robot, so the planner can know what the robots are doing
+//need to add proper planner
+//
 
 
 
