@@ -74,7 +74,7 @@ plan() const {
 
   //do planning
 
-};
+}
 
 
 /////////////////////////////////////////////////////////////////////
@@ -269,16 +269,18 @@ if(p1.size() != p2.size())
 {
 std::cout << "Error! p1.size() != p2.size() for computing distance!\n";
 exit(1); //TODO: remove exit
-}
 
 double val=0;
 for(int i=0; i<p1.size(); i++)
 {
-double diff = p1[i] - p2[i];
-val = val + diff*diff;
+  double diff = p1[i] - p2[i];
+  val = val + diff*diff;
 }
 val = std::sqrt(val);
 return val;
-};
+}
+
+}
+
 
 }
