@@ -10,7 +10,7 @@ Runs the round 1 state machine for the SRC2 competition
 
 int main(int argc, char **argv)
 {
-  ros::init(argc, argv, "state_machine_rd1_node");
+  ros::init(argc, argv, "state_machine_scout_node");
   SmScout obj;
   obj.run();
 

@@ -2,13 +2,14 @@
 
 SmScout::SmScout() :
 ac("move_base", true),
-move_base_state_(actionlib::SimpleClientGoalState::PREEMPTED)
+move_base_state(actionlib::SimpleClientGoalState::PREEMPTED)
 {
   // Initialize ROS, Subs, and Pubs *******************************************
   // Publishers
   sm_state_pub = nh.advertise<std_msgs::Int64>("state_machine/state", 1);
   cmd_vel_pub = nh.advertise<geometry_msgs::Twist>("driving/cmd_vel", 1);
-  pub_driving_mode_ = nh.advertise<std_msgs::Int64>("driving/driving_mode", 1);
+  driving_mode_pub = nh.advertise<std_msgs::Int64>("driving/driving_mode", 1);
+  
   // Subscribers
   localized_base_sub = nh.subscribe("state_machine/localized_base", 1, &SmScout::localizedBaseCallback, this);
   // mobility_sub = nh.subscribe("/state_machine/mobility_scout", 1, &SmScout::mobilityCallback, this);
@@ -19,37 +20,43 @@ move_base_state_(actionlib::SimpleClientGoalState::PREEMPTED)
   localization_failure_sub = nh.subscribe("state_machine/localization_failure", 1, &SmScout::localizationFailureCallback, this);
   localization_sub  = nh.subscribe("localization/odometry/sensor_fusion", 1, &SmScout::localizationCallback, this);
   driving_mode_sub =nh.subscribe("driving/driving_mode",1, &SmScout::drivingModeCallback, this);
-  laserscan_sub =nh.subscribe("laser/scan",1, &SmScout::laserCallback, this);
+  laser_scan_sub =nh.subscribe("laser/scan",1, &SmScout::laserCallback, this);
+
   // Clients
-  clt_wp_gen_ = nh.serviceClient<waypoint_gen::GenerateWaypoint>("navigation/generate_goal");
-  clt_wp_start_ = nh.serviceClient<waypoint_gen::StartWaypoint>("navigation/start");
-  // clt_wp_nav_set_goal_ = nh.serviceClient<waypoint_nav::SetGoal>("navigation/set_goal");
-  // clt_wp_nav_interrupt_ = nh.serviceClient<waypoint_nav::Interrupt>("navigation/interrupt");
-  clt_stop_ = nh.serviceClient<driving_tools::Stop>("driving/stop");
-  clt_rip_ = nh.serviceClient<driving_tools::RotateInPlace>("driving/rotate_in_place");
-  clt_drive_ = nh.serviceClient<driving_tools::MoveForward>("driving/move_forward");
-  // clt_vol_report_ = nh.serviceClient<volatile_handler::VolatileReport>("volatile/report");
-  // clt_vol_detect_ = nh.serviceClient<volatile_handler::ToggleDetector>("volatile/toggle_detector");
-  clt_lights_ = nh.serviceClient<srcp2_msgs::SpotLightSrv>("spot_light");
-  clt_brake_ = nh.serviceClient<srcp2_msgs::BrakeRoverSrv>("brake_rover");
-  clt_approach_base_ = nh.serviceClient<src2_object_detection::ApproachBaseStation>("approach_base_station");
-  clt_rover_static_ = nh.serviceClient<sensor_fusion::RoverStatic>("sensor_fusion/toggle_rover_static");
-  clt_homing_ = nh.serviceClient<sensor_fusion::HomingUpdate>("homing");
-  clt_sf_true_pose_ = nh.serviceClient<sensor_fusion::GetTruePose>("true_pose");
-  clt_waypoint_checker_ = nh.serviceClient<waypoint_checker::CheckCollision>("waypoint_checker");
-  clt_srcp2_brake_rover_= nh.serviceClient<srcp2_msgs::BrakeRoverSrv>("brake_rover");
+  clt_wp_gen = nh.serviceClient<waypoint_gen::GenerateWaypoint>("navigation/generate_goal");
+  clt_wp_start = nh.serviceClient<waypoint_gen::StartWaypoint>("navigation/start");
+  clt_stop = nh.serviceClient<driving_tools::Stop>("driving/stop");
+  clt_rip = nh.serviceClient<driving_tools::RotateInPlace>("driving/rotate_in_place");
+  clt_drive = nh.serviceClient<driving_tools::MoveForward>("driving/move_forward");
+  clt_lights = nh.serviceClient<srcp2_msgs::SpotLightSrv>("spot_light");
+  clt_brake = nh.serviceClient<srcp2_msgs::BrakeRoverSrv>("brake_rover");
+  clt_approach_base = nh.serviceClient<src2_object_detection::ApproachBaseStation>("approach_base_station");
+  clt_rover_static = nh.serviceClient<sensor_fusion::RoverStatic>("sensor_fusion/toggle_rover_static");
+  clt_homing = nh.serviceClient<sensor_fusion::HomingUpdate>("homing");
+  clt_sf_true_pose = nh.serviceClient<sensor_fusion::GetTruePose>("true_pose");
+  clt_waypoint_checker = nh.serviceClient<waypoint_checker::CheckCollision>("waypoint_checker");
+  clt_srcp2_brake_rover = nh.serviceClient<srcp2_msgs::BrakeRoverSrv>("brake_rover");
 
-  setMobilityService_ = nh.advertiseService("state_machine/mobility_service",&SmScout::setMobility_, this);
+  srv_mobility = nh.advertiseService("state_machine/mobility_service",&SmScout::setMobility, this);
 
-  driving_mode_=0;
-  waypoint_type_ =0;
-  need_to_initialize_landmark=true;
+  driving_mode =0;
+  waypoint_type =0;
+  flag_need_init_landmark=true;
 
   detection_timer = ros::Time::now();
   not_detected_timer = ros::Time::now();
   last_time_laser_collision_ = ros::Time::now();
   map_timer = ros::Time::now();
   wp_checker_timer=  ros::Time::now();
+
+  node_name = "state_machine_scout_node";
+  if (ros::param::get(node_name + "/robot_name", robot_name) == false) 
+  {
+    ROS_FATAL("No parameter 'robot_name' specified");
+    ros::shutdown();
+    exit(1);
+  }
+
 }
 
 
@@ -65,9 +72,7 @@ void SmScout::run()
     ROS_INFO("flag_mobility: %i",flag_mobility);
     ROS_INFO("flag_have_true_pose: %i",flag_have_true_pose);
     ROS_INFO("flag_waypoint_unreachable: %i",flag_waypoint_unreachable);
-    ROS_INFO("flag_arrived_at_waypoint: %i",flag_arrived_at_waypoint);
-  //  ROS_INFO("volatile_detected_distance: %f",volatile_detected_distance);
-  //  ROS_INFO("flag_localizing_volatile: %i",flag_localizing_volatile);
+    ROS_INFO("flag_localizing_volatile: %i",flag_localizing_volatile);
     ROS_INFO("flag_volatile_recorded: %i",flag_volatile_recorded);
     ROS_INFO("flag_volatile_unreachable: %i",flag_volatile_unreachable);
     ROS_INFO("flag_localization_failure: %i",flag_localization_failure);
@@ -180,13 +185,13 @@ void SmScout::stateInitialize()
 
   // ToggleDetector(false);
 
-  while (!clt_lights_.waitForExistence())
+  while (!clt_lights.waitForExistence())
   {
       ROS_WARN("SCOUT: Waiting for Lights");
   }
   Lights(20);
 
-  while (!clt_approach_base_.waitForExistence())
+  while (!clt_approach_base.waitForExistence())
   {
     ROS_WARN("SCOUT: Waiting for ApproachBaseStation service");
   }
@@ -197,7 +202,7 @@ void SmScout::stateInitialize()
   bool approachSuccess = false;
   int homingRecoveryCount = 0;
   while(!approachSuccess && homingRecoveryCount<3){
-      if (clt_approach_base_.call(srv_approach_base))
+      if (clt_approach_base.call(srv_approach_base))
       {
         ROS_INFO("SCOUT: Called service ApproachBaseStation");
         ROS_INFO_STREAM("Success finding the Base? "<< srv_approach_base.response.success.data);
@@ -222,7 +227,7 @@ void SmScout::stateInitialize()
 
   Brake(100.0);
 
-  while (!clt_sf_true_pose_.waitForExistence())
+  while (!clt_sf_true_pose.waitForExistence())
   {
     ROS_ERROR("SCOUT: Waiting for TruePose service");
   }
@@ -230,7 +235,7 @@ void SmScout::stateInitialize()
   // Update SF with True Pose
   sensor_fusion::GetTruePose srv_sf_true_pose;
   srv_sf_true_pose.request.start = true;
-  if (clt_sf_true_pose_.call(srv_sf_true_pose))
+  if (clt_sf_true_pose.call(srv_sf_true_pose))
   {
     ROS_INFO("SCOUT: Called service TruePose");
     ROS_INFO_STREAM("Status of SF True Pose: "<< srv_sf_true_pose.response.success);
@@ -244,7 +249,7 @@ void SmScout::stateInitialize()
 
   if(approachSuccess){
   // Homing - Initialize Base Station Landmark
-  while (!clt_homing_.waitForExistence())
+  while (!clt_homing.waitForExistence())
   {
       ROS_WARN("SCOUT: Waiting for Homing Service");
   }
@@ -253,13 +258,13 @@ void SmScout::stateInitialize()
 
   srv_homing.request.angle = pitch_ + .4; // pitch up is negative number
   ROS_ERROR("Requesting Angle for LIDAR %f",srv_homing.request.angle);
-  srv_homing.request.initializeLandmark = need_to_initialize_landmark;
-  if (clt_homing_.call(srv_homing))
+  srv_homing.request.initializeLandmark = flag_need_init_landmark;
+  if (clt_homing.call(srv_homing))
   {
     ROS_INFO("SCOUT: Called service HomingUpdate");
     if(srv_homing.response.success){
     base_location_ = srv_homing.response.base_location;
-    need_to_initialize_landmark = false;
+    flag_need_init_landmark = false;
   }else{
     ROS_ERROR(" Initial Homing Fail, Starting Without Base Location");
   }
@@ -303,7 +308,7 @@ else{
   waypoint_gen::StartWaypoint srv_wp_start;
   srv_wp_start.request.start  = true;
 
-  if (clt_wp_start_.call(srv_wp_start))
+  if (clt_wp_start.call(srv_wp_start))
   {
     ROS_INFO("Starting Waypoint Gen");
   }
@@ -324,7 +329,7 @@ void SmScout::statePlanning()
 {
   ROS_INFO("Planning!\n");
   flag_arrived_at_waypoint = false;
-  if(waypoint_type_==1)
+  if(waypoint_type==1)
   {
     flag_waypoint_unreachable=false;
   }
@@ -334,7 +339,7 @@ void SmScout::statePlanning()
   ac.cancelGoal();
   ac.waitForResult(ros::Duration(0.25));
 
-  while (!clt_wp_gen_.waitForExistence())
+  while (!clt_wp_gen.waitForExistence())
   {
     ROS_ERROR("SCOUT: Waiting for Waypoint Gen service");
   }
@@ -357,11 +362,11 @@ void SmScout::statePlanning()
   srv_wp_gen.request.next  = false;
   }
 
-  if (clt_wp_gen_.call(srv_wp_gen))
+  if (clt_wp_gen.call(srv_wp_gen))
   {
     ROS_INFO("SCOUT: Called service Generate Waypoint");
     goal_pose_ = srv_wp_gen.response.goal;
-    waypoint_type_ = srv_wp_gen.response.type;
+    waypoint_type = srv_wp_gen.response.type;
   }
   else
   {
@@ -386,7 +391,7 @@ void SmScout::statePlanning()
   {
     srv_wp_check.request.x  = goal_pose_.position.x;
     srv_wp_check.request.y = goal_pose_.position.y;
-    if (clt_waypoint_checker_.call(srv_wp_check))
+    if (clt_waypoint_checker.call(srv_wp_check))
     {
       ROS_INFO("SCOUT: Called service Waypoint Checker");
       is_colliding = srv_wp_check.response.collision;
@@ -395,11 +400,11 @@ void SmScout::statePlanning()
         ROS_INFO("SCOUT: Waypoint Unreachable. Getting new waypoint");
         srv_wp_gen.request.start  = true;
         srv_wp_gen.request.next  = true;
-        if (clt_wp_gen_.call(srv_wp_gen))
+        if (clt_wp_gen.call(srv_wp_gen))
         {
           ROS_INFO("SCOUT: Called service Generate Waypoint");
           goal_pose_ = srv_wp_gen.response.goal;
-	        waypoint_type_ = srv_wp_gen.response.type;
+	        waypoint_type = srv_wp_gen.response.type;
 
           goal_yaw_ = atan2(goal_pose_.position.y - current_pose_.position.y, goal_pose_.position.x - current_pose_.position.x);
 
@@ -476,15 +481,15 @@ void SmScout::stateTraverse()
     ROS_INFO("SCOUT: Close to goal, getting new waypoint.");
     flag_arrived_at_waypoint = true;
     flag_waypoint_unreachable = false;
-    if(waypoint_type_ ==0 )
+    if(waypoint_type ==0 )
     {
       flag_localization_failure = false;
     }
     else
     {
-      ROS_INFO(" Reached a Waypoint Designated for Localization Update Type : %f ",waypoint_type_ );
+      ROS_INFO(" Reached a Waypoint Designated for Localization Update Type : %f ",waypoint_type);
       flag_localization_failure = true;
-      waypoint_type_=0; // just to account for triggered homing update
+      waypoint_type =0; // just to account for triggered homing update
     }
   }
 
@@ -492,7 +497,7 @@ void SmScout::stateTraverse()
   if (ros::Time::now() - wp_checker_timer > timeOutWPCheck) {
     bool is_colliding = false;
     waypoint_checker::CheckCollision srv_wp_check;
-    if (clt_waypoint_checker_.call(srv_wp_check)) {
+    if (clt_waypoint_checker.call(srv_wp_check)) {
       ROS_INFO("SCOUT: Called service Waypoint Checker");
       is_colliding = srv_wp_check.response.collision;
       if (is_colliding) {
@@ -505,8 +510,8 @@ void SmScout::stateTraverse()
 
 
 
-  move_base_state_ = ac.getState();
-  int mb_state =(int) move_base_state_.state_;
+  move_base_state = ac.getState();
+  int mb_state =(int) move_base_state.state_;
   ROS_WARN_STREAM("MoveBase status: "<< mb_state);
 
   if(mb_state==5 || mb_state==7)
@@ -610,7 +615,7 @@ void SmScout::stateLost()
   bool approachSuccess = false;
   int homingRecoveryCount=0;
   while(!approachSuccess && homingRecoveryCount<3){
-      if (clt_approach_base_.call(srv_approach_base))
+      if (clt_approach_base.call(srv_approach_base))
       {
         ROS_INFO("SCOUT: Called service ApproachBaseStation");
         ROS_INFO_STREAM("Success finding the Base? "<< srv_approach_base.response.success.data);
@@ -640,8 +645,8 @@ void SmScout::stateLost()
 
   srv_homing.request.angle = pitch_ + .4; // pitch up is negative number
   ROS_INFO("Requesting Angle for LIDAR %f",srv_homing.request.angle);
-  srv_homing.request.initializeLandmark = need_to_initialize_landmark;
-  if (clt_homing_.call(srv_homing))
+  srv_homing.request.initializeLandmark = flag_need_init_landmark;
+  if (clt_homing.call(srv_homing))
   {
     ROS_INFO("SCOUT: Called service Homing [Update]");
     if(srv_homing.request.initializeLandmark && srv_homing.response.success){
@@ -652,7 +657,7 @@ void SmScout::stateLost()
     flag_arrived_at_waypoint = true;
     flag_completed_homing = true;
     if(srv_homing.response.success){
-      need_to_initialize_landmark=false;
+      flag_need_init_landmark=false;
     }
   }
   else
@@ -762,7 +767,7 @@ void SmScout::localizationFailureCallback(const std_msgs::Bool::ConstPtr& msg)
   flag_localization_failure = msg->data;
 }
 void SmScout::drivingModeCallback(const std_msgs::Int64::ConstPtr& msg){
-  driving_mode_=msg->data;
+  driving_mode =msg->data;
 }
 void SmScout::localizationCallback(const nav_msgs::Odometry::ConstPtr& msg)
 {
@@ -842,7 +847,7 @@ void SmScout::setPoseGoal(move_base_msgs::MoveBaseGoal &poseGoal, double x, doub
 
 void SmScout::doneCallback(const actionlib::SimpleClientGoalState& state, const move_base_msgs::MoveBaseResult::ConstPtr& result)
 {
-    actionDone_ = true;
+    actionDone = true;
     // ROS_INFO("Goal done");
 }
 void SmScout::activeCallback()
@@ -1030,7 +1035,7 @@ void SmScout::Lights(double intensity)
   // Turn on the Lights
   srcp2_msgs::SpotLightSrv srv_lights;
   srv_lights.request.range  = intensity;
-  if (clt_lights_.call(srv_lights))
+  if (clt_lights.call(srv_lights))
   {
     ROS_INFO("SCOUT: Called service SpotLight");
   }
@@ -1044,7 +1049,7 @@ void SmScout::RotateInPlace(double throttle, double time)
 {
   driving_tools::RotateInPlace srv_turn;
   srv_turn.request.throttle  = throttle;
-  if (clt_rip_.call(srv_turn))
+  if (clt_rip.call(srv_turn))
   {
     ROS_INFO_THROTTLE(5,"SCOUT: Called service RotateInPlace");
     ros::Duration(time).sleep();
@@ -1059,7 +1064,7 @@ void SmScout::Stop(double time)
 {
   driving_tools::Stop srv_stop;
   srv_stop.request.enableStop  = true;
-  if (clt_stop_.call(srv_stop))
+  if (clt_stop.call(srv_stop))
   {
     ROS_INFO("SCOUT: Called service Stop");
     ros::Duration(time).sleep();
@@ -1074,7 +1079,7 @@ void SmScout::Brake(double intensity)
 {
   srcp2_msgs::BrakeRoverSrv srv_brake;
   srv_brake.request.brake_force  = intensity;
-  if (clt_srcp2_brake_rover_.call(srv_brake))
+  if (clt_srcp2_brake_rover.call(srv_brake))
   {
     if (intensity < 0.01)
     {
@@ -1140,7 +1145,7 @@ void SmScout::Drive(double throttle, double time)
   srv_drive.request.throttle = throttle;
 
 
-  if (clt_drive_.call(srv_drive))
+  if (clt_drive.call(srv_drive))
   {
     ros::Time start_time = ros::Time::now();
     ROS_INFO("SCOUT: Called service Drive");
@@ -1148,7 +1153,7 @@ void SmScout::Drive(double throttle, double time)
     {
       std_msgs::Int64 mode;
       mode.data = 2;
-      pub_driving_mode_.publish(mode);
+      driving_mode_pub.publish(mode);
     }
   }
   else
@@ -1199,7 +1204,7 @@ void SmScout::RoverStatic(bool flag)
   // Start attitude constraints for static rover
   sensor_fusion::RoverStatic srv_rover_static;
   srv_rover_static.request.rover_static  = flag;
-  if (clt_rover_static_.call(srv_rover_static))
+  if (clt_rover_static.call(srv_rover_static))
   {
     ROS_INFO_STREAM("SCOUT: Called service RoverStatic. Turned on? " << flag);
   }
@@ -1210,7 +1215,8 @@ void SmScout::RoverStatic(bool flag)
 
 }
 
-bool SmScout::setMobility_(state_machine::SetMobility::Request &req, state_machine::SetMobility::Response &res){
+bool SmScout::setMobility(state_machine::SetMobility::Request &req, state_machine::SetMobility::Response &res)
+{
   ROS_ERROR(" GOT MOBILITY IN SM %d", req.mobility);
   flag_mobility = req.mobility;
   immobilityRecovery(1);

@@ -59,6 +59,14 @@ move_base_state(actionlib::SimpleClientGoalState::PREEMPTED)
   map_timer = ros::Time::now();
   wp_checker_timer= ros::Time::now();
   manipulation_timer = ros::Time::now();
+
+  node_name = "state_machine_excavator_node";
+  if (ros::param::get(node_name + "/robot_name", robot_name) == false) 
+  {
+    ROS_FATAL("No parameter 'robot_name' specified");
+    ros::shutdown();
+    exit(1);
+  }
 }
 
 void SmExcavator::run()
