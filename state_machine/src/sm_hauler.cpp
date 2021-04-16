@@ -183,13 +183,13 @@ void SmHauler::stateInitialize()
 
   while (!clt_lights_.waitForExistence())
   {
-      ROS_WARN("SCOUT: Waiting for Lights");
+      ROS_WARN("HAULER: Waiting for Lights");
   }
   Lights(20);
 
   while (!clt_approach_base_.waitForExistence())
   {
-    ROS_WARN("SCOUT: Waiting for ApproachBaseStation service");
+    ROS_WARN("HAULER: Waiting for ApproachBaseStation service");
   }
 
   // Approach Base Station
@@ -200,7 +200,7 @@ void SmHauler::stateInitialize()
   while(!approachSuccess && homingRecoveryCount<3){
       if (clt_approach_base_.call(srv_approach_base))
       {
-        ROS_INFO("SCOUT: Called service ApproachBaseStation");
+        ROS_INFO("HAULER: Called service ApproachBaseStation");
         ROS_INFO_STREAM("Success finding the Base? "<< srv_approach_base.response.success.data);
         if(!srv_approach_base.response.success.data){
         homingRecovery();
@@ -214,7 +214,7 @@ void SmHauler::stateInitialize()
 
     else
     {
-      ROS_ERROR("SCOUT: Failed  to call service ApproachBaseStation");
+      ROS_ERROR("HAULER: Failed  to call service ApproachBaseStation");
     }
     homingRecoveryCount=homingRecoveryCount+1;
   }
@@ -253,7 +253,7 @@ void SmHauler::stateInitialize()
 
   while (!clt_sf_true_pose_.waitForExistence())
   {
-    ROS_ERROR("SCOUT: Waiting for TruePose service");
+    ROS_ERROR("HAULER: Waiting for TruePose service");
   }
 
   // Update SF with True Pose
@@ -261,12 +261,12 @@ void SmHauler::stateInitialize()
   srv_sf_true_pose.request.start = true;
   if (clt_sf_true_pose_.call(srv_sf_true_pose))
   {
-    ROS_INFO("SCOUT: Called service TruePose");
+    ROS_INFO("HAULER: Called service TruePose");
     ROS_INFO_STREAM("Status of SF True Pose: "<< srv_sf_true_pose.response.success);
   }
   else
   {
-    ROS_ERROR("SCOUT: Failed  to call service Pose Update");
+    ROS_ERROR("HAULER: Failed  to call service Pose Update");
   }
 
   RoverStatic(true);
@@ -275,7 +275,7 @@ void SmHauler::stateInitialize()
   // Homing - Initialize Base Station Landmark
   while (!clt_homing_.waitForExistence())
   {
-      ROS_WARN("SCOUT: Waiting for Homing Service");
+      ROS_WARN("HAULER: Waiting for Homing Service");
   }
   sensor_fusion::HomingUpdate srv_homing;
   // ros::spinOnce();
@@ -285,7 +285,7 @@ void SmHauler::stateInitialize()
   srv_homing.request.initializeLandmark = need_to_initialize_landmark;
   if (clt_homing_.call(srv_homing))
   {
-    ROS_INFO("SCOUT: Called service HomingUpdate");
+    ROS_INFO("HAULER: Called service HomingUpdate");
     if(srv_homing.response.success){
     base_location_ = srv_homing.response.base_location;
     need_to_initialize_landmark = false;
@@ -295,7 +295,7 @@ void SmHauler::stateInitialize()
   }
   else
   {
-    ROS_ERROR("SCOUT: Failed to call service HomingUpdate");
+    ROS_ERROR("HAULER: Failed to call service HomingUpdate");
   }
 }
 else{
@@ -338,7 +338,7 @@ else{
   }
   else
   {
-    ROS_ERROR("SCOUT: Failed  to call service Waypoint Start");
+    ROS_ERROR("HAULER: Failed  to call service Waypoint Start");
   }
 
 
@@ -358,14 +358,14 @@ void SmHauler::statePlanning()
     flag_waypoint_unreachable=false;
   }
 
-  ROS_INFO("SCOUT: Canceling MoveBase goal.");
+  ROS_INFO("HAULER: Canceling MoveBase goal.");
   ac.waitForServer();
   ac.cancelGoal();
   ac.waitForResult(ros::Duration(0.25));
 
   while (!clt_wp_gen_.waitForExistence())
   {
-    ROS_ERROR("SCOUT: Waiting for Waypoint Gen service");
+    ROS_ERROR("HAULER: Waiting for Waypoint Gen service");
   }
   waypoint_gen::GenerateWaypoint srv_wp_gen;
 
@@ -388,15 +388,15 @@ void SmHauler::statePlanning()
 
   if (clt_wp_gen_.call(srv_wp_gen))
   {
-    ROS_INFO("SCOUT: Called service Generate Waypoint");
+    ROS_INFO("HAULER: Called service Generate Waypoint");
     goal_pose_ = srv_wp_gen.response.goal;
     waypoint_type_ = srv_wp_gen.response.type;
   }
   else
   {
-    ROS_ERROR("SCOUT: Failed  to call service Generate Waypoint");
+    ROS_ERROR("HAULER: Failed  to call service Generate Waypoint");
   }
-  ROS_INFO_STREAM("SCOUT: WP Generation: Goal pose: " << goal_pose_);
+  ROS_INFO_STREAM("HAULER: WP Generation: Goal pose: " << goal_pose_);
 
   goal_yaw_ = atan2(goal_pose_.position.y - current_pose_.position.y, goal_pose_.position.x - current_pose_.position.x);
 
@@ -417,16 +417,16 @@ void SmHauler::statePlanning()
     srv_wp_check.request.y = goal_pose_.position.y;
     if (clt_waypoint_checker_.call(srv_wp_check))
     {
-      ROS_INFO("SCOUT: Called service Waypoint Checker");
+      ROS_INFO("HAULER: Called service Waypoint Checker");
       is_colliding = srv_wp_check.response.collision;
       if(is_colliding)
       {
-        ROS_INFO("SCOUT: Waypoint Unreachable. Getting new waypoint");
+        ROS_INFO("HAULER: Waypoint Unreachable. Getting new waypoint");
         srv_wp_gen.request.start  = true;
         srv_wp_gen.request.next  = true;
         if (clt_wp_gen_.call(srv_wp_gen))
         {
-          ROS_INFO("SCOUT: Called service Generate Waypoint");
+          ROS_INFO("HAULER: Called service Generate Waypoint");
           goal_pose_ = srv_wp_gen.response.goal;
 	        waypoint_type_ = srv_wp_gen.response.type;
 
@@ -441,13 +441,13 @@ void SmHauler::statePlanning()
         }
         else
         {
-          ROS_ERROR("SCOUT: Failed to call service Generate Waypoint");
+          ROS_ERROR("HAULER: Failed to call service Generate Waypoint");
         }
       }
     }
     else
     {
-      ROS_ERROR("SCOUT: Failed to call service Waypoint Checker");
+      ROS_ERROR("HAULER: Failed to call service Waypoint Checker");
 
 
   }
@@ -462,7 +462,7 @@ void SmHauler::statePlanning()
   move_base_msgs::MoveBaseGoal move_base_goal;
   ac.waitForServer();
   setPoseGoal(move_base_goal, goal_pose_.position.x, goal_pose_.position.y, goal_yaw_);
-  ROS_INFO_STREAM("SCOUT: Sending goal to MoveBase: " << move_base_goal);
+  ROS_INFO_STREAM("HAULER: Sending goal to MoveBase: " << move_base_goal);
   waypoint_timer_ = ros::Time::now();
   ac.sendGoal(move_base_goal, boost::bind(&SmHauler::doneCallback, this,_1,_2), boost::bind(&SmHauler::activeCallback, this), boost::bind(&SmHauler::feedbackCallback, this,_1));
   ac.waitForResult(ros::Duration(0.25));
@@ -477,14 +477,14 @@ void SmHauler::stateTraverse()
 
   if(flag_localized_base && !flag_have_true_pose)
   {
-    ROS_INFO("SCOUT: Localized but don't have true pose.");
+    ROS_INFO("HAULER: Localized but don't have true pose.");
     flag_have_true_pose = true;
     flag_arrived_at_waypoint = true;
     flag_waypoint_unreachable = false;
   }
   if(flag_volatile_recorded)
   {
-    ROS_INFO("SCOUT: Volatile recorded.");
+    ROS_INFO("HAULER: Volatile recorded.");
     volatile_detected_distance = -1.0;
     flag_localizing_volatile = false;
     flag_volatile_recorded = false;
@@ -493,7 +493,7 @@ void SmHauler::stateTraverse()
   }
   if(flag_recovering_localization && !flag_localization_failure)
   {
-    ROS_INFO("SCOUT: Recovering localization or failure in localization.");
+    ROS_INFO("HAULER: Recovering localization or failure in localization.");
     flag_arrived_at_waypoint = true;
     flag_waypoint_unreachable = false;
     flag_recovering_localization = false;
@@ -502,7 +502,7 @@ void SmHauler::stateTraverse()
   double distance_to_goal = std::hypot(goal_pose_.position.y - current_pose_.position.y, goal_pose_.position.x - current_pose_.position.x);
   if (distance_to_goal < 2.0)
   {
-    ROS_INFO("SCOUT: Close to goal, getting new waypoint.");
+    ROS_INFO("HAULER: Close to goal, getting new waypoint.");
     flag_arrived_at_waypoint = true;
     flag_waypoint_unreachable = false;
     if(waypoint_type_ ==0 )
@@ -522,10 +522,10 @@ void SmHauler::stateTraverse()
     bool is_colliding = false;
     waypoint_checker::CheckCollision srv_wp_check;
     if (clt_waypoint_checker_.call(srv_wp_check)) {
-      ROS_INFO("SCOUT: Called service Waypoint Checker");
+      ROS_INFO("HAULER: Called service Waypoint Checker");
       is_colliding = srv_wp_check.response.collision;
       if (is_colliding) {
-        ROS_INFO("SCOUT: Waypoint Unreachable. Sending to Planning");
+        ROS_INFO("HAULER: Waypoint Unreachable. Sending to Planning");
         flag_waypoint_unreachable = true;
       }
     }
@@ -540,7 +540,7 @@ void SmHauler::stateTraverse()
 
   if(mb_state==5 || mb_state==7)
   {
-    ROS_ERROR("SCOUT: MoveBase has failed to make itself useful.");
+    ROS_ERROR("HAULER: MoveBase has failed to make itself useful.");
     flag_waypoint_unreachable= true;
 
     Stop (1.0);
@@ -603,7 +603,7 @@ void SmHauler::stateLost()
   flag_arrived_at_waypoint = false;
   flag_waypoint_unreachable = false;
 
-  ROS_INFO("SCOUT: Canceling MoveBase goal.");
+  ROS_INFO("HAULER: Canceling MoveBase goal.");
   ac.waitForServer();
   ac.cancelGoal();
   ac.waitForResult(ros::Duration(0.25));
@@ -623,7 +623,7 @@ void SmHauler::stateLost()
   // move_base_msgs::MoveBaseGoal move_base_goal;
   // ac.waitForServer();
   // setPoseGoal(move_base_goal, base_location_.x, base_location_.y, goal_yaw_);
-  // ROS_INFO_STREAM("SCOUT: Sending goal to MoveBase: " << move_base_goal);
+  // ROS_INFO_STREAM("HAULER: Sending goal to MoveBase: " << move_base_goal);
   // ac.sendGoal(move_base_goal, boost::bind(&SmHauler::doneCallback, this,_1,_2), boost::bind(&SmHauler::activeCallback, this), boost::bind(&SmHauler::feedbackCallback, this,_1));
   // ac.waitForResult(ros::Duration(0.25));
   // // set as a waypoint type 1 so it will come back here.
@@ -641,7 +641,7 @@ void SmHauler::stateLost()
   while(!approachSuccess && homingRecoveryCount<3){
       if (clt_approach_base_.call(srv_approach_base))
       {
-        ROS_INFO("SCOUT: Called service ApproachBaseStation");
+        ROS_INFO("HAULER: Called service ApproachBaseStation");
         ROS_INFO_STREAM("Success finding the Base? "<< srv_approach_base.response.success.data);
         if(!srv_approach_base.response.success.data){
         homingRecovery();
@@ -654,7 +654,7 @@ void SmHauler::stateLost()
 
     else
     {
-      ROS_ERROR("SCOUT: Failed  to call service ApproachBaseStation");
+      ROS_ERROR("HAULER: Failed  to call service ApproachBaseStation");
     }
     homingRecoveryCount=homingRecoveryCount+1;
   }
@@ -672,10 +672,10 @@ void SmHauler::stateLost()
   srv_homing.request.initializeLandmark = need_to_initialize_landmark;
   if (clt_homing_.call(srv_homing))
   {
-    ROS_INFO("SCOUT: Called service Homing [Update]");
+    ROS_INFO("HAULER: Called service Homing [Update]");
     if(srv_homing.request.initializeLandmark && srv_homing.response.success){
         base_location_ = srv_homing.response.base_location;
-        ROS_WARN("SCOUT: Saving Base Location %f %f",base_location_.x, base_location_.y);
+        ROS_WARN("HAULER: Saving Base Location %f %f",base_location_.x, base_location_.y);
     }
     flag_localization_failure=false;
     flag_arrived_at_waypoint = true;
@@ -686,7 +686,7 @@ void SmHauler::stateLost()
   }
   else
   {
-    ROS_ERROR("SCOUT: Failed to call service Homing [Update]");
+    ROS_ERROR("HAULER: Failed to call service Homing [Update]");
   }
 
 }
@@ -817,20 +817,20 @@ void SmHauler::laserCallback(const sensor_msgs::LaserScan::ConstPtr& msg)
     min_range = min_range + ranges[i];
   }
   min_range = min_range/LASER_SET_SIZE;
-  ROS_INFO_STREAM_THROTTLE(2,"SCOUT: Minimum range average: " << min_range);
+  ROS_INFO_STREAM_THROTTLE(2,"HAULER: Minimum range average: " << min_range);
 
   if (min_range < LASER_THRESH)
   {
     if (ros::Time::now() - last_time_laser_collision_ < ros::Duration(20))
     {
-      ROS_WARN("SCOUT: Close to wall.");
+      ROS_WARN("HAULER: Close to wall.");
       counter_laser_collision_++;
-      ROS_INFO_STREAM("SCOUT: Counter laser:" << counter_laser_collision_);
+      ROS_INFO_STREAM("HAULER: Counter laser:" << counter_laser_collision_);
     }
     else
     {
       counter_laser_collision_ = 0;
-      ROS_INFO_STREAM("SCOUT: Counter laser RESET!");
+      ROS_INFO_STREAM("HAULER: Counter laser RESET!");
     }
     last_time_laser_collision_ = ros::Time::now();
   }
@@ -838,7 +838,7 @@ void SmHauler::laserCallback(const sensor_msgs::LaserScan::ConstPtr& msg)
   if (counter_laser_collision_ > LASER_COUNTER_THRESH)
   {
     counter_laser_collision_ =0;
-    ROS_ERROR("SCOUT: LASER COUNTER > 20 ! Starting Recovery.");
+    ROS_ERROR("HAULER: LASER COUNTER > 20 ! Starting Recovery.");
     immobilityRecovery(2);
   }
 }
@@ -1046,11 +1046,11 @@ void SmHauler::ClearCostmaps()
   ros::service::waitForService("move_base/clear_costmaps",ros::Duration(3.0));
   if (ros::service::call("move_base/clear_costmaps",emptymsg))
   {
-     ROS_INFO("SCOUT: Called service to clear costmap layers.");
+     ROS_INFO("HAULER: Called service to clear costmap layers.");
   }
   else
   {
-     ROS_ERROR("SCOUT: Failed calling clear_costmaps service.");
+     ROS_ERROR("HAULER: Failed calling clear_costmaps service.");
   }
 }
 
@@ -1061,11 +1061,11 @@ void SmHauler::Lights(double intensity)
   srv_lights.request.range  = intensity;
   if (clt_lights_.call(srv_lights))
   {
-    ROS_INFO("SCOUT: Called service SpotLight");
+    ROS_INFO("HAULER: Called service SpotLight");
   }
   else
   {
-    ROS_ERROR("SCOUT: Failed  to call service SpotLight");
+    ROS_ERROR("HAULER: Failed  to call service SpotLight");
   }
 }
 
@@ -1075,12 +1075,12 @@ void SmHauler::RotateInPlace(double throttle, double time)
   srv_turn.request.throttle  = throttle;
   if (clt_rip_.call(srv_turn))
   {
-    ROS_INFO_THROTTLE(5,"SCOUT: Called service RotateInPlace");
+    ROS_INFO_THROTTLE(5,"HAULER: Called service RotateInPlace");
     ros::Duration(time).sleep();
   }
   else
   {
-    ROS_INFO("SCOUT: Failed to call service RotateInPlace");
+    ROS_INFO("HAULER: Failed to call service RotateInPlace");
   }
 }
 
@@ -1090,12 +1090,12 @@ void SmHauler::Stop(double time)
   srv_stop.request.enableStop  = true;
   if (clt_stop_.call(srv_stop))
   {
-    ROS_INFO("SCOUT: Called service Stop");
+    ROS_INFO("HAULER: Called service Stop");
     ros::Duration(time).sleep();
   }
   else
   {
-    ROS_ERROR("SCOUT: Failed  to call service Stop");
+    ROS_ERROR("HAULER: Failed  to call service Stop");
   }
 }
 
@@ -1113,11 +1113,11 @@ void SmHauler::Brake(double intensity)
     {
       flag_brake_engaged =true;
     }
-    //ROS_INFO_STREAM("SCOUT: Called service SRCP2 Brake. Engaged?: " << flag_brake_engaged);
+    //ROS_INFO_STREAM("HAULER: Called service SRCP2 Brake. Engaged?: " << flag_brake_engaged);
   }
   else
   {
-      ROS_ERROR("SCOUT: Failed  to call service Brake");
+      ROS_ERROR("HAULER: Failed  to call service Brake");
   }
 }
 
@@ -1156,7 +1156,7 @@ void SmHauler::BrakeRamp(double max_intensity, double time, int aggressivity)
     Brake(max_intensity);
     ros::Duration(time).sleep();
   }
-  ROS_INFO_STREAM("SCOUT: Called service SRCP2 Brake. Engaged? " << flag_brake_engaged);
+  ROS_INFO_STREAM("HAULER: Called service SRCP2 Brake. Engaged? " << flag_brake_engaged);
 }
 
 void SmHauler::Drive(double throttle, double time)
@@ -1172,7 +1172,7 @@ void SmHauler::Drive(double throttle, double time)
   if (clt_drive_.call(srv_drive))
   {
     ros::Time start_time = ros::Time::now();
-    ROS_INFO("SCOUT: Called service Drive");
+    ROS_INFO("HAULER: Called service Drive");
     while(ros::Time::now() - start_time < ros::Duration(time))
     {
       std_msgs::Int64 mode;
@@ -1182,7 +1182,7 @@ void SmHauler::Drive(double throttle, double time)
   }
   else
   {
-    ROS_ERROR("SCOUT: Failed to call service Drive");
+    ROS_ERROR("HAULER: Failed to call service Drive");
   }
 }
 
@@ -1215,11 +1215,11 @@ void SmHauler::DriveCmdVel(double vx, double vy, double wz, double time)
 //   srv_vol_detect.request.on  = flag;
 //   if (clt_vol_detect_.call(srv_vol_detect))
 //   {
-//     ROS_INFO_STREAM("SCOUT: Called service ToggleDetector. Turned on? " << flag);
+//     ROS_INFO_STREAM("HAULER: Called service ToggleDetector. Turned on? " << flag);
 //   }
 //   else
 //   {
-//     ROS_ERROR("SCOUT: Failed  to call service ToggleDetector");
+//     ROS_ERROR("HAULER: Failed  to call service ToggleDetector");
 //   }
 // }
 
@@ -1230,11 +1230,11 @@ void SmHauler::RoverStatic(bool flag)
   srv_rover_static.request.rover_static  = flag;
   if (clt_rover_static_.call(srv_rover_static))
   {
-    ROS_INFO_STREAM("SCOUT: Called service RoverStatic. Turned on? " << flag);
+    ROS_INFO_STREAM("HAULER: Called service RoverStatic. Turned on? " << flag);
   }
   else
   {
-    ROS_ERROR("SCOUT: Failed to call service RoverStatic");
+    ROS_ERROR("HAULER: Failed to call service RoverStatic");
   }
 
 }
