@@ -88,7 +88,7 @@ find_package(Eigen3 3.3 REQUIRED)
 # Generate added messages and services with any dependencies listed here
  generate_messages(
    DEPENDENCIES
-   std_msgs  # Or other packages containing msgs
+   std_msgs
  )
 
 ################################################
@@ -123,7 +123,7 @@ find_package(Eigen3 3.3 REQUIRED)
 catkin_package(
  INCLUDE_DIRS include
 #  LIBRARIES state_machine
-  CATKIN_DEPENDS sensor_msgs waypoint_checker src2_object_detection std_msgs std_srvs geometry_msgs nav_msgs sensor_fusion driving_tools actionlib move_excavator waypoint_gen
+  CATKIN_DEPENDS srcp2_msgs sensor_msgs waypoint_checker src2_object_detection std_msgs std_srvs geometry_msgs nav_msgs sensor_fusion driving_tools actionlib move_excavator waypoint_gen
 #  DEPENDS system_lib
 )
 
