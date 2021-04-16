@@ -5,13 +5,13 @@ Runs the round 1 state machine for the SRC2 competition
 @version 1.0 7/5/2020
 */
 
-#include <state_machine/sm_rd1.hpp>
+#include <state_machine/sm_scout.hpp>
 
 
 int main(int argc, char **argv)
 {
   ros::init(argc, argv, "state_machine_rd1_node");
-  SmRd1 obj;
+  SmScout obj;
   obj.run();
 
   return 0;

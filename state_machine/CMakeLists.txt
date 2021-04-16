@@ -28,6 +28,9 @@ find_package(catkin REQUIRED COMPONENTS
   std_srvs
   waypoint_checker
   message_generation
+  motion_control
+  message_filters
+  tf2_ros
 )
 
 find_package(Eigen3 3.3 REQUIRED)
@@ -123,7 +126,22 @@ find_package(Eigen3 3.3 REQUIRED)
 catkin_package(
  INCLUDE_DIRS include
 #  LIBRARIES state_machine
-  CATKIN_DEPENDS srcp2_msgs sensor_msgs waypoint_checker src2_object_detection std_msgs std_srvs geometry_msgs nav_msgs sensor_fusion driving_tools actionlib move_excavator waypoint_gen
+  CATKIN_DEPENDS 
+  srcp2_msgs 
+  sensor_msgs 
+  waypoint_checker 
+  src2_object_detection 
+  std_msgs std_srvs 
+  geometry_msgs 
+  nav_msgs 
+  sensor_fusion 
+  driving_tools 
+  actionlib 
+  move_excavator 
+  waypoint_gen 
+  motion_control
+  message_filters
+  tf2_ros
 #  DEPENDS system_lib
 )
 
@@ -144,11 +162,14 @@ add_library(sm_utils
   utils/sm_utils.cpp
 )
 
- add_library(sm_rd1
-   src/sm_rd1.cpp
+ add_library(sm_scout
+   src/sm_scout.cpp
  )
 add_library(sm_hauler
    src/sm_hauler.cpp
+)
+add_library(sm_excavator
+   src/sm_excavator.cpp
 )
 #  add_library(sm_rd3
 #    src/sm_rd3.cpp
@@ -158,18 +179,23 @@ add_library(sm_hauler
 ## either from message generation or dynamic reconfigure
 add_dependencies(sm_utils ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
-add_dependencies(sm_rd1 ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+add_dependencies(sm_scout ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 # add_dependencies(sm_rd2 ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 add_dependencies(sm_hauler ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+add_dependencies(sm_excavator ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 target_link_libraries(sm_utils
   ${catkin_LIBRARIES}
- )
+)
 
- target_link_libraries(sm_rd1
-   ${catkin_LIBRARIES}
-  )
+target_link_libraries(sm_scout
+  ${catkin_LIBRARIES}
+)
 target_link_libraries(sm_hauler
+  ${catkin_LIBRARIES}
+)
+
+target_link_libraries(sm_excavator
   ${catkin_LIBRARIES}
 )
  #target_link_libraries(sm_rd3
@@ -181,13 +207,13 @@ target_link_libraries(sm_hauler
 # add_executable(${PROJECT_NAME}_node src/state_machine_node.cpp)
 add_executable(utils_test_node utils/utils_test_node.cpp)
 
-add_executable(state_machine_rd1_node src/sm_rd1_node.cpp)
+add_executable(state_machine_scout_node src/sm_scout_node.cpp)
 
 add_executable(state_machine_hauler_node src/sm_hauler_node.cpp)
 
-add_dependencies(state_machine_rd1_node state_machine_generate_messages_cpp)
-# add_executable(state_machine_rd2_node src/sm_rd2_node.cpp)
-#add_executable(state_machine_rd3_node src/sm_rd3_node.cpp)
+add_executable(state_machine_excavator_node src/sm_excavator_node.cpp)
+
+
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
 ## target back to the shorter version for ease of user use
@@ -196,11 +222,12 @@ add_dependencies(state_machine_rd1_node state_machine_generate_messages_cpp)
 
 ## Add cmake target dependencies of the executable
 ## same as for the library above
- add_dependencies(utils_test_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+add_dependencies(utils_test_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+add_dependencies(state_machine_scout_node state_machine_generate_messages_cpp)
 
- add_dependencies(state_machine_rd1_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
- add_dependencies(state_machine_hauler_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
- #add_dependencies(state_machine_rd3_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+add_dependencies(state_machine_scout_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+add_dependencies(state_machine_hauler_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+add_dependencies(state_machine_excavator_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Specify libraries to link a library or executable target against
 target_link_libraries(utils_test_node
@@ -208,19 +235,19 @@ target_link_libraries(utils_test_node
   sm_utils
 )
 
- target_link_libraries(state_machine_rd1_node
+ target_link_libraries(state_machine_scout_node
    ${catkin_LIBRARIES}
-   sm_rd1
+   sm_scout
  )
 
 target_link_libraries(state_machine_hauler_node
   ${catkin_LIBRARIES}
   sm_hauler
 )
- #target_link_libraries(state_machine_rd3_node
-  #  ${catkin_LIBRARIES}
-  #  sm_rd3
- #)
+target_link_libraries(state_machine_excavator_node
+  ${catkin_LIBRARIES}
+  sm_excavator
+)
 #############
 ## Install ##
 #############

@@ -37,7 +37,7 @@
 
 typedef actionlib::SimpleActionClient<move_base_msgs::MoveBaseAction> MoveBaseClient;
 
-class SmExcavator
+class SmScout
 {
 public:
   // Members -------------------------------------------------------------------------------------------------------------------------
@@ -132,7 +132,7 @@ public:
   actionlib::SimpleClientGoalState move_base_state_;
 
   // Methods ----------------------------------------------------------------------------------------------------------------------------
-  SmExcavator(); // Constructor
+  SmScout(); // Constructor
   void run();
   // State methods
   void stateInitialize();
