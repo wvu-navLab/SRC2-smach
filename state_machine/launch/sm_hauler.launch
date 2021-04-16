@@ -1,6 +1,7 @@
 <launch>
 
 
+
   <!-- pcl_obstacle_avoidance launch file -->
   <include file="$(find pcl_obstacle_detection)/launch/hauler_pcl_obj_detection.launch"/>
   <include file="$(find pcl_obstacle_detection)/launch/hauler_pcl_homing.launch"/>
@@ -27,15 +28,15 @@
   <include file="$(find src2_object_detection)/launch/hauler_object_detection.launch"/>
 
   <!-- scout_move_base launch files -->
-  <!-- <include file="$(find src2_move_base)/launch/hauler_map_server.launch"/>
-  <include file="$(find src2_move_base)/launch/hauler_move_base.launch"/> -->
+  <include file="$(find src2_move_base)/launch/hauler_map_server.launch"/>
+  <include file="$(find src2_move_base)/launch/hauler_move_base.launch"/>
 
   <!-- laser tools  -->
   <include file="$(find laser_tools_src2)/launch/hauler_laser_tools.launch"/>
 
   <!-- homing service -->
-  <!-- <include file="$(find range_to_base)/launch/hauler_homing_service.launch"/> -->
-  <!-- <include file="$(find sensor_fusion)/launch/hauler_homing.launch"/> -->
+  <include file="$(find range_to_base)/launch/hauler_homing_service.launch"/>
+  <include file="$(find sensor_fusion)/launch/hauler_homing.launch"/>
 
   <!-- waypoint checker -->
   <include file="$(find waypoint_checker)/launch/hauler_waypoint_checker.launch"/>
@@ -43,7 +44,7 @@
   <!-- <include file="$(find mobility_checker)/launch/scout_mobility_checker.launch"/> -->
 
   <!-- state machine for Scout -->
-  <!-- <include file="$(find state_machine)/launch/hauler_state_machine.launch"/> -->
+  <include file="$(find state_machine)/launch/hauler_state_machine.launch"/>
 
 
 
