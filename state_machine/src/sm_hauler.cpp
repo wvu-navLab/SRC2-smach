@@ -859,7 +859,7 @@ void SmHauler::setPoseGoal(move_base_msgs::MoveBaseGoal &poseGoal, double x, dou
 
 
 //********************************************************************************************************
-    poseGoal.target_pose.header.frame_id = "small_scout_1_odom";
+    poseGoal.target_pose.header.frame_id = "small_hauler_1_odom";
     poseGoal.target_pose.pose.position.x = x;
     poseGoal.target_pose.pose.position.y = y;
     poseGoal.target_pose.pose.position.z = 0.0;
