@@ -21,7 +21,7 @@
   <!-- <include file="$(find waypoint_nav)/launch/hauler_waypoint_nav.launch"/> -->
 
   <!-- scout_waypoint_gen launch file -->
-  <!-- <include file="$(find waypoint_gen)/launch/hauler_waypoint_gen.launch"/> -->
+  <include file="$(find waypoint_gen)/launch/hauler_waypoint_gen.launch"/>
 
   <!-- scout_volatile handler launch file -->
 
