@@ -18,10 +18,10 @@
   <include file="$(find sensor_fusion)/launch/scout_sensor_fusion.launch"/>
 
   <!-- scout_driving_tools launch file -->
-  <include file="$(find waypoint_nav)/launch/scout_waypoint_nav.launch"/>
+  <!-- <include file="$(find waypoint_nav)/launch/scout_waypoint_nav.launch"/> -->
 
   <!-- scout_waypoint_gen launch file -->
-  <include file="$(find waypoint_gen)/launch/scout_waypoint_gen.launch"/>
+  <!-- <include file="$(find waypoint_gen)/launch/scout_waypoint_gen.launch"/> -->
 
   <!-- scout_volatile handler launch file -->
 

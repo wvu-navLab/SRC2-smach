@@ -18,67 +18,71 @@
 
 int main(int argc, char** argv)
 {
-		ros::init(argc,argv,"scouting_task_node");
-		ros::NodeHandle nh;
+    ros::init(argc,argv,"scouting_task_node");
+    ros::NodeHandle nh;
 
     /**----------------- Import Offline Plan -----------------------------*/
 
     /**----------------- Import Parameters -----------------------------*/
-		int num_scouts, num_excavators, num_haulers;
-		nh.getParam("/num_scouts",num_excavators);
+    int num_scouts, num_excavators, num_haulers;
+    nh.getParam("/num_scouts",num_scouts);
 
-		double max_time, timeout;
-		nh.getParam("/clock_max_time_sec", max_time);
+    double max_time, timeout;
+    nh.getParam("/clock_max_time_sec", max_time);
 
-		std::vector<double> cf_params;
-		nh.getParam("/cost_function/params", cf_params);
-		std::string planner_type;
-		int cost_type;
-		nh.getParam("/cost_function/type", cost_type);
-		nh.getParam("/planner/planning_type", planner_type);
-		nh.getParam("/planner/planning_timeout_sec", timeout);
+    std::vector<double> cf_params;
+    nh.getParam("/cost_function/params", cf_params);
+    std::string planner_type;
+    int cost_type;
+    nh.getParam("/cost_function/type", cost_type);
+    nh.getParam("/planner/planning_type", planner_type);
+    nh.getParam("/planner/planning_timeout_sec", timeout);
 
-		int num_nodes, num_iterations;
-		nh.getParam("/planner/num_nodes", num_nodes);
-		nh.getParam("/planner/num_iterations", num_iterations);
+    int num_nodes, num_iterations;
+    nh.getParam("/planner/num_nodes", num_nodes);
+    nh.getParam("/planner/num_iterations", num_iterations);
+
+    bool demo;
+    nh.getParam("/demo", demo);
     /**----------------- Initialize -----------------------------*/
-		// Initialize Robots
-		std::vector<mac::Robot> robots;
-		mac::Robot rbt;
-		for (int i = 0; i < num_scouts; ++i)
-		{
-			rbt.id = i+1;
-			rbt.type = mac::SCOUT;
-			robots.push_back(rbt);
-		}
+    // Initialize Robots
+    std::vector<mac::Robot> robots;
+    mac::Robot rbt;
+    for (int i = 0; i < num_scouts; ++i)
+    {
+      rbt.id = i+1;
+      rbt.type = mac::SCOUT;
+      robots.push_back(rbt);
+    }
 
-		// Initialize Cost Function
-		const mac::CostFunction cf(cost_type);
+    // Initialize Cost Function
+    const mac::CostFunction cf(cost_type);
 
-		mac::PlanningParams planning_params;
-		planning_params.max_time = max_time;
-		planning_params.timeout = timeout;
+    mac::PlanningParams planning_params;
+    planning_params.max_time = max_time;
+    planning_params.timeout = timeout;
+    planning_params.demo = demo;
 
-		mac::TaskPlanner tp(cf,robots, planning_params);
+    mac::TaskPlanner tp(cf,robots, planning_params);
 
 
-		ros::Publisher pub = nh.advertise<std_msgs::Bool>("/small_excavator_1/localization/odometry/sensor_fusion", 10);
-		std_msgs::Bool msg;
+    // ros::Publisher pub = nh.advertise<std_msgs::Bool>("/small_excavator_1/localization/odometry/sensor_fusion", 10);
+    std_msgs::Bool msg;
     /**----------------- Initialize Rover Metric Class------------------------------*/
-		ros::Rate rate(10);
+    ros::Rate rate(10);
     while(ros::ok())
     {
 
       /**----------------- Update Rover Cost ------------------------------*/
-
+      tp.plan();
       /**----------------- Perform Online Planning ------------------------------*/
       // This could be a part of the cost steps.
 
       /**----------------- Publish Objectives ------------------------------*/
-			msg.data = true;
-			pub.publish(msg);
+      //msg.data = true;
+      //pub.publish(msg);
 
-			ros::spinOnce();
+      ros::spinOnce();
     }
 
     return 0;
