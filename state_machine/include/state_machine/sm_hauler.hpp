@@ -1,39 +1,37 @@
-#include <ros/ros.h>
+// C++ headers
 #include <vector>
 #include <algorithm>
+#include <boost/bind.hpp>
+
+//ROS headers
+#include <ros/ros.h>
+#include <tf2_geometry_msgs/tf2_geometry_msgs.h>
+#include <tf2/LinearMath/Quaternion.h>
 #include <std_msgs/Bool.h>
 #include <std_msgs/Float32.h>
 #include <std_msgs/Int64.h>
-#include <sensor_msgs/LaserScan.h>
+#include <std_srvs/Empty.h>
 #include <geometry_msgs/Pose.h>
 #include <geometry_msgs/Point.h>
 #include <geometry_msgs/Twist.h>
+#include <nav_msgs/Odometry.h>
+#include <sensor_msgs/LaserScan.h>
+#include <srcp2_msgs/SpotLightSrv.h>
+#include <srcp2_msgs/BrakeRoverSrv.h>
+#include <move_base_msgs/MoveBaseAction.h>
 #include <waypoint_gen/GenerateWaypoint.h>
 #include <waypoint_gen/StartWaypoint.h>
-// #include <waypoint_nav/SetGoal.h>
-// #include <waypoint_nav/Interrupt.h>
+#include <waypoint_checker/CheckCollision.h>
 #include <driving_tools/Stop.h>
 #include <driving_tools/MoveForward.h>
 #include <driving_tools/CirculateBaseStation.h>
 #include <driving_tools/RotateInPlace.h>
-// #include <volatile_handler/VolatileReport.h>
-// #include <volatile_handler/ToggleDetector.h>
-#include <nav_msgs/Odometry.h>
-#include <tf2/LinearMath/Quaternion.h>
-#include <tf2_geometry_msgs/tf2_geometry_msgs.h>
-#include <actionlib/client/simple_action_client.h>
-#include <move_base_msgs/MoveBaseAction.h>
-#include <srcp2_msgs/SpotLightSrv.h>
-#include <srcp2_msgs/BrakeRoverSrv.h>
 #include <src2_object_detection/ApproachBaseStation.h>
 #include <sensor_fusion/RoverStatic.h>
 #include <sensor_fusion/GetTruePose.h>
 #include <sensor_fusion/HomingUpdate.h>
-#include <std_srvs/Empty.h>
-#include <waypoint_checker/CheckCollision.h>
-#include <boost/bind.hpp>
-#include <srcp2_msgs/BrakeRoverSrv.h>
 #include <state_machine/SetMobility.h>
+#include <actionlib/client/simple_action_client.h>
 
 typedef actionlib::SimpleActionClient<move_base_msgs::MoveBaseAction> MoveBaseClient;
 
@@ -43,6 +41,8 @@ public:
   // Members -------------------------------------------------------------------------------------------------------------------------
   const unsigned int num_states = 5;
   enum STATE_T {_initialize=0, _planning=1, _traverse=2, _volatile_handler=3, _lost=4};
+
+  actionlib::SimpleClientGoalState move_base_state_;
 
   // Condition flag declarations
   // bool flag_localized_base = false;
@@ -120,15 +120,15 @@ public:
   ros::ServiceClient clt_waypoint_checker_;
   ros::ServiceClient clt_srcp2_brake_rover_;
   ros::ServiceClient clt_approach_excavator_;
-
-  ros::ServiceServer setMobilityService_;
-
   MoveBaseClient ac;
-  actionlib::SimpleClientGoalState move_base_state_;
+
+  // Clients
+  ros::ServiceServer srv_mobility_;
 
   // Methods ----------------------------------------------------------------------------------------------------------------------------
   SmHauler(); // Constructor
   void run();
+
   // State methods
   void stateInitialize();
   void statePlanning();

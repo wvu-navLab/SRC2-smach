@@ -40,7 +40,7 @@ move_base_state_(actionlib::SimpleClientGoalState::PREEMPTED)
   clt_srcp2_brake_rover_= nh.serviceClient<srcp2_msgs::BrakeRoverSrv>("brake_rover");
   clt_approach_excavator_=nh.serviceClient<src2_object_detection::ApproachBaseStation>("approach_excavator");
 
-  setMobilityService_ = nh.advertiseService("state_machine/mobility_service",&SmHauler::setMobility_, this);
+  srv_mobility_ = nh.advertiseService("state_machine/mobility_service",&SmHauler::setMobility_, this);
 
   driving_mode_=0;
   waypoint_type_ =0;
