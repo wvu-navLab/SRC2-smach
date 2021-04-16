@@ -119,6 +119,7 @@ public:
   ros::ServiceClient clt_rover_static_;
   ros::ServiceClient clt_waypoint_checker_;
   ros::ServiceClient clt_srcp2_brake_rover_;
+  ros::ServiceClient clt_approach_excavator_;
 
   ros::ServiceServer setMobilityService_;
 

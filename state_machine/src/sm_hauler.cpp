@@ -38,6 +38,7 @@ move_base_state_(actionlib::SimpleClientGoalState::PREEMPTED)
   clt_sf_true_pose_ = nh.serviceClient<sensor_fusion::GetTruePose>("true_pose");
   clt_waypoint_checker_ = nh.serviceClient<waypoint_checker::CheckCollision>("waypoint_checker");
   clt_srcp2_brake_rover_= nh.serviceClient<srcp2_msgs::BrakeRoverSrv>("brake_rover");
+  clt_approach_excavator_=nh.serviceClient<src2_object_detection::ApproachBaseStation>("approach_excavator");
 
   setMobilityService_ = nh.advertiseService("state_machine/mobility_service",&SmHauler::setMobility_, this);
 
@@ -217,6 +218,34 @@ void SmHauler::stateInitialize()
     }
     homingRecoveryCount=homingRecoveryCount+1;
   }
+  // ------------------------------------------------------------------------
+  // TODO Approach Excavator
+  //
+  // src2_object_detection::ApproachBaseStation srv_approach_excavator;
+  // srv_approach_excavator.request.approach_base_station.data= true;
+  // bool approachSuccess = false;
+  // while(!approachSuccess){
+  //     if (clt_approach_excavator_.call(srv_approach_excavator))
+  //     {
+  //       ROS_INFO("HAULER: Called service ApproachExcavator");
+  //       ROS_INFO_STREAM("Success finding the Excavator "<< srv_approach_excavator.response.success.data);
+  //       if(!srv_approach_excavator.response.success.data){
+  //       ROS_ERROR("HAULER: Something wrong with Approach Excavator: sm_hauler.cpp")
+  //     }
+  //     else
+  //     {
+  //       approachSuccess=true;
+  //     }
+  //
+  //   }
+  //
+  //   else
+  //   {
+  //     ROS_ERROR("HAULER: Failed  to call service ApproachExcavator");
+  //   }
+  //
+  // }
+  // ------------------------------------------------------------------------
 
   Stop(2.0);
 
