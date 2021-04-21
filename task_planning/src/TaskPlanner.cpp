@@ -16,6 +16,9 @@ namespace mac {
 //maybe, change the publisher to a service that can be called by robots
 //need a status topic from each robot, so the planner can know what the robots are doing
 
+//add call help message and accept/denial so excavators can get scout if need be
+// lazy excavator/hauler following
+
 void TaskPlanner::
 plan() const {
   int nearest_int, min_distance;
