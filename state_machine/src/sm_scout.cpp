@@ -8,18 +8,18 @@ move_base_state(actionlib::SimpleClientGoalState::PREEMPTED)
   // Publishers
   sm_state_pub = nh.advertise<std_msgs::Int64>("state_machine/state", 1);
   cmd_vel_pub = nh.advertise<geometry_msgs::Twist>("driving/cmd_vel", 1);
-  driving_mode_pub = nh.advertise<std_msgs::Int64>("driving/driving_mode", 1);
+  driving_mode_pub = nh.advertise<std_msgs::Int64>("driving/driving_mode_", 1);
   
   // Subscribers
   localized_base_sub = nh.subscribe("state_machine/localized_base", 1, &SmScout::localizedBaseCallback, this);
   // mobility_sub = nh.subscribe("/state_machine/mobility_scout", 1, &SmScout::mobilityCallback, this);
   waypoint_unreachable_sub = nh.subscribe("state_machine/waypoint_unreachable", 1, &SmScout::waypointUnreachableCallback, this);
   arrived_at_waypoint_sub = nh.subscribe("state_machine/arrived_at_waypoint", 1, &SmScout::arrivedAtWaypointCallback, this);
-  volatile_detected_sub = nh.subscribe("state_machine/volatile_detected", 1, &SmScout::volatileDetectedCallback, this);
-  volatile_recorded_sub = nh.subscribe("state_machine/volatile_recorded", 1, &SmScout::volatileRecordedCallback, this);
+  volatile_sensor_sub = nh.subscribe("volatile_sensor", 1, &SmScout::volatileSensorCallback, this);
+  volatile_cmd_sub = nh.subscribe("volatile_map/cmd", 1, &SmScout::volatileCmdCallback, this);
   localization_failure_sub = nh.subscribe("state_machine/localization_failure", 1, &SmScout::localizationFailureCallback, this);
   localization_sub  = nh.subscribe("localization/odometry/sensor_fusion", 1, &SmScout::localizationCallback, this);
-  driving_mode_sub =nh.subscribe("driving/driving_mode",1, &SmScout::drivingModeCallback, this);
+  driving_mode_sub =nh.subscribe("driving/driving_mode_",1, &SmScout::drivingModeCallback, this);
   laser_scan_sub =nh.subscribe("laser/scan",1, &SmScout::laserCallback, this);
 
   // Clients
@@ -27,6 +27,7 @@ move_base_state(actionlib::SimpleClientGoalState::PREEMPTED)
   clt_wp_start = nh.serviceClient<waypoint_gen::StartWaypoint>("navigation/start");
   clt_stop = nh.serviceClient<driving_tools::Stop>("driving/stop");
   clt_rip = nh.serviceClient<driving_tools::RotateInPlace>("driving/rotate_in_place");
+  clt_move_side = nh.serviceClient<driving_tools::MoveSideways>("driving/move_sideways");
   clt_drive = nh.serviceClient<driving_tools::MoveForward>("driving/move_forward");
   clt_lights = nh.serviceClient<srcp2_msgs::SpotLightSrv>("spot_light");
   clt_brake = nh.serviceClient<srcp2_msgs::BrakeRoverSrv>("brake_rover");
@@ -39,8 +40,8 @@ move_base_state(actionlib::SimpleClientGoalState::PREEMPTED)
 
   srv_mobility = nh.advertiseService("state_machine/mobility_service",&SmScout::setMobility, this);
 
-  driving_mode =0;
-  waypoint_type =0;
+  driving_mode_ =0;
+  waypoint_type_ =0;
   flag_need_init_landmark=true;
 
   detection_timer = ros::Time::now();
@@ -49,14 +50,13 @@ move_base_state(actionlib::SimpleClientGoalState::PREEMPTED)
   map_timer = ros::Time::now();
   wp_checker_timer=  ros::Time::now();
 
-  node_name = "state_machine_scout_node";
+  node_name = "state_machine";
   if (ros::param::get(node_name + "/robot_name", robot_name) == false) 
   {
     ROS_FATAL("No parameter 'robot_name' specified");
     ros::shutdown();
     exit(1);
   }
-
 }
 
 
@@ -67,13 +67,12 @@ void SmScout::run()
   while(ros::ok())
   {
     // Debug prints +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-
     ROS_INFO("flag_localized_base: %i", flag_localized_base);
     ROS_INFO("flag_mobility: %i",flag_mobility);
     ROS_INFO("flag_have_true_pose: %i",flag_have_true_pose);
     ROS_INFO("flag_waypoint_unreachable: %i",flag_waypoint_unreachable);
     ROS_INFO("flag_localizing_volatile: %i",flag_localizing_volatile);
-    ROS_INFO("flag_volatile_recorded: %i",flag_volatile_recorded);
+    ROS_INFO("flag_volatile_honed: %i",flag_volatile_honed);
     ROS_INFO("flag_volatile_unreachable: %i",flag_volatile_unreachable);
     ROS_INFO("flag_localization_failure: %i",flag_localization_failure);
     ROS_INFO("flag_brake_engaged: %i",flag_brake_engaged);
@@ -82,7 +81,7 @@ void SmScout::run()
 
 
     // Conditional flag logic (Preemptive conditions) +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-    if((volatile_detected_distance>0.0) && !flag_localizing_volatile && !flag_localization_failure && flag_have_true_pose)
+    if((vol_detected_dist_>0.0) && !flag_localizing_volatile && !flag_localization_failure && flag_have_true_pose)
     {
       flag_arrived_at_waypoint = true;
       flag_waypoint_unreachable = false;
@@ -106,7 +105,7 @@ void SmScout::run()
     {
       state_to_exec.at(_lost) = 1;
     }
-    else if((flag_arrived_at_waypoint || flag_waypoint_unreachable) && (volatile_detected_distance==-1.0) && !flag_localizing_volatile && !flag_brake_engaged)
+    else if((flag_arrived_at_waypoint || flag_waypoint_unreachable) && (vol_detected_dist_==-1.0) && !flag_localizing_volatile && !flag_brake_engaged)
     {
       state_to_exec.at(_planning) = 1;
     }
@@ -114,7 +113,7 @@ void SmScout::run()
     {
       state_to_exec.at(_traverse) = 1;
     }
-    else if(((volatile_detected_distance>=0)  || flag_localizing_volatile) && !flag_brake_engaged)
+    else if(((vol_detected_dist_>=0)  || flag_localizing_volatile) && !flag_brake_engaged)
     {
       state_to_exec.at(_volatile_handler) = 1;
     }
@@ -319,7 +318,7 @@ else{
 
 
   // make sure we dont latch to a vol we skipped while homing
-  volatile_detected_distance = -1.0;
+  vol_detected_dist_ = -1.0;
   std_msgs::Int64 state_msg;
   state_msg.data = _initialize;
   sm_state_pub.publish(state_msg);
@@ -329,7 +328,7 @@ void SmScout::statePlanning()
 {
   ROS_INFO("Planning!\n");
   flag_arrived_at_waypoint = false;
-  if(waypoint_type==1)
+  if(waypoint_type_==1)
   {
     flag_waypoint_unreachable=false;
   }
@@ -366,7 +365,7 @@ void SmScout::statePlanning()
   {
     ROS_INFO("SCOUT: Called service Generate Waypoint");
     goal_pose_ = srv_wp_gen.response.goal;
-    waypoint_type = srv_wp_gen.response.type;
+    waypoint_type_ = srv_wp_gen.response.type;
   }
   else
   {
@@ -404,7 +403,7 @@ void SmScout::statePlanning()
         {
           ROS_INFO("SCOUT: Called service Generate Waypoint");
           goal_pose_ = srv_wp_gen.response.goal;
-	        waypoint_type = srv_wp_gen.response.type;
+	        waypoint_type_ = srv_wp_gen.response.type;
 
           goal_yaw_ = atan2(goal_pose_.position.y - current_pose_.position.y, goal_pose_.position.x - current_pose_.position.x);
 
@@ -447,6 +446,7 @@ void SmScout::statePlanning()
   state_msg.data = _planning;
   sm_state_pub.publish(state_msg);
 }
+
 void SmScout::stateTraverse()
 {
   ROS_WARN("Traverse State\n");
@@ -458,12 +458,12 @@ void SmScout::stateTraverse()
     flag_arrived_at_waypoint = true;
     flag_waypoint_unreachable = false;
   }
-  if(flag_volatile_recorded)
+  if(flag_volatile_honed)
   {
-    ROS_INFO("SCOUT: Volatile recorded.");
-    volatile_detected_distance = -1.0;
+    ROS_INFO("SCOUT: Volatile honed.");
+    vol_detected_dist_ = -1.0;
     flag_localizing_volatile = false;
-    flag_volatile_recorded = false;
+    flag_volatile_honed = false;
     flag_arrived_at_waypoint = true;
     flag_waypoint_unreachable = false;
   }
@@ -481,15 +481,15 @@ void SmScout::stateTraverse()
     ROS_INFO("SCOUT: Close to goal, getting new waypoint.");
     flag_arrived_at_waypoint = true;
     flag_waypoint_unreachable = false;
-    if(waypoint_type ==0 )
+    if(waypoint_type_ ==0 )
     {
       flag_localization_failure = false;
     }
     else
     {
-      ROS_INFO(" Reached a Waypoint Designated for Localization Update Type : %f ",waypoint_type);
+      ROS_INFO(" Reached a Waypoint Designated for Localization Update Type : %f ",waypoint_type_);
       flag_localization_failure = true;
-      waypoint_type =0; // just to account for triggered homing update
+      waypoint_type_ =0; // just to account for triggered homing update
     }
   }
 
@@ -566,8 +566,88 @@ void SmScout::stateTraverse()
 
 void SmScout::stateVolatileHandler()
 {
+  ROS_ERROR("SCOUT: VOLATILE HANDLING STATE!\n");
+  std_msgs::Int64 state_msg;
+  state_msg.data = _volatile_handler;
+  sm_state_pub.publish(state_msg);
 
-  ROS_WARN("Volatile Handling State!");
+  ROS_INFO("SCOUT: Canceling MoveBase goal.");
+  ac.waitForServer();
+  ac.cancelGoal();
+  ac.waitForResult(ros::Duration(0.25));
+
+  ros::Duration timeoutVolatileHandling(120);
+
+  if (!flag_volatile_honed)
+  {
+    Stop(0.1);
+
+    BrakeRamp(100, 0.5, 0);
+
+    Brake(0.0);
+
+    detection_timer = ros::Time::now();
+  }
+
+
+  if (vol_detected_dist_ < VOL_FOUND_THRESH || ros::Time::now() - detection_timer > timeoutVolatileHandling || flag_volatile_honed)
+  {
+    Stop(0.1);
+
+    DriveCmdVel(1, 0, 0, 3);
+
+    BrakeRamp(100, 0.5, 0);
+
+    Brake(0.0);
+
+    flag_localizing_volatile = false;
+    flag_volatile_honed = false;
+    dynamic_reconfigure::ReconfigureRequest srv_req;
+    dynamic_reconfigure::ReconfigureResponse srv_resp;
+    dynamic_reconfigure::DoubleParameter double_param;
+    dynamic_reconfigure::Config conf;
+
+    double_param.name = "max_vel_x";
+    double_param.value = 1.4;
+    conf.doubles.push_back(double_param);
+
+    srv_req.config = conf;
+
+    if (ros::service::call("move_base/DWAPlannerROS_SRC/set_parameters", srv_req, srv_resp)) 
+    {
+      ROS_ERROR("SCOUT: Called service to reconfigure MoveBase (increase max speed).");
+    }
+  }
+  else
+  {
+    switch (honing_direction_) 
+    {
+      case 0:
+      {MoveSideways(0.1,10); honing_direction_++; break;}
+      case 1:
+      {Drive(0.1,10); honing_direction_++; break;}
+      case 2:
+      {Drive(-0.1,20); honing_direction_++; break;}
+      case 3:
+      {Drive(0.1,10); honing_direction_++; break;}
+      case 4:
+      {MoveSideways(-0.1,20); honing_direction_++; break;}
+      case 5:
+      {Drive(0.1,10); honing_direction_++; break;}
+      case 6:
+      {Drive(-0.1,20); honing_direction_++; break;}
+      case 7:
+      {Drive(0.1,10); honing_direction_++; break;}
+      case 8:
+      {
+        MoveSideways(0.1,10);
+        flag_volatile_honed = true;
+        honing_direction_=0; break;
+      }
+    }
+    // DriveCmdVel(0.0011,0.1, 0, vol_detected_dist_);
+    
+  }
 }
 
 void SmScout::stateLost()
@@ -696,15 +776,15 @@ else{
 
 
   // make sure we dont latch to a vol we skipped while homing
-  volatile_detected_distance = -1.0;
+  vol_detected_dist_ = -1.0;
 
   //flag_completed_homing = true;
   std_msgs::Int64 state_msg;
   state_msg.data = _lost;
   sm_state_pub.publish(state_msg);
 }
-//------------------------------------------------------------------------------------------------------------------------
 
+//------------------------------------------------------------------------------------------------------------------------
 
 // Callbacks +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 void SmScout::localizedBaseCallback(const std_msgs::Int64::ConstPtr& msg)
@@ -740,25 +820,50 @@ void SmScout::arrivedAtWaypointCallback(const std_msgs::Bool::ConstPtr& msg)
   flag_arrived_at_waypoint = msg->data;
 }
 
-void SmScout::volatileDetectedCallback(const std_msgs::Float32::ConstPtr& msg)
+void SmScout::volatileSensorCallback(const srcp2_msgs::VolSensorMsg::ConstPtr& msg)
 {
+  // Update detected distance variables
+  prev_vol_detected_dist_ = vol_detected_dist_;
+  vol_detected_dist_ = msg->distance_to;
 
-  prev_volatile_detected_distance = volatile_detected_distance;
-  volatile_detected_distance = msg->data;
+  // Update minimum detected distance
+  min_vol_detected_dist_ = (vol_detected_dist_ < min_vol_detected_dist_)? vol_detected_dist_: min_vol_detected_dist_;
 
+  // If detected = -1, out of range, reset.
+  min_vol_detected_dist_ = ((vol_detected_dist_+1) < 0.001)? 30 : min_vol_detected_dist_;
+
+  // ROS_INFO("SCOUT: Volatile detected.");
 }
 
-void SmScout::volatileRecordedCallback(const std_msgs::Bool::ConstPtr& msg)
+void SmScout::volatileCmdCallback(const std_msgs::Int64::ConstPtr& msg)
 {
-  flag_volatile_recorded = msg->data;
-  ROS_INFO_STREAM("Record: " << flag_volatile_recorded);
-  if (flag_volatile_recorded == true)
+  // Update move_base max speed
+  dynamic_reconfigure::ReconfigureRequest srv_req;
+  dynamic_reconfigure::ReconfigureResponse srv_resp;
+  dynamic_reconfigure::DoubleParameter double_param;
+  dynamic_reconfigure::Config conf;
+
+  double_param.name = "max_vel_x";
+  double_param.value = 0.1;
+  conf.doubles.push_back(double_param);
+
+  srv_req.config = conf;
+
+  if (ros::service::call("move_base/DWAPlannerROS_SRC/set_parameters", srv_req, srv_resp)) 
   {
-          volatile_detected_distance = -1.0;
-  }else
+    ROS_ERROR("SCOUT: Called service to reconfigure MoveBase (decrease max speed).");
+  }
+
+  // Update move_base max speed
+  if (msg->data == 2)
   {
-    not_detected_timer = ros::Time::now();
-    ROS_INFO_STREAM("NAO" << not_detected_timer.toSec());
+    ROS_WARN("SCOUT: Minimum trajectory distance detected.");
+    flag_localizing_volatile = true;
+  } 
+  else
+  {
+    ROS_WARN("SCOUT: Volatile detected.");
+    
   }
 }
 
@@ -766,9 +871,11 @@ void SmScout::localizationFailureCallback(const std_msgs::Bool::ConstPtr& msg)
 {
   flag_localization_failure = msg->data;
 }
+
 void SmScout::drivingModeCallback(const std_msgs::Int64::ConstPtr& msg){
-  driving_mode =msg->data;
+  driving_mode_ =msg->data;
 }
+
 void SmScout::localizationCallback(const nav_msgs::Odometry::ConstPtr& msg)
 {
   current_pose_ = msg->pose.pose;
@@ -821,28 +928,24 @@ void SmScout::laserCallback(const sensor_msgs::LaserScan::ConstPtr& msg)
 
 void SmScout::setPoseGoal(move_base_msgs::MoveBaseGoal &poseGoal, double x, double y, double yaw) // m, m, rad
 {
-    const double pitch = 0.0;
-    const double roll = 0.0;
-    double cy = cos(yaw * 0.5);
-    double sy = sin(yaw * 0.5);
-    double cr = cos(roll * 0.5);
-    double sr = sin(roll * 0.5);
-    double cp = cos(pitch * 0.5);
-    double sp = sin(pitch * 0.5);
+  const double pitch = 0.0;
+  const double roll = 0.0;
+  double cy = cos(yaw * 0.5);
+  double sy = sin(yaw * 0.5);
+  double cr = cos(roll * 0.5);
+  double sr = sin(roll * 0.5);
+  double cp = cos(pitch * 0.5);
+  double sp = sin(pitch * 0.5);
 
-
-
-
-    
-//********************************************************************************************************
-    poseGoal.target_pose.header.frame_id = "small_scout_1_odom";
-    poseGoal.target_pose.pose.position.x = x;
-    poseGoal.target_pose.pose.position.y = y;
-    poseGoal.target_pose.pose.position.z = 0.0;
-    poseGoal.target_pose.pose.orientation.w = cy * cr * cp + sy * sr * sp;
-    poseGoal.target_pose.pose.orientation.x = cy * sr * cp - sy * cr * sp;
-    poseGoal.target_pose.pose.orientation.y = cy * cr * sp + sy * sr * cp;
-    poseGoal.target_pose.pose.orientation.z = sy * cr * cp - cy * sr * sp;
+  //********************************************************************************************************
+  poseGoal.target_pose.header.frame_id = "small_scout_1_odom";
+  poseGoal.target_pose.pose.position.x = x;
+  poseGoal.target_pose.pose.position.y = y;
+  poseGoal.target_pose.pose.position.z = 0.0;
+  poseGoal.target_pose.pose.orientation.w = cy * cr * cp + sy * sr * sp;
+  poseGoal.target_pose.pose.orientation.x = cy * sr * cp - sy * cr * sp;
+  poseGoal.target_pose.pose.orientation.y = cy * cr * sp + sy * sr * cp;
+  poseGoal.target_pose.pose.orientation.z = sy * cr * cp - cy * sr * sp;
 }
 
 void SmScout::doneCallback(const actionlib::SimpleClientGoalState& state, const move_base_msgs::MoveBaseResult::ConstPtr& result)
@@ -850,14 +953,18 @@ void SmScout::doneCallback(const actionlib::SimpleClientGoalState& state, const 
     actionDone = true;
     // ROS_INFO("Goal done");
 }
+
 void SmScout::activeCallback()
 {
     // ROS_INFO("Goal went active");
 }
+
 void SmScout::feedbackCallback(const move_base_msgs::MoveBaseFeedback::ConstPtr& feedback)
 {
   //  ROS_INFO("Got feedback");
 }
+
+// Methods +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 void SmScout::RotateToHeading(double desired_yaw)
 {
@@ -1045,10 +1152,10 @@ void SmScout::Lights(double intensity)
   }
 }
 
-void SmScout::RotateInPlace(double throttle, double time)
+void SmScout::RotateInPlace(double speed_ratio, double time)
 {
   driving_tools::RotateInPlace srv_turn;
-  srv_turn.request.throttle  = throttle;
+  srv_turn.request.speed_ratio  = speed_ratio;
   if (clt_rip.call(srv_turn))
   {
     ROS_INFO_THROTTLE(5,"SCOUT: Called service RotateInPlace");
@@ -1060,10 +1167,25 @@ void SmScout::RotateInPlace(double throttle, double time)
   }
 }
 
+void SmScout::MoveSideways(double speed_ratio, double time)
+{
+  driving_tools::MoveSideways srv_move_side;
+  srv_move_side.request.speed_ratio  = speed_ratio;
+  if (clt_move_side.call(srv_move_side))
+  {
+    ROS_INFO_THROTTLE(5,"SCOUT: Called service MoveSideways");
+    ros::Duration(time).sleep();
+  }
+  else
+  {
+    ROS_INFO("SCOUT: Failed to call service MoveSideways");
+  }
+}
+
 void SmScout::Stop(double time)
 {
   driving_tools::Stop srv_stop;
-  srv_stop.request.enableStop  = true;
+  srv_stop.request.enable  = true;
   if (clt_stop.call(srv_stop))
   {
     ROS_INFO("SCOUT: Called service Stop");
@@ -1135,14 +1257,14 @@ void SmScout::BrakeRamp(double max_intensity, double time, int aggressivity)
   ROS_INFO_STREAM("SCOUT: Called service SRCP2 Brake. Engaged? " << flag_brake_engaged);
 }
 
-void SmScout::Drive(double throttle, double time)
+void SmScout::Drive(double speed_ratio, double time)
 {
   driving_tools::MoveForward srv_drive;
 
-  if (pitch_ > 0.0 && throttle < 0.0) {
-   throttle = throttle - (pitch_ / 0.52) * 0.3;
+  if (pitch_ > 0.0 && speed_ratio < 0.0) {
+   speed_ratio = speed_ratio - (pitch_ / 0.52) * 0.3;
   }
-  srv_drive.request.throttle = throttle;
+  srv_drive.request.speed_ratio = speed_ratio;
 
 
   if (clt_drive.call(srv_drive))
@@ -1161,7 +1283,6 @@ void SmScout::Drive(double throttle, double time)
     ROS_ERROR("SCOUT: Failed to call service Drive");
   }
 }
-
 
 void SmScout::DriveCmdVel(double vx, double vy, double wz, double time)
 {

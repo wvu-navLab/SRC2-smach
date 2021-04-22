@@ -26,6 +26,7 @@
 #include <sensor_msgs/JointState.h>
 #include <srcp2_msgs/SpotLightSrv.h>
 #include <srcp2_msgs/BrakeRoverSrv.h>
+#include <srcp2_msgs/VolSensorMsg.h>
 #include <srcp2_msgs/ExcavatorScoopMsg.h>
 #include <move_base_msgs/MoveBaseAction.h>
 #include <waypoint_gen/GenerateWaypoint.h>
@@ -33,6 +34,7 @@
 #include <waypoint_checker/CheckCollision.h>
 #include <driving_tools/Stop.h>
 #include <driving_tools/MoveForward.h>
+#include <driving_tools/MoveSideways.h>
 #include <driving_tools/CirculateBaseStation.h>
 #include <driving_tools/RotateInPlace.h>
 #include <src2_object_detection/ApproachBaseStation.h>
@@ -41,7 +43,9 @@
 #include <sensor_fusion/HomingUpdate.h>
 #include <state_machine/SetMobility.h>
 #include <actionlib/client/simple_action_client.h>
-
+#include <dynamic_reconfigure/DoubleParameter.h>
+#include <dynamic_reconfigure/Reconfigure.h>
+#include <dynamic_reconfigure/Config.h>
 
 typedef actionlib::SimpleActionClient<move_base_msgs::MoveBaseAction> MoveBaseClient;
 
@@ -60,7 +64,7 @@ public:
   bool flag_waypoint_unreachable = false;
   bool flag_arrived_at_waypoint = true;
   bool flag_localizing_volatile = false;
-  bool flag_volatile_recorded = false;
+  bool flag_volatile_honed = false;
   bool flag_volatile_unreachable = false;
   bool flag_localization_failure = false;
   bool flag_recovering_localization = false;
@@ -87,8 +91,8 @@ public:
   ros::Subscriber localized_base_sub;
   ros::Subscriber waypoint_unreachable_sub;
   ros::Subscriber arrived_at_waypoint_sub;
-  ros::Subscriber volatile_detected_sub;
-  ros::Subscriber volatile_recorded_sub;
+  ros::Subscriber volatile_sensor_sub;
+  ros::Subscriber volatile_cmd_sub;
   ros::Subscriber localization_failure_sub;
   ros::Subscriber localization_sub;
   ros::Subscriber driving_mode_sub;
@@ -100,6 +104,7 @@ public:
   ros::ServiceClient clt_vh_report;
   ros::ServiceClient clt_stop;
   ros::ServiceClient clt_rip;
+  ros::ServiceClient clt_move_side;
   ros::ServiceClient clt_drive;
   ros::ServiceClient clt_brake;
   ros::ServiceClient clt_lights;
@@ -133,8 +138,8 @@ public:
   void localizationFailureCallback(const std_msgs::Bool::ConstPtr& msg);
   void localizationCallback(const nav_msgs::Odometry::ConstPtr& msg);
   void drivingModeCallback(const std_msgs::Int64::ConstPtr& msg);
-  void volatileDetectedCallback(const std_msgs::Float32::ConstPtr& msg);
-  void volatileRecordedCallback(const std_msgs::Bool::ConstPtr& msg);
+  void volatileCmdCallback(const std_msgs::Int64::ConstPtr& msg);
+  void volatileSensorCallback(const srcp2_msgs::VolSensorMsg::ConstPtr& msg);
   void laserCallback(const sensor_msgs::LaserScan::ConstPtr& msg);
   void doneCallback(const actionlib::SimpleClientGoalState& state, const move_base_msgs::MoveBaseResultConstPtr& result);
   void activeCallback();
@@ -146,10 +151,11 @@ public:
   void setPoseGoal(move_base_msgs::MoveBaseGoal& poseGoal, double x, double y, double yaw); // m, m, rad
   void ClearCostmaps();
   void Lights(double intensity);
-  void Drive(double throttle, double time);  
+  void Drive(double speed_ratio, double time);  
   void DriveCmdVel(double vx, double vy, double wz, double time);
   void RotateToHeading(double desired_yaw);
-  void RotateInPlace(double throttle, double time);
+  void RotateInPlace(double speed_ratio, double time);
+  void MoveSideways(double speed_ratio, double time);
   void Stop(double time);
   void Brake(double intensity);
   void BrakeRamp(double max_intensity, double time, int aggressivity);
@@ -161,15 +167,15 @@ public:
   std::string robot_name;
   std::string node_name;
 
-  double waypoint_type;
-  int driving_mode;
+  double waypoint_type_;
+  int driving_mode_;
 
   geometry_msgs::Pose current_pose_, goal_pose_;
   geometry_msgs::Point base_location_;
 
-  double volatile_detected_distance = -1.0;
-  double min_volatile_detected_distance = 30.0;
-  double prev_volatile_detected_distance = -1.0;
+  double vol_detected_dist_ = -1.0;
+  double min_vol_detected_dist_ = 30.0;
+  double prev_vol_detected_dist_ = -1.0;
 
   bool actionDone = false;
 
@@ -183,4 +189,6 @@ public:
   const int LASER_SET_SIZE = 20;
   const int LASER_COUNTER_THRESH = 20;
 
+  const double VOL_FOUND_THRESH = 0.3;
+  int honing_direction_ = 1;
 };

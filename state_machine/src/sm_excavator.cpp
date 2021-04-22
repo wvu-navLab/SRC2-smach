@@ -60,7 +60,7 @@ move_base_state(actionlib::SimpleClientGoalState::PREEMPTED)
   wp_checker_timer= ros::Time::now();
   manipulation_timer = ros::Time::now();
 
-  node_name = "state_machine_excavator_node";
+  node_name = "state_machine";
   if (ros::param::get(node_name + "/robot_name", robot_name) == false) 
   {
     ROS_FATAL("No parameter 'robot_name' specified");
@@ -1183,10 +1183,10 @@ void SmExcavator::Lights(double intensity)
   }
 }
 
-void SmExcavator::RotateInPlace(double throttle, double time)
+void SmExcavator::RotateInPlace(double speed_ratio, double time)
 {
   driving_tools::RotateInPlace srv_turn;
-  srv_turn.request.throttle  = throttle;
+  srv_turn.request.speed_ratio  = speed_ratio;
   if (clt_rip.call(srv_turn))
   {
     ROS_INFO_THROTTLE(5,"EXCAVATOR: Called service RotateInPlace");
@@ -1201,7 +1201,7 @@ void SmExcavator::RotateInPlace(double throttle, double time)
 void SmExcavator::Stop(double time)
 {
   driving_tools::Stop srv_stop;
-  srv_stop.request.enableStop  = true;
+  srv_stop.request.enable  = true;
   if (clt_stop.call(srv_stop))
   {
     ROS_INFO("EXCAVATOR: Called service Stop");
@@ -1273,14 +1273,14 @@ void SmExcavator::BrakeRamp(double max_intensity, double time, int aggressivity)
   ROS_INFO_STREAM("EXCAVATOR: Called service SRCP2 Brake. Engaged? " << flag_brake_engaged);
 }
 
-void SmExcavator::Drive(double throttle, double time)
+void SmExcavator::Drive(double speed_ratio, double time)
 {
   driving_tools::MoveForward srv_drive;
 
-  if (pitch_ > 0.0 && throttle < 0.0) {
-   throttle = throttle - (pitch_ / 0.52) * 0.3;
+  if (pitch_ > 0.0 && speed_ratio < 0.0) {
+   speed_ratio = speed_ratio - (pitch_ / 0.52) * 0.3;
   }
-  srv_drive.request.throttle = throttle;
+  srv_drive.request.speed_ratio = speed_ratio;
 
 
   if (clt_drive.call(srv_drive))

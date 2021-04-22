@@ -31,6 +31,8 @@ find_package(catkin REQUIRED COMPONENTS
   motion_control
   message_filters
   tf2_ros
+  dynamic_reconfigure
+  volatile_map
 )
 
 find_package(Eigen3 3.3 REQUIRED)
@@ -142,6 +144,8 @@ catkin_package(
   motion_control
   message_filters
   tf2_ros
+  dynamic_reconfigure
+  volatile_map
 #  DEPENDS system_lib
 )
 

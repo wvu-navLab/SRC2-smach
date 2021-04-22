@@ -1,4 +1,0 @@
-<launch>
-  <!-- round3 complete launch launch file -->
-  <include file="$(find src2_round_3)/launch/qual_round3.launch"/>
-</launch>

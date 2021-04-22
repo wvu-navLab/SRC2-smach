@@ -195,10 +195,10 @@ public:
   void setPoseGoal(move_base_msgs::MoveBaseGoal& poseGoal, double x, double y, double yaw); // m, m, rad
   void ClearCostmaps();
   void Lights(double intensity);
-  void Drive(double throttle, double time);  
+  void Drive(double speed_ratio, double time);  
   void DriveCmdVel(double vx, double vy, double wz, double time);
   void RotateToHeading(double desired_yaw);
-  void RotateInPlace(double throttle, double time);
+  void RotateInPlace(double speed_ratio, double time);
   void Stop(double time);
   void Brake(double intensity);
   void BrakeRamp(double max_intensity, double time, int aggressivity);
