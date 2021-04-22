@@ -169,6 +169,11 @@ void TaskPlanner::poseCallback(const ros::MessageEvent<nav_msgs::Odometry const>
 
 }*/
 
+bool TaskPlanner::taskPlanService(task_planning::PlanInfo::Request &req,task_planning::PlanInfo::Response &res)
+{
+
+}
+
 /////////////////////////////////////////////////////////////////////
 /***************************CONSTRUCTORS****************************/
 /////////////////////////////////////////////////////////////////////
@@ -246,6 +251,13 @@ TaskPlanner::TaskPlanner(const CostFunction       & cost_function,
   sub_clock_ = nh_.subscribe("/clock", 10, &TaskPlanner::timeCallback, this);
   sub_volatiles_ = nh_.subscribe("/volatile_map", 10, &TaskPlanner::volatileMapCallback, this);
 
+  if (index_pub_scout != 1)
+  {
+    this->server_task_planner = nh_.advertiseService("/task_planner_scout",&TaskPlanner::taskPlanService,this);
+  } else
+  {
+    this->server_task_planner = nh_.advertiseService("/task_planner_exc_haul",&TaskPlanner::taskPlanService,this);
+  }
   //setup volatile subscribers
   //TODO
 }
