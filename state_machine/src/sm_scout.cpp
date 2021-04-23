@@ -105,7 +105,7 @@ void SmScout::run()
     {
       state_to_exec.at(_lost) = 1;
     }
-    else if((flag_arrived_at_waypoint || flag_waypoint_unreachable) && (vol_detected_dist_==-1.0) && !flag_localizing_volatile && !flag_brake_engaged)
+    else if((flag_arrived_at_waypoint || flag_waypoint_unreachable) && (vol_detected_dist_+1 < 0.001) && !flag_localizing_volatile && !flag_brake_engaged)
     {
       state_to_exec.at(_planning) = 1;
     }
@@ -582,72 +582,75 @@ void SmScout::stateVolatileHandler()
   {
     Stop(0.1);
 
-    BrakeRamp(100, 0.5, 0);
+    BrakeRamp(100, 0.1, 0);
 
     Brake(0.0);
 
     detection_timer = ros::Time::now();
   }
-
-
-  if (vol_detected_dist_ < VOL_FOUND_THRESH || ros::Time::now() - detection_timer > timeoutVolatileHandling || flag_volatile_honed)
-  {
-    Stop(0.1);
-
-    DriveCmdVel(1, 0, 0, 3);
-
-    BrakeRamp(100, 0.5, 0);
-
-    Brake(0.0);
-
-    flag_localizing_volatile = false;
-    flag_volatile_honed = false;
-    dynamic_reconfigure::ReconfigureRequest srv_req;
-    dynamic_reconfigure::ReconfigureResponse srv_resp;
-    dynamic_reconfigure::DoubleParameter double_param;
-    dynamic_reconfigure::Config conf;
-
-    double_param.name = "max_vel_x";
-    double_param.value = 1.4;
-    conf.doubles.push_back(double_param);
-
-    srv_req.config = conf;
-
-    if (ros::service::call("move_base/DWAPlannerROS_SRC/set_parameters", srv_req, srv_resp)) 
-    {
-      ROS_ERROR("SCOUT: Called service to reconfigure MoveBase (increase max speed).");
-    }
-  }
   else
   {
-    switch (honing_direction_) 
-    {
-      case 0:
-      {MoveSideways(0.1,10); honing_direction_++; break;}
-      case 1:
-      {Drive(0.1,10); honing_direction_++; break;}
-      case 2:
-      {Drive(-0.1,20); honing_direction_++; break;}
-      case 3:
-      {Drive(0.1,10); honing_direction_++; break;}
-      case 4:
-      {MoveSideways(-0.1,20); honing_direction_++; break;}
-      case 5:
-      {Drive(0.1,10); honing_direction_++; break;}
-      case 6:
-      {Drive(-0.1,20); honing_direction_++; break;}
-      case 7:
-      {Drive(0.1,10); honing_direction_++; break;}
-      case 8:
-      {
-        MoveSideways(0.1,10);
-        flag_volatile_honed = true;
-        honing_direction_=0; break;
-      }
-    }
-    // DriveCmdVel(0.0011,0.1, 0, vol_detected_dist_);
-    
+    DriveCmdVel(1, 0, 0, 3);
   }
+
+  // if (vol_detected_dist_ < VOL_FOUND_THRESH || ros::Time::now() - detection_timer > timeoutVolatileHandling || flag_volatile_honed)
+  // {
+  //   Stop(0.1);
+
+  //   DriveCmdVel(1, 0, 0, 3);
+
+  //   BrakeRamp(100, 0.5, 0);
+
+  //   Brake(0.0);
+
+  //   flag_localizing_volatile = false;
+  //   flag_volatile_honed = false;
+  //   dynamic_reconfigure::ReconfigureRequest srv_req;
+  //   dynamic_reconfigure::ReconfigureResponse srv_resp;
+  //   dynamic_reconfigure::DoubleParameter double_param;
+  //   dynamic_reconfigure::Config conf;
+
+  //   double_param.name = "max_vel_x";
+  //   double_param.value = 1.4;
+  //   conf.doubles.push_back(double_param);
+
+  //   srv_req.config = conf;
+
+  //   if (ros::service::call("move_base/DWAPlannerROS_SRC/set_parameters", srv_req, srv_resp)) 
+  //   {
+  //     ROS_ERROR("SCOUT: Called service to reconfigure MoveBase (increase max speed).");
+  //   }
+  // }
+  // else
+  // {
+  //   switch (honing_direction_) 
+  //   {
+  //     case 0:
+  //     {MoveSideways(0.1,10); honing_direction_++; break;}
+  //     case 1:
+  //     {Drive(0.1,10); honing_direction_++; break;}
+  //     case 2:
+  //     {Drive(-0.1,20); honing_direction_++; break;}
+  //     case 3:
+  //     {Drive(0.1,10); honing_direction_++; break;}
+  //     case 4:
+  //     {MoveSideways(-0.1,20); honing_direction_++; break;}
+  //     case 5:
+  //     {Drive(0.1,10); honing_direction_++; break;}
+  //     case 6:
+  //     {Drive(-0.1,20); honing_direction_++; break;}
+  //     case 7:
+  //     {Drive(0.1,10); honing_direction_++; break;}
+  //     case 8:
+  //     {
+  //       MoveSideways(0.1,10);
+  //       flag_volatile_honed = true;
+  //       honing_direction_=0; break;
+  //     }
+  //   }
+  //   // DriveCmdVel(0.0011,0.1, 0, vol_detected_dist_);
+    
+  // }
 }
 
 void SmScout::stateLost()
