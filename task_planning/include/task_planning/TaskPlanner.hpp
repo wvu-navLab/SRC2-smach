@@ -23,6 +23,7 @@
 #include <task_planning/Robot_Status.h>
 #include <task_planning/PlanInfo.h>
 #include <volatile_map/VolatileMap.h>
+#include <geometry_msgs/PointStamped.h>
 
 
 
@@ -57,15 +58,15 @@
 
 namespace mac {
 
+const int SCOUT_PLANNER_DEFAULT = 0;
+const int EXC_HAUL_PLANNER_DEFAULT = 1;
+
 class TaskPlanner {
 
   public:
     /** \brief  */
     TaskPlanner(const CostFunction       & cost_function,
                 const std::vector<mac::Robot> & robots, const PlanningParams &planning_params);
-
-    /** \brief  */
-    void plan() const;
 
   protected:
     /** \brief  */
@@ -86,6 +87,9 @@ class TaskPlanner {
     /** \brief  */
     ros::Subscriber sub_clock_, sub_volatiles_;
 
+    /** \brief */
+    ros::Publisher pub_interrupt;
+
     /** \brief  */
     std::vector<ros::Subscriber> subs_robots_;
 
@@ -97,7 +101,6 @@ class TaskPlanner {
 
     /** brief */
     ros::ServiceServer server_task_planner;
-
 
     /** \brief  */
     void timeCallback(const rosgraph_msgs::Clock::ConstPtr &msg);
@@ -126,8 +129,15 @@ class TaskPlanner {
     const int EXCAVATOR_STR_LOC = 17; //index ~SHOULD BE~ at 18th position
     const int HAULER_STR_LOC = 14; //index ~SHOULD BE~ at 15th position
 
-    int getRobotIndex(char robot_type, int robot_id);
+    int get_robot_index(char robot_type, int robot_id);
     static double dist(const std::vector<double> p1, const std::vector<double> p2);
+
+    /** \brief  */
+    void scout_plan_default(int type, int id);
+    /** \brief  */
+    void exc_haul_plan_default();
+    /** \brief */
+    void populate_prior_plan();
 };
 
 }

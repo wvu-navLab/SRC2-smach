@@ -69,25 +69,14 @@ int main(int argc, char** argv)
 		planning_params.max_time = max_time;
 		planning_params.timeout = timeout;
 		planning_params.demo = demo;
+		planning_params.type = mac::EXC_HAUL_PLANNER_DEFAULT;
 
 		mac::TaskPlanner tp(cf,robots, planning_params);
 
 		ros::Publisher pub = nh.advertise<std_msgs::Bool>("/small_excavator_1/localization/odometry/sensor_fusion", 10);
 		std_msgs::Bool msg;
     /**----------------- Initialize Rover Metric Class------------------------------*/
-		ros::Rate rate(10);
-    while(ros::ok())
-    {
-
-      /**----------------- Update Rover Cost ------------------------------*/
-			tp.plan();
-      /**----------------- Perform Online Planning ------------------------------*/
-      // This could be a part of the cost steps.
-
-      /**----------------- Publish Objectives ------------------------------*/
-
-			ros::spinOnce();
-    }
+		ros::spin();
 
     return 0;
 }
