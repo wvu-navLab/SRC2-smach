@@ -40,7 +40,7 @@ struct PlanningParams {
     int timeout;
     bool demo;
     int type;
-    //add prior plan
+    std::vector<std::vector<double>> plan;
 
 };
 

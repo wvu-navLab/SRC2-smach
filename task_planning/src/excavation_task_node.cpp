@@ -46,6 +46,17 @@ int main(int argc, char** argv)
 
 		bool demo;
 		nh.getParam("/demo", demo);
+
+		std::vector<std::vector<double>> plan;
+    std::vector<double> temp;
+    nh.getParam("waypoints/robot_type", temp);
+    plan.push_back(temp);
+    nh.getParam("waypoints/robot_id", temp);
+    plan.push_back(temp);
+    nh.getParam("waypoints/x", temp);
+    plan.push_back(temp);
+    nh.getParam("waypoints/y", temp);
+    plan.push_back(temp);
     /**----------------- Initialize -----------------------------*/
 		// Initialize Robots
 		std::vector<mac::Robot> robots;
@@ -70,6 +81,7 @@ int main(int argc, char** argv)
 		planning_params.timeout = timeout;
 		planning_params.demo = demo;
 		planning_params.type = mac::EXC_HAUL_PLANNER_DEFAULT;
+		planning_params.plan = plan;
 
 		mac::TaskPlanner tp(cf,robots, planning_params);
 

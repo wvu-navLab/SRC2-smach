@@ -26,9 +26,17 @@ namespace mac {
 
 void TaskPlanner::populate_prior_plan()
 {
-  for (auto&robot: robots_)
+  geometry_msgs::PointStamped temp;
+  for(int i = 0; i < planning_params_.plan.size(); ++i)
   {
-    //robot.plan = planning_params_.prior for this robot;
+    for (auto&robot: robots_)
+    {
+      if (robot.type == planning_params_.plan[0][i] && robot.id == planning_params_.plan[1][i])
+      {
+        temp.point.x = planning_params_.plan[2][i];
+        temp.point.y = planning_params_.plan[3][i];
+      }
+    }
   }
 }
 
