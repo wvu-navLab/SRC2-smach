@@ -54,6 +54,7 @@
   <buildtool_depend>std_msgs</buildtool_depend>
   <buildtool_depend>nav_msgs</buildtool_depend>
   <buildtool_depend>volatile_map</buildtool_depend>
+  <buildtool_depend>geometry_msgs</buildtool_depend>
 
   <!-- The export tag contains other, unspecified, tags -->
   <export>

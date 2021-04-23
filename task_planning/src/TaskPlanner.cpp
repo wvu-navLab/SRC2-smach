@@ -67,7 +67,7 @@ plan() const {
 
   //do planning
 
-};
+}
 
 
 /////////////////////////////////////////////////////////////////////
@@ -159,6 +159,11 @@ void TaskPlanner::poseCallback(const ros::MessageEvent<nav_msgs::Odometry const>
 
 }*/
 
+bool TaskPlanner::taskPlanService(task_planning::PlanInfo::Request &req,task_planning::PlanInfo::Response &res)
+{
+
+}
+
 /////////////////////////////////////////////////////////////////////
 /***************************CONSTRUCTORS****************************/
 /////////////////////////////////////////////////////////////////////
@@ -236,6 +241,13 @@ TaskPlanner::TaskPlanner(const CostFunction       & cost_function,
   sub_clock_ = nh_.subscribe("/clock", 10, &TaskPlanner::timeCallback, this);
   sub_volatiles_ = nh_.subscribe("/volatile_map", 10, &TaskPlanner::volatileMapCallback, this);
 
+  if (index_pub_scout != 1)
+  {
+    this->server_task_planner = nh_.advertiseService("/task_planner_scout",&TaskPlanner::taskPlanService,this);
+  } else
+  {
+    this->server_task_planner = nh_.advertiseService("/task_planner_exc_haul",&TaskPlanner::taskPlanService,this);
+  }
   //setup volatile subscribers
   //TODO
 }
@@ -262,16 +274,18 @@ if(p1.size() != p2.size())
 {
 std::cout << "Error! p1.size() != p2.size() for computing distance!\n";
 exit(1); //TODO: remove exit
-}
 
 double val=0;
 for(int i=0; i<p1.size(); i++)
 {
-double diff = p1[i] - p2[i];
-val = val + diff*diff;
+  double diff = p1[i] - p2[i];
+  val = val + diff*diff;
 }
 val = std::sqrt(val);
 return val;
-};
+}
+
+}
+
 
 }

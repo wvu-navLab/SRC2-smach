@@ -21,7 +21,10 @@
 #include <task_planning/Types.hpp>
 #include <task_planning/CostFunction.hpp>
 #include <task_planning/Robot_Status.h>
+#include <task_planning/PlanInfo.h>
 #include <volatile_map/VolatileMap.h>
+
+
 
 
 
@@ -92,6 +95,9 @@ class TaskPlanner {
     /** \brief  */
     ros::Time time_;
 
+    /** brief */
+    ros::ServiceServer server_task_planner;
+
 
     /** \brief  */
     void timeCallback(const rosgraph_msgs::Clock::ConstPtr &msg);
@@ -104,6 +110,8 @@ class TaskPlanner {
       //nav_msgs::Odometry
     /** \brief  */
     //void taskStatusCallback(const ros::MessageEvent<std_msgs::Bool const>& event);
+    /** \brief */
+    bool taskPlanService(task_planning::PlanInfo::Request &req,task_planning::PlanInfo::Response &res);
 
     //maybe track internal state of robots or something along the lines of that
       // how full is hauler

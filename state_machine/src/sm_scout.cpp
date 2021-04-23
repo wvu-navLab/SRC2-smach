@@ -1,6 +1,6 @@
-#include <state_machine/sm_rd1.hpp>
+#include <state_machine/sm_scout.hpp>
 
-SmRd1::SmRd1() :
+SmScout::SmScout() :
 ac("move_base", true),
 move_base_state_(actionlib::SimpleClientGoalState::PREEMPTED)
 {
@@ -10,16 +10,16 @@ move_base_state_(actionlib::SimpleClientGoalState::PREEMPTED)
   cmd_vel_pub = nh.advertise<geometry_msgs::Twist>("driving/cmd_vel", 1);
   pub_driving_mode_ = nh.advertise<std_msgs::Int64>("driving/driving_mode", 1);
   // Subscribers
-  localized_base_sub = nh.subscribe("state_machine/localized_base", 1, &SmRd1::localizedBaseCallback, this);
-  // mobility_sub = nh.subscribe("/state_machine/mobility_scout", 1, &SmRd1::mobilityCallback, this);
-  waypoint_unreachable_sub = nh.subscribe("state_machine/waypoint_unreachable", 1, &SmRd1::waypointUnreachableCallback, this);
-  arrived_at_waypoint_sub = nh.subscribe("state_machine/arrived_at_waypoint", 1, &SmRd1::arrivedAtWaypointCallback, this);
-  volatile_detected_sub = nh.subscribe("state_machine/volatile_detected", 1, &SmRd1::volatileDetectedCallback, this);
-  volatile_recorded_sub = nh.subscribe("state_machine/volatile_recorded", 1, &SmRd1::volatileRecordedCallback, this);
-  localization_failure_sub = nh.subscribe("state_machine/localization_failure", 1, &SmRd1::localizationFailureCallback, this);
-  localization_sub  = nh.subscribe("localization/odometry/sensor_fusion", 1, &SmRd1::localizationCallback, this);
-  driving_mode_sub =nh.subscribe("driving/driving_mode",1, &SmRd1::drivingModeCallback, this);
-  laserscan_sub =nh.subscribe("laser/scan",1, &SmRd1::laserCallback, this);
+  localized_base_sub = nh.subscribe("state_machine/localized_base", 1, &SmScout::localizedBaseCallback, this);
+  // mobility_sub = nh.subscribe("/state_machine/mobility_scout", 1, &SmScout::mobilityCallback, this);
+  waypoint_unreachable_sub = nh.subscribe("state_machine/waypoint_unreachable", 1, &SmScout::waypointUnreachableCallback, this);
+  arrived_at_waypoint_sub = nh.subscribe("state_machine/arrived_at_waypoint", 1, &SmScout::arrivedAtWaypointCallback, this);
+  volatile_detected_sub = nh.subscribe("state_machine/volatile_detected", 1, &SmScout::volatileDetectedCallback, this);
+  volatile_recorded_sub = nh.subscribe("state_machine/volatile_recorded", 1, &SmScout::volatileRecordedCallback, this);
+  localization_failure_sub = nh.subscribe("state_machine/localization_failure", 1, &SmScout::localizationFailureCallback, this);
+  localization_sub  = nh.subscribe("localization/odometry/sensor_fusion", 1, &SmScout::localizationCallback, this);
+  driving_mode_sub =nh.subscribe("driving/driving_mode",1, &SmScout::drivingModeCallback, this);
+  laserscan_sub =nh.subscribe("laser/scan",1, &SmScout::laserCallback, this);
   // Clients
   clt_wp_gen_ = nh.serviceClient<waypoint_gen::GenerateWaypoint>("navigation/generate_goal");
   clt_wp_start_ = nh.serviceClient<waypoint_gen::StartWaypoint>("navigation/start");
@@ -39,7 +39,7 @@ move_base_state_(actionlib::SimpleClientGoalState::PREEMPTED)
   clt_waypoint_checker_ = nh.serviceClient<waypoint_checker::CheckCollision>("waypoint_checker");
   clt_srcp2_brake_rover_= nh.serviceClient<srcp2_msgs::BrakeRoverSrv>("brake_rover");
 
-  setMobilityService_ = nh.advertiseService("state_machine/mobility_service",&SmRd1::setMobility_, this);
+  setMobilityService_ = nh.advertiseService("state_machine/mobility_service",&SmScout::setMobility_, this);
 
   driving_mode_=0;
   waypoint_type_ =0;
@@ -54,7 +54,7 @@ move_base_state_(actionlib::SimpleClientGoalState::PREEMPTED)
 
 
 
-void SmRd1::run()
+void SmScout::run()
 {
   ros::Rate loop_rate(5); // Hz
   while(ros::ok())
@@ -172,7 +172,7 @@ void SmRd1::run()
 }
 
 // State function definitions ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-void SmRd1::stateInitialize()
+void SmScout::stateInitialize()
 {
   ROS_WARN("Initialization State!\n");
   flag_arrived_at_waypoint = false;
@@ -320,7 +320,7 @@ else{
   sm_state_pub.publish(state_msg);
 }
 
-void SmRd1::statePlanning()
+void SmScout::statePlanning()
 {
   ROS_INFO("Planning!\n");
   flag_arrived_at_waypoint = false;
@@ -435,14 +435,14 @@ void SmRd1::statePlanning()
   setPoseGoal(move_base_goal, goal_pose_.position.x, goal_pose_.position.y, goal_yaw_);
   ROS_INFO_STREAM("SCOUT: Sending goal to MoveBase: " << move_base_goal);
   waypoint_timer_ = ros::Time::now();
-  ac.sendGoal(move_base_goal, boost::bind(&SmRd1::doneCallback, this,_1,_2), boost::bind(&SmRd1::activeCallback, this), boost::bind(&SmRd1::feedbackCallback, this,_1));
+  ac.sendGoal(move_base_goal, boost::bind(&SmScout::doneCallback, this,_1,_2), boost::bind(&SmScout::activeCallback, this), boost::bind(&SmScout::feedbackCallback, this,_1));
   ac.waitForResult(ros::Duration(0.25));
 
   std_msgs::Int64 state_msg;
   state_msg.data = _planning;
   sm_state_pub.publish(state_msg);
 }
-void SmRd1::stateTraverse()
+void SmScout::stateTraverse()
 {
   ROS_WARN("Traverse State\n");
 
@@ -559,13 +559,13 @@ void SmRd1::stateTraverse()
 
 }
 
-void SmRd1::stateVolatileHandler()
+void SmScout::stateVolatileHandler()
 {
 
   ROS_WARN("Volatile Handling State!");
 }
 
-void SmRd1::stateLost()
+void SmScout::stateLost()
 {
   ROS_ERROR("LOST STATE!\n");
   flag_recovering_localization = false;
@@ -595,7 +595,7 @@ void SmRd1::stateLost()
   // ac.waitForServer();
   // setPoseGoal(move_base_goal, base_location_.x, base_location_.y, goal_yaw_);
   // ROS_INFO_STREAM("SCOUT: Sending goal to MoveBase: " << move_base_goal);
-  // ac.sendGoal(move_base_goal, boost::bind(&SmRd1::doneCallback, this,_1,_2), boost::bind(&SmRd1::activeCallback, this), boost::bind(&SmRd1::feedbackCallback, this,_1));
+  // ac.sendGoal(move_base_goal, boost::bind(&SmScout::doneCallback, this,_1,_2), boost::bind(&SmScout::activeCallback, this), boost::bind(&SmScout::feedbackCallback, this,_1));
   // ac.waitForResult(ros::Duration(0.25));
   // // set as a waypoint type 1 so it will come back here.
   // waypoint_type_=1;
@@ -702,7 +702,7 @@ else{
 
 
 // Callbacks +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-void SmRd1::localizedBaseCallback(const std_msgs::Int64::ConstPtr& msg)
+void SmScout::localizedBaseCallback(const std_msgs::Int64::ConstPtr& msg)
 {
   flag_localized_base = msg->data;
   if (flag_localized_base) {
@@ -714,7 +714,7 @@ void SmRd1::localizedBaseCallback(const std_msgs::Int64::ConstPtr& msg)
   }
 }
 
-// void SmRd1::mobilityCallback(const std_msgs::Int64::ConstPtr& msg)
+// void SmScout::mobilityCallback(const std_msgs::Int64::ConstPtr& msg)
 // {
 // flag_mobility = msg->data;
 // if (flag_mobility == 0) {
@@ -725,17 +725,17 @@ void SmRd1::localizedBaseCallback(const std_msgs::Int64::ConstPtr& msg)
 // }
 // }
 
-void SmRd1::waypointUnreachableCallback(const std_msgs::Bool::ConstPtr& msg)
+void SmScout::waypointUnreachableCallback(const std_msgs::Bool::ConstPtr& msg)
 {
   flag_waypoint_unreachable = msg->data;
 }
 
-void SmRd1::arrivedAtWaypointCallback(const std_msgs::Bool::ConstPtr& msg)
+void SmScout::arrivedAtWaypointCallback(const std_msgs::Bool::ConstPtr& msg)
 {
   flag_arrived_at_waypoint = msg->data;
 }
 
-void SmRd1::volatileDetectedCallback(const std_msgs::Float32::ConstPtr& msg)
+void SmScout::volatileDetectedCallback(const std_msgs::Float32::ConstPtr& msg)
 {
 
   prev_volatile_detected_distance = volatile_detected_distance;
@@ -743,7 +743,7 @@ void SmRd1::volatileDetectedCallback(const std_msgs::Float32::ConstPtr& msg)
 
 }
 
-void SmRd1::volatileRecordedCallback(const std_msgs::Bool::ConstPtr& msg)
+void SmScout::volatileRecordedCallback(const std_msgs::Bool::ConstPtr& msg)
 {
   flag_volatile_recorded = msg->data;
   ROS_INFO_STREAM("Record: " << flag_volatile_recorded);
@@ -757,14 +757,14 @@ void SmRd1::volatileRecordedCallback(const std_msgs::Bool::ConstPtr& msg)
   }
 }
 
-void SmRd1::localizationFailureCallback(const std_msgs::Bool::ConstPtr& msg)
+void SmScout::localizationFailureCallback(const std_msgs::Bool::ConstPtr& msg)
 {
   flag_localization_failure = msg->data;
 }
-void SmRd1::drivingModeCallback(const std_msgs::Int64::ConstPtr& msg){
+void SmScout::drivingModeCallback(const std_msgs::Int64::ConstPtr& msg){
   driving_mode_=msg->data;
 }
-void SmRd1::localizationCallback(const nav_msgs::Odometry::ConstPtr& msg)
+void SmScout::localizationCallback(const nav_msgs::Odometry::ConstPtr& msg)
 {
   current_pose_ = msg->pose.pose;
 
@@ -778,7 +778,7 @@ void SmRd1::localizationCallback(const nav_msgs::Odometry::ConstPtr& msg)
 
 }
 
-void SmRd1::laserCallback(const sensor_msgs::LaserScan::ConstPtr& msg)
+void SmScout::laserCallback(const sensor_msgs::LaserScan::ConstPtr& msg)
 {
   std::vector<float> ranges = msg->ranges;
   std::sort (ranges.begin(), ranges.end());
@@ -814,7 +814,7 @@ void SmRd1::laserCallback(const sensor_msgs::LaserScan::ConstPtr& msg)
   }
 }
 
-void SmRd1::setPoseGoal(move_base_msgs::MoveBaseGoal &poseGoal, double x, double y, double yaw) // m, m, rad
+void SmScout::setPoseGoal(move_base_msgs::MoveBaseGoal &poseGoal, double x, double y, double yaw) // m, m, rad
 {
     const double pitch = 0.0;
     const double roll = 0.0;
@@ -840,21 +840,21 @@ void SmRd1::setPoseGoal(move_base_msgs::MoveBaseGoal &poseGoal, double x, double
     poseGoal.target_pose.pose.orientation.z = sy * cr * cp - cy * sr * sp;
 }
 
-void SmRd1::doneCallback(const actionlib::SimpleClientGoalState& state, const move_base_msgs::MoveBaseResult::ConstPtr& result)
+void SmScout::doneCallback(const actionlib::SimpleClientGoalState& state, const move_base_msgs::MoveBaseResult::ConstPtr& result)
 {
     actionDone_ = true;
     // ROS_INFO("Goal done");
 }
-void SmRd1::activeCallback()
+void SmScout::activeCallback()
 {
     // ROS_INFO("Goal went active");
 }
-void SmRd1::feedbackCallback(const move_base_msgs::MoveBaseFeedback::ConstPtr& feedback)
+void SmScout::feedbackCallback(const move_base_msgs::MoveBaseFeedback::ConstPtr& feedback)
 {
   //  ROS_INFO("Got feedback");
 }
 
-void SmRd1::RotateToHeading(double desired_yaw)
+void SmScout::RotateToHeading(double desired_yaw)
 {
   ros::Rate raterotateToHeading(20);
 
@@ -934,7 +934,7 @@ void SmRd1::RotateToHeading(double desired_yaw)
   }
 }
 
-void SmRd1::homingRecovery()
+void SmScout::homingRecovery()
 {
 
   ac.waitForServer();
@@ -974,7 +974,7 @@ void SmRd1::homingRecovery()
 
 }
 
-void SmRd1::immobilityRecovery(int type)
+void SmScout::immobilityRecovery(int type)
 {
 
   ac.waitForServer();
@@ -1010,7 +1010,7 @@ void SmRd1::immobilityRecovery(int type)
 
 }
 
-void SmRd1::ClearCostmaps()
+void SmScout::ClearCostmaps()
 {
   // Clear the costmap
   std_srvs::Empty emptymsg;
@@ -1025,7 +1025,7 @@ void SmRd1::ClearCostmaps()
   }
 }
 
-void SmRd1::Lights(double intensity)
+void SmScout::Lights(double intensity)
 {
   // Turn on the Lights
   srcp2_msgs::SpotLightSrv srv_lights;
@@ -1040,7 +1040,7 @@ void SmRd1::Lights(double intensity)
   }
 }
 
-void SmRd1::RotateInPlace(double throttle, double time)
+void SmScout::RotateInPlace(double throttle, double time)
 {
   driving_tools::RotateInPlace srv_turn;
   srv_turn.request.throttle  = throttle;
@@ -1055,7 +1055,7 @@ void SmRd1::RotateInPlace(double throttle, double time)
   }
 }
 
-void SmRd1::Stop(double time)
+void SmScout::Stop(double time)
 {
   driving_tools::Stop srv_stop;
   srv_stop.request.enableStop  = true;
@@ -1070,7 +1070,7 @@ void SmRd1::Stop(double time)
   }
 }
 
-void SmRd1::Brake(double intensity)
+void SmScout::Brake(double intensity)
 {
   srcp2_msgs::BrakeRoverSrv srv_brake;
   srv_brake.request.brake_force  = intensity;
@@ -1092,7 +1092,7 @@ void SmRd1::Brake(double intensity)
   }
 }
 
-void SmRd1::BrakeRamp(double max_intensity, double time, int aggressivity)
+void SmScout::BrakeRamp(double max_intensity, double time, int aggressivity)
 {
   double freq = 10;
   ros::Rate brake_rate(freq);
@@ -1130,7 +1130,7 @@ void SmRd1::BrakeRamp(double max_intensity, double time, int aggressivity)
   ROS_INFO_STREAM("SCOUT: Called service SRCP2 Brake. Engaged? " << flag_brake_engaged);
 }
 
-void SmRd1::Drive(double throttle, double time)
+void SmScout::Drive(double throttle, double time)
 {
   driving_tools::MoveForward srv_drive;
 
@@ -1158,7 +1158,7 @@ void SmRd1::Drive(double throttle, double time)
 }
 
 
-void SmRd1::DriveCmdVel(double vx, double vy, double wz, double time)
+void SmScout::DriveCmdVel(double vx, double vy, double wz, double time)
 {
   if (pitch_ > 0.0 && vx < 0.0)
   {
@@ -1180,7 +1180,7 @@ void SmRd1::DriveCmdVel(double vx, double vy, double wz, double time)
   }
 }
 
-// void SmRd1::ToggleDetector(bool flag)
+// void SmScout::ToggleDetector(bool flag)
 // {
 //   volatile_handler::ToggleDetector srv_vol_detect;
 //   srv_vol_detect.request.on  = flag;
@@ -1194,7 +1194,7 @@ void SmRd1::DriveCmdVel(double vx, double vy, double wz, double time)
 //   }
 // }
 
-void SmRd1::RoverStatic(bool flag)
+void SmScout::RoverStatic(bool flag)
 {
   // Start attitude constraints for static rover
   sensor_fusion::RoverStatic srv_rover_static;
@@ -1210,7 +1210,7 @@ void SmRd1::RoverStatic(bool flag)
 
 }
 
-bool SmRd1::setMobility_(state_machine::SetMobility::Request &req, state_machine::SetMobility::Response &res){
+bool SmScout::setMobility_(state_machine::SetMobility::Request &req, state_machine::SetMobility::Response &res){
   ROS_ERROR(" GOT MOBILITY IN SM %d", req.mobility);
   flag_mobility = req.mobility;
   immobilityRecovery(1);

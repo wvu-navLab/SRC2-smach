@@ -37,7 +37,7 @@
 
 typedef actionlib::SimpleActionClient<move_base_msgs::MoveBaseAction> MoveBaseClient;
 
-class SmRd1
+class SmHauler
 {
 public:
   // Members -------------------------------------------------------------------------------------------------------------------------
@@ -119,20 +119,15 @@ public:
   ros::ServiceClient clt_rover_static_;
   ros::ServiceClient clt_waypoint_checker_;
   ros::ServiceClient clt_srcp2_brake_rover_;
+  ros::ServiceClient clt_approach_excavator_;
 
   ros::ServiceServer setMobilityService_;
-
-
-
-
-
-
 
   MoveBaseClient ac;
   actionlib::SimpleClientGoalState move_base_state_;
 
   // Methods ----------------------------------------------------------------------------------------------------------------------------
-  SmRd1(); // Constructor
+  SmHauler(); // Constructor
   void run();
   // State methods
   void stateInitialize();

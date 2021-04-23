@@ -37,6 +37,7 @@ struct PlanningParams {
     int max_time;
     int timeout;
     bool demo;
+    int type;
 };
 
 }
