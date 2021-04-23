@@ -9,13 +9,6 @@
 
 namespace mac {
 
-//WARNING:
-//planner sets volatiles forever
-
-//TODO:
-//maybe, change the publisher to a service that can be called by robots
-//need a status topic from each robot, so the planner can know what the robots are doing
-
 void TaskPlanner::
 plan() const {
   int nearest_int, min_distance;
