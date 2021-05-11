@@ -35,6 +35,7 @@
 #include <driving_tools/Stop.h>
 #include <driving_tools/MoveForward.h>
 #include <driving_tools/MoveSideways.h>
+#include <driving_tools/TurnWheelsSideways.h>
 #include <driving_tools/CirculateBaseStation.h>
 #include <driving_tools/RotateInPlace.h>
 #include <src2_object_detection/ApproachBaseStation.h>
@@ -76,7 +77,7 @@ public:
 
 
   ros::Time detection_timer, not_detected_timer, wp_checker_timer;
-  ros::Time last_time_laser_collision_, map_timer, waypoint_timer_;
+  ros::Time laser_collision_timer, map_timer, waypoint_timer;
 
   // State vector
   std::vector<int> state_to_exec; // Only one should be true at a time, if multiple are true then a default state should be executed
@@ -87,6 +88,7 @@ public:
   ros::Publisher sm_state_pub;
   ros::Publisher cmd_vel_pub; 
   ros::Publisher driving_mode_pub;
+
   // Subscribers
   ros::Subscriber localized_base_sub;
   ros::Subscriber waypoint_unreachable_sub;
@@ -98,6 +100,7 @@ public:
   ros::Subscriber driving_mode_sub;
   ros::Subscriber laser_scan_sub;
 
+  // Services
   ros::ServiceClient clt_sf_true_pose;
   ros::ServiceClient clt_wp_gen;
   ros::ServiceClient clt_wp_start;
@@ -105,6 +108,7 @@ public:
   ros::ServiceClient clt_stop;
   ros::ServiceClient clt_rip;
   ros::ServiceClient clt_move_side;
+  ros::ServiceClient clt_turn_wheels_side;
   ros::ServiceClient clt_drive;
   ros::ServiceClient clt_brake;
   ros::ServiceClient clt_lights;
@@ -156,6 +160,7 @@ public:
   void RotateToHeading(double desired_yaw);
   void RotateInPlace(double speed_ratio, double time);
   void MoveSideways(double speed_ratio, double time);
+  void TurnWheelsSideways(bool start, double time);
   void Stop(double time);
   void Brake(double intensity);
   void BrakeRamp(double max_intensity, double time, int aggressivity);

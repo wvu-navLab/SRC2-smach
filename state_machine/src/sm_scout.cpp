@@ -28,6 +28,7 @@ move_base_state(actionlib::SimpleClientGoalState::PREEMPTED)
   clt_stop = nh.serviceClient<driving_tools::Stop>("driving/stop");
   clt_rip = nh.serviceClient<driving_tools::RotateInPlace>("driving/rotate_in_place");
   clt_move_side = nh.serviceClient<driving_tools::MoveSideways>("driving/move_sideways");
+  clt_turn_wheels_side = nh.serviceClient<driving_tools::TurnWheelsSideways>("driving/turn_wheels_sideways");
   clt_drive = nh.serviceClient<driving_tools::MoveForward>("driving/move_forward");
   clt_lights = nh.serviceClient<srcp2_msgs::SpotLightSrv>("spot_light");
   clt_brake = nh.serviceClient<srcp2_msgs::BrakeRoverSrv>("brake_rover");
@@ -38,17 +39,17 @@ move_base_state(actionlib::SimpleClientGoalState::PREEMPTED)
   clt_waypoint_checker = nh.serviceClient<waypoint_checker::CheckCollision>("waypoint_checker");
   clt_srcp2_brake_rover = nh.serviceClient<srcp2_msgs::BrakeRoverSrv>("brake_rover");
 
+  // Service
   srv_mobility = nh.advertiseService("state_machine/mobility_service",&SmScout::setMobility, this);
 
-  driving_mode_ =0;
-  waypoint_type_ =0;
-  flag_need_init_landmark=true;
+  driving_mode_ = 0;
+  waypoint_type_ = 0;
 
   detection_timer = ros::Time::now();
   not_detected_timer = ros::Time::now();
-  last_time_laser_collision_ = ros::Time::now();
+  laser_collision_timer = ros::Time::now();
   map_timer = ros::Time::now();
-  wp_checker_timer=  ros::Time::now();
+  wp_checker_timer =  ros::Time::now();
 
   node_name = "state_machine";
   if (ros::param::get(node_name + "/robot_name", robot_name) == false) 
@@ -188,6 +189,7 @@ void SmScout::stateInitialize()
   {
       ROS_WARN("SCOUT: Waiting for Lights");
   }
+
   Lights(20);
 
   while (!clt_approach_base.waitForExistence())
@@ -247,35 +249,38 @@ void SmScout::stateInitialize()
   RoverStatic(true);
 
   if(approachSuccess){
-  // Homing - Initialize Base Station Landmark
-  while (!clt_homing.waitForExistence())
-  {
-      ROS_WARN("SCOUT: Waiting for Homing Service");
-  }
-  sensor_fusion::HomingUpdate srv_homing;
-  // ros::spinOnce();
+    // Homing - Initialize Base Station Landmark
+    while (!clt_homing.waitForExistence())
+    {
+        ROS_WARN("SCOUT: Waiting for Homing Service");
+    }
+    sensor_fusion::HomingUpdate srv_homing;
+    // ros::spinOnce();
 
-  srv_homing.request.angle = pitch_ + .4; // pitch up is negative number
-  ROS_ERROR("Requesting Angle for LIDAR %f",srv_homing.request.angle);
-  srv_homing.request.initializeLandmark = flag_need_init_landmark;
-  if (clt_homing.call(srv_homing))
-  {
-    ROS_INFO("SCOUT: Called service HomingUpdate");
-    if(srv_homing.response.success){
-    base_location_ = srv_homing.response.base_location;
-    flag_need_init_landmark = false;
-  }else{
-    ROS_ERROR(" Initial Homing Fail, Starting Without Base Location");
-  }
+    srv_homing.request.angle = pitch_ + .4; // pitch up is negative number
+    ROS_ERROR("Requesting Angle for LIDAR %f",srv_homing.request.angle);
+    srv_homing.request.initializeLandmark = flag_need_init_landmark;
+    if (clt_homing.call(srv_homing))
+    {
+      ROS_INFO("SCOUT: Called service HomingUpdate");
+      if(srv_homing.response.success){
+        base_location_ = srv_homing.response.base_location;
+        flag_need_init_landmark = false;
+      }
+      else
+      {
+        ROS_ERROR(" Initial Homing Fail, Starting Without Base Location");
+      }
+    }
+    else
+    {
+      ROS_ERROR("SCOUT: Failed to call service HomingUpdate");
+    }
   }
   else
   {
-    ROS_ERROR("SCOUT: Failed to call service HomingUpdate");
+    ROS_ERROR(" Initial Homing Fail, Starting Without Base Location");
   }
-}
-else{
-  ROS_ERROR(" Initial Homing Fail, Starting Without Base Location");
-}
 
   RoverStatic(false);
 
@@ -284,9 +289,9 @@ else{
   // Minimal Maneuvers to keep the localization good and get rid of BaseStation obstacle before generating initial path.
   Brake(0.0);
 
-  DriveCmdVel(-0.5,0.0,0.0,5);
+  DriveCmdVel(-0.5, 0.0, 0.0, 5.0);
 
-  BrakeRamp(100, 3, 0);
+  BrakeRamp(100, 3.0, 0);
 
   Brake(0.0);
 
@@ -380,7 +385,7 @@ void SmScout::statePlanning()
   RotateToHeading(goal_yaw_);
 
   // Brake (100.0);
-  BrakeRamp(100, 3, 0);
+  BrakeRamp(100, 3.0, 0);
   // check waypoint
 
   waypoint_checker::CheckCollision srv_wp_check;
@@ -411,7 +416,7 @@ void SmScout::statePlanning()
 
           RotateToHeading(goal_yaw_);
 
-          BrakeRamp(100, 3, 0);
+          BrakeRamp(100, 3.0, 0);
           Brake (0.0);
         }
         else
@@ -438,7 +443,7 @@ void SmScout::statePlanning()
   ac.waitForServer();
   setPoseGoal(move_base_goal, goal_pose_.position.x, goal_pose_.position.y, goal_yaw_);
   ROS_INFO_STREAM("SCOUT: Sending goal to MoveBase: " << move_base_goal);
-  waypoint_timer_ = ros::Time::now();
+  waypoint_timer = ros::Time::now();
   ac.sendGoal(move_base_goal, boost::bind(&SmScout::doneCallback, this,_1,_2), boost::bind(&SmScout::activeCallback, this), boost::bind(&SmScout::feedbackCallback, this,_1));
   ac.waitForResult(ros::Duration(0.25));
 
@@ -543,7 +548,7 @@ void SmScout::stateTraverse()
   }
 
   ros::Duration timeoutWaypoint(120);
-  if (ros::Time::now() - waypoint_timer_ > timeoutWaypoint )
+  if (ros::Time::now() - waypoint_timer > timeoutWaypoint )
   {
     ROS_ERROR("Waypoint Unreachable");
     flag_waypoint_unreachable= true;
@@ -555,7 +560,7 @@ void SmScout::stateTraverse()
   }
   else
   {
-    ROS_ERROR_STREAM_THROTTLE(1,"Remaining Time for Waypoint" << timeoutWaypoint - (ros::Time::now() - waypoint_timer_));
+    ROS_ERROR_STREAM_THROTTLE(1,"Remaining Time for Waypoint" << timeoutWaypoint - (ros::Time::now() - waypoint_timer));
   }
 
   std_msgs::Int64 state_msg;
@@ -588,69 +593,63 @@ void SmScout::stateVolatileHandler()
 
     detection_timer = ros::Time::now();
   }
+
+  if (vol_detected_dist_ < VOL_FOUND_THRESH || ros::Time::now() - detection_timer > timeoutVolatileHandling || flag_volatile_honed)
+  {
+    Stop(0.1);
+
+    DriveCmdVel(1, 0, 0, 3);
+
+    BrakeRamp(100, 0.5, 0);
+
+    Brake(0.0);
+
+    flag_localizing_volatile = false;
+    flag_volatile_honed = false;
+    dynamic_reconfigure::ReconfigureRequest srv_req;
+    dynamic_reconfigure::ReconfigureResponse srv_resp;
+    dynamic_reconfigure::DoubleParameter double_param;
+    dynamic_reconfigure::Config conf;
+
+    double_param.name = "max_vel_x";
+    double_param.value = 1.07;
+    conf.doubles.push_back(double_param);
+
+    srv_req.config = conf;
+
+    if (ros::service::call("move_base/DWAPlannerROS_SRC/set_parameters", srv_req, srv_resp)) 
+    {
+      ROS_ERROR("SCOUT: Called service to reconfigure MoveBase (increase max speed).");
+    }
+  }
   else
   {
-    DriveCmdVel(1, 0, 0, 3);
-  }
-
-  // if (vol_detected_dist_ < VOL_FOUND_THRESH || ros::Time::now() - detection_timer > timeoutVolatileHandling || flag_volatile_honed)
-  // {
-  //   Stop(0.1);
-
-  //   DriveCmdVel(1, 0, 0, 3);
-
-  //   BrakeRamp(100, 0.5, 0);
-
-  //   Brake(0.0);
-
-  //   flag_localizing_volatile = false;
-  //   flag_volatile_honed = false;
-  //   dynamic_reconfigure::ReconfigureRequest srv_req;
-  //   dynamic_reconfigure::ReconfigureResponse srv_resp;
-  //   dynamic_reconfigure::DoubleParameter double_param;
-  //   dynamic_reconfigure::Config conf;
-
-  //   double_param.name = "max_vel_x";
-  //   double_param.value = 1.4;
-  //   conf.doubles.push_back(double_param);
-
-  //   srv_req.config = conf;
-
-  //   if (ros::service::call("move_base/DWAPlannerROS_SRC/set_parameters", srv_req, srv_resp)) 
-  //   {
-  //     ROS_ERROR("SCOUT: Called service to reconfigure MoveBase (increase max speed).");
-  //   }
-  // }
-  // else
-  // {
-  //   switch (honing_direction_) 
-  //   {
-  //     case 0:
-  //     {MoveSideways(0.1,10); honing_direction_++; break;}
-  //     case 1:
-  //     {Drive(0.1,10); honing_direction_++; break;}
-  //     case 2:
-  //     {Drive(-0.1,20); honing_direction_++; break;}
-  //     case 3:
-  //     {Drive(0.1,10); honing_direction_++; break;}
-  //     case 4:
-  //     {MoveSideways(-0.1,20); honing_direction_++; break;}
-  //     case 5:
-  //     {Drive(0.1,10); honing_direction_++; break;}
-  //     case 6:
-  //     {Drive(-0.1,20); honing_direction_++; break;}
-  //     case 7:
-  //     {Drive(0.1,10); honing_direction_++; break;}
-  //     case 8:
-  //     {
-  //       MoveSideways(0.1,10);
-  //       flag_volatile_honed = true;
-  //       honing_direction_=0; break;
-  //     }
-  //   }
-  //   // DriveCmdVel(0.0011,0.1, 0, vol_detected_dist_);
     
-  // }
+    ROS_WARN("SCOUT:Turning wheels sideways.");
+    TurnWheelsSideways(true, 10.0);
+
+    ROS_WARN("SCOUT:Moving sideways (LEFT).");
+    MoveSideways(0.1, 10.0);
+
+    ROS_WARN("SCOUT:Moving sideways (RIGHT).");
+    MoveSideways(-0.1, 20.0);
+
+    ROS_WARN("SCOUT:Moving sideways (LEFT).");
+    MoveSideways(0.1, 10.0);
+
+
+    //RotateInPlace(0.1, 0.0);
+
+
+    // goal_yaw_ = yaw_;
+    // RotateToHeading(goal_yaw_ + M_PI_2);
+    // double dist_1 = vol_detected_dist_;
+
+    // RotateToHeading(goal_yaw_ - M_PI_2);
+    // double dist_2 = vol_detected_dist_;
+
+    flag_volatile_honed = true;
+  }
 }
 
 void SmScout::stateLost()
@@ -835,7 +834,7 @@ void SmScout::volatileSensorCallback(const srcp2_msgs::VolSensorMsg::ConstPtr& m
   // If detected = -1, out of range, reset.
   min_vol_detected_dist_ = ((vol_detected_dist_+1) < 0.001)? 30 : min_vol_detected_dist_;
 
-  // ROS_INFO("SCOUT: Volatile detected.");
+  ROS_INFO_STREAM("SCOUT: Minimum volatile detected." << min_vol_detected_dist_);
 }
 
 void SmScout::volatileCmdCallback(const std_msgs::Int64::ConstPtr& msg)
@@ -866,8 +865,8 @@ void SmScout::volatileCmdCallback(const std_msgs::Int64::ConstPtr& msg)
   else
   {
     ROS_WARN("SCOUT: Volatile detected.");
-    
   }
+
 }
 
 void SmScout::localizationFailureCallback(const std_msgs::Bool::ConstPtr& msg)
@@ -907,7 +906,7 @@ void SmScout::laserCallback(const sensor_msgs::LaserScan::ConstPtr& msg)
 
   if (min_range < LASER_THRESH)
   {
-    if (ros::Time::now() - last_time_laser_collision_ < ros::Duration(20))
+    if (ros::Time::now() - laser_collision_timer < ros::Duration(20))
     {
       ROS_WARN("SCOUT: Close to wall.");
       counter_laser_collision_++;
@@ -918,7 +917,7 @@ void SmScout::laserCallback(const sensor_msgs::LaserScan::ConstPtr& msg)
       counter_laser_collision_ = 0;
       ROS_INFO_STREAM("SCOUT: Counter laser RESET!");
     }
-    last_time_laser_collision_ = ros::Time::now();
+    laser_collision_timer = ros::Time::now();
   }
 
   if (counter_laser_collision_ > LASER_COUNTER_THRESH)
@@ -971,7 +970,7 @@ void SmScout::feedbackCallback(const move_base_msgs::MoveBaseFeedback::ConstPtr&
 
 void SmScout::RotateToHeading(double desired_yaw)
 {
-  ros::Rate raterotateToHeading(20);
+  ros::Rate rateRotateToHeading(20);
 
   ROS_INFO("Starting yaw control.");
 
@@ -991,15 +990,16 @@ void SmScout::RotateToHeading(double desired_yaw)
       yaw_error = yaw_error + 2*M_PI;
     }
   }
+
   flag_heading_fail=false;
   ros::Time start_time = ros::Time::now();
-  ros::Duration timeoutHeading(10.0); // Timeout of 20 seconds
+  ros::Duration timeoutHeading(30.0); // Timeout of 20 seconds
 
   while(fabs(yaw_error) > yaw_thres)
   {
     RotateInPlace(copysign(0.1*(1 + fabs(yaw_error)/M_PI), -yaw_error),0.0);
 
-    raterotateToHeading.sleep();
+    rateRotateToHeading.sleep();
     ros::spinOnce();
 
     yaw_error = desired_yaw - yaw_;
@@ -1016,7 +1016,7 @@ void SmScout::RotateToHeading(double desired_yaw)
     }
     // ROS_INFO_STREAM("Trying to control yaw to desired angles. Yaw error: "<<yaw_error);
 
-    // ROS_ERROR_STREAM("TIME: "<<ros::Time::now() - start_time << ", TIMEOUT: " << timeoutHeading);
+    // ROS_ERROR_STREAM("TIME: " << ros::Time::now() - start_time << ", TIMEOUT: " << timeoutHeading);
 
     if (ros::Time::now() - start_time > timeoutHeading)
     {
@@ -1039,7 +1039,7 @@ void SmScout::RotateToHeading(double desired_yaw)
      Brake(0.0);
      // Stop(2.0);
 
-  //  immobilityRecovery(); //TODO: Use this instead of Stop and Drive at line 714 and 716
+    //  immobilityRecovery(); //TODO: Use this instead of Stop and Drive at line 714 and 716
 
     flag_heading_fail=false;
   }
@@ -1182,6 +1182,21 @@ void SmScout::MoveSideways(double speed_ratio, double time)
   else
   {
     ROS_INFO("SCOUT: Failed to call service MoveSideways");
+  }
+}
+
+void SmScout::TurnWheelsSideways(bool start, double time)
+{
+  driving_tools::TurnWheelsSideways srv_turn_wheels_side;
+  srv_turn_wheels_side.request.start  = start;
+  if (clt_turn_wheels_side.call(srv_turn_wheels_side))
+  {
+    ROS_INFO_THROTTLE(5,"SCOUT: Called service TurnWheelsSideways");
+    ros::Duration(time).sleep();
+  }
+  else
+  {
+    ROS_INFO("SCOUT: Failed to call service TurnWheelsSideways");
   }
 }
 

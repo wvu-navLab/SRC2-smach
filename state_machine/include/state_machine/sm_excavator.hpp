@@ -30,6 +30,8 @@
 #include <waypoint_checker/CheckCollision.h>
 #include <driving_tools/Stop.h>
 #include <driving_tools/MoveForward.h>
+#include <driving_tools/MoveSideways.h>
+#include <driving_tools/TurnWheelsSideways.h>
 #include <driving_tools/CirculateBaseStation.h>
 #include <driving_tools/RotateInPlace.h>
 #include <src2_object_detection/ApproachBaseStation.h>
@@ -50,6 +52,7 @@
 #include <move_excavator/ExcavatorFK.h>
 #include <move_excavator/GoToPose.h>
 #include <move_excavator/ControlInvJac.h>
+#include <move_excavator/FindHauler.h>
 
 
 #define PI 3.141592653589793
@@ -106,7 +109,7 @@ public:
 
   ros::Time manipulation_timer;
   ros::Time detection_timer, not_detected_timer, wp_checker_timer;
-  ros::Time last_time_laser_collision, map_timer, waypoint_timer;
+  ros::Time laser_collision_timer, map_timer, waypoint_timer;
 
   // State vector
   std::vector<int> state_to_exec; // Only one should be true at a time, if multiple are true then a default state should be executed
@@ -117,7 +120,9 @@ public:
   ros::Publisher sm_state_pub;
   ros::Publisher cmd_vel_pub;
   ros::Publisher driving_mode_pub;
+  ros::Publisher manipulation_state_pub;
   ros::Publisher excavation_status_pub;
+
   // Subscribers
   ros::Subscriber localized_base_sub;
   ros::Subscriber waypoint_unreachable_sub;
@@ -130,14 +135,17 @@ public:
   ros::Subscriber bucket_info_sub;
   ros::Subscriber goal_volatile_sub;
   ros::Subscriber target_bin_sub;
-  ros::Subscriber manipulation_state_sub;
-  // Clients
+  ros::Subscriber manipulation_cmd_sub;
+
+  // Services
   ros::ServiceClient clt_sf_true_pose;
   ros::ServiceClient clt_wp_gen;
   ros::ServiceClient clt_wp_start;
   ros::ServiceClient clt_vh_report;
   ros::ServiceClient clt_stop;
   ros::ServiceClient clt_rip;
+  ros::ServiceClient clt_move_side;
+  ros::ServiceClient clt_turn_wheels_side;
   ros::ServiceClient clt_drive;
   ros::ServiceClient clt_brake;
   ros::ServiceClient clt_lights;
@@ -154,6 +162,7 @@ public:
   ros::ServiceClient clt_drop_volatile;
   ros::ServiceClient clt_forward_kin;
   ros::ServiceClient clt_go_to_pose;
+  ros::ServiceClient clt_find_hauler;
   MoveBaseClient ac;
 
   // Clients
@@ -183,10 +192,10 @@ public:
   void goalVolatileCallback(const geometry_msgs::PoseStamped::ConstPtr &msg);
   void jointStateCallback(const sensor_msgs::JointState::ConstPtr &msg);
   void targetBinCallback(const geometry_msgs::PointStamped::ConstPtr &msg);
-  void manipulationStateCallback(const std_msgs::Int64::ConstPtr &msg);
-  void doneCallback(const actionlib::SimpleClientGoalState& state, const move_base_msgs::MoveBaseResultConstPtr& result);
+  void manipulationCmdCallback(const std_msgs::Int64::ConstPtr &msg);
   void activeCallback();
   void feedbackCallback(const move_base_msgs::MoveBaseFeedbackConstPtr& feedback);
+  void doneCallback(const actionlib::SimpleClientGoalState& state, const move_base_msgs::MoveBaseResultConstPtr& result);
 
   // Service providers
   bool setMobility(state_machine::SetMobility::Request &req, state_machine::SetMobility::Response &res);
@@ -199,6 +208,8 @@ public:
   void DriveCmdVel(double vx, double vy, double wz, double time);
   void RotateToHeading(double desired_yaw);
   void RotateInPlace(double speed_ratio, double time);
+  void MoveSideways(double speed_ratio, double time);
+  void TurnWheelsSideways(bool start, double time);
   void Stop(double time);
   void Brake(double intensity);
   void BrakeRamp(double max_intensity, double time, int aggressivity);
