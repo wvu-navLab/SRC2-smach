@@ -129,7 +129,7 @@ class TaskPlanner {
     const int EXCAVATOR_STR_LOC = 17; //index ~SHOULD BE~ at 18th position
     const int HAULER_STR_LOC = 14; //index ~SHOULD BE~ at 15th position
 
-    int get_robot_index(char robot_type, int robot_id);
+    int get_robot_index(int robot_type, int robot_id);
     static double dist(const std::vector<double> p1, const std::vector<double> p2);
 
     /** \brief  */

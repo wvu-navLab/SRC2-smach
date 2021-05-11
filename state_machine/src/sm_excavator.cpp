@@ -26,6 +26,7 @@ move_base_state(actionlib::SimpleClientGoalState::PREEMPTED)
   target_bin_sub = nh.subscribe("manipulation/target_bin", 1, &SmExcavator::targetBinCallback, this);
   goal_volatile_sub = nh.subscribe("manipulation/volatile_pose", 1, &SmExcavator::goalVolatileCallback, this);
   manipulation_cmd_sub = nh.subscribe("manipulation/cmd", 1, &SmExcavator::manipulationCmdCallback, this);
+  planner_interrupt_sub = nh.subscribe("/planner_interrupt", 1, &SmExcavator::plannerInterruptCallback, this);
 
   // Clients
   clt_wp_gen = nh.serviceClient<waypoint_gen::GenerateWaypoint>("navigation/generate_goal");
@@ -52,6 +53,7 @@ move_base_state(actionlib::SimpleClientGoalState::PREEMPTED)
   clt_forward_kin = nh.serviceClient<move_excavator::ExcavatorFK>("manipulation/excavator_fk");
   clt_go_to_pose = nh.serviceClient<move_excavator::GoToPose>("manipulation/go_to_pose");
   clt_find_hauler = nh.serviceClient<move_excavator::FindHauler>("manipulation/find_hauler");
+  clt_task_planning = nh.serviceClient<task_planning::PlanInfo>("/task_planner_exc_haul");
 
   // Service
   srv_mobility = nh.advertiseService("state_machine/mobility_service",&SmExcavator::setMobility, this);
@@ -66,10 +68,16 @@ move_base_state(actionlib::SimpleClientGoalState::PREEMPTED)
   wp_checker_timer = ros::Time::now();
   manipulation_timer = ros::Time::now();
 
-  node_name = "state_machine";
-  if (ros::param::get(node_name + "/robot_name", robot_name) == false) 
+  node_name_ = "state_machine";
+  if (ros::param::get(node_name_ + "/robot_name", robot_name_) == false) 
   {
     ROS_FATAL("No parameter 'robot_name' specified");
+    ros::shutdown();
+    exit(1);
+  }
+  if (ros::param::get(node_name_ + "/robot_id", robot_id_) == false) 
+  {
+    ROS_FATAL("No parameter 'robot_id' specified");
     ros::shutdown();
     exit(1);
   }
@@ -252,44 +260,10 @@ void SmExcavator::statePlanning()
   ac.waitForResult(ros::Duration(0.25));
 
   flag_arrived_at_waypoint = false;
-  if(waypoint_type==1)
-  {
-    flag_waypoint_unreachable=false;
-  }
 
-  while (!clt_wp_gen.waitForExistence())
-  {
-    ROS_ERROR("EXCAVATOR: Waiting for Waypoint Gen service");
-  }
-  waypoint_gen::GenerateWaypoint srv_wp_gen;
+  Plan();
 
-  srv_wp_gen.request.start  = true;
-  if(flag_completed_homing)
-  {
-    flag_completed_homing = false;
-    srv_wp_gen.request.next  = true;
-  }
-  else if(flag_waypoint_unreachable)
-  {
-    flag_waypoint_unreachable=false;
-    srv_wp_gen.request.next  = true;
-  }
-  else
-  {
-  srv_wp_gen.request.next  = false;
-  }
-
-  if (clt_wp_gen.call(srv_wp_gen))
-  {
-    ROS_INFO("EXCAVATOR: Called service Generate Waypoint");
-    goal_pose_ = srv_wp_gen.response.goal;
-    waypoint_type = srv_wp_gen.response.type;
-  }
-  else
-  {
-    ROS_ERROR("EXCAVATOR: Failed  to call service Generate Waypoint");
-  }
-  ROS_INFO_STREAM("EXCAVATOR: WP Generation: Goal pose: " << goal_pose_);
+  ROS_INFO_STREAM("EXCAVATOR: New plan: Goal pose: " << goal_pose_);
 
   goal_yaw_ = atan2(goal_pose_.position.y - current_pose_.position.y, goal_pose_.position.x - current_pose_.position.x);
 
@@ -738,7 +712,7 @@ void SmExcavator::setPoseGoal(move_base_msgs::MoveBaseGoal &poseGoal, double x, 
   double sp = sin(pitch * 0.5);
   
   //********************************************************************************************************
-  poseGoal.target_pose.header.frame_id = robot_name+"_odom";
+  poseGoal.target_pose.header.frame_id = robot_name_+"_odom";
   poseGoal.target_pose.pose.position.x = x;
   poseGoal.target_pose.pose.position.y = y;
   poseGoal.target_pose.pose.position.z = 0.0;
@@ -802,7 +776,7 @@ void SmExcavator::bucketCallback(const srcp2_msgs::ExcavatorScoopMsg::ConstPtr &
 void SmExcavator::goalVolatileCallback(const geometry_msgs::PoseStamped::ConstPtr &msg)
 {
 
-  odom_to_arm_mount = tf_buffer.lookupTransform(robot_name+"_arm_mount", robot_name+"_odom", ros::Time(0), ros::Duration(1.0));
+  odom_to_arm_mount = tf_buffer.lookupTransform(robot_name_+"_arm_mount", robot_name_+"_odom", ros::Time(0), ros::Duration(1.0));
   tf2::doTransform(*msg, volatile_pose_, odom_to_arm_mount);
 
   ROS_INFO_STREAM("MANIPULATION: Goal volatile updated. Pose:" << *msg);
@@ -810,7 +784,7 @@ void SmExcavator::goalVolatileCallback(const geometry_msgs::PoseStamped::ConstPt
 
 void SmExcavator::targetBinCallback(const geometry_msgs::PointStamped::ConstPtr &msg)
 {
-  camera_link_to_arm_mount = tf_buffer.lookupTransform(robot_name+"_arm_mount", robot_name+"_left_camera_optical", ros::Time(0), ros::Duration(1.0));
+  camera_link_to_arm_mount = tf_buffer.lookupTransform(robot_name_+"_arm_mount", robot_name_+"_left_camera_optical", ros::Time(0), ros::Duration(1.0));
   tf2::doTransform(*msg, bin_point_, camera_link_to_arm_mount);
 
   ROS_INFO_STREAM("MANIPULATION: Target bin updated. Point:" << *msg);
@@ -862,6 +836,12 @@ void SmExcavator::manipulationCmdCallback(const std_msgs::Int64::ConstPtr &msg)
     }
     break;
   }
+}
+
+void SmExcavator::plannerInterruptCallback(const std_msgs::Bool::ConstPtr &msg)
+{
+  flag_interrupt_ = msg->data;
+  // ROS_INFO_STREAM("EXCAVATOR: Interrupt flag updated." << *msg);
 }
 
 void SmExcavator::RotateToHeading(double desired_yaw)
@@ -1361,5 +1341,37 @@ void SmExcavator::outputManipulationStatus()
   ROS_INFO("MANIPULATION: has finished. Publishing to State Machine.");
 }
 
+void SmExcavator::Plan()
+{
+  task_planning::PlanInfo srv_plan;
+  if (!flag_interrupt_)
+  {
+    srv_plan.request.replan.data = true;
+  }
+  else
+  {
+    srv_plan.request.replan.data = false;
+  }
+  srv_plan.request.type.data = mac::EXCAVATOR;
+  srv_plan.request.id.data = robot_id_;
+
+  if (clt_task_planning.call(srv_plan))
+  {
+    ROS_INFO_THROTTLE(5,"EXCAVATOR: Called service Plan");
+  }
+  else
+  {
+    ROS_INFO("EXCAVATOR: Failed to call service RotateInPlace");
+  }
+
+  goal_pose_.position = srv_plan.response.objective.point;
+  geometry_msgs::Quaternion quat;
+  goal_pose_.orientation = quat;
+  
+  flag_interrupt_ = false;
+  // srv_plan.response.id;
+  // srv_plan.response.code
+  
+}
 
 //------------------------------------------------------------------------------------------------------------------------

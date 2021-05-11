@@ -53,8 +53,10 @@
 #include <move_excavator/GoToPose.h>
 #include <move_excavator/ControlInvJac.h>
 #include <move_excavator/FindHauler.h>
+#include <task_planning/PlanInfo.h>
+#include <task_planning/Types.hpp>
 
-
+ 
 #define PI 3.141592653589793
 
 #define JOINT1_MAX PI
@@ -136,6 +138,7 @@ public:
   ros::Subscriber goal_volatile_sub;
   ros::Subscriber target_bin_sub;
   ros::Subscriber manipulation_cmd_sub;
+  ros::Subscriber planner_interrupt_sub;
 
   // Services
   ros::ServiceClient clt_sf_true_pose;
@@ -163,6 +166,8 @@ public:
   ros::ServiceClient clt_forward_kin;
   ros::ServiceClient clt_go_to_pose;
   ros::ServiceClient clt_find_hauler;
+  ros::ServiceClient clt_task_planning;
+
   MoveBaseClient ac;
 
   // Clients
@@ -196,6 +201,7 @@ public:
   void activeCallback();
   void feedbackCallback(const move_base_msgs::MoveBaseFeedbackConstPtr& feedback);
   void doneCallback(const actionlib::SimpleClientGoalState& state, const move_base_msgs::MoveBaseResultConstPtr& result);
+  void plannerInterruptCallback(const std_msgs::Bool::ConstPtr &msg);
 
   // Service providers
   bool setMobility(state_machine::SetMobility::Request &req, state_machine::SetMobility::Response &res);
@@ -226,10 +232,12 @@ public:
   void getForwardKinematics(double timeout);
   void getRelativePosition();
   void outputManipulationStatus();
+  void Plan();
 
   // Parameters
-  std::string robot_name;
-  std::string node_name;
+  std::string node_name_;
+  std::string robot_name_;
+  int robot_id_;
 
   double waypoint_type;
   int driving_mode;
@@ -277,4 +285,8 @@ public:
   double q2_pos_ = 0.0;
   double q3_pos_ = 0.0;
   double q4_pos_ = 0.0;
+
+
+  // Planning
+  bool flag_interrupt_ = false;
 };

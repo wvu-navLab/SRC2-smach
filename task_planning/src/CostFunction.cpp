@@ -26,7 +26,7 @@ double CostFunction::compute_cost(const volatile_map::Volatile & vol,
       ROS_ERROR("CostFunction::compute_cost: cost_type invalid!");
       break;
   }
-
+  return 0.0;
 }
 
 std::vector<std::vector<double>> CostFunction::compute_cost_vector(const volatile_map::VolatileMap & volatile_map,
@@ -55,7 +55,7 @@ if(p1.size() != p2.size())
 {
 std::cout << "Error! p1.size() != p2.size() for computing distance!\n";
 exit(1); //TODO: remove exit
-
+}
 double val=0;
 for(int i=0; i<p1.size(); i++)
 {
@@ -64,8 +64,6 @@ for(int i=0; i<p1.size(); i++)
 }
 val = std::sqrt(val);
 return val;
-}
-
 }
 
 

@@ -33,6 +33,7 @@ find_package(catkin REQUIRED COMPONENTS
   tf2_ros
   dynamic_reconfigure
   volatile_map
+  task_planning
 )
 
 find_package(Eigen3 3.3 REQUIRED)
@@ -146,6 +147,7 @@ catkin_package(
   tf2_ros
   dynamic_reconfigure
   volatile_map
+  task_planning
 #  DEPENDS system_lib
 )
 
@@ -175,6 +177,9 @@ add_library(sm_hauler
 add_library(sm_excavator
    src/sm_excavator.cpp
 )
+
+
+
 #  add_library(sm_rd3
 #    src/sm_rd3.cpp
  #)
@@ -184,7 +189,6 @@ add_library(sm_excavator
 add_dependencies(sm_utils ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 add_dependencies(sm_scout ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-# add_dependencies(sm_rd2 ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 add_dependencies(sm_hauler ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 add_dependencies(sm_excavator ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
@@ -226,9 +230,11 @@ add_executable(state_machine_excavator_node src/sm_excavator_node.cpp)
 
 ## Add cmake target dependencies of the executable
 ## same as for the library above
-add_dependencies(utils_test_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 add_dependencies(state_machine_scout_node state_machine_generate_messages_cpp)
+add_dependencies(state_machine_hauler_node state_machine_generate_messages_cpp)
+add_dependencies(state_machine_excavator_node state_machine_generate_messages_cpp)
 
+add_dependencies(utils_test_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 add_dependencies(state_machine_scout_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 add_dependencies(state_machine_hauler_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 add_dependencies(state_machine_excavator_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})

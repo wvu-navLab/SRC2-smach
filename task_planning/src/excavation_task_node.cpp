@@ -85,8 +85,7 @@ int main(int argc, char** argv)
 
 		mac::TaskPlanner tp(cf,robots, planning_params);
 
-		ros::Publisher pub = nh.advertise<std_msgs::Bool>("/small_excavator_1/localization/odometry/sensor_fusion", 10);
-		std_msgs::Bool msg;
+  		ROS_ERROR("After Constructor.");
     /**----------------- Initialize Rover Metric Class------------------------------*/
 		ros::spin();
 

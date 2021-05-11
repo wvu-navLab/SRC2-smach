@@ -71,15 +71,17 @@ void TaskPlanner::exc_haul_plan_default()
     pose_min = default_pose;
     vol_pose[0] = volatile_map_.vol[i].position.point.x;
     vol_pose[1] = volatile_map_.vol[i].position.point.y;
-    std::cout << "robots_.size() = " << robots_.size() << std::endl;
+    ROS_ERROR_STREAM("Volatile pose " << vol_pose[0] << "," << vol_pose[1]);
+    // std::cout << "robots_.size() = " << robots_.size() << std::endl;
     for (int j = 0; j < robots_.size() ; ++j)
     {
-      if (robots_[i].type == mac::EXCAVATOR)
+      if (robots_[j].type == mac::EXCAVATOR)
       {
         if (nearest_int != -1)
         {
-          current_pose[0] = robots_[i].odom.pose.pose.position.x;
-          current_pose[1] = robots_[i].odom.pose.pose.position.y;// robot of nearest in pose
+          current_pose[0] = robots_[j].odom.pose.pose.position.x;
+          current_pose[1] = robots_[j].odom.pose.pose.position.y;// robot of nearest in pose
+          ROS_ERROR_STREAM("Excavator pose " << current_pose[0] << "," << current_pose[1]);
 
           // robot of current in pose
           double distance = TaskPlanner::dist(current_pose, vol_pose);
@@ -90,11 +92,12 @@ void TaskPlanner::exc_haul_plan_default()
             pose_min = current_pose;
           }
 
-        } else if (robots_[i].current_task < 0)
+        } else if (robots_[j].current_task < 0)
         {
-          nearest_int = i;
-          pose_min[0] = robots_[i].odom.pose.pose.position.x;
-          pose_min[1] = robots_[i].odom.pose.pose.position.y;
+          nearest_int = j;
+          pose_min[0] = robots_[j].odom.pose.pose.position.x;
+          pose_min[1] = robots_[j].odom.pose.pose.position.y;
+          // ROS_ERROR_STREAM("Excavator pose min " << pose_min[0] << "," << pose_min[1]);
         }
       }
     }
@@ -107,15 +110,16 @@ void TaskPlanner::exc_haul_plan_default()
     pose_min = default_pose;
     vol_pose[0] = volatile_map_.vol[i].position.point.x;
     vol_pose[1] = volatile_map_.vol[i].position.point.y;
-    std::cout << "robots_.size() = " << robots_.size() << std::endl;
+    // std::cout << "robots_.size() = " << robots_.size() << std::endl;
     for (int j = 0; j < robots_.size() ; ++j)
     {
-      if (robots_[i].type == mac::HAULER)
+      if (robots_[j].type == mac::HAULER)
       {
         if (nearest_int != -1)
         {
-          current_pose[0] = robots_[i].odom.pose.pose.position.x;
-          current_pose[1] = robots_[i].odom.pose.pose.position.y;// robot of nearest in pose
+          current_pose[0] = robots_[j].odom.pose.pose.position.x;
+          current_pose[1] = robots_[j].odom.pose.pose.position.y;// robot of nearest in pose
+          ROS_ERROR_STREAM("Hauler pose " << current_pose[0] << "," << current_pose[1]);
 
           // robot of current in pose
           double distance = TaskPlanner::dist(current_pose, vol_pose);
@@ -126,11 +130,11 @@ void TaskPlanner::exc_haul_plan_default()
             pose_min = current_pose;
           }
 
-        } else if (robots_[i].current_task < 0)
+        } else if (robots_[j].current_task < 0)
         {
-          nearest_int = i;
-          pose_min[0] = robots_[i].odom.pose.pose.position.x;
-          pose_min[1] = robots_[i].odom.pose.pose.position.y;
+          nearest_int = j;
+          pose_min[0] = robots_[j].odom.pose.pose.position.x;
+          pose_min[1] = robots_[j].odom.pose.pose.position.y;
         }
       }
     }
@@ -160,6 +164,8 @@ void TaskPlanner::poseCallback(const ros::MessageEvent<nav_msgs::Odometry const>
   std::string topic = header.at("topic");
   char robot_type = topic.c_str()[7]; // first character is at 8th index
 
+  int r_type;
+
   const nav_msgs::OdometryConstPtr& msg = event.getMessage();
 
   char ind;
@@ -168,16 +174,19 @@ void TaskPlanner::poseCallback(const ros::MessageEvent<nav_msgs::Odometry const>
     case 's': // scout
       ind = topic.c_str()[SCOUT_STR_LOC];
       id = std::atoi(&ind);
+      r_type = mac::SCOUT;
 
       break;
     case 'e': // excavator
       ind = topic.c_str()[EXCAVATOR_STR_LOC];
       id = std::atoi(&ind);
+      r_type = mac::EXCAVATOR;
 
       break;
     case 'h': // hauler
       ind = topic.c_str()[HAULER_STR_LOC];
       id = std::atoi(&ind);
+      r_type = mac::HAULER;
 
       break;
     default:
@@ -185,9 +194,12 @@ void TaskPlanner::poseCallback(const ros::MessageEvent<nav_msgs::Odometry const>
 
   }
   //ROS_WARN("HRMM %s",topic.c_str());
-  ROS_WARN("%c %i",robot_type,id);// << std::endl;
+  // ROS_WARN("%c %i",robot_type,id);// << std::endl;
   //ROS_DEBUG("%d",msg->data);
-  int index = get_robot_index(robot_type, id);
+  int index = get_robot_index(r_type, id);
+  // ROS_ERROR_STREAM("Index "<<index);
+
+  // ROS_ERROR_STREAM("Robot pose "<<*msg);
   robots_[index].odom = *msg;
 
 }
@@ -230,6 +242,8 @@ void TaskPlanner::poseCallback(const ros::MessageEvent<nav_msgs::Odometry const>
 
 bool TaskPlanner::taskPlanService(task_planning::PlanInfo::Request &req,task_planning::PlanInfo::Response &res)
 {
+
+  ROS_ERROR("Planning started.");
     if (req.replan.data)
     {
       //perform planning type
@@ -256,9 +270,11 @@ bool TaskPlanner::taskPlanService(task_planning::PlanInfo::Request &req,task_pla
       if (req.type.data == robot.type && req.id.data == robot.id)
       {
         res.objective = robot.plan[0];
+        ROS_ERROR_STREAM("Objective " << robot.plan[0]);
       }
     }
-
+  ROS_ERROR("Planning ended.");
+  return true;
 }
 
 /////////////////////////////////////////////////////////////////////
@@ -333,6 +349,7 @@ TaskPlanner::TaskPlanner(const CostFunction       & cost_function,
         ROS_ERROR("TaskPlanner::TaskPlanner: robot type invalid!");
         break;
     }
+    
   }
 
   sub_clock_ = nh_.subscribe("/clock", 10, &TaskPlanner::timeCallback, this);
@@ -348,7 +365,7 @@ TaskPlanner::TaskPlanner(const CostFunction       & cost_function,
 
   pub_interrupt = nh_.advertise<std_msgs::Bool>("planner_interrupt", 1);
 
-  this->populate_prior_plan();
+  // this->populate_prior_plan();
 
 }
 
@@ -356,7 +373,7 @@ TaskPlanner::TaskPlanner(const CostFunction       & cost_function,
 /***************************UTILITIES*******************************/
 /////////////////////////////////////////////////////////////////////
 
-int TaskPlanner::get_robot_index(char robot_type, int robot_id)
+int TaskPlanner::get_robot_index(int robot_type, int robot_id)
 {
   int index = -1;
   for (int i = 0; i < robots_.size(); ++i)
@@ -374,7 +391,7 @@ if(p1.size() != p2.size())
 {
 std::cout << "Error! p1.size() != p2.size() for computing distance!\n";
 exit(1); //TODO: remove exit
-
+}
 double val=0;
 for(int i=0; i<p1.size(); i++)
 {
@@ -383,8 +400,6 @@ for(int i=0; i<p1.size(); i++)
 }
 val = std::sqrt(val);
 return val;
-}
-
 }
 
 
