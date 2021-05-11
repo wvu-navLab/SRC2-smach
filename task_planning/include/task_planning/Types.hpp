@@ -10,6 +10,7 @@
 #define Types_HPP
 
 #include <nav_msgs/Odometry.h>
+#include <geometry_msgs/PointStamped.h>
 
 namespace mac
 {
@@ -24,6 +25,7 @@ struct Robot {
     double status;
     double current_task = -1;
     nav_msgs::Odometry odom;
+    std::vector<geometry_msgs::PointStamped> plan;
     bool is_initialized = false;
 };
 
@@ -37,6 +39,9 @@ struct PlanningParams {
     int max_time;
     int timeout;
     bool demo;
+    int type;
+    std::vector<std::vector<double>> plan;
+
 };
 
 }

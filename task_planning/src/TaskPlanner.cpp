@@ -16,8 +16,48 @@ namespace mac {
 //maybe, change the publisher to a service that can be called by robots
 //need a status topic from each robot, so the planner can know what the robots are doing
 
-void TaskPlanner::
-plan() const {
+//add call help message and accept/denial so excavators can get scout if need be
+// lazy excavator/hauler following
+
+
+/////////////////////////////////////////////////////////////////////
+/***************************PLANNERS********************************/
+/////////////////////////////////////////////////////////////////////
+
+void TaskPlanner::populate_prior_plan()
+{
+  geometry_msgs::PointStamped temp;
+  for(int i = 0; i < planning_params_.plan.size(); ++i)
+  {
+    for (auto&robot: robots_)
+    {
+      if (robot.type == planning_params_.plan[0][i] && robot.id == planning_params_.plan[1][i])
+      {
+        temp.point.x = planning_params_.plan[2][i];
+        temp.point.y = planning_params_.plan[3][i];
+      }
+    }
+  }
+}
+
+void TaskPlanner::scout_plan_default(int type, int id)
+{
+  for (auto&robot: robots_)
+  {
+    if (type == robot.type && id == robot.id)
+    {
+      robot.plan.erase(robot.plan.begin());
+    }
+  }
+}
+
+void TaskPlanner::exc_haul_plan_default()
+{
+  for (auto&robot: robots_)
+  {
+    robot.plan.clear();
+  }
+
   int nearest_int, min_distance;
   std::vector<double> pose_min, vol_pose, default_pose, current_pose;
   default_pose.push_back(0);
@@ -34,6 +74,8 @@ plan() const {
     std::cout << "robots_.size() = " << robots_.size() << std::endl;
     for (int j = 0; j < robots_.size() ; ++j)
     {
+      if (robots_[i].type == mac::EXCAVATOR)
+      {
         if (nearest_int != -1)
         {
           current_pose[0] = robots_[i].odom.pose.pose.position.x;
@@ -53,27 +95,47 @@ plan() const {
           nearest_int = i;
           pose_min[0] = robots_[i].odom.pose.pose.position.x;
           pose_min[1] = robots_[i].odom.pose.pose.position.y;
-
-
         }
-        if (nearest_int != -1){
-          geometry_msgs::PointStamped msg;
-          msg = volatile_map_.vol[nearest_int].position;
-          pubs_plans_[nearest_int].publish(msg);
-          std::cout << "publishing" << std::endl;
-        }
+      }
     }
+    geometry_msgs::PointStamped temp;
+    temp.point.x = vol_pose[0];
+    temp.point.y = vol_pose[1];
+    robots_[nearest_int].plan.push_back(temp);
+    nearest_int = -1;
+    min_distance = 5000;
+    pose_min = default_pose;
+    vol_pose[0] = volatile_map_.vol[i].position.point.x;
+    vol_pose[1] = volatile_map_.vol[i].position.point.y;
+    std::cout << "robots_.size() = " << robots_.size() << std::endl;
+    for (int j = 0; j < robots_.size() ; ++j)
+    {
+      if (robots_[i].type == mac::HAULER)
+      {
+        if (nearest_int != -1)
+        {
+          current_pose[0] = robots_[i].odom.pose.pose.position.x;
+          current_pose[1] = robots_[i].odom.pose.pose.position.y;// robot of nearest in pose
 
+          // robot of current in pose
+          double distance = TaskPlanner::dist(current_pose, vol_pose);
+          if (distance < min_distance)
+          {
+            min_distance = distance;
+            nearest_int = j;
+            pose_min = current_pose;
+          }
+
+        } else if (robots_[i].current_task < 0)
+        {
+          nearest_int = i;
+          pose_min[0] = robots_[i].odom.pose.pose.position.x;
+          pose_min[1] = robots_[i].odom.pose.pose.position.y;
+        }
+      }
+    }
+    robots_[nearest_int].plan.push_back(temp);
   }
-  //do stuff
-  //bool is_data_loaded = false;
-  //while(is_data_loaded) {
-    //check if data is loaded
-  //  ros::spinOnce();
-  //}
-
-  //do planning
-
 }
 
 
@@ -125,7 +187,7 @@ void TaskPlanner::poseCallback(const ros::MessageEvent<nav_msgs::Odometry const>
   //ROS_WARN("HRMM %s",topic.c_str());
   ROS_WARN("%c %i",robot_type,id);// << std::endl;
   //ROS_DEBUG("%d",msg->data);
-  int index = getRobotIndex(robot_type, id);
+  int index = get_robot_index(robot_type, id);
   robots_[index].odom = *msg;
 
 }
@@ -165,6 +227,39 @@ void TaskPlanner::poseCallback(const ros::MessageEvent<nav_msgs::Odometry const>
   //ROS_DEBUG("%d",msg->data);
 
 }*/
+
+bool TaskPlanner::taskPlanService(task_planning::PlanInfo::Request &req,task_planning::PlanInfo::Response &res)
+{
+    if (req.replan.data)
+    {
+      //perform planning type
+      switch(planning_params_.type)
+      {
+        case SCOUT_PLANNER_DEFAULT :
+          this->scout_plan_default(req.type.data, req.id.data);
+          break;
+        case EXC_HAUL_PLANNER_DEFAULT :
+          this->exc_haul_plan_default();
+          break;
+
+        default:
+          ROS_ERROR("Task Planner type invalid!");
+          break;
+
+      }
+      std_msgs::Bool msg;
+      msg.data = true;
+      pub_interrupt.publish(msg);
+    }
+    for (auto&robot: robots_)
+    {
+      if (req.type.data == robot.type && req.id.data == robot.id)
+      {
+        res.objective = robot.plan[0];
+      }
+    }
+
+}
 
 /////////////////////////////////////////////////////////////////////
 /***************************CONSTRUCTORS****************************/
@@ -243,15 +338,25 @@ TaskPlanner::TaskPlanner(const CostFunction       & cost_function,
   sub_clock_ = nh_.subscribe("/clock", 10, &TaskPlanner::timeCallback, this);
   sub_volatiles_ = nh_.subscribe("/volatile_map", 10, &TaskPlanner::volatileMapCallback, this);
 
-  //setup volatile subscribers
-  //TODO
+  if (index_pub_scout != 1)
+  {
+    this->server_task_planner = nh_.advertiseService("/task_planner_scout",&TaskPlanner::taskPlanService,this);
+  } else
+  {
+    this->server_task_planner = nh_.advertiseService("/task_planner_exc_haul",&TaskPlanner::taskPlanService,this);
+  }
+
+  pub_interrupt = nh_.advertise<std_msgs::Bool>("planner_interrupt", 1);
+
+  this->populate_prior_plan();
+
 }
 
 /////////////////////////////////////////////////////////////////////
 /***************************UTILITIES*******************************/
 /////////////////////////////////////////////////////////////////////
 
-int TaskPlanner::getRobotIndex(char robot_type, int robot_id)
+int TaskPlanner::get_robot_index(char robot_type, int robot_id)
 {
   int index = -1;
   for (int i = 0; i < robots_.size(); ++i)

@@ -44,6 +44,17 @@ int main(int argc, char** argv)
 
     bool demo;
     nh.getParam("/demo", demo);
+
+    std::vector<std::vector<double>> plan;
+    std::vector<double> temp;
+    nh.getParam("waypoints/robot_type", temp);
+    plan.push_back(temp);
+    nh.getParam("waypoints/robot_id", temp);
+    plan.push_back(temp);
+    nh.getParam("waypoints/x", temp);
+    plan.push_back(temp);
+    nh.getParam("waypoints/y", temp);
+    plan.push_back(temp);
     /**----------------- Initialize -----------------------------*/
     // Initialize Robots
     std::vector<mac::Robot> robots;
@@ -62,6 +73,9 @@ int main(int argc, char** argv)
     planning_params.max_time = max_time;
     planning_params.timeout = timeout;
     planning_params.demo = demo;
+    planning_params.type = mac::SCOUT_PLANNER_DEFAULT;
+    planning_params.plan = plan;
+
 
     mac::TaskPlanner tp(cf,robots, planning_params);
 
@@ -69,21 +83,7 @@ int main(int argc, char** argv)
     // ros::Publisher pub = nh.advertise<std_msgs::Bool>("/small_excavator_1/localization/odometry/sensor_fusion", 10);
     std_msgs::Bool msg;
     /**----------------- Initialize Rover Metric Class------------------------------*/
-    ros::Rate rate(10);
-    while(ros::ok())
-    {
-
-      /**----------------- Update Rover Cost ------------------------------*/
-      tp.plan();
-      /**----------------- Perform Online Planning ------------------------------*/
-      // This could be a part of the cost steps.
-
-      /**----------------- Publish Objectives ------------------------------*/
-      //msg.data = true;
-      //pub.publish(msg);
-
-      ros::spinOnce();
-    }
+    ros::spin();
 
     return 0;
 }
