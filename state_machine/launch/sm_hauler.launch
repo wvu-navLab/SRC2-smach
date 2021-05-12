@@ -35,7 +35,9 @@
   <include file="$(find laser_tools_src2)/launch/hauler_laser_tools.launch"/>
 
   <!-- homing service -->
+  <include file="$(find range_to_base)/launch/hauler_location_of_bin_service.launch"/>
   <include file="$(find range_to_base)/launch/hauler_homing_service.launch"/>
+
   <include file="$(find sensor_fusion)/launch/hauler_homing.launch"/>
 
   <!-- waypoint checker -->
