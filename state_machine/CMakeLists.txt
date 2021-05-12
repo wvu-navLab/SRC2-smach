@@ -34,6 +34,9 @@ find_package(catkin REQUIRED COMPONENTS
   dynamic_reconfigure
   volatile_map
   task_planning
+  laser_tools_src2
+  range_to_base
+
 )
 
 find_package(Eigen3 3.3 REQUIRED)

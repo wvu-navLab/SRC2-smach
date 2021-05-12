@@ -28,6 +28,9 @@
 #include <driving_tools/CirculateBaseStation.h>
 #include <driving_tools/RotateInPlace.h>
 #include <src2_object_detection/ApproachBaseStation.h>
+#include <src2_object_detection/ApproachBin.h>
+#include <src2_object_detection/ApproachExcavator.h>
+#include <range_to_base/LocationOfBin.h>
 #include <sensor_fusion/RoverStatic.h>
 #include <sensor_fusion/GetTruePose.h>
 #include <sensor_fusion/HomingUpdate.h>
@@ -41,7 +44,7 @@ class SmHauler
 public:
   // Members -------------------------------------------------------------------------------------------------------------------------
   const unsigned int num_states = 5;
-  enum STATE_T {_initialize=0, _planning=1, _traverse=2, _volatile_handler=3, _lost=4};
+  enum STATE_T {_initialize=0, _planning=1, _traverse=2, _volatile_handler=3, _lost=4, _hauler_dumping=5};
 
   // Condition flag declarations
   // bool flag_localized_base = false;
@@ -60,6 +63,7 @@ public:
   bool flag_completed_homing = false;
   bool flag_heading_fail=false;
   bool flag_need_init_landmark=true;
+  bool flag_dumping=true; //true for testing dump
 
 
   ros::Time detection_timer, not_detected_timer, wp_checker_timer;
@@ -74,6 +78,7 @@ public:
   ros::Publisher sm_state_pub;
   ros::Publisher cmd_vel_pub; 
   ros::Publisher driving_mode_pub;
+  ros::Publisher cmd_dump_pub;
   // Subscribers
   ros::Subscriber localized_base_sub;
   ros::Subscriber waypoint_unreachable_sub;
@@ -96,10 +101,13 @@ public:
   ros::ServiceClient clt_lights;
   ros::ServiceClient clt_homing;
   ros::ServiceClient clt_approach_base;
+  ros::ServiceClient clt_approach_bin;
+  ros::ServiceClient clt_approach_excavator;
   ros::ServiceClient clt_rover_static;
   ros::ServiceClient clt_waypoint_checker;
   ros::ServiceClient clt_srcp2_brake_rover;
-  ros::ServiceClient clt_approach_excavator;
+  ros::ServiceClient clt_location_of_bin;
+  
   MoveBaseClient ac;
 
   // Clients
@@ -116,6 +124,7 @@ public:
   void stateTraverse();
   void stateVolatileHandler();
   void stateLost();
+  void stateDump();
 
   /// Subscriber callbacks
   void localizedBaseCallback(const std_msgs::Int64::ConstPtr& msg);
@@ -148,6 +157,7 @@ public:
   void RoverStatic(bool flag);
   void homingRecovery();
   void immobilityRecovery(int type);
+  //dump??
 
   // Parameters
   std::string robot_name;

@@ -10,6 +10,7 @@ move_base_state(actionlib::SimpleClientGoalState::PREEMPTED)
   sm_state_pub = nh.advertise<std_msgs::Int64>("state_machine/state", 1);
   cmd_vel_pub = nh.advertise<geometry_msgs::Twist>("driving/cmd_vel", 1);
   driving_mode_pub = nh.advertise<std_msgs::Int64>("driving/driving_mode", 1);
+  cmd_dump_pub = nh.advertise<std_msgs::Float64>("bin/command/position", 1); 
   // Subscribers
   localized_base_sub = nh.subscribe("state_machine/localized_base", 1, &SmHauler::localizedBaseCallback, this);
   // mobility_sub = nh.subscribe("/state_machine/mobility_scout", 1, &SmHauler::mobilityCallback, this);
@@ -29,13 +30,15 @@ move_base_state(actionlib::SimpleClientGoalState::PREEMPTED)
   clt_drive = nh.serviceClient<driving_tools::MoveForward>("driving/move_forward");
   clt_lights = nh.serviceClient<srcp2_msgs::SpotLightSrv>("spot_light");
   clt_brake = nh.serviceClient<srcp2_msgs::BrakeRoverSrv>("brake_rover");
-  clt_approach_base = nh.serviceClient<src2_object_detection::ApproachBaseStation>("approach_base_station");
+  clt_approach_base = nh.serviceClient<src2_object_detection::ApproachBaseStation>("approach_base_station_service");
   clt_rover_static = nh.serviceClient<sensor_fusion::RoverStatic>("sensor_fusion/toggle_rover_static");
   clt_homing = nh.serviceClient<sensor_fusion::HomingUpdate>("homing");
   clt_sf_true_pose = nh.serviceClient<sensor_fusion::GetTruePose>("true_pose");
   clt_waypoint_checker = nh.serviceClient<waypoint_checker::CheckCollision>("waypoint_checker");
   clt_srcp2_brake_rover= nh.serviceClient<srcp2_msgs::BrakeRoverSrv>("brake_rover");
-  clt_approach_excavator =nh.serviceClient<src2_object_detection::ApproachBaseStation>("approach_excavator");
+  clt_approach_excavator = nh.serviceClient<src2_object_detection::ApproachExcavator>("approach_excavator_service");
+  clt_approach_bin = nh.serviceClient<src2_object_detection::ApproachBin>("approach_bin_service");
+  clt_location_of_bin = nh.serviceClient<range_to_base::LocationOfBin>("location_of_bin_service");
 
   srv_mobility = nh.advertiseService("state_machine/mobility_service",&SmHauler::setMobility, this);
 
@@ -139,37 +142,44 @@ void SmHauler::run()
       }
     }
 
-    if(!flag_fallthrough_condition || state_to_exec_count == 1)
+    // ---------------DUMPING TESTS-------------------------------------------------
+
+    if (flag_dumping == true)
     {
-      if(state_to_exec.at(_initialize))
-      {
-        stateInitialize();
-      }
-      else if(state_to_exec.at(_planning))
-      {
-        statePlanning();
-      }
-      else if(state_to_exec.at(_traverse))
-      {
-        stateTraverse();
-      }
-      else if(state_to_exec.at(_volatile_handler))
-      {
-        stateVolatileHandler();
-      }
-      else if(state_to_exec.at(_lost))
-      {
-        stateLost();
-      }
-      else
-      {
-        ROS_FATAL("No state to execute");
-      }
+      stateDump();
     }
-    else
-    {
-      ROS_WARN("State fallthough, flag_fallthrough_condition = %i, state_to_exec_count = %i",flag_fallthrough_condition, state_to_exec_count);
-    }
+
+    // if(!flag_fallthrough_condition || state_to_exec_count == 1)
+    // {
+    //   if(state_to_exec.at(_initialize))
+    //   {
+    //     stateInitialize();
+    //   }
+    //   else if(state_to_exec.at(_planning))
+    //   {
+    //     statePlanning();
+    //   }
+    //   else if(state_to_exec.at(_traverse))
+    //   {
+    //     stateTraverse();
+    //   }
+    //   else if(state_to_exec.at(_volatile_handler))
+    //   {
+    //     stateVolatileHandler();
+    //   }
+    //   else if(state_to_exec.at(_lost))
+    //   {
+    //     stateLost();
+    //   }
+    //   else
+    //   {
+    //     ROS_FATAL("No state to execute");
+    //   }
+    // }
+    // else
+    // {
+    //   ROS_WARN("State fallthough, flag_fallthrough_condition = %i, state_to_exec_count = %i",flag_fallthrough_condition, state_to_exec_count);
+    // }
     // -------------------------------------------------------------------------------------------------------------------
 
     ros::spinOnce();
@@ -732,7 +742,117 @@ else{
   state_msg.data = _lost;
   sm_state_pub.publish(state_msg);
 }
+
+
+
+
 //------------------------------------------------------------------------------------------------------------------------
+
+void SmHauler::stateDump()
+{
+  ROS_WARN("dumping State!\n");
+  flag_arrived_at_waypoint = false;
+  flag_waypoint_unreachable = false;
+
+  // ToggleDetector(false);
+
+  while (!clt_lights.waitForExistence())
+  {
+      ROS_WARN("HAULER: Waiting for Lights");
+  }
+  Lights(20);
+
+// *******get true pose for dump testing
+  while (!clt_sf_true_pose.waitForExistence())
+    {
+      ROS_ERROR("HAULER: Waiting for TruePose service");
+    }
+
+  // Update SF with True Pose
+  sensor_fusion::GetTruePose srv_sf_true_pose;
+  srv_sf_true_pose.request.start = true;
+  if (clt_sf_true_pose.call(srv_sf_true_pose))
+  {
+    ROS_INFO("HAULER: Called service TruePose");
+    ROS_INFO_STREAM("Status of SF True Pose: "<< srv_sf_true_pose.response.success);
+  }
+  else
+  {
+    ROS_ERROR("HAULER: Failed  to call service Pose Update");
+  }
+
+    RoverStatic(true);
+
+
+
+
+
+
+  while (!clt_approach_bin.waitForExistence())
+  {
+    ROS_WARN("HAULER: Waiting for ApproachBin service");
+  }
+
+
+  // approach bin with cv detector
+  src2_object_detection::ApproachBin srv_approach_bin;
+  srv_approach_bin.request.approach_bin.data= true;
+  bool approachSuccess = false;
+  int binApproachRecoveryCount = 0;
+  while(!approachSuccess && binApproachRecoveryCount<3){
+      if (clt_approach_bin.call(srv_approach_bin))
+      {
+        ROS_INFO("HAULER: Called service ApproachBin");
+        ROS_INFO_STREAM("Success finding the Bin? "<< srv_approach_bin.response.success.data);
+        if(srv_approach_bin.response.success.data){
+        // homingRecovery(); //TODO: bin recovery behavior/fine align
+        // }
+        // else
+        
+        approachSuccess=true;
+        ROS_INFO("HAULER: approach bin with classifier successful");
+        }
+
+    }
+
+      else
+    {
+      ROS_ERROR("HAULER: Failed  to call service ApproachBin");
+    }
+     binApproachRecoveryCount=binApproachRecoveryCount+1;
+  }
+
+
+  // localize bin after approaching bin
+  range_to_base::LocationOfBin srv_location_of_bin;
+  srv_location_of_bin.request.location_of_bin.data=true;
+  bool binLocationSuccess = false;
+  // int binLocationRecoveryCount = 0;
+  clt_location_of_bin.call(srv_location_of_bin);
+
+  if(!srv_location_of_bin.response.success.data){
+    ROS_INFO("HAULER: location of bin not reliable");
+  }
+
+  ROS_INFO_STREAM("Hauler location: " << current_pose_);
+
+
+  // approach closely
+  // compare bin location w/ current location
+  //  current_pose_
+  // driving commands
+  // call bin location + verify
+  // dump action
+
+
+
+}
+  // Approach Base Station
+
+
+
+//------------------------------------------------------------------------------------------------------------------------
+
 
 
 // Callbacks +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
