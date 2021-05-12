@@ -21,6 +21,7 @@ move_base_state(actionlib::SimpleClientGoalState::PREEMPTED)
   localization_sub  = nh.subscribe("localization/odometry/sensor_fusion", 1, &SmScout::localizationCallback, this);
   driving_mode_sub =nh.subscribe("driving/driving_mode_",1, &SmScout::drivingModeCallback, this);
   laser_scan_sub =nh.subscribe("laser/scan",1, &SmScout::laserCallback, this);
+  planner_interrupt_sub = nh.subscribe("/planner_interrupt", 1, &SmScout::plannerInterruptCallback, this);
 
   // Clients
   clt_wp_gen = nh.serviceClient<waypoint_gen::GenerateWaypoint>("navigation/generate_goal");
@@ -38,6 +39,7 @@ move_base_state(actionlib::SimpleClientGoalState::PREEMPTED)
   clt_sf_true_pose = nh.serviceClient<sensor_fusion::GetTruePose>("true_pose");
   clt_waypoint_checker = nh.serviceClient<waypoint_checker::CheckCollision>("waypoint_checker");
   clt_srcp2_brake_rover = nh.serviceClient<srcp2_msgs::BrakeRoverSrv>("brake_rover");
+  clt_task_planning = nh.serviceClient<task_planning::PlanInfo>("/task_planner_scout");
 
   // Service
   srv_mobility = nh.advertiseService("state_machine/mobility_service",&SmScout::setMobility, this);
@@ -51,10 +53,16 @@ move_base_state(actionlib::SimpleClientGoalState::PREEMPTED)
   map_timer = ros::Time::now();
   wp_checker_timer =  ros::Time::now();
 
-  node_name = "state_machine";
-  if (ros::param::get(node_name + "/robot_name", robot_name) == false) 
+  node_name_ = "state_machine";
+  if (ros::param::get(node_name_ + "/robot_name", robot_name_) == false) 
   {
     ROS_FATAL("No parameter 'robot_name' specified");
+    ros::shutdown();
+    exit(1);
+  }
+  if (ros::param::get(node_name_ + "/robot_id", robot_id_) == false) 
+  {
+    ROS_FATAL("No parameter 'robot_id' specified");
     ros::shutdown();
     exit(1);
   }
@@ -307,20 +315,16 @@ void SmScout::stateInitialize()
   BrakeRamp(100, 2, 0);
   Brake(0.0);
 
-
-
-  waypoint_gen::StartWaypoint srv_wp_start;
-  srv_wp_start.request.start  = true;
-
-  if (clt_wp_start.call(srv_wp_start))
-  {
-    ROS_INFO("Starting Waypoint Gen");
-  }
-  else
-  {
-    ROS_ERROR("SCOUT: Failed  to call service Waypoint Start");
-  }
-
+  // waypoint_gen::StartWaypoint srv_wp_start;
+  // srv_wp_start.request.start  = true;
+  // if (clt_wp_start.call(srv_wp_start))
+  // {
+  //   ROS_INFO("Starting Waypoint Gen");
+  // }
+  // else
+  // {
+  //   ROS_ERROR("SCOUT: Failed  to call service Waypoint Start");
+  // }
 
   // make sure we dont latch to a vol we skipped while homing
   vol_detected_dist_ = -1.0;
@@ -343,39 +347,41 @@ void SmScout::statePlanning()
   ac.cancelGoal();
   ac.waitForResult(ros::Duration(0.25));
 
-  while (!clt_wp_gen.waitForExistence())
-  {
-    ROS_ERROR("SCOUT: Waiting for Waypoint Gen service");
-  }
-  waypoint_gen::GenerateWaypoint srv_wp_gen;
+  // while (!clt_wp_gen.waitForExistence())
+  // {
+  //   ROS_ERROR("SCOUT: Waiting for Waypoint Gen service");
+  // }
+  //
+  // waypoint_gen::GenerateWaypoint srv_wp_gen;
+  // srv_wp_gen.request.start  = true;
+  // if(flag_completed_homing)
+  // {
+  //   flag_completed_homing = false;
+  //   srv_wp_gen.request.next  = true;
+  // }
+  // else if(flag_waypoint_unreachable)
+  // {
+  //   flag_waypoint_unreachable=false;
+  //   srv_wp_gen.request.next  = true;
+  // }
+  // else
+  // {
+  // srv_wp_gen.request.next  = false;
+  // }
+  //
+  // if (clt_wp_gen.call(srv_wp_gen))
+  // {
+  //   ROS_INFO("SCOUT: Called service Generate Waypoint");
+  //   goal_pose_ = srv_wp_gen.response.goal;
+  //   waypoint_type_ = srv_wp_gen.response.type;
+  // }
+  // else
+  // {
+  //   ROS_ERROR("SCOUT: Failed  to call service Generate Waypoint");
+  // }
 
-  srv_wp_gen.request.start  = true;
-  if(flag_completed_homing)
-  {
-    flag_completed_homing = false;
-    srv_wp_gen.request.next  = true;
-  }
-  else if(flag_waypoint_unreachable)
-  {
-    flag_waypoint_unreachable=false;
-    srv_wp_gen.request.next  = true;
-  }
+  Plan();
 
-  else
-  {
-  srv_wp_gen.request.next  = false;
-  }
-
-  if (clt_wp_gen.call(srv_wp_gen))
-  {
-    ROS_INFO("SCOUT: Called service Generate Waypoint");
-    goal_pose_ = srv_wp_gen.response.goal;
-    waypoint_type_ = srv_wp_gen.response.type;
-  }
-  else
-  {
-    ROS_ERROR("SCOUT: Failed  to call service Generate Waypoint");
-  }
   ROS_INFO_STREAM("SCOUT: WP Generation: Goal pose: " << goal_pose_);
 
   goal_yaw_ = atan2(goal_pose_.position.y - current_pose_.position.y, goal_pose_.position.x - current_pose_.position.x);
@@ -401,14 +407,16 @@ void SmScout::statePlanning()
       is_colliding = srv_wp_check.response.collision;
       if(is_colliding)
       {
-        ROS_INFO("SCOUT: Waypoint Unreachable. Getting new waypoint");
-        srv_wp_gen.request.start  = true;
-        srv_wp_gen.request.next  = true;
-        if (clt_wp_gen.call(srv_wp_gen))
-        {
-          ROS_INFO("SCOUT: Called service Generate Waypoint");
-          goal_pose_ = srv_wp_gen.response.goal;
-	        waypoint_type_ = srv_wp_gen.response.type;
+        // ROS_INFO("SCOUT: Waypoint Unreachable. Getting new waypoint");
+        // srv_wp_gen.request.start  = true;
+        // srv_wp_gen.request.next  = true;
+        // if (clt_wp_gen.call(srv_wp_gen))
+        // {
+          // ROS_INFO("SCOUT: Called service Generate Waypoint");
+          // goal_pose_ = srv_wp_gen.response.goal;
+	        // waypoint_type_ = srv_wp_gen.response.type;
+
+          Plan();
 
           goal_yaw_ = atan2(goal_pose_.position.y - current_pose_.position.y, goal_pose_.position.x - current_pose_.position.x);
 
@@ -418,22 +426,21 @@ void SmScout::statePlanning()
 
           BrakeRamp(100, 3.0, 0);
           Brake (0.0);
-        }
-        else
-        {
-          ROS_ERROR("SCOUT: Failed to call service Generate Waypoint");
-        }
+        // }
+        // else
+        // {
+        //   ROS_ERROR("SCOUT: Failed to call service Generate Waypoint");
+        // }
       }
     }
     else
     {
       ROS_ERROR("SCOUT: Failed to call service Waypoint Checker");
-
-
+    }
+    ros::spinOnce();
+    counter=counter+1;
   }
-  ros::spinOnce();
-  counter=counter+1;
-}
+  
   ClearCostmaps();
   BrakeRamp(100, 2, 0);
   Brake(0.0);
@@ -928,6 +935,30 @@ void SmScout::laserCallback(const sensor_msgs::LaserScan::ConstPtr& msg)
   }
 }
 
+void SmScout::doneCallback(const actionlib::SimpleClientGoalState& state, const move_base_msgs::MoveBaseResult::ConstPtr& result)
+{
+    actionDone = true;
+    // ROS_INFO("Goal done");
+}
+
+void SmScout::activeCallback()
+{
+    // ROS_INFO("Goal went active");
+}
+
+void SmScout::feedbackCallback(const move_base_msgs::MoveBaseFeedback::ConstPtr& feedback)
+{
+  //  ROS_INFO("Got feedback");
+}
+
+void SmScout::plannerInterruptCallback(const std_msgs::Bool::ConstPtr &msg)
+{
+  flag_interrupt_ = msg->data;
+  // ROS_INFO_STREAM("EXCAVATOR: Interrupt flag updated." << *msg);
+}
+
+// Methods +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
 void SmScout::setPoseGoal(move_base_msgs::MoveBaseGoal &poseGoal, double x, double y, double yaw) // m, m, rad
 {
   const double pitch = 0.0;
@@ -949,24 +980,6 @@ void SmScout::setPoseGoal(move_base_msgs::MoveBaseGoal &poseGoal, double x, doub
   poseGoal.target_pose.pose.orientation.y = cy * cr * sp + sy * sr * cp;
   poseGoal.target_pose.pose.orientation.z = sy * cr * cp - cy * sr * sp;
 }
-
-void SmScout::doneCallback(const actionlib::SimpleClientGoalState& state, const move_base_msgs::MoveBaseResult::ConstPtr& result)
-{
-    actionDone = true;
-    // ROS_INFO("Goal done");
-}
-
-void SmScout::activeCallback()
-{
-    // ROS_INFO("Goal went active");
-}
-
-void SmScout::feedbackCallback(const move_base_msgs::MoveBaseFeedback::ConstPtr& feedback)
-{
-  //  ROS_INFO("Got feedback");
-}
-
-// Methods +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 void SmScout::RotateToHeading(double desired_yaw)
 {
@@ -1362,6 +1375,40 @@ bool SmScout::setMobility(state_machine::SetMobility::Request &req, state_machin
   //ros::Duration(2).sleep();
   res.success = true;
   return true;
+}
+
+
+void SmScout::Plan()
+{
+  task_planning::PlanInfo srv_plan;
+  if (!flag_interrupt_)
+  {
+    srv_plan.request.replan.data = true;
+  }
+  else
+  {
+    srv_plan.request.replan.data = false;
+  }
+  srv_plan.request.type.data = mac::EXCAVATOR;
+  srv_plan.request.id.data = robot_id_;
+
+  if (clt_task_planning.call(srv_plan))
+  {
+    ROS_INFO_THROTTLE(5,"EXCAVATOR: Called service Plan");
+  }
+  else
+  {
+    ROS_INFO("EXCAVATOR: Failed to call service RotateInPlace");
+  }
+
+  goal_pose_.position = srv_plan.response.objective.point;
+  geometry_msgs::Quaternion quat;
+  goal_pose_.orientation = quat;
+  
+  flag_interrupt_ = false;
+  // srv_plan.response.id;
+  // srv_plan.response.code;
+  
 }
 
 //------------------------------------------------------------------------------------------------------------------------

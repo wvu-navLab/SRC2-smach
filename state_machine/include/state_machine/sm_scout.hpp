@@ -1,6 +1,7 @@
 #include <ros/ros.h>
 #include <vector>
 #include <algorithm>
+
 // C++ headers
 #include <vector>
 #include <algorithm>
@@ -47,6 +48,8 @@
 #include <dynamic_reconfigure/DoubleParameter.h>
 #include <dynamic_reconfigure/Reconfigure.h>
 #include <dynamic_reconfigure/Config.h>
+#include <task_planning/PlanInfo.h>
+#include <task_planning/Types.hpp>
 
 typedef actionlib::SimpleActionClient<move_base_msgs::MoveBaseAction> MoveBaseClient;
 
@@ -99,6 +102,7 @@ public:
   ros::Subscriber localization_sub;
   ros::Subscriber driving_mode_sub;
   ros::Subscriber laser_scan_sub;
+  ros::Subscriber planner_interrupt_sub;
 
   // Services
   ros::ServiceClient clt_sf_true_pose;
@@ -117,6 +121,7 @@ public:
   ros::ServiceClient clt_rover_static;
   ros::ServiceClient clt_waypoint_checker;
   ros::ServiceClient clt_srcp2_brake_rover;
+  ros::ServiceClient clt_task_planning;
   MoveBaseClient ac;
 
   // Clients
@@ -148,6 +153,7 @@ public:
   void doneCallback(const actionlib::SimpleClientGoalState& state, const move_base_msgs::MoveBaseResultConstPtr& result);
   void activeCallback();
   void feedbackCallback(const move_base_msgs::MoveBaseFeedbackConstPtr& feedback);
+  void plannerInterruptCallback(const std_msgs::Bool::ConstPtr &msg);
 
   bool setMobility(state_machine::SetMobility::Request &req, state_machine::SetMobility::Response &res);
 
@@ -167,10 +173,13 @@ public:
   void RoverStatic(bool flag);
   void homingRecovery();
   void immobilityRecovery(int type);
+  void Plan();
 
   // Parameters
-  std::string robot_name;
-  std::string node_name;
+  std::string node_name_;
+  std::string robot_name_;
+  int robot_id_;
+
 
   double waypoint_type_;
   int driving_mode_;
@@ -196,4 +205,7 @@ public:
 
   const double VOL_FOUND_THRESH = 0.3;
   int honing_direction_ = 1;
+
+  // Planning
+  bool flag_interrupt_ = false;
 };

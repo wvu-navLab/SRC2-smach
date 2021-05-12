@@ -33,6 +33,8 @@
 #include <sensor_fusion/HomingUpdate.h>
 #include <state_machine/SetMobility.h>
 #include <actionlib/client/simple_action_client.h>
+#include <task_planning/PlanInfo.h>
+#include <task_planning/Types.hpp>
 
 typedef actionlib::SimpleActionClient<move_base_msgs::MoveBaseAction> MoveBaseClient;
 
@@ -84,6 +86,7 @@ public:
   ros::Subscriber localization_sub;
   ros::Subscriber driving_mode_sub;
   ros::Subscriber laser_scan_sub;
+  ros::Subscriber planner_interrupt_sub;
 
   ros::ServiceClient clt_sf_true_pose;
   ros::ServiceClient clt_wp_gen;
@@ -100,6 +103,8 @@ public:
   ros::ServiceClient clt_waypoint_checker;
   ros::ServiceClient clt_srcp2_brake_rover;
   ros::ServiceClient clt_approach_excavator;
+  ros::ServiceClient clt_task_planning;
+
   MoveBaseClient ac;
 
   // Clients
@@ -131,6 +136,7 @@ public:
   void doneCallback(const actionlib::SimpleClientGoalState& state, const move_base_msgs::MoveBaseResultConstPtr& result);
   void activeCallback();
   void feedbackCallback(const move_base_msgs::MoveBaseFeedbackConstPtr& feedback);
+  void plannerInterruptCallback(const std_msgs::Bool::ConstPtr &msg);
 
   bool setMobility(state_machine::SetMobility::Request &req, state_machine::SetMobility::Response &res);
 
@@ -148,10 +154,13 @@ public:
   void RoverStatic(bool flag);
   void homingRecovery();
   void immobilityRecovery(int type);
+  void Plan();
 
   // Parameters
-  std::string robot_name;
-  std::string node_name;
+  std::string node_name_;
+  std::string robot_name_;
+  int robot_id_;
+
 
   double waypoint_type;
   int driving_mode;
@@ -178,4 +187,7 @@ public:
   const double LASER_THRESH = 0.3;
   const int LASER_SET_SIZE = 20;
   const int LASER_COUNTER_THRESH = 20;
+  
+  // Planning
+  bool flag_interrupt_ = false;
 };

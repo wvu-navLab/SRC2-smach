@@ -21,6 +21,8 @@ move_base_state(actionlib::SimpleClientGoalState::PREEMPTED)
   localization_sub  = nh.subscribe("localization/odometry/sensor_fusion", 1, &SmHauler::localizationCallback, this);
   driving_mode_sub =nh.subscribe("driving/driving_mode",1, &SmHauler::drivingModeCallback, this);
   laser_scan_sub =nh.subscribe("laser/scan",1, &SmHauler::laserCallback, this);
+  planner_interrupt_sub = nh.subscribe("/planner_interrupt", 1, &SmHauler::plannerInterruptCallback, this);
+
   // Clients
   clt_wp_gen = nh.serviceClient<waypoint_gen::GenerateWaypoint>("navigation/generate_goal");
   clt_wp_start = nh.serviceClient<waypoint_gen::StartWaypoint>("navigation/start");
@@ -36,6 +38,7 @@ move_base_state(actionlib::SimpleClientGoalState::PREEMPTED)
   clt_waypoint_checker = nh.serviceClient<waypoint_checker::CheckCollision>("waypoint_checker");
   clt_srcp2_brake_rover= nh.serviceClient<srcp2_msgs::BrakeRoverSrv>("brake_rover");
   clt_approach_excavator =nh.serviceClient<src2_object_detection::ApproachBaseStation>("approach_excavator");
+  clt_task_planning = nh.serviceClient<task_planning::PlanInfo>("/task_planner_exc_haul");
 
   srv_mobility = nh.advertiseService("state_machine/mobility_service",&SmHauler::setMobility, this);
 
@@ -49,10 +52,16 @@ move_base_state(actionlib::SimpleClientGoalState::PREEMPTED)
   map_timer = ros::Time::now();
   wp_checker_timer=  ros::Time::now();
 
-  node_name = "state_machine";
-  if (ros::param::get(node_name + "/robot_name", robot_name) == false) 
+  node_name_ = "state_machine";
+  if (ros::param::get(node_name_ + "/robot_name", robot_name_) == false) 
   {
     ROS_FATAL("No parameter 'robot_name' specified");
+    ros::shutdown();
+    exit(1);
+  }
+  if (ros::param::get(node_name_ + "/robot_id", robot_id_) == false) 
+  {
+    ROS_FATAL("No parameter 'robot_id' specified");
     ros::shutdown();
     exit(1);
   }
@@ -888,6 +897,12 @@ void SmHauler::feedbackCallback(const move_base_msgs::MoveBaseFeedback::ConstPtr
   //  ROS_INFO("Got feedback");
 }
 
+void SmHauler::plannerInterruptCallback(const std_msgs::Bool::ConstPtr &msg)
+{
+  flag_interrupt_ = msg->data;
+  // ROS_INFO_STREAM("EXCAVATOR: Interrupt flag updated." << *msg);
+}
+
 void SmHauler::RotateToHeading(double desired_yaw)
 {
   ros::Rate raterotateToHeading(20);
@@ -1251,6 +1266,40 @@ bool SmHauler::setMobility(state_machine::SetMobility::Request &req, state_machi
   //ros::Duration(2).sleep();
   res.success = true;
   return true;
+}
+
+
+void SmHauler::Plan()
+{
+  task_planning::PlanInfo srv_plan;
+  if (!flag_interrupt_)
+  {
+    srv_plan.request.replan.data = true;
+  }
+  else
+  {
+    srv_plan.request.replan.data = false;
+  }
+  srv_plan.request.type.data = mac::EXCAVATOR;
+  srv_plan.request.id.data = robot_id_;
+
+  if (clt_task_planning.call(srv_plan))
+  {
+    ROS_INFO_THROTTLE(5,"EXCAVATOR: Called service Plan");
+  }
+  else
+  {
+    ROS_INFO("EXCAVATOR: Failed to call service RotateInPlace");
+  }
+
+  goal_pose_.position = srv_plan.response.objective.point;
+  geometry_msgs::Quaternion quat;
+  goal_pose_.orientation = quat;
+  
+  flag_interrupt_ = false;
+  // srv_plan.response.id;
+  // srv_plan.response.code;
+  
 }
 
 //------------------------------------------------------------------------------------------------------------------------

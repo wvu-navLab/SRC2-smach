@@ -1370,7 +1370,7 @@ void SmExcavator::Plan()
   
   flag_interrupt_ = false;
   // srv_plan.response.id;
-  // srv_plan.response.code
+  // srv_plan.response.code;
   
 }
 
