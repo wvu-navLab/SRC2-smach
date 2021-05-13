@@ -750,7 +750,8 @@ else{
 
 void SmHauler::stateDump()
 {
-  ROS_WARN("dumping State!\n");
+  ROS_WARN("DUMPING STATE!\n");
+
   flag_arrived_at_waypoint = false;
   flag_waypoint_unreachable = false;
 
@@ -762,11 +763,11 @@ void SmHauler::stateDump()
   }
   Lights(20);
 
-// *******get true pose for dump testing
+  // *******get true pose for dump testing
   while (!clt_sf_true_pose.waitForExistence())
-    {
-      ROS_ERROR("HAULER: Waiting for TruePose service");
-    }
+  {
+    ROS_ERROR("HAULER: Waiting for TruePose service");
+  }
 
   // Update SF with True Pose
   sensor_fusion::GetTruePose srv_sf_true_pose;
@@ -781,18 +782,12 @@ void SmHauler::stateDump()
     ROS_ERROR("HAULER: Failed  to call service Pose Update");
   }
 
-    RoverStatic(true);
-
-
-
-
-
+  RoverStatic(true);
 
   while (!clt_approach_bin.waitForExistence())
   {
     ROS_WARN("HAULER: Waiting for ApproachBin service");
   }
-
 
   // approach bin with cv detector
   src2_object_detection::ApproachBin srv_approach_bin;
@@ -800,26 +795,24 @@ void SmHauler::stateDump()
   bool approachSuccess = false;
   int binApproachRecoveryCount = 0;
   while(!approachSuccess && binApproachRecoveryCount<3){
-      if (clt_approach_bin.call(srv_approach_bin))
-      {
-        ROS_INFO("HAULER: Called service ApproachBin");
-        ROS_INFO_STREAM("Success finding the Bin? "<< srv_approach_bin.response.success.data);
-        if(srv_approach_bin.response.success.data){
+    if (clt_approach_bin.call(srv_approach_bin))
+    {
+      ROS_INFO("HAULER: Called service ApproachBin");
+      ROS_INFO_STREAM("Success finding the Bin? "<< srv_approach_bin.response.success.data);
+      if(srv_approach_bin.response.success.data){
         // homingRecovery(); //TODO: bin recovery behavior/fine align
         // }
         // else
         
         approachSuccess=true;
         ROS_INFO("HAULER: approach bin with classifier successful");
-        }
-
+      }
     }
-
-      else
+    else
     {
       ROS_ERROR("HAULER: Failed  to call service ApproachBin");
     }
-     binApproachRecoveryCount=binApproachRecoveryCount+1;
+    binApproachRecoveryCount=binApproachRecoveryCount+1;
   }
 
 
@@ -836,7 +829,6 @@ void SmHauler::stateDump()
 
   ROS_INFO_STREAM("Hauler location: " << current_pose_);
 
-
   // approach closely
   // compare bin location w/ current location
   //  current_pose_
@@ -844,12 +836,10 @@ void SmHauler::stateDump()
   // call bin location + verify
   // dump action
 
-
-
+  std_msgs::Int64 state_msg;
+  state_msg.data = _hauler_dumping;
+  sm_state_pub.publish(state_msg);
 }
-  // Approach Base Station
-
-
 
 //------------------------------------------------------------------------------------------------------------------------
 
