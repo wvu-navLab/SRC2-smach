@@ -6,9 +6,9 @@ move_base_state(actionlib::SimpleClientGoalState::PREEMPTED)
 {
   // Initialize ROS, Subs, and Pubs *******************************************
   // Publishers
-  sm_state_pub = nh.advertise<std_msgs::Int64>("state_machine/state", 1);
+  sm_status_pub = nh.advertise<state_machine::RobotStatus>("state_machine/status", 1);
   cmd_vel_pub = nh.advertise<geometry_msgs::Twist>("driving/cmd_vel", 1);
-  driving_mode_pub = nh.advertise<std_msgs::Int64>("driving/driving_mode_", 1);
+  driving_mode_pub = nh.advertise<std_msgs::Int64>("driving/driving_mode", 1);
   
   // Subscribers
   localized_base_sub = nh.subscribe("state_machine/localized_base", 1, &SmScout::localizedBaseCallback, this);
@@ -76,60 +76,55 @@ void SmScout::run()
   while(ros::ok())
   {
     // Debug prints +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-    ROS_INFO("flag_localized_base: %i", flag_localized_base);
-    ROS_INFO("flag_mobility: %i",flag_mobility);
     ROS_INFO("flag_have_true_pose: %i",flag_have_true_pose);
-    ROS_INFO("flag_waypoint_unreachable: %i",flag_waypoint_unreachable);
+    ROS_INFO("flag_interrupt_plan: %i",flag_interrupt_plan);
+    ROS_INFO("flag_arrived_at_waypoint: %i",flag_arrived_at_waypoint);
     ROS_INFO("flag_localizing_volatile: %i",flag_localizing_volatile);
-    ROS_INFO("flag_volatile_honed: %i",flag_volatile_honed);
-    ROS_INFO("flag_volatile_unreachable: %i",flag_volatile_unreachable);
-    ROS_INFO("flag_localization_failure: %i",flag_localization_failure);
+    ROS_INFO("flag_recovering_localization: %i",flag_recovering_localization);
     ROS_INFO("flag_brake_engaged: %i",flag_brake_engaged);
-    ROS_INFO("flag_fallthrough_condition: %i",flag_fallthrough_condition);
     //---------------------------------------------------------------------------------------------------------------------
 
-
-    // Conditional flag logic (Preemptive conditions) +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-    if((vol_detected_dist_>0.0) && !flag_localizing_volatile && !flag_localization_failure && flag_have_true_pose)
-    {
-      flag_arrived_at_waypoint = true;
-      flag_waypoint_unreachable = false;
-    }
-    if(flag_localization_failure && !flag_recovering_localization)
-    {
-      flag_arrived_at_waypoint = true;
-      flag_waypoint_unreachable = false;
-    }
-    //---------------------------------------------------------------------------------------------------------------------
-
+    // // Conditional flag logic (Preemptive conditions) +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+    // if((vol_detected_dist_>0.0) && !flag_localizing_volatile && !flag_localization_failure && flag_have_true_pose)
+    // {
+    //   flag_arrived_at_waypoint = true;
+    //   flag_waypoint_unreachable = false;
+    // }
+    // if(flag_localization_failure && !flag_recovering_localization)
+    // {
+    //   flag_arrived_at_waypoint = true;
+    //   flag_waypoint_unreachable = false;
+    // }
+    // //---------------------------------------------------------------------------------------------------------------------
 
     // State machine truth table ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     state_to_exec.clear();
     state_to_exec.resize(num_states,0);
-    if(!flag_have_true_pose && (flag_arrived_at_waypoint || flag_waypoint_unreachable))
+    if(!flag_have_true_pose)
     {
       state_to_exec.at(_initialize) = 1;
     }
-    else if((flag_arrived_at_waypoint || flag_waypoint_unreachable) && (flag_localization_failure || flag_recovering_localization))
-    {
-      state_to_exec.at(_lost) = 1;
-    }
-    else if((flag_arrived_at_waypoint || flag_waypoint_unreachable) && (vol_detected_dist_+1 < 0.001) && !flag_localizing_volatile && !flag_brake_engaged)
+    else if(flag_interrupt_plan || (flag_arrived_at_waypoint && !flag_recovering_localization && !flag_localizing_volatile && !flag_brake_engaged))
     {
       state_to_exec.at(_planning) = 1;
     }
-    else if((!flag_arrived_at_waypoint && !flag_waypoint_unreachable) && !flag_brake_engaged)
-    {
-      state_to_exec.at(_traverse) = 1;
-    }
-    else if(((vol_detected_dist_>=0)  || flag_localizing_volatile) && !flag_brake_engaged)
+    else if(flag_volatile_detected && flag_localizing_volatile && !flag_brake_engaged)
     {
       state_to_exec.at(_volatile_handler) = 1;
     }
+    else if(flag_arrived_at_waypoint && flag_recovering_localization && !flag_brake_engaged)
+    {
+      state_to_exec.at(_lost) = 1;
+    }
+    else if(!flag_arrived_at_waypoint && !flag_brake_engaged)
+    {
+      state_to_exec.at(_traverse) = 1;
+    }
     else
     {
+      flag_interrupt_plan = true;
       flag_arrived_at_waypoint = true;
-      flag_waypoint_unreachable = false;
+      flag_recovering_localization = false;
       flag_localizing_volatile = false;
       flag_fallthrough_condition = true;
     }
@@ -137,17 +132,17 @@ void SmScout::run()
 
 
     // State execution ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-    int state_to_exec_count = 0;
-    for(int i=0; i<state_to_exec.size(); i++)
-    {
-      if(state_to_exec.at(i))
-      {
-        state_to_exec_count++;
-      }
-    }
+    // int state_to_exec_count = 0;
+    // for(int i=0; i<state_to_exec.size(); i++)
+    // {
+    //   if(state_to_exec.at(i))
+    //   {
+    //     state_to_exec_count++;
+    //   }
+    // }
 
-    if(!flag_fallthrough_condition || state_to_exec_count == 1)
-    {
+    // if(!flag_fallthrough_condition || state_to_exec_count == 1)
+    // {
       if(state_to_exec.at(_initialize))
       {
         stateInitialize();
@@ -171,12 +166,14 @@ void SmScout::run()
       else
       {
         ROS_FATAL("No state to execute");
+        flag_fallthrough_condition = false;
       }
-    }
-    else
-    {
-      ROS_WARN("State fallthough, flag_fallthrough_condition = %i, state_to_exec_count = %i",flag_fallthrough_condition, state_to_exec_count);
-    }
+    // }
+    // else
+    // {
+    //   ROS_WARN("State fallthrough, flag_fallthrough_condition = %i, state_to_exec_count = %i", flag_fallthrough_condition, state_to_exec_count);
+    //   flag_fallthrough_condition = false;
+    // }
     // -------------------------------------------------------------------------------------------------------------------
 
     ros::spinOnce();
@@ -188,10 +185,6 @@ void SmScout::run()
 void SmScout::stateInitialize()
 {
   ROS_WARN("Initialization State!\n");
-  flag_arrived_at_waypoint = false;
-  flag_waypoint_unreachable = false;
-
-  // ToggleDetector(false);
 
   while (!clt_lights.waitForExistence())
   {
@@ -210,21 +203,21 @@ void SmScout::stateInitialize()
   srv_approach_base.request.approach_base_station.data= true;
   bool approachSuccess = false;
   int homingRecoveryCount = 0;
-  while(!approachSuccess && homingRecoveryCount<3){
-      if (clt_approach_base.call(srv_approach_base))
+  while(!approachSuccess && homingRecoveryCount<3)
+  {
+    if (clt_approach_base.call(srv_approach_base))
+    {
+      ROS_INFO("SCOUT: Called service ApproachBaseStation");
+      ROS_INFO_STREAM("Success finding the Base? "<< srv_approach_base.response.success.data);
+      if(!srv_approach_base.response.success.data)
       {
-        ROS_INFO("SCOUT: Called service ApproachBaseStation");
-        ROS_INFO_STREAM("Success finding the Base? "<< srv_approach_base.response.success.data);
-        if(!srv_approach_base.response.success.data){
-        homingRecovery();
+      homingRecovery();
       }
       else
       {
         approachSuccess=true;
       }
-
     }
-
     else
     {
       ROS_ERROR("SCOUT: Failed  to call service ApproachBaseStation");
@@ -241,27 +234,18 @@ void SmScout::stateInitialize()
     ROS_ERROR("SCOUT: Waiting for TruePose service");
   }
 
-  // Update SF with True Pose
-  sensor_fusion::GetTruePose srv_sf_true_pose;
-  srv_sf_true_pose.request.start = true;
-  if (clt_sf_true_pose.call(srv_sf_true_pose))
-  {
-    ROS_INFO("SCOUT: Called service TruePose");
-    ROS_INFO_STREAM("Status of SF True Pose: "<< srv_sf_true_pose.response.success);
-  }
-  else
-  {
-    ROS_ERROR("SCOUT: Failed  to call service Pose Update");
-  }
+  GetTruePose();
 
   RoverStatic(true);
 
-  if(approachSuccess){
+  if(approachSuccess)
+  {
     // Homing - Initialize Base Station Landmark
     while (!clt_homing.waitForExistence())
     {
         ROS_WARN("SCOUT: Waiting for Homing Service");
     }
+
     sensor_fusion::HomingUpdate srv_homing;
     // ros::spinOnce();
 
@@ -315,74 +299,30 @@ void SmScout::stateInitialize()
   BrakeRamp(100, 2, 0);
   Brake(0.0);
 
-  // waypoint_gen::StartWaypoint srv_wp_start;
-  // srv_wp_start.request.start  = true;
-  // if (clt_wp_start.call(srv_wp_start))
-  // {
-  //   ROS_INFO("Starting Waypoint Gen");
-  // }
-  // else
-  // {
-  //   ROS_ERROR("SCOUT: Failed  to call service Waypoint Start");
-  // }
-
   // make sure we dont latch to a vol we skipped while homing
   vol_detected_dist_ = -1.0;
-  std_msgs::Int64 state_msg;
-  state_msg.data = _initialize;
-  sm_state_pub.publish(state_msg);
+
+  flag_arrived_at_waypoint = true;
+  flag_recovering_localization = false;
+  flag_localizing_volatile = false;
+
+  double progress = 1.0; 
+  state_machine::RobotStatus status_msg;
+  status_msg.progress.data = progress;
+  status_msg.state.data = (int) _initialize;
+  sm_status_pub.publish(status_msg);
 }
 
 void SmScout::statePlanning()
 {
   ROS_INFO("Planning!\n");
-  flag_arrived_at_waypoint = false;
-  if(waypoint_type_==1)
-  {
-    flag_waypoint_unreachable=false;
-  }
-
+  
   ROS_INFO("SCOUT: Canceling MoveBase goal.");
   ac.waitForServer();
   ac.cancelGoal();
   ac.waitForResult(ros::Duration(0.25));
 
-  // while (!clt_wp_gen.waitForExistence())
-  // {
-  //   ROS_ERROR("SCOUT: Waiting for Waypoint Gen service");
-  // }
-  //
-  // waypoint_gen::GenerateWaypoint srv_wp_gen;
-  // srv_wp_gen.request.start  = true;
-  // if(flag_completed_homing)
-  // {
-  //   flag_completed_homing = false;
-  //   srv_wp_gen.request.next  = true;
-  // }
-  // else if(flag_waypoint_unreachable)
-  // {
-  //   flag_waypoint_unreachable=false;
-  //   srv_wp_gen.request.next  = true;
-  // }
-  // else
-  // {
-  // srv_wp_gen.request.next  = false;
-  // }
-  //
-  // if (clt_wp_gen.call(srv_wp_gen))
-  // {
-  //   ROS_INFO("SCOUT: Called service Generate Waypoint");
-  //   goal_pose_ = srv_wp_gen.response.goal;
-  //   waypoint_type_ = srv_wp_gen.response.type;
-  // }
-  // else
-  // {
-  //   ROS_ERROR("SCOUT: Failed  to call service Generate Waypoint");
-  // }
-
   Plan();
-
-  ROS_INFO_STREAM("SCOUT: WP Generation: Goal pose: " << goal_pose_);
 
   goal_yaw_ = atan2(goal_pose_.position.y - current_pose_.position.y, goal_pose_.position.x - current_pose_.position.x);
 
@@ -407,30 +347,16 @@ void SmScout::statePlanning()
       is_colliding = srv_wp_check.response.collision;
       if(is_colliding)
       {
-        // ROS_INFO("SCOUT: Waypoint Unreachable. Getting new waypoint");
-        // srv_wp_gen.request.start  = true;
-        // srv_wp_gen.request.next  = true;
-        // if (clt_wp_gen.call(srv_wp_gen))
-        // {
-          // ROS_INFO("SCOUT: Called service Generate Waypoint");
-          // goal_pose_ = srv_wp_gen.response.goal;
-	        // waypoint_type_ = srv_wp_gen.response.type;
+        Plan();
 
-          Plan();
+        goal_yaw_ = atan2(goal_pose_.position.y - current_pose_.position.y, goal_pose_.position.x - current_pose_.position.x);
 
-          goal_yaw_ = atan2(goal_pose_.position.y - current_pose_.position.y, goal_pose_.position.x - current_pose_.position.x);
+        Brake (0.0);
 
-          Brake (0.0);
+        RotateToHeading(goal_yaw_);
 
-          RotateToHeading(goal_yaw_);
-
-          BrakeRamp(100, 3.0, 0);
-          Brake (0.0);
-        // }
-        // else
-        // {
-        //   ROS_ERROR("SCOUT: Failed to call service Generate Waypoint");
-        // }
+        BrakeRamp(100, 3.0, 0);
+        Brake (0.0);
       }
     }
     else
@@ -445,7 +371,6 @@ void SmScout::statePlanning()
   BrakeRamp(100, 2, 0);
   Brake(0.0);
 
-
   move_base_msgs::MoveBaseGoal move_base_goal;
   ac.waitForServer();
   setPoseGoal(move_base_goal, goal_pose_.position.x, goal_pose_.position.y, goal_yaw_);
@@ -454,55 +379,24 @@ void SmScout::statePlanning()
   ac.sendGoal(move_base_goal, boost::bind(&SmScout::doneCallback, this,_1,_2), boost::bind(&SmScout::activeCallback, this), boost::bind(&SmScout::feedbackCallback, this,_1));
   ac.waitForResult(ros::Duration(0.25));
 
-  std_msgs::Int64 state_msg;
-  state_msg.data = _planning;
-  sm_state_pub.publish(state_msg);
+  flag_arrived_at_waypoint = false;
+
+  double progress = 1.0; 
+  state_machine::RobotStatus status_msg;
+  status_msg.progress.data = progress;
+  status_msg.state.data = (int) _planning;
+  sm_status_pub.publish(status_msg);
 }
 
 void SmScout::stateTraverse()
 {
   ROS_WARN("Traverse State\n");
 
-  if(flag_localized_base && !flag_have_true_pose)
-  {
-    ROS_INFO("SCOUT: Localized but don't have true pose.");
-    flag_have_true_pose = true;
-    flag_arrived_at_waypoint = true;
-    flag_waypoint_unreachable = false;
-  }
-  if(flag_volatile_honed)
-  {
-    ROS_INFO("SCOUT: Volatile honed.");
-    vol_detected_dist_ = -1.0;
-    flag_localizing_volatile = false;
-    flag_volatile_honed = false;
-    flag_arrived_at_waypoint = true;
-    flag_waypoint_unreachable = false;
-  }
-  if(flag_recovering_localization && !flag_localization_failure)
-  {
-    ROS_INFO("SCOUT: Recovering localization or failure in localization.");
-    flag_arrived_at_waypoint = true;
-    flag_waypoint_unreachable = false;
-    flag_recovering_localization = false;
-  }
-
   double distance_to_goal = std::hypot(goal_pose_.position.y - current_pose_.position.y, goal_pose_.position.x - current_pose_.position.x);
   if (distance_to_goal < 2.0)
   {
     ROS_INFO("SCOUT: Close to goal, getting new waypoint.");
     flag_arrived_at_waypoint = true;
-    flag_waypoint_unreachable = false;
-    if(waypoint_type_ ==0 )
-    {
-      flag_localization_failure = false;
-    }
-    else
-    {
-      ROS_INFO(" Reached a Waypoint Designated for Localization Update Type : %f ",waypoint_type_);
-      flag_localization_failure = true;
-      waypoint_type_ =0; // just to account for triggered homing update
-    }
   }
 
   ros::Duration timeOutWPCheck(3.0);
@@ -519,8 +413,6 @@ void SmScout::stateTraverse()
     }
     wp_checker_timer = ros::Time::now();
   }
-
-
 
   move_base_state = ac.getState();
   int mb_state =(int) move_base_state.state_;
@@ -563,25 +455,24 @@ void SmScout::stateTraverse()
     ClearCostmaps();
     BrakeRamp(100, 2, 0);
     Brake(0.0);
-
   }
   else
   {
     ROS_ERROR_STREAM_THROTTLE(1,"Remaining Time for Waypoint" << timeoutWaypoint - (ros::Time::now() - waypoint_timer));
   }
 
-  std_msgs::Int64 state_msg;
-  state_msg.data = _traverse;
-  sm_state_pub.publish(state_msg);
+  double progress = 0; 
+  progress = distance_to_goal;
 
+  state_machine::RobotStatus status_msg;
+  status_msg.progress.data = progress;
+  status_msg.state.data = (int)  _traverse;
+  sm_status_pub.publish(status_msg);
 }
 
 void SmScout::stateVolatileHandler()
 {
   ROS_ERROR("SCOUT: VOLATILE HANDLING STATE!\n");
-  std_msgs::Int64 state_msg;
-  state_msg.data = _volatile_handler;
-  sm_state_pub.publish(state_msg);
 
   ROS_INFO("SCOUT: Canceling MoveBase goal.");
   ac.waitForServer();
@@ -644,58 +535,30 @@ void SmScout::stateVolatileHandler()
     ROS_WARN("SCOUT:Moving sideways (LEFT).");
     MoveSideways(0.1, 10.0);
 
-
-    //RotateInPlace(0.1, 0.0);
-
-
-    // goal_yaw_ = yaw_;
-    // RotateToHeading(goal_yaw_ + M_PI_2);
-    // double dist_1 = vol_detected_dist_;
-
-    // RotateToHeading(goal_yaw_ - M_PI_2);
-    // double dist_2 = vol_detected_dist_;
-
     flag_volatile_honed = true;
   }
+
+  double progress = 0.0; 
+  state_machine::RobotStatus status_msg;
+  status_msg.progress.data = progress;
+  status_msg.state.data = (int)  _volatile_handler;
+  sm_status_pub.publish(status_msg);
 }
 
 void SmScout::stateLost()
 {
   ROS_ERROR("LOST STATE!\n");
-  flag_recovering_localization = false;
 
-  flag_localizing_volatile = false;
-  flag_arrived_at_waypoint = false;
-  flag_waypoint_unreachable = false;
+  double progress = 1.0; 
 
   ROS_INFO("SCOUT: Canceling MoveBase goal.");
   ac.waitForServer();
   ac.cancelGoal();
   ac.waitForResult(ros::Duration(0.25));
 
-
   Stop (2.0);
 
-  // if(pow(pow(base_location_.x - current_pose_.position.x,2)+pow(base_location_.y - current_pose_.position.y,2),.5)>10.0){
-  //
-  // ROS_INFO_STREAM("Defining goal from base location");
-  //
-  // goal_yaw_ = atan2(base_location_.y - current_pose_.position.y, base_location_.x - current_pose_.position.x);
-  //
-  // RotateToHeading(goal_yaw_);
-  //
-  // move_base_msgs::MoveBaseGoal move_base_goal;
-  // ac.waitForServer();
-  // setPoseGoal(move_base_goal, base_location_.x, base_location_.y, goal_yaw_);
-  // ROS_INFO_STREAM("SCOUT: Sending goal to MoveBase: " << move_base_goal);
-  // ac.sendGoal(move_base_goal, boost::bind(&SmScout::doneCallback, this,_1,_2), boost::bind(&SmScout::activeCallback, this), boost::bind(&SmScout::feedbackCallback, this,_1));
-  // ac.waitForResult(ros::Duration(0.25));
-  // // set as a waypoint type 1 so it will come back here.
-  // waypoint_type_=1;
-  // return;
-  // }
   Lights (20);
-
 
   // Approach Base Station
   src2_object_detection::ApproachBaseStation srv_approach_base;
@@ -726,38 +589,44 @@ void SmScout::stateLost()
 
   // Brake (100.0);
   BrakeRamp(100, 3, 0);
-  if(approachSuccess){
-  // Homing - Measurement Update
-  sensor_fusion::HomingUpdate srv_homing;
-  // ros::spinOnce();
-
-  srv_homing.request.angle = pitch_ + .4; // pitch up is negative number
-  ROS_INFO("Requesting Angle for LIDAR %f",srv_homing.request.angle);
-  srv_homing.request.initializeLandmark = flag_need_init_landmark;
-  if (clt_homing.call(srv_homing))
+  if(approachSuccess)
   {
-    ROS_INFO("SCOUT: Called service Homing [Update]");
-    if(srv_homing.request.initializeLandmark && srv_homing.response.success){
-        base_location_ = srv_homing.response.base_location;
-        ROS_WARN("SCOUT: Saving Base Location %f %f",base_location_.x, base_location_.y);
+    // Homing - Measurement Update
+    sensor_fusion::HomingUpdate srv_homing;
+    // ros::spinOnce();
+
+    srv_homing.request.angle = pitch_ + .4; // pitch up is negative number
+    ROS_INFO("Requesting Angle for LIDAR %f",srv_homing.request.angle);
+    srv_homing.request.initializeLandmark = flag_need_init_landmark;
+    if (clt_homing.call(srv_homing))
+    {
+      ROS_INFO("SCOUT: Called service Homing [Update]");
+      if(srv_homing.request.initializeLandmark && srv_homing.response.success)
+      {
+          base_location_ = srv_homing.response.base_location;
+          ROS_WARN("SCOUT: Saving Base Location %f %f",base_location_.x, base_location_.y);
+      }
+      // flag_localization_failure=false;
+      // flag_arrived_at_waypoint = true;
+      // flag_completed_homing = true;
+      if(srv_homing.response.success)
+      {
+        flag_recovering_localization = false;
+        flag_need_init_landmark = false;
+        progress = 1.0;
+      }
     }
-    flag_localization_failure=false;
-    flag_arrived_at_waypoint = true;
-    flag_completed_homing = true;
-    if(srv_homing.response.success){
-      flag_need_init_landmark=false;
+    else
+    {
+      ROS_ERROR("SCOUT: Failed to call service Homing [Update]");
+      progress = -1.0;
     }
   }
   else
   {
-    ROS_ERROR("SCOUT: Failed to call service Homing [Update]");
+    progress = -1.0;
+    ROS_ERROR(" Homing Attempt Failed, Just Moving On For Now");
   }
-
-}
-else{
-  ROS_ERROR(" Homing Attempt Failed, Just Moving On For Now");
-
-}
 
   Lights (20);
 
@@ -776,20 +645,15 @@ else{
 
   Brake(0.0);
 
-  // ToggleDetector(true);
-
   ClearCostmaps();
   BrakeRamp(100, 2, 0);
   Brake(0.0);
 
-
-  // make sure we dont latch to a vol we skipped while homing
-  vol_detected_dist_ = -1.0;
-
-  //flag_completed_homing = true;
-  std_msgs::Int64 state_msg;
-  state_msg.data = _lost;
-  sm_state_pub.publish(state_msg);
+  
+  state_machine::RobotStatus status_msg;
+  status_msg.progress.data = progress;
+  status_msg.state.data = (int)  _lost;
+  sm_status_pub.publish(status_msg);
 }
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -839,6 +703,15 @@ void SmScout::volatileSensorCallback(const srcp2_msgs::VolSensorMsg::ConstPtr& m
 
   // If detected = -1, out of range, reset.
   min_vol_detected_dist_ = ((vol_detected_dist_+1) < 0.001)? 30 : min_vol_detected_dist_;
+
+  if (msg->distance_to > 0)
+  {
+    flag_volatile_detected = true;
+  }
+  else
+  {
+    flag_volatile_detected = false;
+  }
 
   ROS_INFO_STREAM("SCOUT: Minimum volatile detected." << min_vol_detected_dist_);
 }
@@ -952,7 +825,7 @@ void SmScout::feedbackCallback(const move_base_msgs::MoveBaseFeedback::ConstPtr&
 
 void SmScout::plannerInterruptCallback(const std_msgs::Bool::ConstPtr &msg)
 {
-  flag_interrupt_ = msg->data;
+    flag_interrupt_plan = msg->data;
   // ROS_INFO_STREAM("EXCAVATOR: Interrupt flag updated." << *msg);
 }
 
@@ -1149,6 +1022,23 @@ void SmScout::ClearCostmaps()
   else
   {
      ROS_ERROR("SCOUT: Failed calling clear_costmaps service.");
+  }
+}
+
+void SmScout::GetTruePose()
+{
+  // Update SF with True Pose
+  sensor_fusion::GetTruePose srv_sf_true_pose;
+  srv_sf_true_pose.request.start = true;
+  if (clt_sf_true_pose.call(srv_sf_true_pose))
+  {
+    ROS_INFO("EXCAVATOR: Called service TruePose");
+    ROS_INFO_STREAM("Status of SF True Pose: "<< srv_sf_true_pose.response.success);
+    flag_have_true_pose = true;
+  }
+  else
+  {
+    ROS_ERROR("EXCAVATOR: Failed  to call service Pose Update");
   }
 }
 
@@ -1380,7 +1270,7 @@ bool SmScout::setMobility(state_machine::SetMobility::Request &req, state_machin
 void SmScout::Plan()
 {
   task_planning::PlanInfo srv_plan;
-  if (!flag_interrupt_)
+  if (!  flag_interrupt_plan)
   {
     srv_plan.request.replan.data = true;
   }
@@ -1403,10 +1293,50 @@ void SmScout::Plan()
   goal_pose_.position = srv_plan.response.objective.point;
   geometry_msgs::Quaternion quat;
   goal_pose_.orientation = quat;
+
+  // switch (srv_plan.response.code.data)
+  // {
+  // case _initialize:
+  //   flag_have_true_pose = false;
+  //   break;
+
+  // case _planning:
+  //   flag_interrupt_plan = true;
+  //   flag_arrived_at_waypoint = true;
+  //   flag_recovering_localization = false;
+  //   flag_localizing_volatile = false;
+  //   break;
   
-  flag_interrupt_ = false;
+  // case _traverse:
+  //   flag_interrupt_plan = false;
+  //   flag_arrived_at_waypoint = false;
+  //   flag_recovering_localization = false;
+  //   flag_localizing_volatile = false;
+  //   break;
+  
+  // case _volatile_handler:
+  //   flag_interrupt_plan = false;
+  //   flag_arrived_at_waypoint = false;
+  //   flag_recovering_localization = false;
+  //   flag_localizing_volatile = true;
+  //   break;
+  
+  // case _lost:
+  //   flag_interrupt_plan = false;
+  //   flag_arrived_at_waypoint = false;
+  //   flag_recovering_localization = true;
+  //   flag_localizing_volatile = false;
+  //   break;
+
+  // default:
+  //   flag_interrupt_plan = true;
+  //   flag_arrived_at_waypoint = true;
+  //   flag_recovering_localization = false;
+  //   flag_localizing_volatile = false;
+  //   break;
+  // }
+
   // srv_plan.response.id;
-  // srv_plan.response.code;
   
 }
 

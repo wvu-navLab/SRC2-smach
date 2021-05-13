@@ -8,7 +8,7 @@
   <include file="$(find task_planning)/launch/task_planning.launch"/>
  
   <!-- scout_1 state_machine launch file -->
-  <!-- <include file="$(find state_machine)/launch/sm_scout.launch"/> -->
+  <include file="$(find state_machine)/launch/sm_scout.launch"/>
 
   <!-- excavator_1 state_machine launch file -->
   <include file="$(find state_machine)/launch/sm_excavator.launch"/>

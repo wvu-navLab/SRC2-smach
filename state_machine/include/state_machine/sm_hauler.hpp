@@ -38,6 +38,7 @@
 #include <actionlib/client/simple_action_client.h>
 #include <task_planning/PlanInfo.h>
 #include <task_planning/Types.hpp>
+#include <state_machine/RobotStatus.h>
 
 typedef actionlib::SimpleActionClient<move_base_msgs::MoveBaseAction> MoveBaseClient;
 
@@ -66,10 +67,11 @@ public:
   bool flag_heading_fail = false;
   bool flag_need_init_landmark = true;
   bool flag_dumping = false; //true for testing dump
+  bool flag_interrupt_plan = false;
 
 
   ros::Time detection_timer, not_detected_timer, wp_checker_timer;
-  ros::Time last_time_laser_collision_, map_timer, waypoint_timer_;
+  ros::Time last_time_laser_collision, map_timer, waypoint_timer;
 
   // State vector
   std::vector<int> state_to_exec; // Only one should be true at a time, if multiple are true then a default state should be executed
@@ -77,7 +79,7 @@ public:
   // ROS objects
   ros::NodeHandle nh;
   // Publishers
-  ros::Publisher sm_state_pub;
+  ros::Publisher sm_status_pub;
   ros::Publisher cmd_vel_pub; 
   ros::Publisher driving_mode_pub;
   ros::Publisher cmd_dump_pub;
@@ -152,6 +154,7 @@ public:
   void setPoseGoal(move_base_msgs::MoveBaseGoal& poseGoal, double x, double y, double yaw); // m, m, rad
   void ClearCostmaps();
   void Lights(double intensity);
+  void GetTruePose();
   void Drive(double speed_ratio, double time);  
   void DriveCmdVel(double vx, double vy, double wz, double time);
   void RotateToHeading(double desired_yaw);
@@ -162,11 +165,9 @@ public:
   void RoverStatic(bool flag);
   void homingRecovery();
   void immobilityRecovery(int type);
-<<<<<<< HEAD
   void Plan();
-=======
-  //dump??
->>>>>>> testDump
+
+  //dump?
 
   // Parameters
   std::string node_name_;
@@ -201,5 +202,4 @@ public:
   const int LASER_COUNTER_THRESH = 20;
   
   // Planning
-  bool flag_interrupt_ = false;
 };

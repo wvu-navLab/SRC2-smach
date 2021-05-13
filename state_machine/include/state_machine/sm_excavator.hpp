@@ -55,6 +55,7 @@
 #include <move_excavator/FindHauler.h>
 #include <task_planning/PlanInfo.h>
 #include <task_planning/Types.hpp>
+#include <state_machine/RobotStatus.h>
 
  
 #define PI 3.141592653589793
@@ -108,6 +109,7 @@ public:
   bool flag_found_volatile = false;
   bool flag_need_init_landmark=true;
   bool flag_volatile_dug=true;
+  bool flag_interrupt_plan = false;
 
   ros::Time manipulation_timer;
   ros::Time detection_timer, not_detected_timer, wp_checker_timer;
@@ -119,7 +121,7 @@ public:
   // ROS objects
   ros::NodeHandle nh;
   // Publishers
-  ros::Publisher sm_state_pub;
+  ros::Publisher sm_status_pub;
   ros::Publisher cmd_vel_pub;
   ros::Publisher driving_mode_pub;
   ros::Publisher manipulation_state_pub;
@@ -210,6 +212,7 @@ public:
   void setPoseGoal(move_base_msgs::MoveBaseGoal& poseGoal, double x, double y, double yaw); // m, m, rad
   void ClearCostmaps();
   void Lights(double intensity);
+  void GetTruePose();
   void Drive(double speed_ratio, double time);  
   void DriveCmdVel(double vx, double vy, double wz, double time);
   void RotateToHeading(double desired_yaw);
@@ -288,5 +291,4 @@ public:
 
 
   // Planning
-  bool flag_interrupt_ = false;
 };

@@ -50,6 +50,7 @@
 #include <dynamic_reconfigure/Config.h>
 #include <task_planning/PlanInfo.h>
 #include <task_planning/Types.hpp>
+#include <state_machine/RobotStatus.h>
 
 typedef actionlib::SimpleActionClient<move_base_msgs::MoveBaseAction> MoveBaseClient;
 
@@ -77,6 +78,8 @@ public:
   bool flag_completed_homing = false;
   bool flag_heading_fail=false;
   bool flag_need_init_landmark=true;
+  bool flag_interrupt_plan = false;
+  bool flag_volatile_detected = false;
 
 
   ros::Time detection_timer, not_detected_timer, wp_checker_timer;
@@ -88,7 +91,7 @@ public:
   // ROS objects
   ros::NodeHandle nh;
   // Publishers
-  ros::Publisher sm_state_pub;
+  ros::Publisher sm_status_pub;
   ros::Publisher cmd_vel_pub; 
   ros::Publisher driving_mode_pub;
 
@@ -161,6 +164,7 @@ public:
   void setPoseGoal(move_base_msgs::MoveBaseGoal& poseGoal, double x, double y, double yaw); // m, m, rad
   void ClearCostmaps();
   void Lights(double intensity);
+  void GetTruePose();
   void Drive(double speed_ratio, double time);  
   void DriveCmdVel(double vx, double vy, double wz, double time);
   void RotateToHeading(double desired_yaw);
@@ -207,5 +211,4 @@ public:
   int honing_direction_ = 1;
 
   // Planning
-  bool flag_interrupt_ = false;
 };
