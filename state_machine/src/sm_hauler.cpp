@@ -10,6 +10,7 @@ move_base_state(actionlib::SimpleClientGoalState::PREEMPTED)
   sm_state_pub = nh.advertise<std_msgs::Int64>("state_machine/state", 1);
   cmd_vel_pub = nh.advertise<geometry_msgs::Twist>("driving/cmd_vel", 1);
   driving_mode_pub = nh.advertise<std_msgs::Int64>("driving/driving_mode", 1);
+  
   // Subscribers
   localized_base_sub = nh.subscribe("state_machine/localized_base", 1, &SmHauler::localizedBaseCallback, this);
   // mobility_sub = nh.subscribe("/state_machine/mobility_scout", 1, &SmHauler::mobilityCallback, this);
