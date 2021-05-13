@@ -61,9 +61,9 @@ public:
   bool flag_brake_engaged = false;
   bool flag_fallthrough_condition = false;
   bool flag_completed_homing = false;
-  bool flag_heading_fail=false;
-  bool flag_need_init_landmark=true;
-  bool flag_dumping=true; //true for testing dump
+  bool flag_heading_fail = false;
+  bool flag_need_init_landmark = true;
+  bool flag_dumping = false; //true for testing dump
 
 
   ros::Time detection_timer, not_detected_timer, wp_checker_timer;

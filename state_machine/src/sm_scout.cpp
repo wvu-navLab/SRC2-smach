@@ -671,7 +671,6 @@ void SmScout::stateLost()
 
   // if(pow(pow(base_location_.x - current_pose_.position.x,2)+pow(base_location_.y - current_pose_.position.y,2),.5)>10.0){
   //
-  //
   // ROS_INFO_STREAM("Defining goal from base location");
   //
   // goal_yaw_ = atan2(base_location_.y - current_pose_.position.y, base_location_.x - current_pose_.position.x);

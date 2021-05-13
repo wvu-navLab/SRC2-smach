@@ -122,6 +122,10 @@ void SmHauler::run()
     {
       state_to_exec.at(_volatile_handler) = 1;
     }
+    else if(flag_dumping && !flag_brake_engaged)
+    {
+      state_to_exec.at(_hauler_dumping) = 1;
+    }
     else
     {
       flag_arrived_at_waypoint = true;
@@ -144,42 +148,41 @@ void SmHauler::run()
 
     // ---------------DUMPING TESTS-------------------------------------------------
 
-    if (flag_dumping == true)
+    if(!flag_fallthrough_condition || state_to_exec_count == 1)
     {
-      stateDump();
+      if(state_to_exec.at(_initialize))
+      {
+        stateInitialize();
+      }
+      else if(state_to_exec.at(_planning))
+      {
+        statePlanning();
+      }
+      else if(state_to_exec.at(_traverse))
+      {
+        stateTraverse();
+      }
+      else if(state_to_exec.at(_volatile_handler))
+      {
+        stateVolatileHandler();
+      }
+      else if(state_to_exec.at(_lost))
+      {
+        stateLost();
+      }
+      else if(state_to_exec.at(_hauler_dumping))
+      {
+        stateLost();
+      }
+      else
+      {
+        ROS_FATAL("No state to execute");
+      }
     }
-
-    // if(!flag_fallthrough_condition || state_to_exec_count == 1)
-    // {
-    //   if(state_to_exec.at(_initialize))
-    //   {
-    //     stateInitialize();
-    //   }
-    //   else if(state_to_exec.at(_planning))
-    //   {
-    //     statePlanning();
-    //   }
-    //   else if(state_to_exec.at(_traverse))
-    //   {
-    //     stateTraverse();
-    //   }
-    //   else if(state_to_exec.at(_volatile_handler))
-    //   {
-    //     stateVolatileHandler();
-    //   }
-    //   else if(state_to_exec.at(_lost))
-    //   {
-    //     stateLost();
-    //   }
-    //   else
-    //   {
-    //     ROS_FATAL("No state to execute");
-    //   }
-    // }
-    // else
-    // {
-    //   ROS_WARN("State fallthough, flag_fallthrough_condition = %i, state_to_exec_count = %i",flag_fallthrough_condition, state_to_exec_count);
-    // }
+    else
+    {
+      ROS_WARN("State fallthough, flag_fallthrough_condition = %i, state_to_exec_count = %i",flag_fallthrough_condition, state_to_exec_count);
+    }
     // -------------------------------------------------------------------------------------------------------------------
 
     ros::spinOnce();
