@@ -1,4 +1,4 @@
-num_scouts: 0
+num_scouts: 1
 num_excavators: 1
 num_haulers: 1
 clock_max_time_sec: 7200

@@ -47,13 +47,13 @@ int main(int argc, char** argv)
 
     std::vector<std::vector<double>> plan;
     std::vector<double> temp;
-    nh.getParam("waypoints/robot_type", temp);
+    nh.getParam("/waypoints/robot_type", temp);
     plan.push_back(temp);
-    nh.getParam("waypoints/robot_id", temp);
+    nh.getParam("/waypoints/robot_id", temp);
     plan.push_back(temp);
-    nh.getParam("waypoints/x", temp);
+    nh.getParam("/waypoints/x", temp);
     plan.push_back(temp);
-    nh.getParam("waypoints/y", temp);
+    nh.getParam("/waypoints/y", temp);
     plan.push_back(temp);
     /**----------------- Initialize -----------------------------*/
     // Initialize Robots

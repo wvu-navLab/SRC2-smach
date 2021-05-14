@@ -7,7 +7,7 @@ move_base_state(actionlib::SimpleClientGoalState::PREEMPTED)
 {
   // Initialize ROS, Subs, and Pubs *******************************************
   // Publishers
-  sm_status_pub = nh.advertise<std_msgs::Int64>("state_machine/status", 1);
+  sm_status_pub = nh.advertise<state_machine::RobotStatus>("state_machine/status", 1);
   cmd_vel_pub = nh.advertise<geometry_msgs::Twist>("driving/cmd_vel", 1);
   driving_mode_pub = nh.advertise<std_msgs::Int64>("driving/driving_mode", 1);
   cmd_dump_pub = nh.advertise<std_msgs::Float64>("bin/command/position", 1); 
@@ -209,10 +209,10 @@ void SmHauler::stateInitialize()
 
   Lights(20);
 
-  while (!clt_approach_base.waitForExistence())
-  {
-    ROS_WARN("HAULER: Waiting for ApproachBaseStation service");
-  }
+  // while (!clt_approach_base.waitForExistence())
+  // {
+  //   ROS_WARN("HAULER: Waiting for ApproachBaseStation service");
+  // }
 
   Stop(2.0);
 
@@ -232,7 +232,7 @@ void SmHauler::stateInitialize()
   double progress = 0; 
   state_machine::RobotStatus status_msg;
   status_msg.progress.data = progress;
-  status_msg.state.data = (int) _initialize;
+  status_msg.state.data = (uint8_t) _initialize;
   sm_status_pub.publish(status_msg);
 }
 
@@ -303,11 +303,12 @@ void SmHauler::statePlanning()
   ac.waitForResult(ros::Duration(0.25));
 
   flag_arrived_at_waypoint = false;
+  flag_localizing_volatile = true;
 
   double progress = 0; 
   state_machine::RobotStatus status_msg;
   status_msg.progress.data = progress;
-  status_msg.state.data = (int) _planning;
+  status_msg.state.data = (uint8_t) _planning;
   sm_status_pub.publish(status_msg);
 }
 
@@ -389,7 +390,7 @@ void SmHauler::stateTraverse()
 
   state_machine::RobotStatus status_msg;
   status_msg.progress.data = progress;
-  status_msg.state.data = (int) _traverse;
+  status_msg.state.data = (uint8_t) _traverse;
   sm_status_pub.publish(status_msg);
 
 }
@@ -506,7 +507,7 @@ void SmHauler::stateLost()
 
   state_machine::RobotStatus status_msg;
   status_msg.progress.data = progress;
-  status_msg.state.data = (int) _lost;
+  status_msg.state.data = (uint8_t) _lost;
   sm_status_pub.publish(status_msg);
 }
 
@@ -603,7 +604,7 @@ void SmHauler::stateDump()
   double progress = 0; 
   state_machine::RobotStatus status_msg;
   status_msg.progress.data = progress;
-  status_msg.state.data = (int) _hauler_dumping;
+  status_msg.state.data = (uint8_t) _hauler_dumping;
   sm_status_pub.publish(status_msg);
 }
 
@@ -1235,7 +1236,7 @@ void SmHauler::Plan()
   // }
 
   // srv_plan.response.id;
-  
+  flag_interrupt_plan = false;
 }
 
 //------------------------------------------------------------------------------------------------------------------------

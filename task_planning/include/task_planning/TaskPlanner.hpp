@@ -20,7 +20,7 @@
 
 #include <task_planning/Types.hpp>
 #include <task_planning/CostFunction.hpp>
-#include <task_planning/Robot_Status.h>
+// #include <state_machine/RobotStatus.h>
 #include <task_planning/PlanInfo.h>
 #include <volatile_map/VolatileMap.h>
 #include <geometry_msgs/PointStamped.h>

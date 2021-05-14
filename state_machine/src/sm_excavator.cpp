@@ -7,7 +7,7 @@ move_base_state(actionlib::SimpleClientGoalState::PREEMPTED)
 {
   // Initialize ROS, Subs, and Pubs *******************************************
   // Publishers
-  sm_status_pub = nh.advertise<std_msgs::Int64>("state_machine/status", 1);
+  sm_status_pub = nh.advertise<state_machine::RobotStatus>("state_machine/status", 1);
   cmd_vel_pub = nh.advertise<geometry_msgs::Twist>("driving/cmd_vel", 1);
   driving_mode_pub = nh.advertise<std_msgs::Int64>("driving/driving_mode", 1);
   manipulation_state_pub = nh.advertise<std_msgs::Int64>("manipulation/manipulation_state",1);
@@ -38,7 +38,7 @@ move_base_state(actionlib::SimpleClientGoalState::PREEMPTED)
   clt_drive = nh.serviceClient<driving_tools::MoveForward>("driving/move_forward");
   clt_lights = nh.serviceClient<srcp2_msgs::SpotLightSrv>("spot_light");
   clt_brake = nh.serviceClient<srcp2_msgs::BrakeRoverSrv>("brake_rover");
-  clt_approach_base = nh.serviceClient<src2_object_detection::ApproachBaseStation>("approach_base_station");
+  clt_approach_base = nh.serviceClient<src2_object_detection::ApproachBaseStation>("approach_base_station_service");
   clt_rover_static = nh.serviceClient<sensor_fusion::RoverStatic>("sensor_fusion/toggle_rover_static");
   clt_homing = nh.serviceClient<sensor_fusion::HomingUpdate>("homing");
   clt_sf_true_pose = nh.serviceClient<sensor_fusion::GetTruePose>("true_pose");
@@ -206,10 +206,10 @@ void SmExcavator::stateInitialize()
 
   Lights(20);
 
-  while (!clt_approach_base.waitForExistence())
-  {
-    ROS_WARN("EXCAVATOR: Waiting for ApproachBaseStation service");
-  }
+  // while (!clt_approach_base.waitForExistence())
+  // {
+  //   ROS_WARN("EXCAVATOR: Waiting for ApproachBaseStation service");
+  // }
 
   Stop(2.0);
 
@@ -230,7 +230,7 @@ void SmExcavator::stateInitialize()
   double progress = 0; 
   state_machine::RobotStatus status_msg;
   status_msg.progress.data = progress;
-  status_msg.state.data = (int) _initialize;
+  status_msg.state.data = (uint8_t) _initialize;
   sm_status_pub.publish(status_msg);
 }
 
@@ -301,11 +301,12 @@ void SmExcavator::statePlanning()
   ac.waitForResult(ros::Duration(0.25));
 
   flag_arrived_at_waypoint = false;
+  flag_localizing_volatile = true;
 
   double progress = 0; 
   state_machine::RobotStatus status_msg;
   status_msg.progress.data = progress;
-  status_msg.state.data = (int) _planning;
+  status_msg.state.data = (uint8_t) _planning;
   sm_status_pub.publish(status_msg);
 }
 
@@ -387,7 +388,7 @@ void SmExcavator::stateTraverse()
 
   state_machine::RobotStatus status_msg;
   status_msg.progress.data = progress;
-  status_msg.state.data = (int) _traverse;
+  status_msg.state.data = (uint8_t) _traverse;
   sm_status_pub.publish(status_msg);
 }
 
@@ -467,7 +468,7 @@ void SmExcavator::stateVolatileHandler()
   double progress = 0; 
   state_machine::RobotStatus status_msg;
   status_msg.progress.data = progress;
-  status_msg.state.data = (int)  _volatile_handler;
+  status_msg.state.data = (uint8_t)  _volatile_handler;
   sm_status_pub.publish(status_msg);
 }
 
@@ -577,7 +578,7 @@ void SmExcavator::stateLost()
 
   state_machine::RobotStatus status_msg;
   status_msg.progress.data = progress;
-  status_msg.state.data = (int) _lost;
+  status_msg.state.data = (uint8_t) _lost;
   sm_status_pub.publish(status_msg);
 }
 //------------------------------------------------------------------------------------------------------------------------
@@ -1387,7 +1388,7 @@ void SmExcavator::Plan()
   //   break;
   
   // case _lost:
-  //   flag_interrupt_plan = false;
+  //   
   //   flag_arrived_at_waypoint = false;
   //   flag_recovering_localization = true;
   //   flag_localizing_volatile = false;
@@ -1402,7 +1403,7 @@ void SmExcavator::Plan()
   // }
 
   // srv_plan.response.id;
-
+  flag_interrupt_plan = false;  
 }
 
 //------------------------------------------------------------------------------------------------------------------------

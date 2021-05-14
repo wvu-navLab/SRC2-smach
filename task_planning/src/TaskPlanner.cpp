@@ -26,15 +26,19 @@ namespace mac {
 
 void TaskPlanner::populate_prior_plan()
 {
-  geometry_msgs::PointStamped temp;
-  for(int i = 0; i < planning_params_.plan.size(); ++i)
-  {
-    for (auto&robot: robots_)
+  if (!planning_params_.plan.empty()){
+    for(int i = 0; i < planning_params_.plan.size(); ++i)
     {
-      if (robot.type == planning_params_.plan[0][i] && robot.id == planning_params_.plan[1][i])
+      geometry_msgs::PointStamped temp;
+      for (int j = 0; i < robots_.size(); ++j)
       {
-        temp.point.x = planning_params_.plan[2][i];
-        temp.point.y = planning_params_.plan[3][i];
+        if (robots_[j].type == planning_params_.plan[0][i] && robots_[j].id == planning_params_.plan[1][i])
+        {
+          temp.point.x = planning_params_.plan[2][i];
+          temp.point.y = planning_params_.plan[3][i];
+          robots_[j].plan.push_back(temp);
+          ROS_INFO_STREAM("Plan: " << temp.point.x << ", " << temp.point.y);
+        }
       }
     }
   }
@@ -46,7 +50,9 @@ void TaskPlanner::scout_plan_default(int type, int id)
   {
     if (type == robot.type && id == robot.id)
     {
+      ROS_INFO_STREAM("Plan " << robot.plan[0]);
       robot.plan.erase(robot.plan.begin());
+      ROS_INFO_STREAM("Plan " << robot.plan[0]);
     }
   }
 }
@@ -269,8 +275,15 @@ bool TaskPlanner::taskPlanService(task_planning::PlanInfo::Request &req,task_pla
     {
       if (req.type.data == robot.type && req.id.data == robot.id)
       {
-        res.objective = robot.plan[0];
-        ROS_ERROR_STREAM("Objective " << robot.plan[0]);
+        if (!robot.plan.empty())
+        {
+          res.objective = robot.plan[0];
+          res.code.data = 1;
+          ROS_ERROR_STREAM("Objective " << robot.plan[0]);
+        }else
+        {
+          res.code.data = 0;
+        }
       }
     }
   ROS_ERROR("Planning ended.");
@@ -349,7 +362,7 @@ TaskPlanner::TaskPlanner(const CostFunction       & cost_function,
         ROS_ERROR("TaskPlanner::TaskPlanner: robot type invalid!");
         break;
     }
-    
+
   }
 
   sub_clock_ = nh_.subscribe("/clock", 10, &TaskPlanner::timeCallback, this);
@@ -365,7 +378,9 @@ TaskPlanner::TaskPlanner(const CostFunction       & cost_function,
 
   pub_interrupt = nh_.advertise<std_msgs::Bool>("planner_interrupt", 1);
 
-  // this->populate_prior_plan();
+  
+  this->populate_prior_plan();
+
 
 }
 

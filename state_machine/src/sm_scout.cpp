@@ -193,37 +193,37 @@ void SmScout::stateInitialize()
 
   Lights(20);
 
-  while (!clt_approach_base.waitForExistence())
-  {
-    ROS_WARN("SCOUT: Waiting for ApproachBaseStation service");
-  }
+  // while (!clt_approach_base.waitForExistence())
+  // {
+  //   ROS_WARN("SCOUT: Waiting for ApproachBaseStation service");
+  // }
 
-  // Approach Base Station
-  src2_object_detection::ApproachBaseStation srv_approach_base;
-  srv_approach_base.request.approach_base_station.data= true;
-  bool approachSuccess = false;
-  int homingRecoveryCount = 0;
-  while(!approachSuccess && homingRecoveryCount<3)
-  {
-    if (clt_approach_base.call(srv_approach_base))
-    {
-      ROS_INFO("SCOUT: Called service ApproachBaseStation");
-      ROS_INFO_STREAM("Success finding the Base? "<< srv_approach_base.response.success.data);
-      if(!srv_approach_base.response.success.data)
-      {
-      homingRecovery();
-      }
-      else
-      {
-        approachSuccess=true;
-      }
-    }
-    else
-    {
-      ROS_ERROR("SCOUT: Failed  to call service ApproachBaseStation");
-    }
-    homingRecoveryCount=homingRecoveryCount+1;
-  }
+  // // Approach Base Station
+  // src2_object_detection::ApproachBaseStation srv_approach_base;
+  // srv_approach_base.request.approach_base_station.data= true;
+  // bool approachSuccess = false;
+  // int homingRecoveryCount = 0;
+  // while(!approachSuccess && homingRecoveryCount<3)
+  // {
+  //   if (clt_approach_base.call(srv_approach_base))
+  //   {
+  //     ROS_INFO("SCOUT: Called service ApproachBaseStation");
+  //     ROS_INFO_STREAM("Success finding the Base? "<< srv_approach_base.response.success.data);
+  //     if(!srv_approach_base.response.success.data)
+  //     {
+  //     homingRecovery();
+  //     }
+  //     else
+  //     {
+  //       approachSuccess=true;
+  //     }
+  //   }
+  //   else
+  //   {
+  //     ROS_ERROR("SCOUT: Failed  to call service ApproachBaseStation");
+  //   }
+  //   homingRecoveryCount=homingRecoveryCount+1;
+  // }
 
   Stop(2.0);
 
@@ -238,41 +238,41 @@ void SmScout::stateInitialize()
 
   RoverStatic(true);
 
-  if(approachSuccess)
-  {
-    // Homing - Initialize Base Station Landmark
-    while (!clt_homing.waitForExistence())
-    {
-        ROS_WARN("SCOUT: Waiting for Homing Service");
-    }
+  // if(approachSuccess)
+  // {
+  //   // Homing - Initialize Base Station Landmark
+  //   while (!clt_homing.waitForExistence())
+  //   {
+  //       ROS_WARN("SCOUT: Waiting for Homing Service");
+  //   }
 
-    sensor_fusion::HomingUpdate srv_homing;
-    // ros::spinOnce();
+  //   sensor_fusion::HomingUpdate srv_homing;
+  //   // ros::spinOnce();
 
-    srv_homing.request.angle = pitch_ + .4; // pitch up is negative number
-    ROS_ERROR("Requesting Angle for LIDAR %f",srv_homing.request.angle);
-    srv_homing.request.initializeLandmark = flag_need_init_landmark;
-    if (clt_homing.call(srv_homing))
-    {
-      ROS_INFO("SCOUT: Called service HomingUpdate");
-      if(srv_homing.response.success){
-        base_location_ = srv_homing.response.base_location;
-        flag_need_init_landmark = false;
-      }
-      else
-      {
-        ROS_ERROR(" Initial Homing Fail, Starting Without Base Location");
-      }
-    }
-    else
-    {
-      ROS_ERROR("SCOUT: Failed to call service HomingUpdate");
-    }
-  }
-  else
-  {
-    ROS_ERROR(" Initial Homing Fail, Starting Without Base Location");
-  }
+  //   srv_homing.request.angle = pitch_ + .4; // pitch up is negative number
+  //   ROS_ERROR("Requesting Angle for LIDAR %f",srv_homing.request.angle);
+  //   srv_homing.request.initializeLandmark = flag_need_init_landmark;
+  //   if (clt_homing.call(srv_homing))
+  //   {
+  //     ROS_INFO("SCOUT: Called service HomingUpdate");
+  //     if(srv_homing.response.success){
+  //       base_location_ = srv_homing.response.base_location;
+  //       flag_need_init_landmark = false;
+  //     }
+  //     else
+  //     {
+  //       ROS_ERROR(" Initial Homing Fail, Starting Without Base Location");
+  //     }
+  //   }
+  //   else
+  //   {
+  //     ROS_ERROR("SCOUT: Failed to call service HomingUpdate");
+  //   }
+  // }
+  // else
+  // {
+  //   ROS_ERROR(" Initial Homing Fail, Starting Without Base Location");
+  // }
 
   RoverStatic(false);
 
@@ -1337,7 +1337,7 @@ void SmScout::Plan()
   // }
 
   // srv_plan.response.id;
-  
+  flag_interrupt_plan = false;
 }
 
 //------------------------------------------------------------------------------------------------------------------------
