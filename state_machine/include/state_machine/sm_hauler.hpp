@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <boost/bind.hpp>
 
+
 //ROS headers
 #include <ros/ros.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
@@ -46,7 +47,7 @@ class SmHauler
 {
 public:
   // Members -------------------------------------------------------------------------------------------------------------------------
-  const unsigned int num_states = 5;
+  const unsigned int num_states = 6;
   enum STATE_T {_initialize=0, _planning=1, _traverse=2, _volatile_handler=3, _lost=4, _hauler_dumping=5};
 
   // Condition flag declarations
@@ -67,7 +68,11 @@ public:
   bool flag_heading_fail = false;
   bool flag_need_init_landmark = true;
   bool flag_dumping = false; //true for testing dump
+<<<<<<< Updated upstream
   bool flag_interrupt_plan = false;
+=======
+  bool flag_volatile_handler = true;
+>>>>>>> Stashed changes
 
 
   ros::Time detection_timer, not_detected_timer, wp_checker_timer;
@@ -79,8 +84,13 @@ public:
   // ROS objects
   ros::NodeHandle nh;
   // Publishers
+<<<<<<< Updated upstream
   ros::Publisher sm_status_pub;
   ros::Publisher cmd_vel_pub; 
+=======
+  ros::Publisher sm_state_pub;
+  ros::Publisher cmd_vel_pub;
+>>>>>>> Stashed changes
   ros::Publisher driving_mode_pub;
   ros::Publisher cmd_dump_pub;
   // Subscribers
@@ -113,12 +123,12 @@ public:
   ros::ServiceClient clt_srcp2_brake_rover;
   ros::ServiceClient clt_task_planning;
   ros::ServiceClient clt_location_of_bin;
-  
+
   MoveBaseClient ac;
 
   // Clients
   ros::ServiceServer srv_mobility;
-  
+
   actionlib::SimpleClientGoalState move_base_state;
 
   // Methods ----------------------------------------------------------------------------------------------------------------------------
@@ -154,8 +164,12 @@ public:
   void setPoseGoal(move_base_msgs::MoveBaseGoal& poseGoal, double x, double y, double yaw); // m, m, rad
   void ClearCostmaps();
   void Lights(double intensity);
+<<<<<<< Updated upstream
   void GetTruePose();
   void Drive(double speed_ratio, double time);  
+=======
+  void Drive(double speed_ratio, double time);
+>>>>>>> Stashed changes
   void DriveCmdVel(double vx, double vy, double wz, double time);
   void RotateToHeading(double desired_yaw);
   void RotateInPlace(double speed_ratio, double time);
@@ -165,9 +179,17 @@ public:
   void RoverStatic(bool flag);
   void homingRecovery();
   void immobilityRecovery(int type);
+<<<<<<< Updated upstream
   void Plan();
 
   //dump?
+=======
+// <<<<<<< HEAD
+  void Plan();
+// =======
+  //dump??
+// >>>>>>> testDump
+>>>>>>> Stashed changes
 
   // Parameters
   std::string node_name_;
@@ -179,8 +201,8 @@ public:
   int driving_mode;
 
   geometry_msgs::Pose current_pose_, goal_pose_;
-  geometry_msgs::Point base_location_;  
-  
+  geometry_msgs::Point base_location_;
+
   // Transforms
   tf2_ros::Buffer tf_buffer;
   tf2_ros::TransformListener tf2_listener;
@@ -200,6 +222,6 @@ public:
   const double LASER_THRESH = 0.3;
   const int LASER_SET_SIZE = 20;
   const int LASER_COUNTER_THRESH = 20;
-  
+
   // Planning
 };

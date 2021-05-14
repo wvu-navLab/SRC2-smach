@@ -1,5 +1,6 @@
 #include <state_machine/sm_hauler.hpp>
 
+
 SmHauler::SmHauler() :
 ac("move_base", true),
 tf2_listener(tf_buffer),
@@ -10,7 +11,11 @@ move_base_state(actionlib::SimpleClientGoalState::PREEMPTED)
   sm_status_pub = nh.advertise<state_machine::RobotStatus>("state_machine/status", 1);
   cmd_vel_pub = nh.advertise<geometry_msgs::Twist>("driving/cmd_vel", 1);
   driving_mode_pub = nh.advertise<std_msgs::Int64>("driving/driving_mode", 1);
+<<<<<<< Updated upstream
   cmd_dump_pub = nh.advertise<std_msgs::Float64>("bin/command/position", 1); 
+=======
+  cmd_dump_pub = nh.advertise<std_msgs::Float64>("bin/command/position", 1);
+>>>>>>> Stashed changes
 
   // Subscribers
   localized_base_sub = nh.subscribe("state_machine/localized_base", 1, &SmHauler::localizedBaseCallback, this);
@@ -57,13 +62,13 @@ move_base_state(actionlib::SimpleClientGoalState::PREEMPTED)
   wp_checker_timer=  ros::Time::now();
 
   node_name_ = "state_machine";
-  if (ros::param::get(node_name_ + "/robot_name", robot_name_) == false) 
+  if (ros::param::get(node_name_ + "/robot_name", robot_name_) == false)
   {
     ROS_FATAL("No parameter 'robot_name' specified");
     ros::shutdown();
     exit(1);
   }
-  if (ros::param::get(node_name_ + "/robot_id", robot_id_) == false) 
+  if (ros::param::get(node_name_ + "/robot_id", robot_id_) == false)
   {
     ROS_FATAL("No parameter 'robot_id' specified");
     ros::shutdown();
@@ -106,6 +111,7 @@ void SmHauler::run()
     // State machine truth table ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     state_to_exec.clear();
     state_to_exec.resize(num_states,0);
+<<<<<<< Updated upstream
     if(!flag_have_true_pose)
     {
       state_to_exec.at(_initialize) = 1;
@@ -115,14 +121,38 @@ void SmHauler::run()
       state_to_exec.at(_planning) = 1;
     }
     else if(flag_arrived_at_waypoint && flag_recovering_localization && !flag_brake_engaged)
+=======
+    if((!flag_have_true_pose && (flag_arrived_at_waypoint || flag_waypoint_unreachable)) && (!flag_dumping) && (!flag_volatile_handler))
+    {
+      state_to_exec.at(_initialize) = 1;
+    }
+    else if(((flag_arrived_at_waypoint || flag_waypoint_unreachable) && (flag_localization_failure || flag_recovering_localization)) && (!flag_dumping) && (!flag_volatile_handler))
     {
       state_to_exec.at(_lost) = 1;
     }
+    else if(((flag_arrived_at_waypoint || flag_waypoint_unreachable) && (volatile_detected_distance==-1.0) && !flag_localizing_volatile && !flag_brake_engaged) && (!flag_dumping) && (!flag_volatile_handler))
+    {
+      state_to_exec.at(_planning) = 1;
+    }
+    else if(((!flag_arrived_at_waypoint && !flag_waypoint_unreachable) && !flag_brake_engaged) && (!flag_dumping) && (!flag_volatile_handler))
+>>>>>>> Stashed changes
+    {
+      state_to_exec.at(_lost) = 1;
+    }
+<<<<<<< Updated upstream
     else if(flag_arrived_at_waypoint && flag_localizing_volatile && !flag_brake_engaged)
     {
       state_to_exec.at(_volatile_handler) = 1;
     }
     else if(flag_arrived_at_waypoint && flag_dumping && !flag_brake_engaged)
+=======
+    // else if((((volatile_detected_distance>=0) || flag_localizing_volatile) && !flag_brake_engaged)|| (flag_volatile_handler ))
+    else if(flag_volatile_handler)
+    {
+      state_to_exec.at(_volatile_handler) = 1;
+    }
+    else if(flag_dumping || !flag_brake_engaged)
+>>>>>>> Stashed changes
     {
       state_to_exec.at(_hauler_dumping) = 1;
     }
@@ -397,8 +427,71 @@ void SmHauler::stateTraverse()
 
 void SmHauler::stateVolatileHandler()
 {
-
   ROS_WARN("Volatile Handling State!");
+
+  while (!clt_lights.waitForExistence())
+  {
+      ROS_WARN("HAULER: Waiting for Lights");
+  }
+  Lights(20);
+
+  // *******get true pose for dump testing
+  while (!clt_sf_true_pose.waitForExistence())
+  {
+    ROS_ERROR("HAULER: Waiting for TruePose service");
+  }
+
+  // Update SF with True Pose
+  sensor_fusion::GetTruePose srv_sf_true_pose;
+  srv_sf_true_pose.request.start = true;
+  if (clt_sf_true_pose.call(srv_sf_true_pose))
+  {
+    ROS_INFO("HAULER: Called service TruePose");
+    ROS_INFO_STREAM("Status of SF True Pose: "<< srv_sf_true_pose.response.success);
+  }
+  else
+  {
+    ROS_ERROR("HAULER: Failed  to call service Pose Update");
+  }
+
+  RoverStatic(true);
+
+  while (!clt_approach_excavator.waitForExistence())
+  {
+    ROS_WARN("HAULER: Waiting for ApproachExacavator service");
+  }
+
+  // approach bin with cv detector
+  src2_object_detection::ApproachExcavator srv_approach_excavator;
+  srv_approach_excavator.request.approach_excavator.data= true;
+  bool approachSuccess = false;
+  int ExcavatorApproachRecoveryCount = 0;
+  while(!approachSuccess && ExcavatorApproachRecoveryCount<3){
+    if (clt_approach_excavator.call(srv_approach_excavator))
+    {
+      ROS_INFO("HAULER: Called service ApproachExcavator");
+      ROS_INFO_STREAM("Success finding the Excavator? "<< srv_approach_excavator.response.success.data);
+      if(srv_approach_excavator.response.success.data){
+        // homingRecovery(); //TODO: bin recovery behavior/fine align
+        // }
+        // else
+
+        approachSuccess=true;
+        ROS_INFO("HAULER: approach excavator with classifier successful");
+        flag_dumping = true;
+        flag_volatile_handler = false;
+      }
+    }
+    else
+    {
+      ROS_ERROR("HAULER: Failed  to call service ApproachBin");
+    }
+    ExcavatorApproachRecoveryCount= ExcavatorApproachRecoveryCount+1;
+  }
+
+  if (!approachSuccess){
+    ROS_INFO("HAULER : failed after 3 attempts");
+  }
 }
 
 void SmHauler::stateLost()
@@ -522,32 +615,32 @@ void SmHauler::stateDump()
 
   // ToggleDetector(false);
 
-  while (!clt_lights.waitForExistence())
-  {
-      ROS_WARN("HAULER: Waiting for Lights");
-  }
-  Lights(20);
-
-  // *******get true pose for dump testing
-  while (!clt_sf_true_pose.waitForExistence())
-  {
-    ROS_ERROR("HAULER: Waiting for TruePose service");
-  }
-
-  // Update SF with True Pose
-  sensor_fusion::GetTruePose srv_sf_true_pose;
-  srv_sf_true_pose.request.start = true;
-  if (clt_sf_true_pose.call(srv_sf_true_pose))
-  {
-    ROS_INFO("HAULER: Called service TruePose");
-    ROS_INFO_STREAM("Status of SF True Pose: "<< srv_sf_true_pose.response.success);
-  }
-  else
-  {
-    ROS_ERROR("HAULER: Failed  to call service Pose Update");
-  }
-
-  RoverStatic(true);
+  // while (!clt_lights.waitForExistence())
+  // {
+  //     ROS_WARN("HAULER: Waiting for Lights");
+  // }
+  // Lights(20);
+  //
+  // // *******get true pose for dump testing
+  // while (!clt_sf_true_pose.waitForExistence())
+  // {
+  //   ROS_ERROR("HAULER: Waiting for TruePose service");
+  // }
+  //
+  // // Update SF with True Pose
+  // sensor_fusion::GetTruePose srv_sf_true_pose;
+  // srv_sf_true_pose.request.start = true;
+  // if (clt_sf_true_pose.call(srv_sf_true_pose))
+  // {
+  //   ROS_INFO("HAULER: Called service TruePose");
+  //   ROS_INFO_STREAM("Status of SF True Pose: "<< srv_sf_true_pose.response.success);
+  // }
+  // else
+  // {
+  //   ROS_ERROR("HAULER: Failed  to call service Pose Update");
+  // }
+  //
+  // RoverStatic(true);
 
   while (!clt_approach_bin.waitForExistence())
   {
@@ -568,7 +661,7 @@ void SmHauler::stateDump()
         // homingRecovery(); //TODO: bin recovery behavior/fine align
         // }
         // else
-        
+
         approachSuccess=true;
         ROS_INFO("HAULER: approach bin with classifier successful");
       }
@@ -582,17 +675,19 @@ void SmHauler::stateDump()
 
 
   // localize bin after approaching bin
-  range_to_base::LocationOfBin srv_location_of_bin;
-  srv_location_of_bin.request.location_of_bin.data=true;
-  bool binLocationSuccess = false;
-  // int binLocationRecoveryCount = 0;
-  clt_location_of_bin.call(srv_location_of_bin);
+  if (approachSuccess){
+      range_to_base::LocationOfBin srv_location_of_bin;
+      srv_location_of_bin.request.location_of_bin.data=true;
+      bool binLocationSuccess = false;
+      // int binLocationRecoveryCount = 0;
+      clt_location_of_bin.call(srv_location_of_bin);
 
-  if(!srv_location_of_bin.response.success.data){
-    ROS_INFO("HAULER: location of bin not reliable");
+      if(!srv_location_of_bin.response.success.data){
+        ROS_INFO("HAULER: location of bin not reliable");
+      }
+
+      ROS_INFO_STREAM("Hauler location: " << current_pose_);
   }
-
-  ROS_INFO_STREAM("Hauler location: " << current_pose_);
 
   // approach closely
   // compare bin location w/ current location
@@ -600,12 +695,34 @@ void SmHauler::stateDump()
   // driving commands
   // call bin location + verify
   // dump action
+<<<<<<< Updated upstream
 
   double progress = 0; 
   state_machine::RobotStatus status_msg;
   status_msg.progress.data = progress;
   status_msg.state.data = (uint8_t) _hauler_dumping;
   sm_status_pub.publish(status_msg);
+=======
+  // double distx = current_pose_.position.x - srv_location_of_bin.response.position.x;
+  // double disty = current_pose_.position.y - srv_location_of_bin.response.position.y;
+  //
+  // double dist  = std::pow((distx*distx + disty*disty), 0.5);
+  //
+  //
+  // double dump_thresh = 0.5;
+  //
+  // if (dist < dump_thresh){
+  Brake(100.0);
+  std_msgs::Int64 state_msg;
+  state_msg.data = _hauler_dumping;
+  sm_state_pub.publish(state_msg);
+
+  DriveCmdVel(-1.0,0.0,0.0,5);
+// }
+
+  flag_volatile_handler = true;
+  flag_dumping = false;
+>>>>>>> Stashed changes
 }
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -1180,6 +1297,7 @@ void SmHauler::Plan()
   geometry_msgs::Quaternion quat;
   goal_pose_.orientation = quat;
 
+<<<<<<< Updated upstream
   // switch (srv_plan.response.code.data)
   // {
   // case _initialize:
@@ -1237,6 +1355,12 @@ void SmHauler::Plan()
 
   // srv_plan.response.id;
   flag_interrupt_plan = false;
+=======
+  flag_interrupt_ = false;
+  // srv_plan.response.id;
+  // srv_plan.response.code;
+
+>>>>>>> Stashed changes
 }
 
 //------------------------------------------------------------------------------------------------------------------------
