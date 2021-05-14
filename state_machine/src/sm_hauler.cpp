@@ -121,7 +121,7 @@ void SmHauler::run()
     {
       state_to_exec.at(_lost) = 1;
     }
-    else if(flag_arrived_at_waypoint && flag_localizing_volatile && !flag_brake_engaged)
+    else if(flag_arrived_at_waypoint && flag_localizing_volatile && !flag_brake_engaged && flag_volatile_handler)
     {
       state_to_exec.at(_volatile_handler) = 1;
     }
@@ -212,10 +212,38 @@ void SmHauler::stateInitialize()
 
   Lights(20);
 
-  // while (!clt_approach_base.waitForExistence())
-  // {
-  //   ROS_WARN("HAULER: Waiting for ApproachBaseStation service");
-  // }
+  while (!clt_approach_base.waitForExistence())
+  {
+    ROS_WARN("HAULER: Waiting for ApproachBaseStation service");
+  }
+
+  src2_object_detection::ApproachBaseStation srv_approach_base_station;
+  srv_approach_base_station.request.approach_base_station.data = true;
+  bool approachSuccess = false;
+  int baseStationApproachRecoveryCount = 0;
+  while(!approachSuccess && baseStationApproachRecoveryCount<3){
+    if (clt_approach_base.call(srv_approach_base_station))
+    {
+      ROS_INFO("HAULER: Called service ApproachbaseStation");
+      ROS_INFO_STREAM("Success finding the baseStation? "<< srv_approach_base_station.response.success.data);
+      if(srv_approach_base_station.response.success.data){
+        // homingRecovery(); //TODO: bin recovery behavior/fine align
+        // }
+        // else
+
+        approachSuccess=true;
+        ROS_INFO("HAULER: approach base Station with classifier successful");
+      }
+    }
+    else
+    {
+      ROS_ERROR("HAULER: Failed  to call service ApproachBaseStation");
+    }
+    baseStationApproachRecoveryCount=baseStationApproachRecoveryCount+1;
+  }
+
+
+
 
   Stop(2.0);
 
@@ -453,6 +481,7 @@ void SmHauler::stateVolatileHandler()
         ROS_INFO("HAULER: approach excavator with classifier successful");
         flag_dumping = true;
         flag_volatile_handler = false;
+        // flag_arrived_at_waypoint = true;
       }
     }
     else
@@ -582,6 +611,7 @@ void SmHauler::stateLost()
 void SmHauler::stateDump()
 {
   ROS_WARN("DUMPING STATE!\n");
+  double progress = 1.0; 
 
   flag_arrived_at_waypoint = false;
   flag_waypoint_unreachable = false;
@@ -651,15 +681,19 @@ void SmHauler::stateDump()
   if (approachSuccess){
       range_to_base::LocationOfBin srv_location_of_bin;
       srv_location_of_bin.request.location_of_bin.data=true;
-      bool binLocationSuccess = false;
+      bool binLocationSuccess = true;
+      progress = 1.0;
+
       // int binLocationRecoveryCount = 0;
       clt_location_of_bin.call(srv_location_of_bin);
 
       if(!srv_location_of_bin.response.success.data){
         ROS_INFO("HAULER: location of bin not reliable");
+        progress = -1.0;
+
       }
 
-      ROS_INFO_STREAM("Hauler location: " << current_pose_);
+      //ROS_INFO_STREAM("Hauler location: " << current_pose_);
   }
 
   // approach closely
@@ -679,15 +713,21 @@ void SmHauler::stateDump()
   //
   // if (dist < dump_thresh){
   Brake(100.0);
-  std_msgs::Int64 state_msg;
-  state_msg.data = _hauler_dumping;
-  sm_status_pub.publish(state_msg);
+  // std_msgs::Int64 state_msg;
+  // state_msg.data = _hauler_dumping;
+  // sm_status_pub.publish(state_msg);
+
+  state_machine::RobotStatus status_msg;
+  status_msg.progress.data = progress;
+  status_msg.state.data = (uint8_t) _hauler_dumping;
+  sm_status_pub.publish(status_msg);
+
 
   DriveCmdVel(-1.0,0.0,0.0,5);
 
 // }
-
-  flag_volatile_handler = true;
+  // flag_arrived_at_waypoint = false;
+  flag_volatile_handler = false;
   flag_dumping = false;
 
 }
