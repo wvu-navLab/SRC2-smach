@@ -11,11 +11,8 @@ move_base_state(actionlib::SimpleClientGoalState::PREEMPTED)
   sm_status_pub = nh.advertise<state_machine::RobotStatus>("state_machine/status", 1);
   cmd_vel_pub = nh.advertise<geometry_msgs::Twist>("driving/cmd_vel", 1);
   driving_mode_pub = nh.advertise<std_msgs::Int64>("driving/driving_mode", 1);
-<<<<<<< Updated upstream
   cmd_dump_pub = nh.advertise<std_msgs::Float64>("bin/command/position", 1); 
-=======
-  cmd_dump_pub = nh.advertise<std_msgs::Float64>("bin/command/position", 1);
->>>>>>> Stashed changes
+
 
   // Subscribers
   localized_base_sub = nh.subscribe("state_machine/localized_base", 1, &SmHauler::localizedBaseCallback, this);
@@ -111,7 +108,7 @@ void SmHauler::run()
     // State machine truth table ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     state_to_exec.clear();
     state_to_exec.resize(num_states,0);
-<<<<<<< Updated upstream
+
     if(!flag_have_true_pose)
     {
       state_to_exec.at(_initialize) = 1;
@@ -121,38 +118,14 @@ void SmHauler::run()
       state_to_exec.at(_planning) = 1;
     }
     else if(flag_arrived_at_waypoint && flag_recovering_localization && !flag_brake_engaged)
-=======
-    if((!flag_have_true_pose && (flag_arrived_at_waypoint || flag_waypoint_unreachable)) && (!flag_dumping) && (!flag_volatile_handler))
-    {
-      state_to_exec.at(_initialize) = 1;
-    }
-    else if(((flag_arrived_at_waypoint || flag_waypoint_unreachable) && (flag_localization_failure || flag_recovering_localization)) && (!flag_dumping) && (!flag_volatile_handler))
     {
       state_to_exec.at(_lost) = 1;
     }
-    else if(((flag_arrived_at_waypoint || flag_waypoint_unreachable) && (volatile_detected_distance==-1.0) && !flag_localizing_volatile && !flag_brake_engaged) && (!flag_dumping) && (!flag_volatile_handler))
-    {
-      state_to_exec.at(_planning) = 1;
-    }
-    else if(((!flag_arrived_at_waypoint && !flag_waypoint_unreachable) && !flag_brake_engaged) && (!flag_dumping) && (!flag_volatile_handler))
->>>>>>> Stashed changes
-    {
-      state_to_exec.at(_lost) = 1;
-    }
-<<<<<<< Updated upstream
     else if(flag_arrived_at_waypoint && flag_localizing_volatile && !flag_brake_engaged)
     {
       state_to_exec.at(_volatile_handler) = 1;
     }
     else if(flag_arrived_at_waypoint && flag_dumping && !flag_brake_engaged)
-=======
-    // else if((((volatile_detected_distance>=0) || flag_localizing_volatile) && !flag_brake_engaged)|| (flag_volatile_handler ))
-    else if(flag_volatile_handler)
-    {
-      state_to_exec.at(_volatile_handler) = 1;
-    }
-    else if(flag_dumping || !flag_brake_engaged)
->>>>>>> Stashed changes
     {
       state_to_exec.at(_hauler_dumping) = 1;
     }
@@ -695,14 +668,7 @@ void SmHauler::stateDump()
   // driving commands
   // call bin location + verify
   // dump action
-<<<<<<< Updated upstream
 
-  double progress = 0; 
-  state_machine::RobotStatus status_msg;
-  status_msg.progress.data = progress;
-  status_msg.state.data = (uint8_t) _hauler_dumping;
-  sm_status_pub.publish(status_msg);
-=======
   // double distx = current_pose_.position.x - srv_location_of_bin.response.position.x;
   // double disty = current_pose_.position.y - srv_location_of_bin.response.position.y;
   //
@@ -715,14 +681,15 @@ void SmHauler::stateDump()
   Brake(100.0);
   std_msgs::Int64 state_msg;
   state_msg.data = _hauler_dumping;
-  sm_state_pub.publish(state_msg);
+  sm_status_pub.publish(state_msg);
 
   DriveCmdVel(-1.0,0.0,0.0,5);
+
 // }
 
   flag_volatile_handler = true;
   flag_dumping = false;
->>>>>>> Stashed changes
+
 }
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -1297,7 +1264,6 @@ void SmHauler::Plan()
   geometry_msgs::Quaternion quat;
   goal_pose_.orientation = quat;
 
-<<<<<<< Updated upstream
   // switch (srv_plan.response.code.data)
   // {
   // case _initialize:
@@ -1355,12 +1321,6 @@ void SmHauler::Plan()
 
   // srv_plan.response.id;
   flag_interrupt_plan = false;
-=======
-  flag_interrupt_ = false;
-  // srv_plan.response.id;
-  // srv_plan.response.code;
-
->>>>>>> Stashed changes
 }
 
 //------------------------------------------------------------------------------------------------------------------------

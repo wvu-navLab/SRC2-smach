@@ -68,11 +68,8 @@ public:
   bool flag_heading_fail = false;
   bool flag_need_init_landmark = true;
   bool flag_dumping = false; //true for testing dump
-<<<<<<< Updated upstream
   bool flag_interrupt_plan = false;
-=======
   bool flag_volatile_handler = true;
->>>>>>> Stashed changes
 
 
   ros::Time detection_timer, not_detected_timer, wp_checker_timer;
@@ -83,16 +80,14 @@ public:
 
   // ROS objects
   ros::NodeHandle nh;
+
   // Publishers
-<<<<<<< Updated upstream
   ros::Publisher sm_status_pub;
   ros::Publisher cmd_vel_pub; 
-=======
-  ros::Publisher sm_state_pub;
-  ros::Publisher cmd_vel_pub;
->>>>>>> Stashed changes
+
   ros::Publisher driving_mode_pub;
   ros::Publisher cmd_dump_pub;
+
   // Subscribers
   ros::Subscriber localized_base_sub;
   ros::Subscriber waypoint_unreachable_sub;
@@ -164,12 +159,8 @@ public:
   void setPoseGoal(move_base_msgs::MoveBaseGoal& poseGoal, double x, double y, double yaw); // m, m, rad
   void ClearCostmaps();
   void Lights(double intensity);
-<<<<<<< Updated upstream
   void GetTruePose();
   void Drive(double speed_ratio, double time);  
-=======
-  void Drive(double speed_ratio, double time);
->>>>>>> Stashed changes
   void DriveCmdVel(double vx, double vy, double wz, double time);
   void RotateToHeading(double desired_yaw);
   void RotateInPlace(double speed_ratio, double time);
@@ -179,17 +170,11 @@ public:
   void RoverStatic(bool flag);
   void homingRecovery();
   void immobilityRecovery(int type);
-<<<<<<< Updated upstream
   void Plan();
-
   //dump?
-=======
-// <<<<<<< HEAD
-  void Plan();
-// =======
-  //dump??
-// >>>>>>> testDump
->>>>>>> Stashed changes
+
+
+
 
   // Parameters
   std::string node_name_;
