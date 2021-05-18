@@ -18,9 +18,26 @@ double CostFunction::compute_cost(const volatile_map::Volatile & vol,
     case DISTANCE :
       return this->cost_distance(vol, robot, clk);
 
-    case B:
-      //do stuff
-      break;
+    case POWER:
+      return this->
+
+    case UNCERTAINTY_ROBOT:
+      return this->
+
+    case UNCERTAINTY_VOLATILE:
+      return this->
+
+    case TIME_REMAINING:
+      return this->
+
+    case SWITCH_TASK:
+      return this->
+
+    case G:
+      return this->
+
+    case H:
+      return this->
 
     default:
       ROS_ERROR("CostFunction::compute_cost: cost_type invalid!");
@@ -66,5 +83,59 @@ val = std::sqrt(val);
 return val;
 }
 
+double CostFunction::cost_power(const volatile_map::Volatile & vol,
+                    const mac::Robot    & robot,
+                    ros::Time clk) const
+{
+
+}
+
+
+double CostFunction::cost_unc_robot(const volatile_map::Volatile & vol,
+                    const mac::Robot    & robot,
+                    ros::Time clk) const
+{
+
+}
+
+
+double CostFunction::cost_unc_volatile(const volatile_map::Volatile & vol,
+                    const mac::Robot    & robot,
+                    ros::Time clk) const
+{
+
+}
+
+
+double CostFunction::cost_time_remaining(const volatile_map::Volatile & vol,
+                    const mac::Robot    & robot,
+                    ros::Time clk) const
+{
+
+}
+
+
+double CostFunction::cost_switch_task(const volatile_map::Volatile & vol,
+                    const mac::Robot    & robot,
+                    ros::Time clk) const
+{
+
+}
+
+
+double CostFunction::cost_G(const volatile_map::Volatile & vol,
+                    const mac::Robot    & robot,
+                    ros::Time clk) const
+{
+
+}
+
+
+double CostFunction::cost_H(const volatile_map::Volatile & vol,
+                    const mac::Robot    & robot,
+                    ros::Time clk) const
+{
+
+}
 
 }

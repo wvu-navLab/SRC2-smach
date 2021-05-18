@@ -18,7 +18,14 @@
 namespace mac {
 
 const int DISTANCE = 0;
-const int B = 1;
+const int POWER = 1;
+const int UNCERTAINTY_ROBOT = 2;
+const int UNCERTAINTY_VOLATILE = 3;
+const int TIME_REMAINING = 4;
+const int SWITCH_TASK = 5;
+const int G = 6;
+const int H = 7;
+
 
 class CostFunction {
   public:
@@ -46,6 +53,47 @@ class CostFunction {
     double cost_distance(const volatile_map::Volatile & vol,
                         const mac::Robot    & robot,
                         ros::Time clk) const;
+
+    /** \brief  */
+    double cost_power(const volatile_map::Volatile & vol,
+                        const mac::Robot    & robot,
+                        ros::Time clk) const;
+
+    /** \brief  */
+    double cost_unc_robot(const volatile_map::Volatile & vol,
+                        const mac::Robot    & robot,
+                        ros::Time clk) const;
+
+
+    /** \brief  */
+    double cost_unc_volatile(const volatile_map::Volatile & vol,
+                        const mac::Robot    & robot,
+                        ros::Time clk) const;
+
+
+    /** \brief  */
+    double cost_time_remaining(const volatile_map::Volatile & vol,
+                        const mac::Robot    & robot,
+                        ros::Time clk) const;
+
+
+    /** \brief  */
+    double cost_switch_task(const volatile_map::Volatile & vol,
+                        const mac::Robot    & robot,
+                        ros::Time clk) const;
+
+
+    /** \brief  */
+    double cost_G(const volatile_map::Volatile & vol,
+                        const mac::Robot    & robot,
+                        ros::Time clk) const;
+
+
+    /** \brief  */
+    double cost_H(const volatile_map::Volatile & vol,
+                        const mac::Robot    & robot,
+                        ros::Time clk) const;
+
 
     /** \brief  */
     //double cost_B(const Volatile & volatile,
