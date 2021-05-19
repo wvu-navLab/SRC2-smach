@@ -32,12 +32,14 @@ void TaskPlanner::populate_prior_plan()
       geometry_msgs::PointStamped temp;
       for (int j = 0; i < robots_.size(); ++j)
       {
+        ROS_INFO_STREAM("Type current:" << robots_[j].type << " ||| plan" << planning_params_.plan[0][i]);
+        ROS_INFO_STREAM("ID current:" << robots_[j].id << " ||| plan" << planning_params_.plan[1][i]);
         if (robots_[j].type == planning_params_.plan[0][i] && robots_[j].id == planning_params_.plan[1][i])
         {
           temp.point.x = planning_params_.plan[2][i];
           temp.point.y = planning_params_.plan[3][i];
           robots_[j].plan.push_back(temp);
-          ROS_INFO_STREAM("Plan: " << temp.point.x << ", " << temp.point.y);
+          ROS_INFO_STREAM("Plan: (" << temp.point.x << ", " << temp.point.y << ")");
         }
       }
     }
@@ -378,7 +380,7 @@ TaskPlanner::TaskPlanner(const CostFunction       & cost_function,
 
   pub_interrupt = nh_.advertise<std_msgs::Bool>("planner_interrupt", 1);
 
-  
+
   this->populate_prior_plan();
 
 

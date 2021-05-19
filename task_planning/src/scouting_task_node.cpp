@@ -55,6 +55,7 @@ int main(int argc, char** argv)
     plan.push_back(temp);
     nh.getParam("/waypoints/y", temp);
     plan.push_back(temp);
+    ROS_INFO_STREAM("Plan: " << plan);
     /**----------------- Initialize -----------------------------*/
     // Initialize Robots
     std::vector<mac::Robot> robots;
@@ -75,6 +76,7 @@ int main(int argc, char** argv)
     planning_params.demo = demo;
     planning_params.type = mac::SCOUT_PLANNER_DEFAULT;
     planning_params.plan = plan;
+    ROS_INFO_STREAM("Params Plan: " << planning_params.plan);
 
 
     mac::TaskPlanner tp(cf,robots, planning_params);

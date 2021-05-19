@@ -19,25 +19,25 @@ double CostFunction::compute_cost(const volatile_map::Volatile & vol,
       return this->cost_distance(vol, robot, clk);
 
     case POWER:
-      return this->
+      return this->cost_power(vol, robot, clk);
 
     case UNCERTAINTY_ROBOT:
-      return this->
+      return this->cost_unc_robot(vol, robot, clk);
 
     case UNCERTAINTY_VOLATILE:
-      return this->
+      return this->cost_unc_volatile(vol, robot, clk);
 
     case TIME_REMAINING:
-      return this->
+      return this->cost_time_remaining(vol, robot, clk);
 
     case SWITCH_TASK:
-      return this->
+      return this->cost_switch_task(vol, robot, clk);
 
     case G:
-      return this->
+      return this->cost_G(vol, robot, clk);
 
     case H:
-      return this->
+      return this->cost_H(vol, robot, clk);
 
     default:
       ROS_ERROR("CostFunction::compute_cost: cost_type invalid!");
