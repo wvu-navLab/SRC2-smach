@@ -26,11 +26,12 @@ namespace mac {
 
 void TaskPlanner::populate_prior_plan()
 {
+  std::cout << "populating prior plan..." << std::endl;
   if (!planning_params_.plan.empty()){
     for(int i = 0; i < planning_params_.plan.size(); ++i)
     {
       geometry_msgs::PointStamped temp;
-      for (int j = 0; i < robots_.size(); ++j)
+      for (int j = 0; j < robots_.size(); ++j)
       {
         ROS_INFO_STREAM("Type current:" << robots_[j].type << " ||| plan" << planning_params_.plan[0][i]);
         ROS_INFO_STREAM("ID current:" << robots_[j].id << " ||| plan" << planning_params_.plan[1][i]);

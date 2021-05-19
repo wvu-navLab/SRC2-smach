@@ -84,50 +84,50 @@ return val;
 }
 
 double CostFunction::cost_power(const volatile_map::Volatile & vol,
-                    const mac::Robot    & robot,
-                    ros::Time clk) const
+                                const mac::Robot             & robot,
+                                      ros::Time clk) const
 {
-
+  return 0;
 }
 
 
 double CostFunction::cost_unc_robot(const volatile_map::Volatile & vol,
-                    const mac::Robot    & robot,
-                    ros::Time clk) const
+                                const mac::Robot             & robot,
+                                      ros::Time clk) const
 {
-
+  return 0;
 }
 
 
 double CostFunction::cost_unc_volatile(const volatile_map::Volatile & vol,
-                    const mac::Robot    & robot,
-                    ros::Time clk) const
+                                const mac::Robot             & robot,
+                                      ros::Time clk) const
 {
-
+  return 0;
 }
 
 
 double CostFunction::cost_time_remaining(const volatile_map::Volatile & vol,
-                    const mac::Robot    & robot,
-                    ros::Time clk) const
+                                const mac::Robot             & robot,
+                                      ros::Time clk) const
 {
-
+  return 0;
 }
 
 
 double CostFunction::cost_switch_task(const volatile_map::Volatile & vol,
-                    const mac::Robot    & robot,
-                    ros::Time clk) const
+                                const mac::Robot             & robot,
+                                      ros::Time clk) const
 {
-
+  return 0;
 }
 
 
 double CostFunction::cost_G(const volatile_map::Volatile & vol,
-                    const mac::Robot    & robot,
-                    ros::Time clk) const
+                                const mac::Robot             & robot,
+                                      ros::Time clk) const
 {
-
+  return 0;
 }
 
 

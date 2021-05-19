@@ -1278,16 +1278,16 @@ void SmScout::Plan()
   {
     srv_plan.request.replan.data = false;
   }
-  srv_plan.request.type.data = mac::EXCAVATOR;
+  srv_plan.request.type.data = mac::SCOUT;
   srv_plan.request.id.data = robot_id_;
 
   if (clt_task_planning.call(srv_plan))
   {
-    ROS_INFO_THROTTLE(5,"EXCAVATOR: Called service Plan");
+    ROS_INFO_THROTTLE(5,"SCOUT: Called service Plan");
   }
   else
   {
-    ROS_INFO("EXCAVATOR: Failed to call service RotateInPlace");
+    ROS_INFO("SCOUT: Failed to call service RotateInPlace");
   }
 
   goal_pose_.position = srv_plan.response.objective.point;

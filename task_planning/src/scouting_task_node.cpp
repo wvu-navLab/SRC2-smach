@@ -16,6 +16,14 @@
 #include <task_planning/TaskPlanner.hpp>
 #include <task_planning/CostFunction.hpp>
 
+void print_vector(std::vector<double> vec, std::string s) {
+  std::cout << s << " = " << std::endl;
+  for(auto & v:vec) {
+    std::cout << v << ", ";
+  }
+  std::cout << std::endl;
+}
+
 int main(int argc, char** argv)
 {
     ros::init(argc,argv,"scouting_task_node");
@@ -48,14 +56,28 @@ int main(int argc, char** argv)
     std::vector<std::vector<double>> plan;
     std::vector<double> temp;
     nh.getParam("/waypoints/robot_type", temp);
+    print_vector(temp,"robot_type");
     plan.push_back(temp);
     nh.getParam("/waypoints/robot_id", temp);
+    print_vector(temp,"robot_id");
     plan.push_back(temp);
     nh.getParam("/waypoints/x", temp);
+    print_vector(temp,"x");
     plan.push_back(temp);
     nh.getParam("/waypoints/y", temp);
+    print_vector(temp,"y");
     plan.push_back(temp);
-    ROS_INFO_STREAM("Plan: " << plan);
+
+    // ROS_INFO_STREAM("Plan: " << plan);
+    std::cout << "Plan 1:" << std::endl;
+    for(auto & ps:plan) {
+      std::cout << std::endl;
+      for(auto & p:ps) {
+        std::cout << "p = " << p << ",";
+      }
+    }
+    std::cout << std::endl;
+    
     /**----------------- Initialize -----------------------------*/
     // Initialize Robots
     std::vector<mac::Robot> robots;
@@ -76,13 +98,23 @@ int main(int argc, char** argv)
     planning_params.demo = demo;
     planning_params.type = mac::SCOUT_PLANNER_DEFAULT;
     planning_params.plan = plan;
-    ROS_INFO_STREAM("Params Plan: " << planning_params.plan);
+    // ROS_INFO_STREAM("Params Plan: " << planning_params.plan);
+    std::cout << "Plan 2:" << std::endl;
+    for(auto & ps:planning_params.plan) {
+      std::cout << std::endl;
+      for(auto & p:ps) {
+        std::cout << "p = " << p << ",";
+      }
+    }
+    std::cout << std::endl;
 
 
+    std::cout << "here1" << std::endl;
     mac::TaskPlanner tp(cf,robots, planning_params);
 
 
     // ros::Publisher pub = nh.advertise<std_msgs::Bool>("/small_excavator_1/localization/odometry/sensor_fusion", 10);
+    std::cout << "here2" << std::endl;
     std_msgs::Bool msg;
     /**----------------- Initialize Rover Metric Class------------------------------*/
     ros::spin();
