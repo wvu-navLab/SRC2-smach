@@ -16,6 +16,12 @@
   <!-- sensor_fusion launch file -->
   <include file="$(find sensor_fusion)/launch/excavator_sensor_fusion.launch"/>
 
+  <!-- sensor_fusion launch file -->
+  <include file="$(find move_excavator)/launch/move_excavator.launch"/>
+
+  <!-- sensor_fusion launch file -->
+  <include file="$(find move_excavator)/launch/find_hauler.launch"/>
+
   <!-- scout_driving_tools launch file -->
   <!-- <include file="$(find waypoint_nav)/launch/excavator_waypoint_nav.launch"/> -->
 
@@ -43,7 +49,7 @@
   <!-- <include file="$(find mobility_checker)/launch/scout_mobility_checker.launch"/> -->
 
   <!-- state machine for Excavator -->
-  <!-- <include file="$(find state_machine)/launch/excavator_state_machine.launch"/> -->
+  <include file="$(find state_machine)/launch/excavator_state_machine.launch"/>
 
 
 

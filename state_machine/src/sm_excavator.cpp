@@ -23,7 +23,7 @@ move_base_state(actionlib::SimpleClientGoalState::PREEMPTED)
   laser_scan_sub =nh.subscribe("laser/scan",1, &SmExcavator::laserCallback, this);
   joint_states_sub = nh.subscribe("joint_states", 1, &SmExcavator::jointStateCallback, this);
   bucket_info_sub = nh.subscribe("scoop_info", 1, &SmExcavator::bucketCallback, this);
-  target_bin_sub = nh.subscribe("manipulation/target_bin", 1, &SmExcavator::targetBinCallback, this);
+  // target_bin_sub = nh.subscribe("manipulation/target_bin", 1, &SmExcavator::targetBinCallback, this);
   goal_volatile_sub = nh.subscribe("manipulation/volatile_pose", 1, &SmExcavator::goalVolatileCallback, this);
   manipulation_cmd_sub = nh.subscribe("manipulation/cmd", 1, &SmExcavator::manipulationCmdCallback, this);
   planner_interrupt_sub = nh.subscribe("/planner_interrupt", 1, &SmExcavator::plannerInterruptCallback, this);
@@ -396,8 +396,23 @@ void SmExcavator::stateVolatileHandler()
 {
   ROS_WARN("Volatile Handling State!");
 
+  ROS_INFO("EXCAVATOR: Canceling MoveBase goal.");
+  ac.waitForServer();
+  ac.cancelGoal();
+  ac.waitForResult(ros::Duration(0.25));
+
+  if(flag_manipulation_enabled == false)
+  {
+    ROS_WARN("EXCAVATOR: Enabling Excavation State Machine.");
+    BrakeRamp(100, 1, 0);
+    Brake(0.0);
+    flag_manipulation_enabled = true;
+    manipulation_timer = ros::Time::now();
+  }
+  
   if (flag_manipulation_enabled && (ros::Time::now() - manipulation_timer) < ros::Duration(420))
   {
+    ROS_INFO("EXCAVATOR: Excavation State Machine.");
     switch (mode)
     {
     case HOME_MODE:
@@ -424,21 +439,24 @@ void SmExcavator::stateVolatileHandler()
     case SCOOP_MODE:
       {
         executeScoop(2);
+        FindHauler(30);
         executeAfterScoop(2);
         mode = HOME_MODE;
       }
       break;
     case EXTEND_MODE:
       {
-        executeExtendArm(4);
-        ros::Duration(5).sleep();
+        executeGoToPose(10, bin_point_);
+        // executeExtendArm(4);
+        // ros::Duration(5).sleep();
         mode = DROP_MODE;
       }
       break;
     case DROP_MODE:
       {
-        executeDrop(3);
+        // executeDrop(3);
         flag_manipulation_enabled = false;
+        flag_localizing_volatile = false;
         mode = HOME_MODE;
       }
       break;
@@ -447,23 +465,16 @@ void SmExcavator::stateVolatileHandler()
   else if (flag_manipulation_enabled && (ros::Time::now() - manipulation_timer) > ros::Duration(420))
   {
     flag_manipulation_enabled = false;
+    flag_localizing_volatile = false;
     outputManipulationStatus();
-    flag_found_volatile = false;
-    ROS_ERROR_STREAM("MANIPULATION: interrupted by timeout.");
+    ROS_ERROR("MANIPULATION: interrupted by timeout.");
   }
   else
   {
     flag_manipulation_enabled = false;
-    flag_found_volatile = false;
-    ROS_ERROR_THROTTLE(30,"MANIPULATION: disabled.");
+    flag_localizing_volatile = false;
+    ROS_ERROR("MANIPULATION: disabled.");
   }
-  ros::spinOnce();
-
-  // TODO: SETUP FLAGS TO GO TO PLANNING
-  flag_volatile_dug = true;
-  flag_arrived_at_waypoint = true;
-  flag_arrived_at_waypoint = true;
-  flag_hauler_in_range = false;
 
   double progress = 0; 
   state_machine::RobotStatus status_msg;
@@ -1244,7 +1255,15 @@ void SmExcavator::executeHomeArm(double timeout)
   srv.request.heading = 0;
   srv.request.timeLimit = timeout;
 
-  bool success = clt_home_arm.call(srv);
+  if (clt_home_arm.call(srv))
+  {
+    ROS_INFO("EXCAVATOR: Called service HomeArm.");
+  }
+  else
+  {
+    ROS_ERROR("EXCAVATOR: Failed to call service HomeArm");
+  }
+
 }
 
 void SmExcavator::executeLowerArm(double timeout)
@@ -1254,7 +1273,15 @@ void SmExcavator::executeLowerArm(double timeout)
   srv.request.heading = volatile_heading_;
   srv.request.timeLimit = timeout;
 
-  bool success = clt_lower_arm.call(srv);
+  if (clt_lower_arm.call(srv))
+  {
+    ROS_INFO("EXCAVATOR: Called service LowerArm.");
+  }
+  else
+  {
+    ROS_ERROR("EXCAVATOR: Failed to call service LowerArm");
+  }
+
 }
 
 void SmExcavator::executeScoop(double timeout)
@@ -1264,7 +1291,14 @@ void SmExcavator::executeScoop(double timeout)
   srv.request.heading = volatile_heading_;
   srv.request.timeLimit = timeout;
 
-  bool success = clt_scoop.call(srv);
+  if (clt_scoop.call(srv))
+  {
+    ROS_INFO("EXCAVATOR: Called service Scoop.");
+  }
+  else
+  {
+    ROS_ERROR("EXCAVATOR: Failed to call service Scoop");
+  }  
 }
 
 void SmExcavator::executeAfterScoop(double timeout)
@@ -1274,18 +1308,63 @@ void SmExcavator::executeAfterScoop(double timeout)
   srv.request.heading = volatile_heading_;
   srv.request.timeLimit = timeout;
 
-  bool success = clt_after_scoop.call(srv);
+  if (clt_after_scoop.call(srv))
+  {
+    ROS_INFO("EXCAVATOR: Called service AfterScoop.");
+  }
+  else
+  {
+    ROS_ERROR("EXCAVATOR: Failed to call service AfterScoop");
+  }  
+}
+
+void SmExcavator::FindHauler(double timeout)
+{
+  move_excavator::FindHauler srv_find;
+
+  srv_find.request.timeLimit = timeout;
+  if (clt_find_hauler.call(srv_find))
+  {
+    ROS_INFO("EXCAVATOR: Called service FindHauler.");
+  }
+  else
+  {
+    ROS_ERROR("EXCAVATOR: Failed to call service FindHauler.");
+  }
+
+  if (srv_find.response.success)
+  {
+    bin_point_ = srv_find.response.target;
+    ROS_INFO_STREAM("EXCAVATOR: Found the Hauler bin at " << bin_point_);
+  }
+  else
+  {
+    ROS_ERROR("EXCAVATOR: Havent found the Hauler bin.");
+    bin_point_.point.x = 0;
+    bin_point_.point.y = 0;
+    bin_point_.point.z = 1;
+    //TODO: Make hauler come closer
+  }  
+
 }
 
 
 void SmExcavator::executeExtendArm(double timeout)
 {
+
   move_excavator::ExtendArm srv;
 
   srv.request.heading = relative_heading_;
   srv.request.timeLimit = timeout;
 
-  bool success = clt_extend_arm.call(srv);
+  if (clt_extend_arm.call(srv))
+  {
+    ROS_INFO("EXCAVATOR: Called service ExtendArm.");
+  }
+  else
+  {
+    ROS_ERROR("EXCAVATOR: Failed to call service ExtendArm");
+  }  
 }
 
 void SmExcavator::executeDrop(double timeout)
@@ -1295,14 +1374,21 @@ void SmExcavator::executeDrop(double timeout)
   srv.request.heading = relative_heading_;
   srv.request.timeLimit = timeout;
 
-  bool success = clt_drop_volatile.call(srv);
+  if (clt_drop_volatile.call(srv))
+  {
+    ROS_INFO("EXCAVATOR: Called service Drop.");
+  }
+  else
+  {
+    ROS_ERROR("EXCAVATOR: Failed to call service Drop");
+  }  
 }
 
-void SmExcavator::executeGoToPose(double timeout, const geometry_msgs::PoseStamped::ConstPtr &pose)
+void SmExcavator::executeGoToPose(double timeout, const geometry_msgs::PointStamped &point)
 {
   move_excavator::GoToPose srv;
   
-  srv.request.goal = *pose;
+  srv.request.goal = point;
 
   bool success = clt_go_to_pose.call(srv);
 }

@@ -225,13 +225,14 @@ public:
   void RoverStatic(bool flag);
   void homingRecovery();
   void immobilityRecovery(int type);
+  void FindHauler(double timeout);
   void executeHomeArm(double timeout);
   void executeLowerArm(double timeout);
   void executeScoop(double timeout);
   void executeAfterScoop(double timeout);
   void executeExtendArm(double timeout);
   void executeDrop(double timeout);
-  void executeGoToPose(double timeout, const geometry_msgs::PoseStamped::ConstPtr &msg);
+  void executeGoToPose(double timeout, const geometry_msgs::PointStamped &point);
   void getForwardKinematics(double timeout);
   void getRelativePosition();
   void outputManipulationStatus();
@@ -288,7 +289,6 @@ public:
   double q2_pos_ = 0.0;
   double q3_pos_ = 0.0;
   double q4_pos_ = 0.0;
-
 
   // Planning
 };
