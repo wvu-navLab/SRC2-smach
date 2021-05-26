@@ -11,7 +11,7 @@ move_base_state(actionlib::SimpleClientGoalState::PREEMPTED)
   sm_status_pub = nh.advertise<state_machine::RobotStatus>("state_machine/status", 1);
   cmd_vel_pub = nh.advertise<geometry_msgs::Twist>("driving/cmd_vel", 1);
   driving_mode_pub = nh.advertise<std_msgs::Int64>("driving/driving_mode", 1);
-  cmd_dump_pub = nh.advertise<std_msgs::Float64>("bin/command/position", 1); 
+  cmd_dump_pub = nh.advertise<std_msgs::Float64>("bin/command/position", 1);
 
 
   // Subscribers
@@ -35,15 +35,15 @@ move_base_state(actionlib::SimpleClientGoalState::PREEMPTED)
   clt_drive = nh.serviceClient<driving_tools::MoveForward>("driving/move_forward");
   clt_lights = nh.serviceClient<srcp2_msgs::SpotLightSrv>("spot_light");
   clt_brake = nh.serviceClient<srcp2_msgs::BrakeRoverSrv>("brake_rover");
-  clt_approach_base = nh.serviceClient<src2_object_detection::ApproachBaseStation>("approach_base_station_service");
+  clt_approach_base = nh.serviceClient<src2_approach_services::ApproachChargingStation>("approach_charging_station_service");
   clt_rover_static = nh.serviceClient<sensor_fusion::RoverStatic>("sensor_fusion/toggle_rover_static");
   clt_homing = nh.serviceClient<sensor_fusion::HomingUpdate>("homing");
   clt_sf_true_pose = nh.serviceClient<sensor_fusion::GetTruePose>("true_pose");
   clt_waypoint_checker = nh.serviceClient<waypoint_checker::CheckCollision>("waypoint_checker");
   clt_srcp2_brake_rover= nh.serviceClient<srcp2_msgs::BrakeRoverSrv>("brake_rover");
   clt_task_planning = nh.serviceClient<task_planning::PlanInfo>("/task_planner_exc_haul");
-  clt_approach_excavator = nh.serviceClient<src2_object_detection::ApproachExcavator>("approach_excavator_service");
-  clt_approach_bin = nh.serviceClient<src2_object_detection::ApproachBin>("approach_bin_service");
+  clt_approach_excavator = nh.serviceClient<src2_approach_services::ApproachExcavator>("approach_excavator_service");
+  clt_approach_bin = nh.serviceClient<src2_approach_services::ApproachBin>("approach_bin_service");
   clt_location_of_bin = nh.serviceClient<range_to_base::LocationOfBin>("location_of_bin_service");
 
   srv_mobility = nh.advertiseService("state_machine/mobility_service",&SmHauler::setMobility, this);
@@ -204,7 +204,7 @@ void SmHauler::run()
 void SmHauler::stateInitialize()
 {
   ROS_WARN("Initialization State!\n");
-  
+
   while (!clt_lights.waitForExistence())
   {
     ROS_WARN("HAULER: Waiting for Lights");
@@ -214,19 +214,19 @@ void SmHauler::stateInitialize()
 
   while (!clt_approach_base.waitForExistence())
   {
-    ROS_WARN("HAULER: Waiting for ApproachBaseStation service");
+    ROS_WARN("HAULER: Waiting for ApproachChargingStation service");
   }
 
-  src2_object_detection::ApproachBaseStation srv_approach_base_station;
-  srv_approach_base_station.request.approach_base_station.data = true;
+  src2_approach_services::ApproachChargingStation srv_approach_charging_station;
+  srv_approach_charging_station.request.approach_charging_station.data = true;
   bool approachSuccess = false;
   int baseStationApproachRecoveryCount = 0;
   while(!approachSuccess && baseStationApproachRecoveryCount<3){
-    if (clt_approach_base.call(srv_approach_base_station))
+    if (clt_approach_base.call(srv_approach_charging_station))
     {
-      ROS_INFO("HAULER: Called service ApproachbaseStation");
-      ROS_INFO_STREAM("Success finding the baseStation? "<< srv_approach_base_station.response.success.data);
-      if(srv_approach_base_station.response.success.data){
+      ROS_INFO("HAULER: Called service ApproachChargingStation");
+      ROS_INFO_STREAM("Success finding the baseStation? "<< srv_approach_charging_station.response.success.data);
+      if(srv_approach_charging_station.response.success.data){
         // homingRecovery(); //TODO: bin recovery behavior/fine align
         // }
         // else
@@ -237,7 +237,7 @@ void SmHauler::stateInitialize()
     }
     else
     {
-      ROS_ERROR("HAULER: Failed  to call service ApproachBaseStation");
+      ROS_ERROR("HAULER: Failed  to call service ApproachChargingStation");
     }
     baseStationApproachRecoveryCount=baseStationApproachRecoveryCount+1;
   }
@@ -260,7 +260,7 @@ void SmHauler::stateInitialize()
 
   Brake(0.0);
 
-  double progress = 0; 
+  double progress = 0;
   state_machine::RobotStatus status_msg;
   status_msg.progress.data = progress;
   status_msg.state.data = (uint8_t) _initialize;
@@ -270,7 +270,7 @@ void SmHauler::stateInitialize()
 void SmHauler::statePlanning()
 {
   ROS_INFO("Planning!\n");
-  
+
   ROS_INFO("HAULER: Canceling MoveBase goal.");
   ac.waitForServer();
   ac.cancelGoal();
@@ -320,7 +320,7 @@ void SmHauler::statePlanning()
     ros::spinOnce();
     counter=counter+1;
   }
-  
+
   ClearCostmaps();
   BrakeRamp(100, 2, 0);
   Brake(0.0);
@@ -336,7 +336,7 @@ void SmHauler::statePlanning()
   flag_arrived_at_waypoint = false;
   flag_localizing_volatile = true;
 
-  double progress = 0; 
+  double progress = 0;
   state_machine::RobotStatus status_msg;
   status_msg.progress.data = progress;
   status_msg.state.data = (uint8_t) _planning;
@@ -416,7 +416,7 @@ void SmHauler::stateTraverse()
     ROS_ERROR_STREAM_THROTTLE(1,"Remaining Time for Waypoint" << timeoutWaypoint - (ros::Time::now() - waypoint_timer));
   }
 
-  double progress = 0; 
+  double progress = 0;
   progress = distance_to_goal;
 
   state_machine::RobotStatus status_msg;
@@ -463,7 +463,7 @@ void SmHauler::stateVolatileHandler()
   }
 
   // approach bin with cv detector
-  src2_object_detection::ApproachExcavator srv_approach_excavator;
+  src2_approach_services::ApproachExcavator srv_approach_excavator;
   srv_approach_excavator.request.approach_excavator.data= true;
   bool approachSuccess = false;
   int ExcavatorApproachRecoveryCount = 0;
@@ -500,7 +500,7 @@ void SmHauler::stateLost()
 {
   ROS_ERROR("LOST STATE!\n");
 
-  double progress = 1.0; 
+  double progress = 1.0;
 
   ROS_INFO("SCOUT: Canceling MoveBase goal.");
   ac.waitForServer();
@@ -512,14 +512,14 @@ void SmHauler::stateLost()
   Lights (20);
 
   // Approach Base Station
-  src2_object_detection::ApproachBaseStation srv_approach_base;
-  srv_approach_base.request.approach_base_station.data= true;
+  src2_approach_services::ApproachChargingStation srv_approach_base;
+  srv_approach_base.request.approach_charging_station.data= true;
   bool approachSuccess = false;
   int homingRecoveryCount=0;
   while(!approachSuccess && homingRecoveryCount<3){
       if (clt_approach_base.call(srv_approach_base))
       {
-        ROS_INFO("SCOUT: Called service ApproachBaseStation");
+        ROS_INFO("SCOUT: Called service ApproachChargingStation");
         ROS_INFO_STREAM("Success finding the Base? "<< srv_approach_base.response.success.data);
         if(!srv_approach_base.response.success.data){
         homingRecovery();
@@ -532,7 +532,7 @@ void SmHauler::stateLost()
 
     else
     {
-      ROS_ERROR("SCOUT: Failed  to call service ApproachBaseStation");
+      ROS_ERROR("SCOUT: Failed  to call service ApproachChargingStation");
     }
     homingRecoveryCount=homingRecoveryCount+1;
   }
@@ -611,7 +611,7 @@ void SmHauler::stateLost()
 void SmHauler::stateDump()
 {
   ROS_WARN("DUMPING STATE!\n");
-  double progress = 1.0; 
+  double progress = 1.0;
 
   flag_arrived_at_waypoint = false;
   flag_waypoint_unreachable = false;
@@ -651,7 +651,7 @@ void SmHauler::stateDump()
   }
 
   // approach bin with cv detector
-  src2_object_detection::ApproachBin srv_approach_bin;
+  src2_approach_services::ApproachBin srv_approach_bin;
   srv_approach_bin.request.approach_bin.data= true;
   bool approachSuccess = false;
   int binApproachRecoveryCount = 0;
@@ -1317,7 +1317,7 @@ void SmHauler::Plan()
   //   flag_localizing_volatile = false;
   //   flag_dumping = false;
   //   break;
-  
+
   // case _traverse:
   //   flag_interrupt_plan = false;
   //   flag_arrived_at_waypoint = false;
@@ -1325,7 +1325,7 @@ void SmHauler::Plan()
   //   flag_localizing_volatile = false;
   //   flag_dumping = false;
   //   break;
-  
+
   // case _volatile_handler:
   //   flag_interrupt_plan = false;
   //   flag_arrived_at_waypoint = false;
@@ -1333,7 +1333,7 @@ void SmHauler::Plan()
   //   flag_localizing_volatile = true;
   //   flag_dumping = false;
   //   break;
-  
+
   // case _lost:
   //   flag_interrupt_plan = false;
   //   flag_arrived_at_waypoint = false;

@@ -74,6 +74,7 @@
   <buildtool_depend>task_planning</buildtool_depend>
   <buildtool_depend>laser_tools_src2</buildtool_depend>
   <buildtool_depend>range_to_base</buildtool_depend>
+  <buildtool_depend>src2_approach_services</buildtool_depend>
 
   <build_depend>catkin</build_depend>
   <build_depend>roscpp</build_depend>
@@ -103,6 +104,7 @@
   <build_depend>task_planning</build_depend>
   <build_depend>laser_tools_src2</build_depend>
   <build_depend>range_to_base</build_depend>
+  <build_depend>src2_approach_services</build_depend>
 
   <build_export_depend>catkin</build_export_depend>
   <build_export_depend>roscpp</build_export_depend>
@@ -132,6 +134,7 @@
   <build_export_depend>task_planning</build_export_depend>
   <build_export_depend>laser_tools_src2</build_export_depend>
   <build_export_depend>range_to_base</build_export_depend>
+  <build_export_depend>src2_approach_services</build_export_depend>
 
   <exec_depend>catkin</exec_depend>
   <exec_depend>roscpp</exec_depend>
@@ -161,6 +164,7 @@
   <exec_depend>task_planning</exec_depend>
   <exec_depend>laser_tools_src2</exec_depend>
   <exec_depend>range_to_base</exec_depend>
+  <exec_depend>src2_approach_services</exec_depend>
   <!-- The export tag contains other, unspecified, tags -->
   <export>
     <!-- Other tools can request additional information be placed here -->

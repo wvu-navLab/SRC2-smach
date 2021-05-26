@@ -36,7 +36,7 @@ find_package(catkin REQUIRED COMPONENTS
   task_planning
   laser_tools_src2
   range_to_base
-
+  src2_approach_services
 )
 
 find_package(Eigen3 3.3 REQUIRED)
@@ -131,19 +131,20 @@ add_message_files(
 catkin_package(
  INCLUDE_DIRS include
 #  LIBRARIES state_machine
-  CATKIN_DEPENDS 
-  srcp2_msgs 
-  sensor_msgs 
-  waypoint_checker 
-  src2_object_detection 
-  std_msgs std_srvs 
-  geometry_msgs 
-  nav_msgs 
-  sensor_fusion 
-  driving_tools 
-  actionlib 
-  move_excavator 
-  waypoint_gen 
+  CATKIN_DEPENDS
+  srcp2_msgs
+  sensor_msgs
+  waypoint_checker
+  src2_object_detection
+  src2_approach_services
+  std_msgs std_srvs
+  geometry_msgs
+  nav_msgs
+  sensor_fusion
+  driving_tools
+  actionlib
+  move_excavator
+  waypoint_gen
   motion_control
   message_filters
   tf2_ros

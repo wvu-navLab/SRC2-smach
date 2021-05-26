@@ -38,14 +38,14 @@ move_base_state(actionlib::SimpleClientGoalState::PREEMPTED)
   clt_drive = nh.serviceClient<driving_tools::MoveForward>("driving/move_forward");
   clt_lights = nh.serviceClient<srcp2_msgs::SpotLightSrv>("spot_light");
   clt_brake = nh.serviceClient<srcp2_msgs::BrakeRoverSrv>("brake_rover");
-  clt_approach_base = nh.serviceClient<src2_object_detection::ApproachBaseStation>("approach_base_station_service");
+  clt_approach_base = nh.serviceClient<src2_approach_services::ApproachChargingStation>("approach_charging_station_service");
   clt_rover_static = nh.serviceClient<sensor_fusion::RoverStatic>("sensor_fusion/toggle_rover_static");
   clt_homing = nh.serviceClient<sensor_fusion::HomingUpdate>("homing");
   clt_sf_true_pose = nh.serviceClient<sensor_fusion::GetTruePose>("true_pose");
   clt_waypoint_checker = nh.serviceClient<waypoint_checker::CheckCollision>("waypoint_checker");
   clt_srcp2_brake_rover = nh.serviceClient<srcp2_msgs::BrakeRoverSrv>("brake_rover");
   clt_home_arm = nh.serviceClient<move_excavator::HomeArm>("manipulation/home_arm");
-  clt_extend_arm = nh.serviceClient<move_excavator::ExtendArm>("manipulation/extend_arm");  
+  clt_extend_arm = nh.serviceClient<move_excavator::ExtendArm>("manipulation/extend_arm");
   clt_lower_arm = nh.serviceClient<move_excavator::LowerArm>("manipulation/lower_arm");
   clt_scoop = nh.serviceClient<move_excavator::Scoop>("manipulation/scoop");
   clt_after_scoop = nh.serviceClient<move_excavator::AfterScoop>("manipulation/after_scoop");
@@ -69,13 +69,13 @@ move_base_state(actionlib::SimpleClientGoalState::PREEMPTED)
   manipulation_timer = ros::Time::now();
 
   node_name_ = "state_machine";
-  if (ros::param::get(node_name_ + "/robot_name", robot_name_) == false) 
+  if (ros::param::get(node_name_ + "/robot_name", robot_name_) == false)
   {
     ROS_FATAL("No parameter 'robot_name' specified");
     ros::shutdown();
     exit(1);
   }
-  if (ros::param::get(node_name_ + "/robot_id", robot_id_) == false) 
+  if (ros::param::get(node_name_ + "/robot_id", robot_id_) == false)
   {
     ROS_FATAL("No parameter 'robot_id' specified");
     ros::shutdown();
@@ -198,7 +198,7 @@ void SmExcavator::run()
 void SmExcavator::stateInitialize()
 {
   ROS_WARN("Initialization State!\n");
-  
+
   while (!clt_lights.waitForExistence())
   {
       ROS_WARN("EXCAVATOR: Waiting for Lights");
@@ -208,7 +208,7 @@ void SmExcavator::stateInitialize()
 
   // while (!clt_approach_base.waitForExistence())
   // {
-  //   ROS_WARN("EXCAVATOR: Waiting for ApproachBaseStation service");
+  //   ROS_WARN("EXCAVATOR: Waiting for ApproachChargingStation service");
   // }
 
   Stop(2.0);
@@ -227,7 +227,7 @@ void SmExcavator::stateInitialize()
   Brake(0.0);
 
   // make sure we dont latch to a vol we skipped while homing
-  double progress = 0; 
+  double progress = 0;
   state_machine::RobotStatus status_msg;
   status_msg.progress.data = progress;
   status_msg.state.data = (uint8_t) _initialize;
@@ -237,7 +237,7 @@ void SmExcavator::stateInitialize()
 void SmExcavator::statePlanning()
 {
   ROS_INFO("Planning!\n");
-  
+
   ROS_INFO("EXCAVATOR: Canceling MoveBase goal.");
   ac.waitForServer();
   ac.cancelGoal();
@@ -287,7 +287,7 @@ void SmExcavator::statePlanning()
     ros::spinOnce();
     counter=counter+1;
   }
-  
+
   ClearCostmaps();
   BrakeRamp(100, 2, 0);
   Brake(0.0);
@@ -303,7 +303,7 @@ void SmExcavator::statePlanning()
   flag_arrived_at_waypoint = false;
   flag_localizing_volatile = true;
 
-  double progress = 0; 
+  double progress = 0;
   state_machine::RobotStatus status_msg;
   status_msg.progress.data = progress;
   status_msg.state.data = (uint8_t) _planning;
@@ -383,7 +383,7 @@ void SmExcavator::stateTraverse()
     ROS_ERROR_STREAM_THROTTLE(1,"Remaining Time for Waypoint" << timeoutWaypoint - (ros::Time::now() - waypoint_timer));
   }
 
-  double progress = 0; 
+  double progress = 0;
   progress = distance_to_goal;
 
   state_machine::RobotStatus status_msg;
@@ -409,7 +409,7 @@ void SmExcavator::stateVolatileHandler()
     flag_manipulation_enabled = true;
     manipulation_timer = ros::Time::now();
   }
-  
+
   if (flag_manipulation_enabled && (ros::Time::now() - manipulation_timer) < ros::Duration(420))
   {
     ROS_INFO("EXCAVATOR: Excavation State Machine.");
@@ -476,7 +476,7 @@ void SmExcavator::stateVolatileHandler()
     ROS_ERROR("MANIPULATION: disabled.");
   }
 
-  double progress = 0; 
+  double progress = 0;
   state_machine::RobotStatus status_msg;
   status_msg.progress.data = progress;
   status_msg.state.data = (uint8_t)  _volatile_handler;
@@ -487,7 +487,7 @@ void SmExcavator::stateLost()
 {
   ROS_ERROR("LOST STATE!\n");
 
-  double progress = 1.0; 
+  double progress = 1.0;
 
   ROS_INFO("SCOUT: Canceling MoveBase goal.");
   ac.waitForServer();
@@ -499,14 +499,14 @@ void SmExcavator::stateLost()
   Lights (20);
 
   // Approach Base Station
-  src2_object_detection::ApproachBaseStation srv_approach_base;
-  srv_approach_base.request.approach_base_station.data= true;
+  src2_approach_services::ApproachChargingStation srv_approach_base;
+  srv_approach_base.request.approach_charging_station.data= true;
   bool approachSuccess = false;
   int homingRecoveryCount=0;
   while(!approachSuccess && homingRecoveryCount<3){
       if (clt_approach_base.call(srv_approach_base))
       {
-        ROS_INFO("SCOUT: Called service ApproachBaseStation");
+        ROS_INFO("SCOUT: Called service ApproachChargingStation");
         ROS_INFO_STREAM("Success finding the Base? "<< srv_approach_base.response.success.data);
         if(!srv_approach_base.response.success.data){
         homingRecovery();
@@ -519,7 +519,7 @@ void SmExcavator::stateLost()
 
     else
     {
-      ROS_ERROR("SCOUT: Failed  to call service ApproachBaseStation");
+      ROS_ERROR("SCOUT: Failed  to call service ApproachChargingStation");
     }
     homingRecoveryCount=homingRecoveryCount+1;
   }
@@ -696,7 +696,7 @@ void SmExcavator::setPoseGoal(move_base_msgs::MoveBaseGoal &poseGoal, double x, 
   double sr = sin(roll * 0.5);
   double cp = cos(pitch * 0.5);
   double sp = sin(pitch * 0.5);
-  
+
   //********************************************************************************************************
   poseGoal.target_pose.header.frame_id = robot_name_+"_odom";
   poseGoal.target_pose.pose.position.x = x;
@@ -1298,7 +1298,7 @@ void SmExcavator::executeScoop(double timeout)
   else
   {
     ROS_ERROR("EXCAVATOR: Failed to call service Scoop");
-  }  
+  }
 }
 
 void SmExcavator::executeAfterScoop(double timeout)
@@ -1315,7 +1315,7 @@ void SmExcavator::executeAfterScoop(double timeout)
   else
   {
     ROS_ERROR("EXCAVATOR: Failed to call service AfterScoop");
-  }  
+  }
 }
 
 void SmExcavator::FindHauler(double timeout)
@@ -1344,7 +1344,7 @@ void SmExcavator::FindHauler(double timeout)
     bin_point_.point.y = 0;
     bin_point_.point.z = 1;
     //TODO: Make hauler come closer
-  }  
+  }
 
 }
 
@@ -1364,7 +1364,7 @@ void SmExcavator::executeExtendArm(double timeout)
   else
   {
     ROS_ERROR("EXCAVATOR: Failed to call service ExtendArm");
-  }  
+  }
 }
 
 void SmExcavator::executeDrop(double timeout)
@@ -1381,13 +1381,13 @@ void SmExcavator::executeDrop(double timeout)
   else
   {
     ROS_ERROR("EXCAVATOR: Failed to call service Drop");
-  }  
+  }
 }
 
 void SmExcavator::executeGoToPose(double timeout, const geometry_msgs::PointStamped &point)
 {
   move_excavator::GoToPose srv;
-  
+
   srv.request.goal = point;
 
   bool success = clt_go_to_pose.call(srv);
@@ -1458,23 +1458,23 @@ void SmExcavator::Plan()
   //   flag_recovering_localization = false;
   //   flag_localizing_volatile = false;
   //   break;
-  
+
   // case _traverse:
   //   flag_interrupt_plan = false;
   //   flag_arrived_at_waypoint = false;
   //   flag_recovering_localization = false;
   //   flag_localizing_volatile = false;
   //   break;
-  
+
   // case _volatile_handler:
   //   flag_interrupt_plan = false;
   //   flag_arrived_at_waypoint = false;
   //   flag_recovering_localization = false;
   //   flag_localizing_volatile = true;
   //   break;
-  
+
   // case _lost:
-  //   
+  //
   //   flag_arrived_at_waypoint = false;
   //   flag_recovering_localization = true;
   //   flag_localizing_volatile = false;
@@ -1489,7 +1489,7 @@ void SmExcavator::Plan()
   // }
 
   // srv_plan.response.id;
-  flag_interrupt_plan = false;  
+  flag_interrupt_plan = false;
 }
 
 //------------------------------------------------------------------------------------------------------------------------

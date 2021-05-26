@@ -9,7 +9,7 @@ move_base_state(actionlib::SimpleClientGoalState::PREEMPTED)
   sm_status_pub = nh.advertise<state_machine::RobotStatus>("state_machine/status", 1);
   cmd_vel_pub = nh.advertise<geometry_msgs::Twist>("driving/cmd_vel", 1);
   driving_mode_pub = nh.advertise<std_msgs::Int64>("driving/driving_mode", 1);
-  
+
   // Subscribers
   localized_base_sub = nh.subscribe("state_machine/localized_base", 1, &SmScout::localizedBaseCallback, this);
   // mobility_sub = nh.subscribe("/state_machine/mobility_scout", 1, &SmScout::mobilityCallback, this);
@@ -33,7 +33,7 @@ move_base_state(actionlib::SimpleClientGoalState::PREEMPTED)
   clt_drive = nh.serviceClient<driving_tools::MoveForward>("driving/move_forward");
   clt_lights = nh.serviceClient<srcp2_msgs::SpotLightSrv>("spot_light");
   clt_brake = nh.serviceClient<srcp2_msgs::BrakeRoverSrv>("brake_rover");
-  clt_approach_base = nh.serviceClient<src2_object_detection::ApproachBaseStation>("approach_base_station");
+  clt_approach_base = nh.serviceClient<src2_approach_services::ApproachChargingStation>("approach_charging_station");
   clt_rover_static = nh.serviceClient<sensor_fusion::RoverStatic>("sensor_fusion/toggle_rover_static");
   clt_homing = nh.serviceClient<sensor_fusion::HomingUpdate>("homing");
   clt_sf_true_pose = nh.serviceClient<sensor_fusion::GetTruePose>("true_pose");
@@ -54,13 +54,13 @@ move_base_state(actionlib::SimpleClientGoalState::PREEMPTED)
   wp_checker_timer =  ros::Time::now();
 
   node_name_ = "state_machine";
-  if (ros::param::get(node_name_ + "/robot_name", robot_name_) == false) 
+  if (ros::param::get(node_name_ + "/robot_name", robot_name_) == false)
   {
     ROS_FATAL("No parameter 'robot_name' specified");
     ros::shutdown();
     exit(1);
   }
-  if (ros::param::get(node_name_ + "/robot_id", robot_id_) == false) 
+  if (ros::param::get(node_name_ + "/robot_id", robot_id_) == false)
   {
     ROS_FATAL("No parameter 'robot_id' specified");
     ros::shutdown();
@@ -195,19 +195,19 @@ void SmScout::stateInitialize()
 
   // while (!clt_approach_base.waitForExistence())
   // {
-  //   ROS_WARN("SCOUT: Waiting for ApproachBaseStation service");
+  //   ROS_WARN("SCOUT: Waiting for ApproachChargingStation service");
   // }
 
   // // Approach Base Station
-  // src2_object_detection::ApproachBaseStation srv_approach_base;
-  // srv_approach_base.request.approach_base_station.data= true;
+  // src2_approach_services::ApproachChargingStation srv_approach_base;
+  // srv_approach_base.request.approach_charging_station.data= true;
   // bool approachSuccess = false;
   // int homingRecoveryCount = 0;
   // while(!approachSuccess && homingRecoveryCount<3)
   // {
   //   if (clt_approach_base.call(srv_approach_base))
   //   {
-  //     ROS_INFO("SCOUT: Called service ApproachBaseStation");
+  //     ROS_INFO("SCOUT: Called service ApproachChargingStation");
   //     ROS_INFO_STREAM("Success finding the Base? "<< srv_approach_base.response.success.data);
   //     if(!srv_approach_base.response.success.data)
   //     {
@@ -220,7 +220,7 @@ void SmScout::stateInitialize()
   //   }
   //   else
   //   {
-  //     ROS_ERROR("SCOUT: Failed  to call service ApproachBaseStation");
+  //     ROS_ERROR("SCOUT: Failed  to call service ApproachChargingStation");
   //   }
   //   homingRecoveryCount=homingRecoveryCount+1;
   // }
@@ -306,7 +306,7 @@ void SmScout::stateInitialize()
   flag_recovering_localization = false;
   flag_localizing_volatile = false;
 
-  double progress = 1.0; 
+  double progress = 1.0;
   state_machine::RobotStatus status_msg;
   status_msg.progress.data = progress;
   status_msg.state.data = (int) _initialize;
@@ -316,7 +316,7 @@ void SmScout::stateInitialize()
 void SmScout::statePlanning()
 {
   ROS_INFO("Planning!\n");
-  
+
   ROS_INFO("SCOUT: Canceling MoveBase goal.");
   ac.waitForServer();
   ac.cancelGoal();
@@ -366,7 +366,7 @@ void SmScout::statePlanning()
     ros::spinOnce();
     counter=counter+1;
   }
-  
+
   ClearCostmaps();
   BrakeRamp(100, 2, 0);
   Brake(0.0);
@@ -381,7 +381,7 @@ void SmScout::statePlanning()
 
   flag_arrived_at_waypoint = false;
 
-  double progress = 1.0; 
+  double progress = 1.0;
   state_machine::RobotStatus status_msg;
   status_msg.progress.data = progress;
   status_msg.state.data = (int) _planning;
@@ -461,7 +461,7 @@ void SmScout::stateTraverse()
     ROS_ERROR_STREAM_THROTTLE(1,"Remaining Time for Waypoint" << timeoutWaypoint - (ros::Time::now() - waypoint_timer));
   }
 
-  double progress = 0; 
+  double progress = 0;
   progress = distance_to_goal;
 
   state_machine::RobotStatus status_msg;
@@ -515,14 +515,14 @@ void SmScout::stateVolatileHandler()
 
     srv_req.config = conf;
 
-    if (ros::service::call("move_base/DWAPlannerROS_SRC/set_parameters", srv_req, srv_resp)) 
+    if (ros::service::call("move_base/DWAPlannerROS_SRC/set_parameters", srv_req, srv_resp))
     {
       ROS_ERROR("SCOUT: Called service to reconfigure MoveBase (increase max speed).");
     }
   }
   else
   {
-    
+
     ROS_WARN("SCOUT:Turning wheels sideways.");
     TurnWheelsSideways(true, 10.0);
 
@@ -538,7 +538,7 @@ void SmScout::stateVolatileHandler()
     flag_volatile_honed = true;
   }
 
-  double progress = 0.0; 
+  double progress = 0.0;
   state_machine::RobotStatus status_msg;
   status_msg.progress.data = progress;
   status_msg.state.data = (int)  _volatile_handler;
@@ -549,7 +549,7 @@ void SmScout::stateLost()
 {
   ROS_ERROR("LOST STATE!\n");
 
-  double progress = 1.0; 
+  double progress = 1.0;
 
   ROS_INFO("SCOUT: Canceling MoveBase goal.");
   ac.waitForServer();
@@ -561,14 +561,14 @@ void SmScout::stateLost()
   Lights (20);
 
   // Approach Base Station
-  src2_object_detection::ApproachBaseStation srv_approach_base;
-  srv_approach_base.request.approach_base_station.data= true;
+  src2_approach_services::ApproachChargingStation srv_approach_base;
+  srv_approach_base.request.approach_charging_station.data= true;
   bool approachSuccess = false;
   int homingRecoveryCount=0;
   while(!approachSuccess && homingRecoveryCount<3){
       if (clt_approach_base.call(srv_approach_base))
       {
-        ROS_INFO("SCOUT: Called service ApproachBaseStation");
+        ROS_INFO("SCOUT: Called service ApproachChargingStation");
         ROS_INFO_STREAM("Success finding the Base? "<< srv_approach_base.response.success.data);
         if(!srv_approach_base.response.success.data){
         homingRecovery();
@@ -581,7 +581,7 @@ void SmScout::stateLost()
 
     else
     {
-      ROS_ERROR("SCOUT: Failed  to call service ApproachBaseStation");
+      ROS_ERROR("SCOUT: Failed  to call service ApproachChargingStation");
     }
     homingRecoveryCount=homingRecoveryCount+1;
   }
@@ -649,7 +649,7 @@ void SmScout::stateLost()
   BrakeRamp(100, 2, 0);
   Brake(0.0);
 
-  
+
   state_machine::RobotStatus status_msg;
   status_msg.progress.data = progress;
   status_msg.state.data = (int)  _lost;
@@ -730,7 +730,7 @@ void SmScout::volatileCmdCallback(const std_msgs::Int64::ConstPtr& msg)
 
   srv_req.config = conf;
 
-  if (ros::service::call("move_base/DWAPlannerROS_SRC/set_parameters", srv_req, srv_resp)) 
+  if (ros::service::call("move_base/DWAPlannerROS_SRC/set_parameters", srv_req, srv_resp))
   {
     ROS_ERROR("SCOUT: Called service to reconfigure MoveBase (decrease max speed).");
   }
@@ -740,7 +740,7 @@ void SmScout::volatileCmdCallback(const std_msgs::Int64::ConstPtr& msg)
   {
     ROS_WARN("SCOUT: Minimum trajectory distance detected.");
     flag_localizing_volatile = true;
-  } 
+  }
   else
   {
     ROS_WARN("SCOUT: Volatile detected.");
@@ -1306,21 +1306,21 @@ void SmScout::Plan()
   //   flag_recovering_localization = false;
   //   flag_localizing_volatile = false;
   //   break;
-  
+
   // case _traverse:
   //   flag_interrupt_plan = false;
   //   flag_arrived_at_waypoint = false;
   //   flag_recovering_localization = false;
   //   flag_localizing_volatile = false;
   //   break;
-  
+
   // case _volatile_handler:
   //   flag_interrupt_plan = false;
   //   flag_arrived_at_waypoint = false;
   //   flag_recovering_localization = false;
   //   flag_localizing_volatile = true;
   //   break;
-  
+
   // case _lost:
   //   flag_interrupt_plan = false;
   //   flag_arrived_at_waypoint = false;
