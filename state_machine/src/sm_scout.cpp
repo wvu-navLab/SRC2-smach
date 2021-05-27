@@ -526,13 +526,13 @@ void SmScout::stateVolatileHandler()
     ROS_WARN("SCOUT:Turning wheels sideways.");
     TurnWheelsSideways(true, 10.0);
 
-    ROS_WARN("SCOUT:Moving sideways (LEFT).");
+    ROS_WARN("SCOUT:Moving sideways (Right).");
     MoveSideways(0.1, 10.0);
 
-    ROS_WARN("SCOUT:Moving sideways (RIGHT).");
+    ROS_WARN("SCOUT:Moving sideways (Left).");
     MoveSideways(-0.1, 20.0);
 
-    ROS_WARN("SCOUT:Moving sideways (LEFT).");
+    ROS_WARN("SCOUT:Moving sideways (Right).");
     MoveSideways(0.1, 10.0);
 
     flag_volatile_honed = true;
@@ -712,8 +712,9 @@ void SmScout::volatileSensorCallback(const srcp2_msgs::VolSensorMsg::ConstPtr& m
   {
     flag_volatile_detected = false;
   }
-
+  if (min_vol_detected_dist_<30){
   ROS_INFO_STREAM("SCOUT: Minimum volatile detected." << min_vol_detected_dist_);
+}
 }
 
 void SmScout::volatileCmdCallback(const std_msgs::Int64::ConstPtr& msg)
