@@ -37,7 +37,7 @@
   <include file="$(find range_to_base)/launch/scout_homing_service.launch"/>
   <include file="$(find sensor_fusion)/launch/scout_homing.launch"/>
 
-  <!-- waypoint checker -->
+  <!-- waypoint checker (TODO:Check if needed)-->
   <include file="$(find waypoint_checker)/launch/scout_waypoint_checker.launch"/>
 
   <!-- <include file="$(find mobility_checker)/launch/scout_mobility_checker.launch"/> -->

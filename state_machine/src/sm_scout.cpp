@@ -408,7 +408,9 @@ void SmScout::stateTraverse()
       is_colliding = srv_wp_check.response.collision;
       if (is_colliding) {
         ROS_INFO("SCOUT: Waypoint Unreachable. Sending to Planning");
-        flag_waypoint_unreachable = true;
+        flag_arrived_at_waypoint = true;
+        flag_recovering_localization = false;
+        flag_localizing_volatile = false;
       }
     }
     wp_checker_timer = ros::Time::now();
@@ -421,11 +423,13 @@ void SmScout::stateTraverse()
   if(mb_state==5 || mb_state==7)
   {
     ROS_ERROR("SCOUT: MoveBase has failed to make itself useful.");
-    flag_waypoint_unreachable= true;
+    flag_arrived_at_waypoint = true;
+    flag_recovering_localization = false;
+    flag_localizing_volatile = false;
 
     Stop (1.0);
 
-    ClearCostmaps();
+    ClearCostmaps(); //TODO Check if they needed
     BrakeRamp(100, 2, 0);
     Brake(0.0);
 
@@ -446,20 +450,20 @@ void SmScout::stateTraverse()
     ROS_WARN("Map Cleared");
   }
 
-  ros::Duration timeoutWaypoint(120);
-  if (ros::Time::now() - waypoint_timer > timeoutWaypoint )
-  {
-    ROS_ERROR("Waypoint Unreachable");
-    flag_waypoint_unreachable= true;
-    Stop (1.0);
-    ClearCostmaps();
-    BrakeRamp(100, 2, 0);
-    Brake(0.0);
-  }
-  else
-  {
-    ROS_ERROR_STREAM_THROTTLE(1,"Remaining Time for Waypoint" << timeoutWaypoint - (ros::Time::now() - waypoint_timer));
-  }
+  // ros::Duration timeoutWaypoint(120);
+  // if (ros::Time::now() - waypoint_timer > timeoutWaypoint )
+  // {
+  //   ROS_ERROR("Waypoint Unreachable");
+  //   flag_waypoint_unreachable= true;
+  //   Stop (1.0);
+  //   ClearCostmaps();
+  //   BrakeRamp(100, 2, 0);
+  //   Brake(0.0);
+  // }
+  // else
+  // {
+  //   ROS_ERROR_STREAM_THROTTLE(1,"Remaining Time for Waypoint" << timeoutWaypoint - (ros::Time::now() - waypoint_timer));
+  // }
 
   double progress = 0;
   progress = distance_to_goal;

@@ -28,7 +28,7 @@ void TaskPlanner::populate_prior_plan()
 {
   std::cout << "populating prior plan..." << std::endl;
   if (!planning_params_.plan.empty()){
-    for(int i = 0; i < planning_params_.plan.size(); ++i)
+    for(int i = 0; i < planning_params_.plan[0].size(); ++i)
     {
       geometry_msgs::PointStamped temp;
       for (int j = 0; j < robots_.size(); ++j)
