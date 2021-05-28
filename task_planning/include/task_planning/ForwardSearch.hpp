@@ -29,11 +29,9 @@
 
 namespace mac {
 
-struct vertex
+struct Vertex
 {
-  std::vector<Robot> rbts;
-  volatile_map::VolatileMap volmap;
-  ros::Time t;
+  State s;
   double cost;
 
   int parent;
@@ -41,6 +39,21 @@ struct vertex
   int index;
   std::vector<int> children;
 
+};
+
+struct State {
+  std::vector<Robot> robots;
+  volatile_map::VolatileMap volatile_map;
+  ros::Time time;
+};
+
+struct Action {
+  std::pair<double, double> objective
+  int robot_type;
+  int id;
+  int code;
+  int volatile_index;
+  bool toggle_sleep;
 };
 
 class ForwardSearch {
@@ -97,33 +110,32 @@ public:
   ForwardSearch(const CostFunction  cost_function,
                 const PlanningParams planning_params);
 
-  int plan(std::vector<Robot> &robots,
-            const volatile_map::VolatileMap &volatile_map,
-            const ros::Time &time);
+  Action plan(State s);
   bool reinit();
 
 protected:
-  std::vector<vertex> expand(vertex v, int actions);
-  std::vector<int> get_actions(vertex v, std::vector<int> a);
+  std::vector<vertex> expand(State s, std::vector<Action> actions);
+  std::vector<Action> get_actions_all(State s);
+  std::vector<Action> get_actions_robot(int robot_index, State s);
+
   int get_policy();
-  vertex propagate(vertex v, int action);
-  void get_state(std::vector<Robot> robots,
-                 volatile_map::VolatileMap volatile_map,
-                 ros::Time time);
+  vertex propagate(State s, Action a);
+  void get_state(State s);
   int get_parent(int ind_v,int depth);
 
   CostFunction cost_function_;
 
   PlanningParams planning_params_;
 
-  std::vector<Robot> robots_;
+  State state_;
 
-  volatile_map::VolatileMap volatile_map_;
-
-  ros::Time time_;
-
-  std::vector<std::vector<vertex>> tree;
+  std::vector<std::vector<Vertex>> tree;
 private:
+  double simulate_time_remaining(Robot *robot);
+  void simulate_time_step(Robot *robot, double min_time)
+
+
+  int get_robot_index(int robot_type, int robot_id);
 
 };
 

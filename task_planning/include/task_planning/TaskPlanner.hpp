@@ -64,6 +64,7 @@ const int EXC_HAUL_PLANNER_DEFAULT = 1;
 class TaskPlanner {
 
   public:
+
     /** \brief  */
     TaskPlanner(const CostFunction       & cost_function,
                 const std::vector<mac::Robot> & robots, const PlanningParams &planning_params);

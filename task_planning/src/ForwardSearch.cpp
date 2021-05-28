@@ -1,5 +1,6 @@
 
 
+namespace mac{
 
 /////////////////////////////////////////////////////////////////////
 /***************************GETTERS*********************************/
@@ -9,9 +10,9 @@ void ForwardSearch::get_state(std::vector<Robot> robots,
                               volatile_map::VolatileMap volatile_map,
                               ros::Time time)
 {
-  robots_ = robots;
-  volatile_map_ = volatile_map;
-  time_ = time;
+  state_.robots = robots;
+  state_.volatile_map_ = volatile_map;
+  state_.time_ = time;
 
 }
 
@@ -19,47 +20,45 @@ void ForwardSearch::get_state(std::vector<Robot> robots,
 /////////////////////////////////////////////////////////////////////
 /***************************CORE FUNTIONALITY***********************/
 /////////////////////////////////////////////////////////////////////
-int ForwardSearch::plan(std::vector<Robot> &robots,
-          const volatile_map::VolatileMap &volatile_map,
-          const ros::Time &time)
+Action ForwardSearch::plan(State s)
 {
+  state_ = s;
 
-//T = Tree();
-depth = 0;
-while (depth < n-1)
-{
-
-  std::vector<vertex> temp;
-  int i = 0;
-  for(auto & leaf:tree[depth])
+  depth = 0;
+  while (depth < n-1)
   {
-    std::vection<int> a = get_actions(leaf);
-    if (!a.empty())
+
+    std::vector<Vertex> temp;
+    int i = 0;
+    for(auto & leaf:tree[depth])
     {
-      std::vector<vertex> vert = expand(leaf,a);
-      for (auto & v:vert)
+      std::vection<int> a = get_actions(leaf);
+      if (!a.empty())
       {
-      leaf.children.push_back(i);
-      //TODO: check this updates the leaf in the tree
-      v.index = i;
-      v.parent = leaf.index;
-      v.depth = depth+1;
-      temp.push_back(v);
-      ++i;
+        std::vector<Vertex> vert = expand(leaf,a);
+        for (auto & v:vert)
+        {
+          leaf.children.push_back(i);
+          //TODO: check this updates the leaf in the tree
+          v.index = i;
+          v.parent = leaf.index;
+          v.depth = depth+1;
+          temp.push_back(v);
+          ++i;
+        }
       }
     }
+
+    if (!temp.empty())
+    {
+      tree.push_back(temp);
+    }
+
+    temp.clear();
+    ++depth;
   }
 
-  if (!temp.empty())
-  {
-    tree.push_back(temp);
-  }
-
-  temp.clear();
-  ++depth;
-}
-
-return get_policy();
+  return get_policy();
 
 }
 
@@ -68,12 +67,12 @@ bool ForwardSearch::reinit()
 
 }
 
-std::vector<vertex> ForwardSearch::expand(vertex v, int actions)
+std::vector<Vertex> ForwardSearch::expand(Vertex v, std::vector<Action> actions)
 {
-  std::vector<vertex> V;
+  std::vector<Vertex> V;
   for (auto &a:actions)
   {
-      vertex tempv = propagate(v,a);
+      Vertex tempv = propagate(v,a);
 
       V.push_back(tempv);
   }
@@ -81,21 +80,218 @@ std::vector<vertex> ForwardSearch::expand(vertex v, int actions)
 }
 
 
-vertex propagate(vertex v, int action)
+State propagate(State s, Action a)
 {
+  int robot_ind get_robot_index(a.robot_type, a.id); //NOTE what if there are multiple
+  s.robots[robot_ind].status = 0;
+  s.robots[robot_ind].current_task = a.code;
+  s.robots[robot_ind].plan.clear();
+  geometry_msgs::PointStamped temp_msg;
+  temp_msg.point.x = a.objective.x;
+  temp_msg.point.y = a.objective.y;
+  s.robots[robot_ind].plan.push_back(temp_msg);
+  s.robots[robot_ind].volatile_index = a.volatile_index;
 
-  vertex u;
+  // Find time remaining for each robot's task
+  std::vector<double> time_remaining;
+  for (auto &robot:s.robots)
+  {
+    time_remaining.push_back(simulate_time_remaining(*robot));
+  }
+  // Find min time remaining
+  double min_time_idx = std::min_element(time_remaining.begin(),time_remaining.end()) - time_remaining.begin();
+  double min_time = time_remaining[min_time_idx];
+  // Update volatile completion if necessary
+  temp_vol_ind = s.robots[min_time_index].volatile_index;
+  if (s.robots[min_time_index] == ACTION_HAULER_T::_volatile_handler)
+  {
+    s.volatile_map.vol[temp_vol_ind].collect = true;
+  }
+  // propagate completion for each robot
+  for (auto &robot:s.robots)
+  {
+    simulate_time_step(*robot, min_time);
+  }
 
-  //do things here...
-
-  u.parent = v.index;
-
-
-  return u;
+  return s;
 }
 
-std::vector<int> ForwardSearch::get_actions(vertex v, std::vector<int> a)
+std::vector<Action> ForwardSearch::get_actions_all(State s)
 {
+    std::vector<Action> actions;
+    for (int i; i < state_.robots.size(); ++i)
+    {
+        std::vector<Action> temp;
+        temp = get_actions_robot(i,s);
+        for (auto &item:temp) actions.push_back(item);
+    }
+}
+
+std::vector<Action> ForwardSearch::get_actions_robot(int robot_index, State s)
+{
+  std::vector<Action> actions;
+  actions.clear();
+
+  Robot robot = s.robots[robot_index];
+
+  //get actions for SCOUT
+  if(robot.type == SCOUT) {
+    if(robot.status < 1) {
+      return actions; //if task is in progress, continue current task
+    }
+    else { //if task is complete, find possible actions
+      //todo
+    }
+  }
+
+  //get actions for EXCAVATOR
+  if(robot.type == EXCAVATOR) {
+    if(robot.status < 1) { //if task is in progress, continue current task
+      return actions;
+    }
+    else { //if task is complete, find possible actions
+      //check if volatile is being pursued by other excavators
+      std::vector<int> vol_blacklist;
+      for(const auto & r : s.robots) {
+        if(r.type!=EXCAVATOR) {
+          continue;
+        }
+        if(r.volatile_index!=-1) {
+          vol_blacklist.push_back(r.volatile_index); 
+        }
+      }
+
+      //add volatile actions
+      int volatile_index=0;
+      for(const auto & vol : volatile_map.vol) {
+
+        //skip blacklisted volatiles
+        bool is_vol_blacklisted = false;
+        for(const auto vol_bl : vol_blacklist) {
+          if(vol==vol_bl) {
+            is_vol_blacklisted = true;
+          }
+        }
+        if(is_vol_blacklisted) {
+          continue;
+        }
+
+        //add actions for volatiles not in blacklist
+        if(!vol.collected) {
+          Action a;
+          a.objective = std::make_pair(vol.position.point.x, vol.position.point.y);
+          a.robot_type = robot.type;
+          a.id = robot_index;
+          a.code = ACTION_EXCAVATOR_T::_volatile_handler;
+          a.volatile_index = volatile_index;
+          a.toggle_sleep = false;
+          actions.push_back(a);
+        }
+        volatile_index++;
+      }
+
+      //add lost action
+      Action a;
+      a.objective = std::make_pair(0,0);
+      a.robot_type = robot.type;
+      a.id = robot_index;
+      a.code = ACTION_EXCAVATOR_T::_lost;
+      a.volatile_index = -1;
+      a.toggle_sleep = false;
+      actions.push_back(a);
+
+      //add planning action (i.e., wait action)
+      Action a;
+      a.objective = std::make_pair(robot.odom.pose.pose.position.x,robot.odom.pose.pose.position.y);
+      a.robot_type = robot.type;
+      a.id = robot_index;
+      a.code = ACTION_EXCAVATOR_T::_planning;
+      a.volatile_index = -1;
+      a.toggle_sleep = false;
+      actions.push_back(a);
+    }
+  }
+
+  //get actions for HAULER
+  if(robot.type == HAULER) {
+    if(robot.status < 1) { //if task is in progress, continue current task
+      return actions;
+    }
+     else { //if task is complete, find possible actions
+      std::vector<int> vol_indices;
+      for(const auto & r : s.robots) {
+        if(r.type == EXCAVATOR) {
+          if(r.volatile_index==-1) {
+            continue;
+          }
+          vol =r.volatile_index;
+          vol_indices.push_back(r.volatile_index);
+        }
+      }
+
+      for(const auto & vol_index : vol_indices) {
+        Action a;
+        a.objective = std::make_pair(volatile_map.vol[vol_index].position.point.x, volatile_map.vol[vol_index].position.point.y);
+        a.robot_type = robot.type;
+        a.id = robot_index;
+        a.code = ACTION_HAULER_T::_volatile_handler;
+        a.volatile_index = vol_index;
+        a.toggle_sleep = false;
+        actions.push_back(a);
+        volatile_index++;
+      }
+
+      //add lost action
+      Action a;
+      a.objective = std::make_pair(0,0);
+      a.robot_type = robot.type;
+      a.id = robot_index;
+      a.code = ACTION_HAULER_T::_lost;
+      a.volatile_index = -1;
+      a.toggle_sleep = false;
+      actions.push_back(a);
+
+      //add planning action (i.e., wait action)
+      Action a;
+      a.objective = std::make_pair(robot.odom.pose.pose.position.x,robot.odom.pose.pose.position.y);
+      a.robot_type = robot.type;
+      a.id = robot_index;
+      a.code = ACTION_HAULER_T::_planning;
+      a.volatile_index = -1;
+      a.toggle_sleep = false;
+      actions.push_back(a);
+
+      //add dump action (i.e., wait action)
+      Action a;
+      a.objective = std::make_pair(0,0);
+      a.robot_type = robot.type;
+      a.id = robot_index;
+      a.code = ACTION_HAULER_T::_dump;
+      a.volatile_index = -1;
+      a.toggle_sleep = false;
+      actions.push_back(a);
+    }
+  }
+
+  //add actions for toggle_sleep = true
+  std::vector<Action> copy_actions = actions;
+  for(const auto & action : copy_actions) {
+      action.toggle_sleep = true;
+      actions.push_back(action);
+  }
+
+  return actions;
+}
+
+std::vector<Action> ForwardSearch::get_actions_scout(int robot_index, State s) {
+
+}
+
+std::vector<Action> ForwardSearch::get_actions_excavator(int robot_index, State s) {
+
+}
+
+std::vector<Action> ForwardSearch::get_actions_hauler(int robot_index, State s) {
 
 }
 
@@ -138,7 +334,7 @@ ForwardSearch::ForwardSearch()
 }
 
 ForwardSearch::ForwardSearch(const CostFunction  cost_function,
-                                  const PlanningParams planning_params): cost_function_(cost_function), robots_(robots), planning_params_(planning_params)
+                             const PlanningParams planning_params): cost_function_(cost_function), robots_(robots), planning_params_(planning_params)
 {
 
 }
@@ -147,3 +343,66 @@ ForwardSearch::ForwardSearch(const CostFunction  cost_function,
 /////////////////////////////////////////////////////////////////////
 /***************************UTILITIES*******************************/
 /////////////////////////////////////////////////////////////////////
+
+double ForwardSearch::simulate_time_remaining(Robot *robot)
+{
+  //status to timestep
+  
+  // switch case based on code
+    // convert status remaining to time (s)
+  switch (robot.code)
+  {
+    case ACTION_HAULER_T::_planning:
+      break;
+    case ACTION_HAULER_T::_volatile_handler:
+      break;
+    case ACTION_HAULER_T::_lost:
+      break;
+    case ACTION_HAULER_T::_hauler_dumping:
+      break;
+    default:  
+  }
+
+}
+
+void ForwardSearch::simulate_time_step(Robot *robot, double status_increment)
+{
+  // get veolcity from toggle
+  
+  //propagate position
+    // velocity and distance
+  //propagate status 
+    // switch case based on code
+        //convert timestep to status increment
+  //propagate Uncertainty
+    // distance stochastic model
+  //propagate power 
+    // motion and power consumption/supply
+  switch (robot->code)
+  {
+    case ACTION_HAULER_T::_planning:
+      break;
+    case ACTION_HAULER_T::_volatile_handler:
+      break;
+    case ACTION_HAULER_T::_lost:
+      break;
+    case ACTION_HAULER_T::_hauler_dumping:
+      break;
+    default:  
+  }
+}
+
+int ForwardSearch::get_robot_index(int robot_type, int robot_id)
+{
+  int index = -1;
+  for (int i = 0; i < robots_.size(); ++i)
+  {
+    if (robots_[i].type == robot_type && robots_[i].id == robot_id)
+    {
+      index = i;
+    }
+  }
+  return index;
+}
+
+}
