@@ -9,6 +9,7 @@
 #define ForwardSearch_HPP
 
 #include <string>
+#include <vector>
 
 #include <ros/ros.h>
 #include <std_msgs/String.h>
@@ -28,33 +29,6 @@
 
 
 namespace mac {
-
-struct Vertex
-{
-  State s;
-  double cost;
-
-  int parent;
-  int depth;
-  int index;
-  std::vector<int> children;
-
-};
-
-struct State {
-  std::vector<Robot> robots;
-  volatile_map::VolatileMap volatile_map;
-  ros::Time time;
-};
-
-struct Action {
-  std::pair<double, double> objective
-  int robot_type;
-  int id;
-  int code;
-  int volatile_index;
-  bool toggle_sleep;
-};
 
 class ForwardSearch {
     /**
@@ -106,30 +80,91 @@ class ForwardSearch {
     */
 
 public:
+  /** \brief  */
   ForwardSearch();
-  ForwardSearch(const CostFunction  cost_function,
-                const PlanningParams planning_params);
 
-  Action plan(State s);
+  /** \brief  */
+  ForwardSearch(const CostFunction   & cost_function,
+                const PlanningParams & planning_params);
+
+  /** \brief  Run the forward search, which considers all possible actions
+   * sequences given a specified horizon (i.e., maximum depth of the tree)
+  */
+  Action plan(const State & s);
+
+  /** \brief  */
   bool reinit();
 
 protected:
-  std::vector<vertex> expand(State s, std::vector<Action> actions);
-  std::vector<Action> get_actions_all(State s);
-  std::vector<Action> get_actions_robot(int robot_index, State s);
+  /** \brief  Tree vertex used in the forward search */
+  struct Vertex
+  {
+    State s;
+    double cost;
 
+    int parent;
+    int depth;
+    int index;
+    std::vector<int> children;
+  };
+
+  //DONE, NOT TESTED
+  /** \brief  */
+  std::vector<vertex> expand(const State               & s, 
+                             const std::vector<Action> & actions);
+
+  //DONE, NOT TESTED
+  /** \brief Return all possible actions for the system given the state where
+   * the actions are the combinations of possible actions for the robots.*/
+  std::vector<Action> get_actions_all_robots(const State & s);
+
+  //DONE, NOT TESTED
+  /** \brief  Return all possible actions for a robot given the state. */
+  std::vector<Action> get_actions_robot(int robot_index, const State & s);
+
+  //DONE, NOT TESTED
+  /** \brief  Return all possible actions for a scout given the state */
+  std::vector<Action> ForwardSearch::get_actions_scout(int robot_index, const State &s);
+
+  //DONE, NOT TESTED
+  /** \brief  Return all possible actions for an excavator given the state */
+  std::vector<Action> ForwardSearch::get_actions_excavator(int robot_index, const State &s);
+
+  //DONE, NOT TESTED
+  /** \brief  Return all possible actions for a hauler given the state */
+  std::vector<Action> ForwardSearch::get_actions_hauler(int robot_index, const State &s);
+
+  //INCOMPLETE
+  /** \brief  */
   int get_policy();
+
+  //DONE, NOT TESTED
+  /** \brief  */
   vertex propagate(State s, Action a);
+
+  //INCOMPLETE
+  /** \brief  */
   void get_state(State s);
+
+  //DONE, NOT TESTED
+  /** \brief  */
   int get_parent(int ind_v,int depth);
 
+  /** \brief  */
   CostFunction cost_function_;
 
+  /** \brief  */
   PlanningParams planning_params_;
 
+  //TODO(Jared): is the state_ neeed as a member variable?
+  /** \brief  */
   State state_;
 
+  //TODO(Jared): do we want to represent the tree as a vector instead of a vector of vectors
+  //             to be consistent with the toolbox?
+  /** \brief  */
   std::vector<std::vector<Vertex>> tree;
+
 private:
   double simulate_time_remaining(Robot *robot);
   void simulate_time_step(Robot *robot, double min_time)
