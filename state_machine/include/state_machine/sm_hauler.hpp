@@ -28,9 +28,9 @@
 #include <driving_tools/MoveForward.h>
 #include <driving_tools/CirculateBaseStation.h>
 #include <driving_tools/RotateInPlace.h>
-#include <src2_object_detection/ApproachBaseStation.h>
-#include <src2_object_detection/ApproachBin.h>
-#include <src2_object_detection/ApproachExcavator.h>
+#include <src2_approach_services/ApproachChargingStation.h>
+#include <src2_approach_services/ApproachBin.h>
+#include <src2_approach_services/ApproachExcavator.h>
 #include <range_to_base/LocationOfBin.h>
 #include <sensor_fusion/RoverStatic.h>
 #include <sensor_fusion/GetTruePose.h>
@@ -83,7 +83,7 @@ public:
 
   // Publishers
   ros::Publisher sm_status_pub;
-  ros::Publisher cmd_vel_pub; 
+  ros::Publisher cmd_vel_pub;
 
   ros::Publisher driving_mode_pub;
   ros::Publisher cmd_dump_pub;
@@ -160,7 +160,7 @@ public:
   void ClearCostmaps();
   void Lights(double intensity);
   void GetTruePose();
-  void Drive(double speed_ratio, double time);  
+  void Drive(double speed_ratio, double time);
   void DriveCmdVel(double vx, double vy, double wz, double time);
   void RotateToHeading(double desired_yaw);
   void RotateInPlace(double speed_ratio, double time);

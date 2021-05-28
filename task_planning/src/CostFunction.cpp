@@ -135,7 +135,7 @@ double CostFunction::cost_H(const volatile_map::Volatile & vol,
                     const mac::Robot    & robot,
                     ros::Time clk) const
 {
-
+  return 0;
 }
 
 }

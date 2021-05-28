@@ -34,7 +34,7 @@
 #include <driving_tools/TurnWheelsSideways.h>
 #include <driving_tools/CirculateBaseStation.h>
 #include <driving_tools/RotateInPlace.h>
-#include <src2_object_detection/ApproachBaseStation.h>
+#include <src2_approach_services/ApproachChargingStation.h>
 #include <sensor_fusion/RoverStatic.h>
 #include <sensor_fusion/GetTruePose.h>
 #include <sensor_fusion/HomingUpdate.h>
@@ -57,7 +57,7 @@
 #include <task_planning/Types.hpp>
 #include <state_machine/RobotStatus.h>
 
- 
+
 #define PI 3.141592653589793
 
 #define JOINT1_MAX PI
@@ -88,7 +88,7 @@ public:
  // State-machine mode
   int mode = HOME_MODE;
   actionlib::SimpleClientGoalState move_base_state;
-  
+
   // Condition flag declarations
   // bool flag_localized_base = false;
   int flag_localized_base = 0;
@@ -213,7 +213,7 @@ public:
   void ClearCostmaps();
   void Lights(double intensity);
   void GetTruePose();
-  void Drive(double speed_ratio, double time);  
+  void Drive(double speed_ratio, double time);
   void DriveCmdVel(double vx, double vy, double wz, double time);
   void RotateToHeading(double desired_yaw);
   void RotateInPlace(double speed_ratio, double time);
@@ -225,13 +225,14 @@ public:
   void RoverStatic(bool flag);
   void homingRecovery();
   void immobilityRecovery(int type);
+  void FindHauler(double timeout);
   void executeHomeArm(double timeout);
   void executeLowerArm(double timeout);
   void executeScoop(double timeout);
   void executeAfterScoop(double timeout);
   void executeExtendArm(double timeout);
   void executeDrop(double timeout);
-  void executeGoToPose(double timeout, const geometry_msgs::PoseStamped::ConstPtr &msg);
+  void executeGoToPose(double timeout, const geometry_msgs::PointStamped &point);
   void getForwardKinematics(double timeout);
   void getRelativePosition();
   void outputManipulationStatus();
@@ -288,7 +289,6 @@ public:
   double q2_pos_ = 0.0;
   double q3_pos_ = 0.0;
   double q4_pos_ = 0.0;
-
 
   // Planning
 };

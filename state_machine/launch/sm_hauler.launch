@@ -1,7 +1,5 @@
 <launch>
 
-
-
   <!-- pcl_obstacle_avoidance launch file -->
   <include file="$(find pcl_obstacle_detection)/launch/hauler_pcl_obj_detection.launch"/>
   <include file="$(find pcl_obstacle_detection)/launch/hauler_pcl_homing.launch"/>
@@ -46,7 +44,7 @@
   <!-- <include file="$(find mobility_checker)/launch/scout_mobility_checker.launch"/> -->
 
   <!-- state machine for Hauler -->
-  <!-- <include file="$(find state_machine)/launch/hauler_state_machine.launch"/> -->
+  <include file="$(find state_machine)/launch/hauler_state_machine.launch"/>
 
 
 

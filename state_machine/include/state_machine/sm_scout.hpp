@@ -39,7 +39,7 @@
 #include <driving_tools/TurnWheelsSideways.h>
 #include <driving_tools/CirculateBaseStation.h>
 #include <driving_tools/RotateInPlace.h>
-#include <src2_object_detection/ApproachBaseStation.h>
+#include <src2_approach_services/ApproachChargingStation.h>
 #include <sensor_fusion/RoverStatic.h>
 #include <sensor_fusion/GetTruePose.h>
 #include <sensor_fusion/HomingUpdate.h>
@@ -92,7 +92,7 @@ public:
   ros::NodeHandle nh;
   // Publishers
   ros::Publisher sm_status_pub;
-  ros::Publisher cmd_vel_pub; 
+  ros::Publisher cmd_vel_pub;
   ros::Publisher driving_mode_pub;
 
   // Subscribers
@@ -129,7 +129,7 @@ public:
 
   // Clients
   ros::ServiceServer srv_mobility;
-  
+
   actionlib::SimpleClientGoalState move_base_state;
 
   // Methods ----------------------------------------------------------------------------------------------------------------------------
@@ -165,7 +165,7 @@ public:
   void ClearCostmaps();
   void Lights(double intensity);
   void GetTruePose();
-  void Drive(double speed_ratio, double time);  
+  void Drive(double speed_ratio, double time);
   void DriveCmdVel(double vx, double vy, double wz, double time);
   void RotateToHeading(double desired_yaw);
   void RotateInPlace(double speed_ratio, double time);
