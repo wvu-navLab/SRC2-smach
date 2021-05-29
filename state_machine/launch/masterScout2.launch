@@ -1,0 +1,20 @@
+<?xml version="1.0"?>
+<launch>
+
+  <!-- volatile_map launch file -->
+  <include file="$(find volatile_map)/launch/volatile_map.launch"/>
+
+  <!-- task_planning launch file -->
+  <include file="$(find task_planning)/launch/task_planning.launch"/>
+
+  <!-- scout_1 state_machine launch file -->
+  <include file="$(find state_machine)/launch/sm_scout.launch"/>
+  <include file="$(find state_machine)/launch/sm_scout2.launch"/>
+
+  <!-- excavator_1 state_machine launch file -->
+  <!-- <include file="$(find state_machine)/launch/sm_excavator.launch"/> -->
+
+  <!-- excavator_1 state_machine launch file -->
+  <!-- <include file="$(find state_machine)/launch/sm_hauler.launch"/> -->
+
+</launch>
