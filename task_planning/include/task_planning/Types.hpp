@@ -27,7 +27,7 @@ struct Robot {
     int id;
     int type;
     int volatile_index;
-    double status; //0 = not start, 1 = full, -1 = failed
+    double time_remaining; //0 = not start, 1 = full, -1 = failed
     double current_task = -1;
     double bucket_contents; //0 = empty, 1 = full
     nav_msgs::Odometry odom;
@@ -50,7 +50,8 @@ struct State
 
 struct Action
 {
-  std::pair<double, double> objective int robot_type;
+  std::pair<double, double> objective;
+  int robot_type;
   int id;
   int code;
   int volatile_index;
@@ -58,13 +59,18 @@ struct Action
 };
 
 struct PlanningParams {
-    int max_time;
+    int max_time; // seconds
     int timeout;
     bool demo;
     int type;
     std::vector<std::vector<double>> plan;
+    // Environment 
+    double wait_time; //seconds
+    // list parameters here such as power depletion rates, velocity, etc
 
 };
+
+
 
 }
 

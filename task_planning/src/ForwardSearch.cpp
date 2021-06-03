@@ -34,7 +34,9 @@ void ForwardSearch::get_state(const std::vector<Robot>        & robots,
 Action ForwardSearch::plan(const State & s)
 {
   state_ = s;
-
+  // we don't have time 
+  // we do have state, objective
+  // compute initial time remaining and add to state
   int depth = 0;
   while (depth < n-1)
   {
@@ -43,10 +45,10 @@ Action ForwardSearch::plan(const State & s)
     int i = 0;
     for(auto & leaf:tree[depth])
     {
-      std::vection<int> a = get_actions(leaf);
-      if (!a.empty())
+      std::vector<Action> actions = get_actions_all_robots(leaf.s);
+      if (!actions.empty())
       {
-        std::vector<Vertex> vert = expand(leaf,a);
+        std::vector<Vertex> vert = expand(leaf,actions);
         for (auto & v:vert)
         {
           leaf.children.push_back(i);
@@ -82,19 +84,20 @@ std::vector<Vertex> ForwardSearch::expand(const Vertex              & v,
                                           const std::vector<Action> & actions)
 {
   std::vector<Vertex> V;
-  for (auto &a:actions)
-  {
-      Vertex tempv = propagate(v,a);
+  
+  //for each combination of actions 
+  // Vertex tempv = propagate(v, actions);
+  // V.push_back(tempv);
 
-      V.push_back(tempv);
-  }
   return V;
 }
 
 
 State propagate(const State  & s, 
-                const Action & a)
+                const std::vector<Action> & actions)
 {
+
+  //foreach action
   int robot_ind get_robot_index(a.robot_type, a.id); //NOTE what if there are multiple
   s.robots[robot_ind].status = 0;
   s.robots[robot_ind].current_task = a.code;
@@ -104,27 +107,36 @@ State propagate(const State  & s,
   temp_msg.point.y = a.objective.y;
   s.robots[robot_ind].plan.push_back(temp_msg);
   s.robots[robot_ind].volatile_index = a.volatile_index;
+  //--------------------------------------------------------------------------------
+  //compute time remaining for new action --> action_to_time function
+  // we're taking it on faith that we may get several immediate updates if more than one robot requires 
 
-  // Find time remaining for each robot's task
-  std::vector<double> time_remaining;
-  for (auto &robot:s.robots)
-  {
-    time_remaining.push_back(simulate_time_remaining(*robot));
-  }
-  // Find min time remaining
-  double min_time_idx = std::min_element(time_remaining.begin(),time_remaining.end()) - time_remaining.begin();
-  double min_time = time_remaining[min_time_idx];
-  // Update volatile completion if necessary
-  temp_vol_ind = s.robots[min_time_index].volatile_index;
-  if (s.robots[min_time_index] == ACTION_HAULER_T::_volatile_handler)
-  {
-    s.volatile_map.vol[temp_vol_ind].collect = true;
-  }
-  // propagate completion for each robot
-  for (auto &robot:s.robots)
-  {
-    simulate_time_step(*robot, min_time);
-  }
+  //find shortest time
+
+  // simulate timestep forall robots and return state --> time to everything else
+  //--------------------------------------------------------------------------------
+
+  //probably not doing this anymore ------------------------------------------------
+  // // Find time remaining for each robot's task
+  // std::vector<double> time_remaining;
+  // for (auto &robot:s.robots)
+  // {
+  //   time_remaining.push_back(simulate_time_remaining(*robot));
+  // }
+  // // Find min time remaining
+  // double min_time_idx = std::min_element(time_remaining.begin(),time_remaining.end()) - time_remaining.begin();
+  // double min_time = time_remaining[min_time_idx];
+  // // Update volatile completion if necessary
+  // temp_vol_ind = s.robots[min_time_index].volatile_index;
+  // if (s.robots[min_time_index] == ACTION_HAULER_T::_volatile_handler)
+  // {
+  //   s.volatile_map.vol[temp_vol_ind].collect = true;
+  // }
+  // // propagate completion for each robot
+  // for (auto &robot:s.robots)
+  // {
+  //   simulate_time_step(*robot, min_time);
+  // }
 
   return s;
 }
@@ -174,9 +186,10 @@ std::vector<Action> ForwardSearch::get_actions_scout(int robot_index, const Stat
   Robot robot = s.robots[robot_index];
   
   //if task is in progress, do not return any actions
-  if(robot.status < 1) {
+  if (robot.time_remaining < 1e-6)
+  {
     actions.clear();
-    return actions; 
+    return actions;
   }
 
   //TODO: the scout is not currently considered in this planner
@@ -189,7 +202,8 @@ std::vector<Action> ForwardSearch::get_actions_excavator(int robot_index, const 
   Robot robot = s.robots[robot_index];
 
   //if task is in progress, do not return any actions
-  if(robot.status < 1) { 
+  if (robot.time_remaining < 1e-6)
+  {
     actions.clear();
     return actions;
   }
@@ -261,7 +275,8 @@ std::vector<Action> ForwardSearch::get_actions_hauler(int robot_index, const Sta
   Robot robot = s.robots[robot_index];
 
   //if task is in progress, do not return any actions
-  if(robot.status < 1) { 
+  if (robot.time_remaining < 1e-6)
+  {
     actions.clear();
     return actions;
   }
@@ -356,44 +371,108 @@ int ForwardSearch::get_parent(int ind_v,
 /////////////////////////////////////////////////////////////////////
 /***************************UTILITIES*******************************/
 /////////////////////////////////////////////////////////////////////
-
-double ForwardSearch::simulate_time_remaining(Robot *robot)
+// populates time remaing for tasks
+std::vector<double> ForwardSearch::action_to_time(const State  & s, 
+                                     const std::vector<Action> & a)
 {
-  //status to timestep
-  
-  // switch case based on code
-    // convert status remaining to time (s)
-  switch (robot.code)
-  {
-    case ACTION_HAULER_T::_planning:
-      break;
-    case ACTION_HAULER_T::_volatile_handler:
-      break;
-    case ACTION_HAULER_T::_lost:
-      break;
-    case ACTION_HAULER_T::_hauler_dumping:
-      break;
-    default:  
-  }
-
+  //forall push_back(action_to_time(index, s, a))
 }
 
-void ForwardSearch::simulate_time_step(Robot *robot, 
-                                       double status_increment)
+double ForwardSearch::action_to_time(int robot_index,
+                                     const State  & s, 
+                                     const Action & a)
+{
+  //get robot
+  Robot robot = s.robots[robot_index];
+
+  if (robot.type == SCOUT)
+  {
+    switch (robot.code)
+    {
+      case ACTION_SCOUT_T::_planning:
+        return planning_params_.wait_time; 
+        break;
+      case ACTION_SCOUT_T::_volatile_handler:
+        double traverse_time = get_traverse_time(); // this will be based on dist to next next waypoint
+        double handling_time = get_handling_time(); // this will fraction of edges where there is volatile * time it takes to handle volatile... likely be a constant
+        return traverse_time + handling_time;
+        break;
+      case ACTION_SCOUT_T::_lost:
+        double traverse_time = get_traverse_time(); // time to get to "home base waypoint" --> this waypoint may not be fixed.... may need a function to compute that
+        double homing_time = get_homing_time(); // time to charge and localize with base station "home base waypoint"
+        return traverse_time + homing_time;
+        break;
+      default:
+    }
+  }
+
+  if (robot.type == EXCAVATOR)
+  {
+    switch (robot.code)
+    {
+      case ACTION_EXCAVATOR_T::_planning:
+        return planning_params_.wait_time;
+        break;
+      case ACTION_EXCAVATOR_T::_volatile_handler:
+        double traverse_time = get_traverse_time(); //see above
+        double handling_time = get_handling_time(); // excavation time estimate... who knows... bernardo help, plzzzz!!!
+        return traverse_time + handling_time;
+        break;
+      case ACTION_EXCAVATOR_T::_lost:
+        double traverse_time = get_traverse_time(); //see above
+        double homing_time = get_homing_time();     //see above
+        return traverse_time + homing_time;
+        break;
+      default:
+    }
+  }
+
+  if (robot.type == HAULER)
+  {
+    switch (robot.code)
+    {
+      case ACTION_HAULER_T::_planning:
+        return planning_params_.wait_time;
+        break;
+      case ACTION_HAULER_T::_volatile_handler:
+        double traverse_time = get_traverse_time(); //see above
+        double handling_time = get_handling_time(); //see above
+        return traverse_time + handling_time;
+        break;
+      case ACTION_HAULER_T::_lost:
+        double traverse_time = get_traverse_time(); //see above
+        double homing_time = get_homing_time();     //see above
+        return traverse_time + homing_time;
+        break;
+      case ACTION_HAULER_T::_hauler_dumping:
+        double traverse_time = get_traverse_time(); //see above
+        double dumping_time = get_dumping_time();   // time from "dumping waypoint" to alignment with base + dump
+        return traverse_time + dumping_time;
+        break;
+      default:
+    }
+  }
+}
+
+//-----------------------------------------------------------------------------
+// given timestep update state
+void ForwardSearch::simulate_time_step(Robot *robot,
+                                       double time)
 {
   // get veolcity from toggle
-  
-  //propagate position
-    // velocity and distance
-  //propagate status 
-    // switch case based on code
-        //convert timestep to status increment
-  //propagate Uncertainty
-    // distance stochastic model
-  //propagate power 
-    // motion and power consumption/supply
-  switch (robot->code)
-  {
+
+}
+
+double ForwardSearch::time_to_power(int robot_index, const State &s)
+{
+    // get veolcity from toggle
+
+    //time_to_distance()
+    //time_to_power(int robot_index, const State &s)
+    //dist_to_uncertainty ()
+
+    switch (robot->code)
+    {
     case ACTION_HAULER_T::_planning:
       break;
     case ACTION_HAULER_T::_volatile_handler:
@@ -405,10 +484,39 @@ void ForwardSearch::simulate_time_step(Robot *robot,
     default:  
   }
 }
+
+double ForwardSearch::time_to_distance()
+{
+}
+
+
+
+double ForwardSearch::time_to_power(int robot_index, const State & s)
+{
+
+
+}
+
+double ForwardSearch::dist_to_uncertainty ()
+{
+
+}
+//------------------------------------------------------------------
+
 
 int ForwardSearch::get_robot_index(int robot_type, 
                                    int robot_id)
 {
+  int index = -1;
+  for (int i = 0; i < robots_.size(); ++i)
+  {
+    if (robots_[i].type == robot_type && robots_[i].id == robot_id)
+    {
+      index = i;
+    }
+  }
+  return index;
+}
   int index = -1;
   for (int i = 0; i < robots_.size(); ++i)
   {
