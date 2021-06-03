@@ -848,7 +848,7 @@ void SmScout::setPoseGoal(move_base_msgs::MoveBaseGoal &poseGoal, double x, doub
   double sp = sin(pitch * 0.5);
 
   //********************************************************************************************************
-  poseGoal.target_pose.header.frame_id = "small_scout_1_odom";
+  poseGoal.target_pose.header.frame_id = robot_name_ + "_odom";
   poseGoal.target_pose.pose.position.x = x;
   poseGoal.target_pose.pose.position.y = y;
   poseGoal.target_pose.pose.position.z = 0.0;
