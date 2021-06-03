@@ -11,6 +11,7 @@
 
 #include <nav_msgs/Odometry.h>
 #include <geometry_msgs/PointStamped.h>
+#include <volatile_map/VolatileMap.h>
 
 namespace mac
 {
@@ -64,7 +65,7 @@ struct PlanningParams {
     bool demo;
     int type;
     std::vector<std::vector<double>> plan;
-    // Environment 
+    // Environment
     double wait_time; //seconds
     // list parameters here such as power depletion rates, velocity, etc
 

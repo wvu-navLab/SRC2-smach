@@ -279,24 +279,25 @@ void SmScout::stateInitialize()
   Lights(20);
 
   // Minimal Maneuvers to keep the localization good and get rid of BaseStation obstacle before generating initial path.
-  Brake(0.0);
-
-  DriveCmdVel(-0.5, 0.0, 0.0, 5.0);
-
-  BrakeRamp(100, 3.0, 0);
-
-  Brake(0.0);
-
-  RotateInPlace(0.2, 3);
-
-  BrakeRamp(100, 3, 0);
-
-  Brake(0.0);
-
-  // ToggleDetector(true);
-
-  ClearCostmaps();
-  BrakeRamp(100, 2, 0);
+  // TODO: new maneuvers can be added here after testing
+  // Brake(0.0);
+  //
+  // DriveCmdVel(-0.5, 0.0, 0.0, 5.0);
+  //
+  // BrakeRamp(100, 3.0, 0);
+  //
+  // Brake(0.0);
+  //
+  // RotateInPlace(0.2, 3);
+  //
+  // BrakeRamp(100, 3, 0);
+  //
+  // Brake(0.0);
+  //
+  // // ToggleDetector(true);
+  //
+  // ClearCostmaps();
+  // BrakeRamp(100, 2, 0);
   Brake(0.0);
 
   // make sure we dont latch to a vol we skipped while homing

@@ -1,8 +1,9 @@
 
 <launch>
   <!-- pcl_obstacle_avoidance launch file -->
-  <include file="$(find pcl_obstacle_detection)/launch/scout_pcl_obj_detection.launch"/>
-  <include file="$(find pcl_obstacle_detection)/launch/scout_pcl_homing.launch"/>
+
+  <!-- <include file="$(find pcl_obstacle_detection)/launch/scout_pcl_obj_detection.launch"/>
+  <include file="$(find pcl_obstacle_detection)/launch/scout_pcl_homing.launch"/> -->
 
   <!-- scout_motion_control launch file -->
   <include file="$(find driving_control)/launch/scout_driving_control.launch"/>
@@ -15,7 +16,7 @@
 
   <!-- sensor_fusion launch file -->
   <include file="$(find sensor_fusion)/launch/scout_sensor_fusion.launch"/>
-
+  
   <!-- scout_driving_tools launch file -->
   <!-- <include file="$(find waypoint_nav)/launch/scout_waypoint_nav.launch"/> -->
 
