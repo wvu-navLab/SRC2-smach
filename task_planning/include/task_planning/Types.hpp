@@ -41,6 +41,22 @@ struct Volatile {
     bool is_initialized = false;
 };
 
+struct State
+{
+  std::vector<Robot> robots;
+  volatile_map::VolatileMap volatile_map;
+  ros::Time time;
+};
+
+struct Action
+{
+  std::pair<double, double> objective int robot_type;
+  int id;
+  int code;
+  int volatile_index;
+  bool toggle_sleep;
+};
+
 struct PlanningParams {
     int max_time;
     int timeout;
