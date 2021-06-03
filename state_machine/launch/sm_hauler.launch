@@ -23,7 +23,10 @@
 
   <!-- scout_volatile handler launch file -->
 
-  <include file="$(find src2_object_detection)/launch/hauler_object_detection.launch"/>
+  <group ns="small_hauler_1">
+    <node name="object_estimation_service" pkg="src2_object_detection" type="object_estimation_service.py" output="screen">
+    </node>
+  </group>
 
   <!-- scout_move_base launch files -->
   <include file="$(find src2_move_base)/launch/hauler_map_server.launch"/>
