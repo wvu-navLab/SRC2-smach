@@ -71,10 +71,13 @@ void TaskPlanner::exc_haul_plan_default()
   std::vector<double> pose_min, vol_pose, default_pose, current_pose;
   default_pose.push_back(0);
   default_pose.push_back(0);
-  vol_pose = default_pose;
-  current_pose = default_pose;
+  
   for (int i = 0; i < volatile_map_.vol.size(); ++i)
   {
+    //EXCAVATOR 
+
+    vol_pose = default_pose;
+    current_pose = default_pose;
     nearest_int = -1;
     min_distance = 5000;
     pose_min = default_pose;
@@ -111,15 +114,22 @@ void TaskPlanner::exc_haul_plan_default()
       }
     }
     geometry_msgs::PointStamped temp;
-    temp.point.x = vol_pose[0];
-    temp.point.y = vol_pose[1];
-    robots_[nearest_int].plan.push_back(temp);
+    if (vol_pose[0] != 0 || vol_pose[1] != 0)
+    {
+      temp.point.x = vol_pose[0];
+      temp.point.y = vol_pose[1];
+      robots_[nearest_int].plan.push_back(temp);
+    }
+
+    //HAULER 
+    vol_pose = default_pose;
+    current_pose = default_pose;
     nearest_int = -1;
     min_distance = 5000;
     pose_min = default_pose;
     vol_pose[0] = volatile_map_.vol[i].position.point.x;
     vol_pose[1] = volatile_map_.vol[i].position.point.y;
-    // std::cout << "robots_.size() = " << robots_.size() << std::endl;
+    ROS_ERROR_STREAM("Volatile pose " << vol_pose[0] << "," << vol_pose[1]);
     for (int j = 0; j < robots_.size() ; ++j)
     {
       if (robots_[j].type == mac::HAULER)
@@ -147,7 +157,12 @@ void TaskPlanner::exc_haul_plan_default()
         }
       }
     }
-    robots_[nearest_int].plan.push_back(temp);
+    if (vol_pose[0] != 0 || vol_pose[1] != 0)
+    {
+      temp.point.x = vol_pose[0];
+      temp.point.y = vol_pose[1];
+      robots_[nearest_int].plan.push_back(temp);
+    }
   }
 }
 
