@@ -212,35 +212,35 @@ void SmHauler::stateInitialize()
 
   Lights(20);
 
-  while (!clt_approach_base.waitForExistence())
-  {
-    ROS_WARN("HAULER: Waiting for ApproachChargingStation service");
-  }
-
-  src2_approach_services::ApproachChargingStation srv_approach_charging_station;
-  srv_approach_charging_station.request.approach_charging_station.data = true;
-  bool approachSuccess = false;
-  int baseStationApproachRecoveryCount = 0;
-  while(!approachSuccess && baseStationApproachRecoveryCount<3){
-    if (clt_approach_base.call(srv_approach_charging_station))
-    {
-      ROS_INFO("HAULER: Called service ApproachChargingStation");
-      ROS_INFO_STREAM("Success finding the baseStation? "<< srv_approach_charging_station.response.success.data);
-      if(srv_approach_charging_station.response.success.data){
-        // homingRecovery(); //TODO: bin recovery behavior/fine align
-        // }
-        // else
-
-        approachSuccess=true;
-        ROS_INFO("HAULER: approach base Station with classifier successful");
-      }
-    }
-    else
-    {
-      ROS_ERROR("HAULER: Failed  to call service ApproachChargingStation");
-    }
-    baseStationApproachRecoveryCount=baseStationApproachRecoveryCount+1;
-  }
+  // while (!clt_approach_base.waitForExistence())
+  // {
+  //   ROS_WARN("HAULER: Waiting for ApproachChargingStation service");
+  // }
+  //
+  // src2_approach_services::ApproachChargingStation srv_approach_charging_station;
+  // srv_approach_charging_station.request.approach_charging_station.data = true;
+  // bool approachSuccess = false;
+  // int baseStationApproachRecoveryCount = 0;
+  // while(!approachSuccess && baseStationApproachRecoveryCount<3){
+  //   if (clt_approach_base.call(srv_approach_charging_station))
+  //   {
+  //     ROS_INFO("HAULER: Called service ApproachChargingStation");
+  //     ROS_INFO_STREAM("Success finding the baseStation? "<< srv_approach_charging_station.response.success.data);
+  //     if(srv_approach_charging_station.response.success.data){
+  //       // homingRecovery(); //TODO: bin recovery behavior/fine align
+  //       // }
+  //       // else
+  //
+  //       approachSuccess=true;
+  //       ROS_INFO("HAULER: approach base Station with classifier successful");
+  //     }
+  //   }
+  //   else
+  //   {
+  //     ROS_ERROR("HAULER: Failed  to call service ApproachChargingStation");
+  //   }
+  //   baseStationApproachRecoveryCount=baseStationApproachRecoveryCount+1;
+  // }
 
 
 
@@ -324,7 +324,7 @@ void SmHauler::statePlanning()
   ClearCostmaps();
   BrakeRamp(100, 2, 0);
   Brake(0.0);
-
+if (!no_objective) {
   move_base_msgs::MoveBaseGoal move_base_goal;
   ac.waitForServer();
   setPoseGoal(move_base_goal, goal_pose_.position.x, goal_pose_.position.y, goal_yaw_);
@@ -332,10 +332,13 @@ void SmHauler::statePlanning()
   waypoint_timer = ros::Time::now();
   ac.sendGoal(move_base_goal, boost::bind(&SmHauler::doneCallback, this,_1,_2), boost::bind(&SmHauler::activeCallback, this), boost::bind(&SmHauler::feedbackCallback, this,_1));
   ac.waitForResult(ros::Duration(0.25));
-
   flag_arrived_at_waypoint = false;
   flag_localizing_volatile = true;
-
+}
+else
+{
+  ROS_WARN ("HAULER: no_objective\n");
+}
   double progress = 0;
   state_machine::RobotStatus status_msg;
   status_msg.progress.data = progress;
@@ -1300,9 +1303,17 @@ void SmHauler::Plan()
     ROS_INFO("HAULER: Failed to call service RotateInPlace");
   }
 
-  goal_pose_.position = srv_plan.response.objective.point;
-  geometry_msgs::Quaternion quat;
-  goal_pose_.orientation = quat;
+  if (srv_plan.response.code.data !=0 )
+  {
+    goal_pose_.position = srv_plan.response.objective.point;
+    geometry_msgs::Quaternion quat;
+    goal_pose_.orientation = quat;
+    no_objective = false;
+  }
+  else
+  {
+    no_objective = true;
+  }
 
   // switch (srv_plan.response.code.data)
   // {

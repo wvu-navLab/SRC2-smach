@@ -249,6 +249,7 @@ public:
   // Bucket Info Init
   bool volatile_in_bucket = false;
   bool regolith_in_bucket = false;
+  bool no_objective = false;
 
   // End-effector Pose Init
   geometry_msgs::Pose current_pose_;

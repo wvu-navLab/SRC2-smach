@@ -372,6 +372,7 @@ void SmScout::statePlanning()
   BrakeRamp(100, 2, 0);
   Brake(0.0);
 
+if (!no_objective) {
   move_base_msgs::MoveBaseGoal move_base_goal;
   ac.waitForServer();
   setPoseGoal(move_base_goal, goal_pose_.position.x, goal_pose_.position.y, goal_yaw_);
@@ -379,8 +380,12 @@ void SmScout::statePlanning()
   waypoint_timer = ros::Time::now();
   ac.sendGoal(move_base_goal, boost::bind(&SmScout::doneCallback, this,_1,_2), boost::bind(&SmScout::activeCallback, this), boost::bind(&SmScout::feedbackCallback, this,_1));
   ac.waitForResult(ros::Duration(0.25));
-
   flag_arrived_at_waypoint = false;
+}
+else
+{
+  ROS_WARN ("SCOUT: no_objective\n");
+}
 
   double progress = 1.0;
   state_machine::RobotStatus status_msg;
@@ -1296,9 +1301,17 @@ void SmScout::Plan()
     ROS_INFO("SCOUT: Failed to call service RotateInPlace");
   }
 
-  goal_pose_.position = srv_plan.response.objective.point;
-  geometry_msgs::Quaternion quat;
-  goal_pose_.orientation = quat;
+  if (srv_plan.response.code.data !=0 )
+  {
+    goal_pose_.position = srv_plan.response.objective.point;
+    geometry_msgs::Quaternion quat;
+    goal_pose_.orientation = quat;
+    no_objective = false;
+  }
+  else
+  {
+    no_objective = true;
+  }
 
   // switch (srv_plan.response.code.data)
   // {
