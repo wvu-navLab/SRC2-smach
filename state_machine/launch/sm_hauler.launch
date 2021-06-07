@@ -1,51 +1,55 @@
 <launch>
+  <group ns="small_hauler_1">
+    <param name="robot_name" value="small_hauler_1" />
+    <param name="robot_id" value="1" />
 
-  <!-- pcl_obstacle_avoidance launch file -->
-  <include file="$(find pcl_obstacle_detection)/launch/hauler_pcl_obj_detection.launch"/>
-  <include file="$(find pcl_obstacle_detection)/launch/hauler_pcl_homing.launch"/>
-  <!-- scout_motion_control launch file -->
-  <include file="$(find driving_control)/launch/hauler_driving_control.launch"/>
+    <!-- pcl_obstacle_avoidance launch file -->
+    <include file="$(find pcl_obstacle_detection)/launch/pcl_obj_detection.launch"/>
+    <include file="$(find pcl_obstacle_detection)/launch/pcl_homing.launch"/>
 
-  <!-- dead_reckoning launch file -->
-  <include file="$(find rover_deadreckoning)/launch/hauler_dead_reckoning.launch"/>
+    <!-- object_detection launch file -->
+    <include file="$(find src2_object_detection)/launch/object_detection_services.launch"/>
+    
+    <!-- motion_control launch file -->
+    <include file="$(find motion_control)/launch/motion_control.launch"/>
 
-  <!-- vo_ launch file -->
-  <include file="$(find wvu_vo_ros)/launch/vo_pipelineHauler.launch"/>
+    <!-- driving_tools launch file -->
+    <include file="$(find driving_tools)/launch/driving_tools.launch"/>
 
-  <!-- sensor_fusion launch file -->
-  <include file="$(find sensor_fusion)/launch/hauler_sensor_fusion.launch"/>
+    <!-- driving_control launch file -->
+    <include file="$(find driving_control)/launch/hauler_driving_control.launch"/>
+    
+    <!-- dead_reckoning launch file -->
+    <include file="$(find rover_deadreckoning)/launch/dead_reckoning.launch"/>
 
-  <!-- scout_driving_tools launch file -->
-  <!-- <include file="$(find waypoint_nav)/launch/hauler_waypoint_nav.launch"/> -->
+    <!-- vo launch file -->
+    <include file="$(find wvu_vo_ros)/launch/vo_pipeline.launch"/>
 
-  <!-- scout_waypoint_gen launch file -->
-  <!-- <include file="$(find waypoint_gen)/launch/hauler_waypoint_gen.launch"/> -->
+    <!-- sensor_fusion launch file -->
+    <include file="$(find sensor_fusion)/launch/sensor_fusion.launch"/>
 
-  <!-- scout_volatile handler launch file -->
+    <!-- hauler_move_base launch files -->
+    <include file="$(find src2_move_base)/launch/hauler_map_server.launch"/>
+    <include file="$(find src2_move_base)/launch/hauler_move_base.launch"/>
 
-  <include file="$(find src2_object_detection)/launch/hauler_object_detection.launch"/>
+    <!-- laser tools launch file -->
+    <include file="$(find laser_tools_src2)/launch/hauler_laser_tools.launch"/>
 
-  <!-- scout_move_base launch files -->
-  <include file="$(find src2_move_base)/launch/hauler_map_server.launch"/>
-  <include file="$(find src2_move_base)/launch/hauler_move_base.launch"/>
+    <!-- homing service -->
+    <include file="$(find range_to_base)/launch/homing_service.launch"/>
+    <include file="$(find sensor_fusion)/launch/homing.launch"/>
 
-  <!-- laser tools  -->
-  <include file="$(find laser_tools_src2)/launch/hauler_laser_tools.launch"/>
+    <!-- ranging services -->
+    <include file="$(find range_to_base)/launch/location_of_bin_service.launch"/>
+    <include file="$(find range_to_base)/launch/range_to_base_service.launch"/>
 
-  <!-- homing service -->
-  <include file="$(find range_to_base)/launch/hauler_location_of_bin_service.launch"/>
-  <include file="$(find range_to_base)/launch/hauler_homing_service.launch"/>
-
-  <include file="$(find sensor_fusion)/launch/hauler_homing.launch"/>
-
-  <!-- waypoint checker -->
-  <include file="$(find waypoint_checker)/launch/hauler_waypoint_checker.launch"/>
+    <!-- waypoint checker -->
+    <include file="$(find waypoint_checker)/launch/waypoint_checker.launch"/>
+        
+    <!-- state machine for hauler -->
+    <include file="$(find state_machine)/launch/hauler_state_machine.launch"/> 
+  </group>
 
   <!-- <include file="$(find mobility_checker)/launch/scout_mobility_checker.launch"/> -->
-
-  <!-- state machine for Hauler -->
-  <include file="$(find state_machine)/launch/hauler_state_machine.launch"/>
-
-
 
 </launch>
