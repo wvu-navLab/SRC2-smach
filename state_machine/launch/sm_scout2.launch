@@ -3,14 +3,9 @@
     <param name="robot_name" value="small_scout_2" />
     <param name="robot_id" value="2" />
 
-<<<<<<< HEAD
     <!-- pcl_obstacle_avoidance launch file -->
     <include file="$(find pcl_obstacle_detection)/launch/pcl_obj_detection.launch"/>
     <include file="$(find pcl_obstacle_detection)/launch/pcl_homing.launch"/>
-=======
-  <!-- <include file="$(find pcl_obstacle_detection)/launch/scout2_pcl_obj_detection.launch"/>
-  <include file="$(find pcl_obstacle_detection)/launch/scout2_pcl_homing.launch"/> -->
->>>>>>> c359bb71a455b3038a839b7a5be920aed3d641f0
 
     <!-- object_detection launch file -->
     <include file="$(find src2_object_detection)/launch/object_detection_services.launch"/>
