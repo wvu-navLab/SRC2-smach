@@ -71,10 +71,10 @@ void TaskPlanner::exc_haul_plan_default()
   std::vector<double> pose_min, vol_pose, default_pose, current_pose;
   default_pose.push_back(0);
   default_pose.push_back(0);
-  
+
   for (int i = 0; i < volatile_map_.vol.size(); ++i)
   {
-    //EXCAVATOR 
+    //EXCAVATOR
 
     vol_pose = default_pose;
     current_pose = default_pose;
@@ -121,7 +121,7 @@ void TaskPlanner::exc_haul_plan_default()
       robots_[nearest_int].plan.push_back(temp);
     }
 
-    //HAULER 
+    //HAULER
     vol_pose = default_pose;
     current_pose = default_pose;
     nearest_int = -1;
@@ -159,8 +159,8 @@ void TaskPlanner::exc_haul_plan_default()
     }
     if (vol_pose[0] != 0 || vol_pose[1] != 0)
     {
-      temp.point.x = vol_pose[0];
-      temp.point.y = vol_pose[1];
+      temp.point.x = vol_pose[0]-2;
+      temp.point.y = vol_pose[1]-2;
       robots_[nearest_int].plan.push_back(temp);
     }
   }

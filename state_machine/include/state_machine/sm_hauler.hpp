@@ -197,7 +197,8 @@ public:
   double prev_volatile_detected_distance = -1.0;
 
   bool actionDone = false;
-
+  bool no_objective = false;
+  
   int timer_counter = 0;
 
   double pitch_ = 0, roll_ = 0, yaw_ = 0, yaw_prev_ = 0;
