@@ -1,6 +1,6 @@
 num_scouts: 2
-num_excavators: 1
-num_haulers: 0
+num_excavators: 2
+num_haulers: 2
 clock_max_time_sec: 7200
 planner:
   planning_timeout_sec: 30

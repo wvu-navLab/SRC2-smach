@@ -81,13 +81,13 @@ void SmHauler::run()
   while(ros::ok())
   {
     // Debug prints +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-    ROS_INFO("flag_have_true_pose: %i",flag_have_true_pose);
-    ROS_INFO("flag_interrupt_plan: %i",flag_interrupt_plan);
-    ROS_INFO("flag_arrived_at_waypoint: %i",flag_arrived_at_waypoint);
-    ROS_INFO("flag_localizing_volatile: %i",flag_localizing_volatile);
-    ROS_INFO("flag_dumping: %i",flag_dumping);
-    ROS_INFO("flag_recovering_localization: %i",flag_recovering_localization);
-    ROS_INFO("flag_brake_engaged: %i",flag_brake_engaged);
+    ROS_INFO_STREAM("[" << robot_name_ << "] " <<"flag_have_true_pose: " << (int)flag_have_true_pose);
+    ROS_INFO_STREAM("[" << robot_name_ << "] " <<"flag_interrupt_plan: " << (int)flag_interrupt_plan);
+    ROS_INFO_STREAM("[" << robot_name_ << "] " <<"flag_arrived_at_waypoint: " << (int)flag_arrived_at_waypoint);
+    ROS_INFO_STREAM("[" << robot_name_ << "] " <<"flag_localizing_volatile: " << (int)flag_localizing_volatile);
+    ROS_INFO_STREAM("[" << robot_name_ << "] " <<"flag_dumping: " << (int)flag_dumping);
+    ROS_INFO_STREAM("[" << robot_name_ << "] " <<"flag_recovering_localization: " << (int)flag_recovering_localization);
+    ROS_INFO_STREAM("[" << robot_name_ << "] " <<"flag_brake_engaged: " << (int)flag_brake_engaged);
     //---------------------------------------------------------------------------------------------------------------------
 
 
@@ -185,13 +185,13 @@ void SmHauler::run()
       }
       else
       {
-        ROS_FATAL("No state to execute");
+        ROS_FATAL_STREAM("[" << robot_name_ << "] " << "No state to execute");
         flag_fallthrough_condition = false;
       }
     // }
     // else
     // {
-    //   ROS_WARN("State fallthough, flag_fallthrough_condition = %i, state_to_exec_count = %i",flag_fallthrough_condition, state_to_exec_count);
+    //   ROS_WARN_STREAM("[" << robot_name_ << "] " <<"State fallthough, flag_fallthrough_condition = %i, state_to_exec_count = " << (int)flag_fallthrough_condition, state_to_exec_count);
     // }
     // -------------------------------------------------------------------------------------------------------------------
 
@@ -203,44 +203,44 @@ void SmHauler::run()
 // State function definitions ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 void SmHauler::stateInitialize()
 {
-  ROS_WARN("Initialization State!\n");
+  ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Initialization State!\n");
 
   while (!clt_lights.waitForExistence())
   {
-    ROS_WARN("HAULER: Waiting for Lights");
+    ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Waiting for Lights");
   }
 
   Lights(20);
 
-  // while (!clt_approach_base.waitForExistence())
-  // {
-  //   ROS_WARN("HAULER: Waiting for ApproachChargingStation service");
-  // }
-  //
-  // src2_approach_services::ApproachChargingStation srv_approach_charging_station;
-  // srv_approach_charging_station.request.approach_charging_station.data = true;
-  // bool approachSuccess = false;
-  // int baseStationApproachRecoveryCount = 0;
-  // while(!approachSuccess && baseStationApproachRecoveryCount<3){
-  //   if (clt_approach_base.call(srv_approach_charging_station))
-  //   {
-  //     ROS_INFO("HAULER: Called service ApproachChargingStation");
-  //     ROS_INFO_STREAM("Success finding the baseStation? "<< srv_approach_charging_station.response.success.data);
-  //     if(srv_approach_charging_station.response.success.data){
-  //       // homingRecovery(); //TODO: bin recovery behavior/fine align
-  //       // }
-  //       // else
-  //
-  //       approachSuccess=true;
-  //       ROS_INFO("HAULER: approach base Station with classifier successful");
-  //     }
-  //   }
-  //   else
-  //   {
-  //     ROS_ERROR("HAULER: Failed  to call service ApproachChargingStation");
-  //   }
-  //   baseStationApproachRecoveryCount=baseStationApproachRecoveryCount+1;
-  // }
+  while (!clt_approach_base.waitForExistence())
+  {
+    ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Waiting for ApproachChargingStation service");
+  }
+  
+  src2_approach_services::ApproachChargingStation srv_approach_charging_station;
+  srv_approach_charging_station.request.approach_charging_station.data = true;
+  bool approachSuccess = false;
+  int baseStationApproachRecoveryCount = 0;
+  while(!approachSuccess && baseStationApproachRecoveryCount<3){
+    if (clt_approach_base.call(srv_approach_charging_station))
+    {
+      ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Called service ApproachChargingStation");
+      ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Success finding the baseStation? "<< srv_approach_charging_station.response.success.data);
+      if(srv_approach_charging_station.response.success.data){
+        // homingRecovery(); //TODO: bin recovery behavior/fine align
+        // }
+        // else
+  
+        approachSuccess=true;
+        ROS_INFO_STREAM("[" << robot_name_ << "] " <<"approach base Station with classifier successful");
+      }
+    }
+    else
+    {
+      ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Failed  to call service ApproachChargingStation");
+    }
+    baseStationApproachRecoveryCount=baseStationApproachRecoveryCount+1;
+  }
 
 
 
@@ -251,7 +251,7 @@ void SmHauler::stateInitialize()
 
   while (!clt_sf_true_pose.waitForExistence())
   {
-    ROS_ERROR("HAULER: Waiting for TruePose service");
+    ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Waiting for TruePose service");
   }
 
   GetTruePose();
@@ -269,9 +269,9 @@ void SmHauler::stateInitialize()
 
 void SmHauler::statePlanning()
 {
-  ROS_INFO("Planning!\n");
+  ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Planning!\n");
 
-  ROS_INFO("HAULER: Canceling MoveBase goal.");
+  ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Canceling MoveBase goal.");
   ac.waitForServer();
   ac.cancelGoal();
   ac.waitForResult(ros::Duration(0.25));
@@ -297,7 +297,7 @@ void SmHauler::statePlanning()
     srv_wp_check.request.y = goal_pose_.position.y;
     if (clt_waypoint_checker.call(srv_wp_check))
     {
-      ROS_INFO("HAULER: Called service Waypoint Checker");
+      ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Called service Waypoint Checker");
       is_colliding = srv_wp_check.response.collision;
       if(is_colliding)
       {
@@ -315,7 +315,7 @@ void SmHauler::statePlanning()
     }
     else
     {
-      ROS_ERROR("HAULER: Failed to call service Waypoint Checker");
+      ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Failed to call service Waypoint Checker");
     }
     ros::spinOnce();
     counter=counter+1;
@@ -328,7 +328,7 @@ if (!no_objective) {
   move_base_msgs::MoveBaseGoal move_base_goal;
   ac.waitForServer();
   setPoseGoal(move_base_goal, goal_pose_.position.x, goal_pose_.position.y, goal_yaw_);
-  ROS_INFO_STREAM("HAULER: Sending goal to MoveBase: " << move_base_goal);
+  ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Sending goal to MoveBase: " << move_base_goal);
   waypoint_timer = ros::Time::now();
   ac.sendGoal(move_base_goal, boost::bind(&SmHauler::doneCallback, this,_1,_2), boost::bind(&SmHauler::activeCallback, this), boost::bind(&SmHauler::feedbackCallback, this,_1));
   ac.waitForResult(ros::Duration(0.25));
@@ -337,7 +337,7 @@ if (!no_objective) {
 }
 else
 {
-  ROS_WARN ("HAULER: no_objective\n");
+  ROS_WARN_STREAM("[" << robot_name_ << "] " <<"no_objective\n");
 }
   double progress = 0;
   state_machine::RobotStatus status_msg;
@@ -348,12 +348,12 @@ else
 
 void SmHauler::stateTraverse()
 {
-  ROS_WARN("Traverse State\n");
+  ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Traverse State\n");
 
   double distance_to_goal = std::hypot(goal_pose_.position.y - current_pose_.position.y, goal_pose_.position.x - current_pose_.position.x);
   if (distance_to_goal < 2.0)
   {
-    ROS_INFO("HAULER: Close to goal, getting new waypoint.");
+    ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Close to goal, getting new waypoint.");
     flag_arrived_at_waypoint = true;
   }
 
@@ -362,10 +362,10 @@ void SmHauler::stateTraverse()
     bool is_colliding = false;
     waypoint_checker::CheckCollision srv_wp_check;
     if (clt_waypoint_checker.call(srv_wp_check)) {
-      ROS_INFO("HAULER: Called service Waypoint Checker");
+      ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Called service Waypoint Checker");
       is_colliding = srv_wp_check.response.collision;
       if (is_colliding) {
-        ROS_INFO("HAULER: Waypoint Unreachable. Sending to Planning");
+        ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Waypoint Unreachable. Sending to Planning");
         flag_waypoint_unreachable = true;
       }
     }
@@ -374,11 +374,11 @@ void SmHauler::stateTraverse()
 
   move_base_state = ac.getState();
   int mb_state =(int) move_base_state.state_;
-  ROS_WARN_STREAM("MoveBase status: "<< mb_state);
+  ROS_WARN_STREAM("[" << robot_name_ << "] " <<"MoveBase status: "<< mb_state);
 
   if(mb_state==5 || mb_state==7)
   {
-    ROS_ERROR("HAULER: MoveBase has failed to make itself useful.");
+    ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"MoveBase has failed to make itself useful.");
     flag_waypoint_unreachable= true;
 
     Stop (1.0);
@@ -399,15 +399,15 @@ void SmHauler::stateTraverse()
     BrakeRamp(100, 2, 0); // Give more time
     Brake(0.0);
 
-    ROS_ERROR("Rover is stopped to clear the Map");
-    ROS_WARN_STREAM("Move Base State: "<< mb_state);
-    ROS_WARN("Map Cleared");
+    ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Rover is stopped to clear the Map");
+    ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Move Base State: "<< mb_state);
+    ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Map Cleared");
   }
 
   ros::Duration timeoutWaypoint(120);
   if (ros::Time::now() - waypoint_timer > timeoutWaypoint )
   {
-    ROS_ERROR("Waypoint Unreachable");
+    ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Waypoint Unreachable");
     flag_waypoint_unreachable= true;
     Stop (1.0);
     ClearCostmaps();
@@ -431,18 +431,18 @@ void SmHauler::stateTraverse()
 
 void SmHauler::stateVolatileHandler()
 {
-  ROS_WARN("Volatile Handling State!");
+  ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Volatile Handling State!");
 
   while (!clt_lights.waitForExistence())
   {
-      ROS_WARN("HAULER: Waiting for Lights");
+      ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Waiting for Lights");
   }
   Lights(20);
 
   // *******get true pose for dump testing
   while (!clt_sf_true_pose.waitForExistence())
   {
-    ROS_ERROR("HAULER: Waiting for TruePose service");
+    ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Waiting for TruePose service");
   }
 
   // Update SF with True Pose
@@ -450,19 +450,19 @@ void SmHauler::stateVolatileHandler()
   srv_sf_true_pose.request.start = true;
   if (clt_sf_true_pose.call(srv_sf_true_pose))
   {
-    ROS_INFO("HAULER: Called service TruePose");
-    ROS_INFO_STREAM("Status of SF True Pose: "<< srv_sf_true_pose.response.success);
+    ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Called service TruePose");
+    ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Status of SF True Pose: "<< srv_sf_true_pose.response.success);
   }
   else
   {
-    ROS_ERROR("HAULER: Failed  to call service Pose Update");
+    ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Failed  to call service Pose Update");
   }
 
   RoverStatic(true);
 
   while (!clt_approach_excavator.waitForExistence())
   {
-    ROS_WARN("HAULER: Waiting for ApproachExacavator service");
+    ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Waiting for ApproachExacavator service");
   }
 
   // approach bin with cv detector
@@ -473,15 +473,15 @@ void SmHauler::stateVolatileHandler()
   while(!approachSuccess && ExcavatorApproachRecoveryCount<3){
     if (clt_approach_excavator.call(srv_approach_excavator))
     {
-      ROS_INFO("HAULER: Called service ApproachExcavator");
-      ROS_INFO_STREAM("Success finding the Excavator? "<< srv_approach_excavator.response.success.data);
+      ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Called service ApproachExcavator");
+      ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Success finding the Excavator? "<< srv_approach_excavator.response.success.data);
       if(srv_approach_excavator.response.success.data){
         // homingRecovery(); //TODO: bin recovery behavior/fine align
         // }
         // else
 
         approachSuccess=true;
-        ROS_INFO("HAULER: approach excavator with classifier successful");
+        ROS_INFO_STREAM("[" << robot_name_ << "] " <<"approach excavator with classifier successful");
         flag_dumping = true;
         flag_volatile_handler = false;
         // flag_arrived_at_waypoint = true;
@@ -489,23 +489,23 @@ void SmHauler::stateVolatileHandler()
     }
     else
     {
-      ROS_ERROR("HAULER: Failed  to call service ApproachBin");
+      ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Failed  to call service ApproachBin");
     }
     ExcavatorApproachRecoveryCount= ExcavatorApproachRecoveryCount+1;
   }
 
   if (!approachSuccess){
-    ROS_INFO("HAULER : failed after 3 attempts");
+    ROS_INFO_STREAM("[" << robot_name_ << "] " <<"HAULER : failed after 3 attempts");
   }
 }
 
 void SmHauler::stateLost()
 {
-  ROS_ERROR("LOST STATE!\n");
+  ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"LOST STATE!\n");
 
   double progress = 1.0;
 
-  ROS_INFO("SCOUT: Canceling MoveBase goal.");
+  ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Canceling MoveBase goal.");
   ac.waitForServer();
   ac.cancelGoal();
   ac.waitForResult(ros::Duration(0.25));
@@ -522,8 +522,8 @@ void SmHauler::stateLost()
   while(!approachSuccess && homingRecoveryCount<3){
       if (clt_approach_base.call(srv_approach_base))
       {
-        ROS_INFO("SCOUT: Called service ApproachChargingStation");
-        ROS_INFO_STREAM("Success finding the Base? "<< srv_approach_base.response.success.data);
+        ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Called service ApproachChargingStation");
+        ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Success finding the Base? "<< srv_approach_base.response.success.data);
         if(!srv_approach_base.response.success.data){
         homingRecovery();
         }
@@ -535,7 +535,7 @@ void SmHauler::stateLost()
 
     else
     {
-      ROS_ERROR("SCOUT: Failed  to call service ApproachChargingStation");
+      ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Failed  to call service ApproachChargingStation");
     }
     homingRecoveryCount=homingRecoveryCount+1;
   }
@@ -550,15 +550,15 @@ void SmHauler::stateLost()
     // ros::spinOnce();
 
     srv_homing.request.angle = pitch_ + .4; // pitch up is negative number
-    ROS_INFO("Requesting Angle for LIDAR %f",srv_homing.request.angle);
+    ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Requesting Angle for LIDAR "<<srv_homing.request.angle);
     srv_homing.request.initializeLandmark = flag_need_init_landmark;
     if (clt_homing.call(srv_homing))
     {
-      ROS_INFO("SCOUT: Called service Homing [Update]");
+      ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Called service Homing [Update]");
       if(srv_homing.request.initializeLandmark && srv_homing.response.success)
       {
           base_location_ = srv_homing.response.base_location;
-          ROS_WARN("SCOUT: Saving Base Location %f %f",base_location_.x, base_location_.y);
+          ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Saving Base Location  "<<base_location_.x << "," << base_location_.y);
       }
       // flag_localization_failure=false;
       // flag_arrived_at_waypoint = true;
@@ -572,14 +572,14 @@ void SmHauler::stateLost()
     }
     else
     {
-      ROS_ERROR("SCOUT: Failed to call service Homing [Update]");
+      ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Failed to call service Homing [Update]");
       progress = -1.0;
     }
   }
   else
   {
     progress = -1.0;
-    ROS_ERROR(" Homing Attempt Failed, Just Moving On For Now");
+    ROS_ERROR_STREAM("[" << robot_name_ << "] " <<" Homing Attempt Failed, Just Moving On For Now");
   }
 
   Lights (20);
@@ -613,7 +613,7 @@ void SmHauler::stateLost()
 
 void SmHauler::stateDump()
 {
-  ROS_WARN("DUMPING STATE!\n");
+  ROS_WARN_STREAM("[" << robot_name_ << "] " <<"DUMPING STATE!\n");
   double progress = 1.0;
 
   flag_arrived_at_waypoint = false;
@@ -623,14 +623,14 @@ void SmHauler::stateDump()
 
   // while (!clt_lights.waitForExistence())
   // {
-  //     ROS_WARN("HAULER: Waiting for Lights");
+  //     ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Waiting for Lights");
   // }
   // Lights(20);
   //
   // // *******get true pose for dump testing
   // while (!clt_sf_true_pose.waitForExistence())
   // {
-  //   ROS_ERROR("HAULER: Waiting for TruePose service");
+  //   ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Waiting for TruePose service");
   // }
   //
   // // Update SF with True Pose
@@ -638,19 +638,19 @@ void SmHauler::stateDump()
   // srv_sf_true_pose.request.start = true;
   // if (clt_sf_true_pose.call(srv_sf_true_pose))
   // {
-  //   ROS_INFO("HAULER: Called service TruePose");
-  //   ROS_INFO_STREAM("Status of SF True Pose: "<< srv_sf_true_pose.response.success);
+  //   ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Called service TruePose");
+  //   ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Status of SF True Pose: "<< srv_sf_true_pose.response.success);
   // }
   // else
   // {
-  //   ROS_ERROR("HAULER: Failed  to call service Pose Update");
+  //   ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Failed  to call service Pose Update");
   // }
   //
   // RoverStatic(true);
 
   while (!clt_approach_bin.waitForExistence())
   {
-    ROS_WARN("HAULER: Waiting for ApproachBin service");
+    ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Waiting for ApproachBin service");
   }
 
   // approach bin with cv detector
@@ -661,20 +661,20 @@ void SmHauler::stateDump()
   while(!approachSuccess && binApproachRecoveryCount<3){
     if (clt_approach_bin.call(srv_approach_bin))
     {
-      ROS_INFO("HAULER: Called service ApproachBin");
-      ROS_INFO_STREAM("Success finding the Bin? "<< srv_approach_bin.response.success.data);
+      ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Called service ApproachBin");
+      ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Success finding the Bin? "<< srv_approach_bin.response.success.data);
       if(srv_approach_bin.response.success.data){
         // homingRecovery(); //TODO: bin recovery behavior/fine align
         // }
         // else
 
         approachSuccess=true;
-        ROS_INFO("HAULER: approach bin with classifier successful");
+        ROS_INFO_STREAM("[" << robot_name_ << "] " <<"approach bin with classifier successful");
       }
     }
     else
     {
-      ROS_ERROR("HAULER: Failed  to call service ApproachBin");
+      ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Failed  to call service ApproachBin");
     }
     binApproachRecoveryCount=binApproachRecoveryCount+1;
   }
@@ -691,12 +691,12 @@ void SmHauler::stateDump()
       clt_location_of_bin.call(srv_location_of_bin);
 
       if(!srv_location_of_bin.response.success.data){
-        ROS_INFO("HAULER: location of bin not reliable");
+        ROS_INFO_STREAM("[" << robot_name_ << "] " <<"location of bin not reliable");
         progress = -1.0;
 
       }
 
-      //ROS_INFO_STREAM("Hauler location: " << current_pose_);
+      //ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Hauler location: " << current_pose_);
   }
 
   // approach closely
@@ -744,11 +744,11 @@ void SmHauler::localizedBaseCallback(const std_msgs::Int64::ConstPtr& msg)
 {
   flag_localized_base = msg->data;
   if (flag_localized_base) {
-    ROS_WARN_ONCE("Initial Localization Successful = %i",flag_localized_base);
+    ROS_WARN_STREAM_ONCE("Initial Localization Successful = " << (int)flag_localized_base);
 
   }
   else {
-    ROS_INFO("Waiting for Initial Localization  = %i",flag_localized_base);
+    ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Waiting for Initial Localization  = " << (int)flag_localized_base);
   }
 }
 
@@ -756,10 +756,10 @@ void SmHauler::localizedBaseCallback(const std_msgs::Int64::ConstPtr& msg)
 // {
 // flag_mobility = msg->data;
 // if (flag_mobility == 0) {
-//   ROS_ERROR("ROVER IMMOBILIZATION!  = %i", flag_mobility);
+//   ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"ROVER IMMOBILIZATION!  = " << (int) flag_mobility);
 //   immobilityRecovery(1);
 // } else {
-//   ROS_WARN_ONCE("Rover is traversing = %i", flag_mobility);
+//   ROS_WARN_STREAM_ONCE("Rover is traversing = " << (int) flag_mobility);
 // }
 // }
 
@@ -784,14 +784,14 @@ void SmHauler::volatileDetectedCallback(const std_msgs::Float32::ConstPtr& msg)
 void SmHauler::volatileRecordedCallback(const std_msgs::Bool::ConstPtr& msg)
 {
   flag_volatile_recorded = msg->data;
-  ROS_INFO_STREAM("Record: " << flag_volatile_recorded);
+  ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Record: " << flag_volatile_recorded);
   if (flag_volatile_recorded == true)
   {
           volatile_detected_distance = -1.0;
   }else
   {
     not_detected_timer = ros::Time::now();
-    ROS_INFO_STREAM("NAO" << not_detected_timer.toSec());
+    ROS_INFO_STREAM("[" << robot_name_ << "] " <<"NAO" << not_detected_timer.toSec());
   }
 }
 
@@ -826,20 +826,20 @@ void SmHauler::laserCallback(const sensor_msgs::LaserScan::ConstPtr& msg)
     min_range = min_range + ranges[i];
   }
   min_range = min_range/LASER_SET_SIZE;
-  ROS_INFO_STREAM_THROTTLE(2,"HAULER: Minimum range average: " << min_range);
+  ROS_INFO_STREAM_THROTTLE(2,"Minimum range average: " << min_range);
 
   if (min_range < LASER_THRESH)
   {
     if (ros::Time::now() - last_time_laser_collision < ros::Duration(20))
     {
-      ROS_WARN("HAULER: Close to wall.");
+      ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Close to wall.");
       counter_laser_collision_++;
-      ROS_INFO_STREAM("HAULER: Counter laser:" << counter_laser_collision_);
+      ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Counter laser:" << counter_laser_collision_);
     }
     else
     {
       counter_laser_collision_ = 0;
-      ROS_INFO_STREAM("HAULER: Counter laser RESET!");
+      ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Counter laser RESET!");
     }
     last_time_laser_collision = ros::Time::now();
   }
@@ -847,7 +847,7 @@ void SmHauler::laserCallback(const sensor_msgs::LaserScan::ConstPtr& msg)
   if (counter_laser_collision_ > LASER_COUNTER_THRESH)
   {
     counter_laser_collision_ =0;
-    ROS_ERROR("HAULER: LASER COUNTER > 20 ! Starting Recovery.");
+    ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"LASER COUNTER > 20 ! Starting Recovery.");
     immobilityRecovery(2);
   }
 }
@@ -868,7 +868,7 @@ void SmHauler::setPoseGoal(move_base_msgs::MoveBaseGoal &poseGoal, double x, dou
 
 
 //********************************************************************************************************
-    poseGoal.target_pose.header.frame_id = "small_hauler_1_odom";
+    poseGoal.target_pose.header.frame_id = robot_name_+"_odom";
     poseGoal.target_pose.pose.position.x = x;
     poseGoal.target_pose.pose.position.y = y;
     poseGoal.target_pose.pose.position.z = 0.0;
@@ -881,28 +881,28 @@ void SmHauler::setPoseGoal(move_base_msgs::MoveBaseGoal &poseGoal, double x, dou
 void SmHauler::doneCallback(const actionlib::SimpleClientGoalState& state, const move_base_msgs::MoveBaseResult::ConstPtr& result)
 {
     actionDone = true;
-    // ROS_INFO("Goal done");
+    // ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Goal done");
 }
 void SmHauler::activeCallback()
 {
-    // ROS_INFO("Goal went active");
+    // ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Goal went active");
 }
 void SmHauler::feedbackCallback(const move_base_msgs::MoveBaseFeedback::ConstPtr& feedback)
 {
-  //  ROS_INFO("Got feedback");
+  //  ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Got feedback");
 }
 
 void SmHauler::plannerInterruptCallback(const std_msgs::Bool::ConstPtr &msg)
 {
     flag_interrupt_plan = msg->data;
-  // ROS_INFO_STREAM("HAULER: Interrupt flag updated." << *msg);
+  // ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Interrupt flag updated." << *msg);
 }
 
 void SmHauler::RotateToHeading(double desired_yaw)
 {
   ros::Rate raterotateToHeading(20);
 
-  ROS_INFO("Starting yaw control.");
+  ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Starting yaw control.");
 
   double yaw_thres = 0.1;
 
@@ -943,13 +943,13 @@ void SmHauler::RotateToHeading(double desired_yaw)
         yaw_error = yaw_error + 2*M_PI;
       }
     }
-    // ROS_INFO_STREAM("Trying to control yaw to desired angles. Yaw error: "<<yaw_error);
+    // ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Trying to control yaw to desired angles. Yaw error: "<<yaw_error);
 
-    // ROS_ERROR_STREAM("TIME: "<<ros::Time::now() - start_time << ", TIMEOUT: " << timeoutHeading);
+    // ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"TIME: "<<ros::Time::now() - start_time << ", TIMEOUT: " << timeoutHeading);
 
     if (ros::Time::now() - start_time > timeoutHeading)
     {
-      ROS_ERROR("Yaw Control Failed. Possibly stuck. Break control.");
+      ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Yaw Control Failed. Possibly stuck. Break control.");
       flag_heading_fail = true;
       break;
     }
@@ -957,7 +957,7 @@ void SmHauler::RotateToHeading(double desired_yaw)
 
   if (flag_heading_fail)
   {
-    ROS_WARN("Recovery action initiated in yaw control.");
+    ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Recovery action initiated in yaw control.");
 
      Stop(2.0);
 
@@ -985,7 +985,7 @@ void SmHauler::homingRecovery()
   ac.cancelGoal();
   ac.waitForResult(ros::Duration(0.25));
 
-  ROS_WARN("Starting Homing Recovery.");
+  ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Starting Homing Recovery.");
 
   Lights(20);
 
@@ -1025,7 +1025,7 @@ void SmHauler::immobilityRecovery(int type)
   ac.cancelGoal();
   ac.waitForResult(ros::Duration(0.25));
 
-  ROS_WARN("Starting Recovery.");
+  ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Starting Recovery.");
 
   Stop(2.0);
 
@@ -1061,11 +1061,11 @@ void SmHauler::ClearCostmaps()
   ros::service::waitForService("move_base/clear_costmaps",ros::Duration(3.0));
   if (ros::service::call("move_base/clear_costmaps",emptymsg))
   {
-     ROS_INFO("HAULER: Called service to clear costmap layers.");
+     ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Called service to clear costmap layers.");
   }
   else
   {
-     ROS_ERROR("HAULER: Failed calling clear_costmaps service.");
+     ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Failed calling clear_costmaps service.");
   }
 }
 
@@ -1076,13 +1076,13 @@ void SmHauler::GetTruePose()
   srv_sf_true_pose.request.start = true;
   if (clt_sf_true_pose.call(srv_sf_true_pose))
   {
-    ROS_INFO("HAULER: Called service TruePose");
-    ROS_INFO_STREAM("Status of SF True Pose: "<< srv_sf_true_pose.response.success);
+    ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Called service TruePose");
+    ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Status of SF True Pose: "<< srv_sf_true_pose.response.success);
     flag_have_true_pose = true;
   }
   else
   {
-    ROS_ERROR("HAULER: Failed  to call service Pose Update");
+    ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Failed  to call service Pose Update");
   }
 }
 
@@ -1093,11 +1093,11 @@ void SmHauler::Lights(double intensity)
   srv_lights.request.range  = intensity;
   if (clt_lights.call(srv_lights))
   {
-    ROS_INFO("HAULER: Called service SpotLight");
+    ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Called service SpotLight");
   }
   else
   {
-    ROS_ERROR("HAULER: Failed  to call service SpotLight");
+    ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Failed  to call service SpotLight");
   }
 }
 
@@ -1107,12 +1107,12 @@ void SmHauler::RotateInPlace(double speed_ratio, double time)
   srv_turn.request.speed_ratio  = speed_ratio;
   if (clt_rip.call(srv_turn))
   {
-    ROS_INFO_THROTTLE(5,"HAULER: Called service RotateInPlace");
+    ROS_INFO_STREAM_THROTTLE(5,"[" << robot_name_ << "] " <<"Called service RotateInPlace");
     ros::Duration(time).sleep();
   }
   else
   {
-    ROS_INFO("HAULER: Failed to call service RotateInPlace");
+    ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Failed to call service RotateInPlace");
   }
 }
 
@@ -1122,12 +1122,12 @@ void SmHauler::Stop(double time)
   srv_stop.request.enable  = true;
   if (clt_stop.call(srv_stop))
   {
-    ROS_INFO("HAULER: Called service Stop");
+    ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Called service Stop");
     ros::Duration(time).sleep();
   }
   else
   {
-    ROS_ERROR("HAULER: Failed  to call service Stop");
+    ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Failed  to call service Stop");
   }
 }
 
@@ -1145,11 +1145,11 @@ void SmHauler::Brake(double intensity)
     {
       flag_brake_engaged =true;
     }
-    //ROS_INFO_STREAM("HAULER: Called service SRCP2 Brake. Engaged?: " << flag_brake_engaged);
+    //ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Called service SRCP2 Brake. Engaged?: " << flag_brake_engaged);
   }
   else
   {
-      ROS_ERROR("HAULER: Failed  to call service Brake");
+      ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Failed  to call service Brake");
   }
 }
 
@@ -1160,35 +1160,35 @@ void SmHauler::BrakeRamp(double max_intensity, double time, int aggressivity)
   int num_steps = (int) freq * time;
   if(aggressivity == 0)
   {
-    // ROS_INFO("Brake Ramp.");
+    // ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Brake Ramp.");
     for (int counter = 0; counter < num_steps; ++counter)
     {
       double intensity = (static_cast<double>(counter + 1)/(freq * time))*max_intensity;
-      // ROS_INFO_STREAM("Brake intensity: " << intensity);
+      // ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Brake intensity: " << intensity);
       Brake(intensity);
       brake_rate.sleep();
     }
   }
   else if (aggressivity == 1)
   {
-    // ROS_INFO("Brake Logistics Curve.");
+    // ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Brake Logistics Curve.");
     for (int counter = 0; counter < num_steps; ++counter)
     {
       double multiplier = 2;
       double x = (static_cast<double>(counter + 1)/(freq * time)) * time * multiplier;
       double intensity =  max_intensity / (1 + exp(-x)) - max_intensity/2;
-      // ROS_INFO_STREAM("Brake intensity: " << intensity);
+      // ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Brake intensity: " << intensity);
       Brake(intensity);
       brake_rate.sleep();
     }
   }
   else
   {
-    ROS_INFO("Brake FULL.");
+    ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Brake FULL.");
     Brake(max_intensity);
     ros::Duration(time).sleep();
   }
-  ROS_INFO_STREAM("HAULER: Called service SRCP2 Brake. Engaged? " << flag_brake_engaged);
+  ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Called service SRCP2 Brake. Engaged? " << flag_brake_engaged);
 }
 
 void SmHauler::Drive(double speed_ratio, double time)
@@ -1204,7 +1204,7 @@ void SmHauler::Drive(double speed_ratio, double time)
   if (clt_drive.call(srv_drive))
   {
     ros::Time start_time = ros::Time::now();
-    ROS_INFO("HAULER: Called service Drive");
+    ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Called service Drive");
     while(ros::Time::now() - start_time < ros::Duration(time))
     {
       std_msgs::Int64 mode;
@@ -1214,7 +1214,7 @@ void SmHauler::Drive(double speed_ratio, double time)
   }
   else
   {
-    ROS_ERROR("HAULER: Failed to call service Drive");
+    ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Failed to call service Drive");
   }
 }
 
@@ -1234,7 +1234,7 @@ void SmHauler::DriveCmdVel(double vx, double vy, double wz, double time)
   cmd_vel.angular.z = wz;
   ros::Time start_time = ros::Time::now();
   ros::Duration timeout(time); // Timeout of 20 seconds
-  ROS_ERROR("Drive Cmd Vel publisher.");
+  ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Drive Cmd Vel publisher.");
   while (ros::Time::now() - start_time < timeout)
   {
     cmd_vel_pub.publish(cmd_vel);
@@ -1247,11 +1247,11 @@ void SmHauler::DriveCmdVel(double vx, double vy, double wz, double time)
 //   srv_vol_detect.request.on  = flag;
 //   if (clt_vol_detect_.call(srv_vol_detect))
 //   {
-//     ROS_INFO_STREAM("HAULER: Called service ToggleDetector. Turned on? " << flag);
+//     ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Called service ToggleDetector. Turned on? " << flag);
 //   }
 //   else
 //   {
-//     ROS_ERROR("HAULER: Failed  to call service ToggleDetector");
+//     ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Failed  to call service ToggleDetector");
 //   }
 // }
 
@@ -1262,17 +1262,17 @@ void SmHauler::RoverStatic(bool flag)
   srv_rover_static.request.rover_static  = flag;
   if (clt_rover_static.call(srv_rover_static))
   {
-    ROS_INFO_STREAM("HAULER: Called service RoverStatic. Turned on? " << flag);
+    ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Called service RoverStatic. Turned on? " << flag);
   }
   else
   {
-    ROS_ERROR("HAULER: Failed to call service RoverStatic");
+    ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Failed to call service RoverStatic");
   }
 
 }
 
 bool SmHauler::setMobility(state_machine::SetMobility::Request &req, state_machine::SetMobility::Response &res){
-  ROS_ERROR(" GOT MOBILITY IN SM %d", req.mobility);
+  ROS_ERROR_STREAM("[" << robot_name_ << "] " <<" GOT MOBILITY IN SM"<< req.mobility);
   flag_mobility = req.mobility;
   immobilityRecovery(1);
   //ros::Duration(2).sleep();
@@ -1296,11 +1296,11 @@ void SmHauler::Plan()
 
   if (clt_task_planning.call(srv_plan))
   {
-    ROS_INFO_THROTTLE(5,"HAULER: Called service Plan");
+    ROS_INFO_STREAM_THROTTLE(5,"[" << robot_name_ << "] " <<"Called service Plan");
   }
   else
   {
-    ROS_INFO("HAULER: Failed to call service RotateInPlace");
+    ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Failed to call service RotateInPlace");
   }
 
   if (srv_plan.response.code.data !=0 )
@@ -1315,60 +1315,53 @@ void SmHauler::Plan()
     no_objective = true;
   }
 
-  // switch (srv_plan.response.code.data)
-  // {
-  // case _initialize:
-  //   flag_have_true_pose = false;
-  //   break;
+  switch (srv_plan.response.code.data)
+  {
+  case _initialize:
+    ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Task Planner: Initialize");
+    flag_have_true_pose = false;
+    break;
 
-  // case _planning:
-  //   flag_interrupt_plan = true;
-  //   flag_arrived_at_waypoint = true;
-  //   flag_recovering_localization = false;
-  //   flag_localizing_volatile = false;
-  //   flag_dumping = false;
-  //   break;
+  case _planning:
+    ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Task Planner: Planning");
+    flag_interrupt_plan = true;
+    flag_arrived_at_waypoint = true;
+    flag_recovering_localization = false;
+    flag_localizing_volatile = false;
+    break;
 
-  // case _traverse:
-  //   flag_interrupt_plan = false;
-  //   flag_arrived_at_waypoint = false;
-  //   flag_recovering_localization = false;
-  //   flag_localizing_volatile = false;
-  //   flag_dumping = false;
-  //   break;
+  case _traverse:
+    ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Task Planner: Traverse");
+    flag_interrupt_plan = false;
+    flag_arrived_at_waypoint = false;
+    flag_recovering_localization = false;
+    flag_localizing_volatile = false;
+    break;
 
-  // case _volatile_handler:
-  //   flag_interrupt_plan = false;
-  //   flag_arrived_at_waypoint = false;
-  //   flag_recovering_localization = false;
-  //   flag_localizing_volatile = true;
-  //   flag_dumping = false;
-  //   break;
+  case _volatile_handler:
+    ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Task Planner: Vol Handler");
+    flag_interrupt_plan = false;
+    flag_arrived_at_waypoint = false;
+    flag_recovering_localization = false;
+    flag_localizing_volatile = true;
+    break;
 
-  // case _lost:
-  //   flag_interrupt_plan = false;
-  //   flag_arrived_at_waypoint = false;
-  //   flag_recovering_localization = true;
-  //   flag_localizing_volatile = false;
-  //   flag_dumping = false;
-  //   break;
+  case _lost:
+    ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Task Planner: Homing");
+    flag_interrupt_plan = false;
+    flag_arrived_at_waypoint = false;
+    flag_recovering_localization = true;
+    flag_localizing_volatile = false;
+    break;
 
-  // case _hauler_dumping:
-  //     flag_interrupt_plan = false;
-  //     flag_arrived_at_waypoint = false;
-  //     flag_recovering_localization = false;
-  //     flag_localizing_volatile = false;
-  //     flag_dumping = true;
-  //     break;
-
-  // default:
-  //   flag_interrupt_plan = true;
-  //   flag_arrived_at_waypoint = true;
-  //   flag_recovering_localization = false;
-  //   flag_localizing_volatile = false;
-  //   flag_dumping = false;
-  //   break;
-  // }
+  default:
+    ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Task Planner: No idea what Im doing");
+    flag_interrupt_plan = true;
+    flag_arrived_at_waypoint = true;
+    flag_recovering_localization = false;
+    flag_localizing_volatile = false;
+    break;
+  }
 
   // srv_plan.response.id;
   flag_interrupt_plan = false;
