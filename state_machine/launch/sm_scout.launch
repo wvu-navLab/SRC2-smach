@@ -1,14 +1,7 @@
 <launch>
-<<<<<<< HEAD
   <group ns="small_scout_1">
     <param name="robot_name" value="small_scout_1" />
     <param name="robot_id" value="1" />
-=======
-  <!-- pcl_obstacle_avoidance launch file -->
-
-  <!-- <include file="$(find pcl_obstacle_detection)/launch/scout_pcl_obj_detection.launch"/>
-  <include file="$(find pcl_obstacle_detection)/launch/scout_pcl_homing.launch"/> -->
->>>>>>> c359bb71a455b3038a839b7a5be920aed3d641f0
 
     <!-- pcl_obstacle_avoidance launch file -->
     <include file="$(find pcl_obstacle_detection)/launch/pcl_obj_detection.launch"/>
@@ -20,7 +13,6 @@
     <!-- motion_control launch file -->
     <include file="$(find motion_control)/launch/motion_control.launch"/>
 
-<<<<<<< HEAD
     <!-- driving_tools launch file -->
     <include file="$(find driving_tools)/launch/driving_tools.launch"/>
 
@@ -29,13 +21,6 @@
     
     <!-- dead_reckoning launch file -->
     <include file="$(find rover_deadreckoning)/launch/dead_reckoning.launch"/>
-=======
-  <!-- sensor_fusion launch file -->
-  <include file="$(find sensor_fusion)/launch/scout_sensor_fusion.launch"/>
-  
-  <!-- scout_driving_tools launch file -->
-  <!-- <include file="$(find waypoint_nav)/launch/scout_waypoint_nav.launch"/> -->
->>>>>>> c359bb71a455b3038a839b7a5be920aed3d641f0
 
     <!-- vo launch file -->
     <include file="$(find wvu_vo_ros)/launch/vo_pipeline.launch"/>
@@ -43,16 +28,9 @@
     <!-- sensor_fusion launch file -->
     <include file="$(find sensor_fusion)/launch/sensor_fusion.launch"/>
 
-<<<<<<< HEAD
     <!-- scout_move_base launch files -->
     <include file="$(find src2_move_base)/launch/scout_map_server.launch"/>
     <include file="$(find src2_move_base)/launch/scout_move_base.launch"/>
-=======
-  <group ns="small_scout_1">
-    <node name="object_estimation_service" pkg="src2_object_detection" type="object_estimation_service.py" output="screen">
-    </node>
-  </group>
->>>>>>> c359bb71a455b3038a839b7a5be920aed3d641f0
 
     <!-- laser tools launch file -->
     <include file="$(find laser_tools_src2)/launch/scout_laser_tools.launch"/>

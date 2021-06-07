@@ -32,15 +32,8 @@
     <include file="$(find src2_move_base)/launch/hauler_map_server.launch"/>
     <include file="$(find src2_move_base)/launch/hauler_move_base.launch"/>
 
-<<<<<<< HEAD
     <!-- laser tools launch file -->
     <include file="$(find laser_tools_src2)/launch/hauler_laser_tools.launch"/>
-=======
-  <group ns="small_hauler_1">
-    <node name="object_estimation_service" pkg="src2_object_detection" type="object_estimation_service.py" output="screen">
-    </node>
-  </group>
->>>>>>> c359bb71a455b3038a839b7a5be920aed3d641f0
 
     <!-- homing service -->
     <include file="$(find range_to_base)/launch/homing_service.launch"/>
