@@ -59,13 +59,13 @@ move_base_state(actionlib::SimpleClientGoalState::PREEMPTED)
   wp_checker_timer=  ros::Time::now();
 
   node_name_ = "state_machine";
-  if (ros::param::get(node_name_ + "/robot_name", robot_name_) == false)
+  if (ros::param::get("robot_name", robot_name_) == false)
   {
     ROS_FATAL("No parameter 'robot_name' specified");
     ros::shutdown();
     exit(1);
   }
-  if (ros::param::get(node_name_ + "/robot_id", robot_id_) == false)
+  if (ros::param::get("robot_id", robot_id_) == false)
   {
     ROS_FATAL("No parameter 'robot_id' specified");
     ros::shutdown();

@@ -1,18 +1,15 @@
 <launch>
-  <group ns="small_excavator_1">
-    <param name="robot_name" value="small_excavator_1" />
-    <param name="robot_id" value="1" />
+  <group ns="small_hauler_2">
+    <param name="robot_name" value="small_hauler_2" />
+    <param name="robot_id" value="2" />
 
     <!-- pcl_obstacle_avoidance launch file -->
     <include file="$(find pcl_obstacle_detection)/launch/pcl_obj_detection.launch"/>
     <include file="$(find pcl_obstacle_detection)/launch/pcl_homing.launch"/>
-
+    
     <!-- object_detection launch file -->
     <include file="$(find src2_object_detection)/launch/object_detection_services.launch"/>
 
-    <!-- move_excavator launch file -->
-    <include file="$(find move_excavator)/launch/move_excavator.launch"/>
-    
     <!-- motion_control launch file -->
     <include file="$(find motion_control)/launch/motion_control.launch"/>
 
@@ -20,8 +17,8 @@
     <include file="$(find driving_tools)/launch/driving_tools.launch"/>
 
     <!-- driving_control launch file -->
-    <include file="$(find driving_control)/launch/excavator_driving_control.launch"/>
-
+    <include file="$(find driving_control)/launch/hauler_driving_control.launch"/>
+    
     <!-- dead_reckoning launch file -->
     <include file="$(find rover_deadreckoning)/launch/dead_reckoning.launch"/>
 
@@ -31,32 +28,29 @@
     <!-- sensor_fusion launch file -->
     <include file="$(find sensor_fusion)/launch/sensor_fusion.launch"/>
 
-    <!-- find_hauler launch file -->
-    <include file="$(find move_excavator)/launch/find_hauler.launch"/>
-
-    <!-- excavator_move_base launch files -->
-    <include file="$(find src2_move_base)/launch/excavator_map_server.launch"/>
-    <include file="$(find src2_move_base)/launch/excavator_move_base.launch"/>
+    <!-- hauler_move_base launch files -->
+    <include file="$(find src2_move_base)/launch/hauler2_map_server.launch"/>
+    <include file="$(find src2_move_base)/launch/hauler2_move_base.launch"/>
 
     <!-- laser tools launch file -->
-    <include file="$(find laser_tools_src2)/launch/excavator_laser_tools.launch"/>
+    <include file="$(find laser_tools_src2)/launch/hauler2_laser_tools.launch"/>
 
     <!-- homing service -->
     <include file="$(find range_to_base)/launch/homing_service.launch"/>
     <include file="$(find sensor_fusion)/launch/homing.launch"/>
-    
+
     <!-- ranging services -->
+    <include file="$(find range_to_base)/launch/location_of_bin_service.launch"/>
     <include file="$(find range_to_base)/launch/range_to_base_service.launch"/>
 
     <!-- waypoint checker -->
     <include file="$(find waypoint_checker)/launch/waypoint_checker.launch"/>
-        
-    <!-- state machine for excavator -->
-    <include file="$(find state_machine)/launch/excavator_state_machine.launch"/> 
+      
+    <!-- state machine for hauler -->
+    <include file="$(find state_machine)/launch/hauler_state_machine.launch"/> 
   </group>
 
-
-    <!-- <include file="$(find mobility_checker)/launch/scout_mobility_checker.launch"/> -->
+  <!-- <include file="$(find mobility_checker)/launch/scout_mobility_checker.launch"/> -->
 
 
 </launch>

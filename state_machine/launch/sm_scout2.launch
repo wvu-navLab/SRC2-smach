@@ -1,52 +1,55 @@
-
 <launch>
-  <!-- pcl_obstacle_avoidance launch file -->
-
-  <!-- <include file="$(find pcl_obstacle_detection)/launch/scout2_pcl_obj_detection.launch"/>
-  <include file="$(find pcl_obstacle_detection)/launch/scout2_pcl_homing.launch"/> -->
-
-  <!-- scout_motion_control launch file -->
-  <include file="$(find driving_control)/launch/scout2_driving_control.launch"/>
-
-  <!-- dead_reckoning launch file -->
-  <include file="$(find rover_deadreckoning)/launch/scout2_dead_reckoning.launch"/>
-
-  <!-- vo_ launch file -->
-  <include file="$(find wvu_vo_ros)/launch/vo_pipelineScout2.launch"/>
-
-  <!-- sensor_fusion launch file -->
-  <include file="$(find sensor_fusion)/launch/scout2_sensor_fusion.launch"/>
-
-  <!-- scout_driving_tools launch file -->
-  <!-- <include file="$(find waypoint_nav)/launch/scout_waypoint_nav.launch"/> -->
-
-  <!-- scout_waypoint_gen launch file -->
-  <!-- <include file="$(find waypoint_gen)/launch/scout_waypoint_gen.launch"/> -->
-
-  <!-- scout_volatile handler launch file -->
-
   <group ns="small_scout_2">
-    <node name="object_estimation_service" pkg="src2_object_detection" type="object_estimation_service.py" output="screen">
-    </node>
+    <param name="robot_name" value="small_scout_2" />
+    <param name="robot_id" value="2" />
+
+    <!-- pcl_obstacle_avoidance launch file -->
+    <include file="$(find pcl_obstacle_detection)/launch/pcl_obj_detection.launch"/>
+    <include file="$(find pcl_obstacle_detection)/launch/pcl_homing.launch"/>
+
+    <!-- object_detection launch file -->
+    <include file="$(find src2_object_detection)/launch/object_detection_services.launch"/>
+
+    <!-- motion_control launch file -->
+    <include file="$(find motion_control)/launch/motion_control.launch"/>
+
+    <!-- driving_tools launch file -->
+    <include file="$(find driving_tools)/launch/driving_tools.launch"/>
+
+    <!-- driving_control launch file -->
+    <include file="$(find driving_control)/launch/scout_driving_control.launch"/>
+    
+    <!-- dead_reckoning launch file -->
+    <include file="$(find rover_deadreckoning)/launch/dead_reckoning.launch"/>
+
+    <!-- vo launch file -->
+    <include file="$(find wvu_vo_ros)/launch/vo_pipeline.launch"/>
+
+    <!-- sensor_fusion launch file -->
+    <include file="$(find sensor_fusion)/launch/sensor_fusion.launch"/>
+
+    <!-- scout_move_base launch files -->
+    <include file="$(find src2_move_base)/launch/scout2_map_server.launch"/>
+    <include file="$(find src2_move_base)/launch/scout2_move_base.launch"/>
+
+    <!-- laser tools launch file -->
+    <include file="$(find laser_tools_src2)/launch/scout2_laser_tools.launch"/>
+
+    <!-- homing service -->
+    <include file="$(find range_to_base)/launch/homing_service.launch"/>
+    <include file="$(find sensor_fusion)/launch/homing.launch"/>
+
+    <!-- ranging services -->
+    <include file="$(find range_to_base)/launch/range_to_base_service.launch"/>
+
+    <!-- waypoint checker -->
+    <include file="$(find waypoint_checker)/launch/waypoint_checker.launch"/>
+
+  <!-- state machine for scout -->
+  <include file="$(find state_machine)/launch/scout_state_machine.launch"/> 
   </group>
 
-  <!-- scout_move_base launch files -->
-  <include file="$(find src2_move_base)/launch/scout2_map_server.launch"/>
-  <include file="$(find src2_move_base)/launch/scout2_move_base.launch"/>
 
-  <!-- laser tools  -->
-``<include file="$(find laser_tools_src2)/launch/scout2_laser_tools.launch"/>
-
-  <!-- homing service -->
-  <include file="$(find range_to_base)/launch/scout2_homing_service.launch"/>
-  <include file="$(find sensor_fusion)/launch/scout2_homing.launch"/>
-  
-  <!-- waypoint checker (TODO:Check if needed)-->
-  <include file="$(find waypoint_checker)/launch/scout2_waypoint_checker.launch"/>
   <!-- <include file="$(find mobility_checker)/launch/scout_mobility_checker.launch"/> -->
-
-  <!-- state machine for Scout -->
-
-  <include file="$(find state_machine)/launch/scout2_state_machine.launch"/>
 
 </launch>
