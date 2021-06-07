@@ -108,29 +108,23 @@ protected:
     std::vector<int> children;
   };
 
-  //DONE, NOT TESTED
   /** \brief  */
   std::vector<vertex> expand(const State               & s, 
                              const std::vector<Action> & actions);
 
-  //DONE, NOT TESTED
   /** \brief Return all possible actions for the system given the state where
    * the actions are the combinations of possible actions for the robots.*/
   std::vector<Action> get_actions_all_robots(const State & s);
 
-  //DONE, NOT TESTED
   /** \brief  Return all possible actions for a robot given the state. */
   std::vector<Action> get_actions_robot(int robot_index, const State & s);
 
-  //DONE, NOT TESTED
   /** \brief  Return all possible actions for a scout given the state */
   std::vector<Action> ForwardSearch::get_actions_scout(int robot_index, const State &s);
 
-  //DONE, NOT TESTED
   /** \brief  Return all possible actions for an excavator given the state */
   std::vector<Action> ForwardSearch::get_actions_excavator(int robot_index, const State &s);
 
-  //DONE, NOT TESTED
   /** \brief  Return all possible actions for a hauler given the state */
   std::vector<Action> ForwardSearch::get_actions_hauler(int robot_index, const State &s);
 
@@ -138,7 +132,6 @@ protected:
   /** \brief  */
   int get_policy();
 
-  //DONE, NOT TESTED
   /** \brief  */
   vertex propagate(State s, Action a);
 
@@ -146,7 +139,6 @@ protected:
   /** \brief  */
   void get_state(State s);
 
-  //DONE, NOT TESTED
   /** \brief  */
   int get_parent(int ind_v,int depth);
 

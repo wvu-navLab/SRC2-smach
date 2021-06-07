@@ -7,12 +7,15 @@
   <!-- task_planning launch file -->
   <include file="$(find task_planning)/launch/task_planning.launch"/>
 
+  <!-- obstacle_detection launch file -->
+  <include file="$(find src2_object_detection)/launch/obstacle_detection_master.launch"/>
+
   <!-- scout_1 state_machine launch file -->
   <include file="$(find state_machine)/launch/sm_scout.launch"/>
   <include file="$(find state_machine)/launch/sm_scout2.launch"/>
 
   <!-- excavator_1 state_machine launch file -->
-  <!-- <include file="$(find state_machine)/launch/sm_excavator.launch"/> -->
+  <include file="$(find state_machine)/launch/sm_excavator.launch"/>
 
   <!-- excavator_1 state_machine launch file -->
   <!-- <include file="$(find state_machine)/launch/sm_hauler.launch"/> -->

@@ -11,6 +11,7 @@
 
 #include <nav_msgs/Odometry.h>
 #include <geometry_msgs/PointStamped.h>
+#include <volatile_map/VolatileMap.h>
 
 namespace mac
 {
@@ -27,7 +28,7 @@ struct Robot {
     int id;
     int type;
     int volatile_index;
-    double status; //0 = not start, 1 = full, -1 = failed
+    double time_remaining; //0 = not start, 1 = full, -1 = failed
     double current_task = -1;
     double bucket_contents; //0 = empty, 1 = full
     nav_msgs::Odometry odom;
@@ -41,14 +42,36 @@ struct Volatile {
     bool is_initialized = false;
 };
 
+struct State
+{
+  std::vector<Robot> robots;
+  volatile_map::VolatileMap volatile_map;
+  ros::Time time;
+};
+
+struct Action
+{
+  std::pair<double, double> objective;
+  int robot_type;
+  int id;
+  int code;
+  int volatile_index;
+  bool toggle_sleep;
+};
+
 struct PlanningParams {
-    int max_time;
+    int max_time; // seconds
     int timeout;
     bool demo;
     int type;
     std::vector<std::vector<double>> plan;
+    // Environment
+    double wait_time; //seconds
+    // list parameters here such as power depletion rates, velocity, etc
 
 };
+
+
 
 }
 

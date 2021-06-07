@@ -292,6 +292,8 @@ void SmExcavator::statePlanning()
   BrakeRamp(100, 2, 0);
   Brake(0.0);
 
+if (!no_objective) {
+
   move_base_msgs::MoveBaseGoal move_base_goal;
   ac.waitForServer();
   setPoseGoal(move_base_goal, goal_pose_.position.x, goal_pose_.position.y, goal_yaw_);
@@ -299,9 +301,13 @@ void SmExcavator::statePlanning()
   waypoint_timer = ros::Time::now();
   ac.sendGoal(move_base_goal, boost::bind(&SmExcavator::doneCallback, this,_1,_2), boost::bind(&SmExcavator::activeCallback, this), boost::bind(&SmExcavator::feedbackCallback, this,_1));
   ac.waitForResult(ros::Duration(0.25));
-
   flag_arrived_at_waypoint = false;
   flag_localizing_volatile = true;
+}
+else
+{
+  ROS_WARN ("EXCAVATOR: no_objective\n");
+}
 
   double progress = 0;
   state_machine::RobotStatus status_msg;
@@ -1442,10 +1448,19 @@ void SmExcavator::Plan()
     ROS_INFO("EXCAVATOR: Failed to call service RotateInPlace");
   }
 
-  goal_pose_.position = srv_plan.response.objective.point;
-  geometry_msgs::Quaternion quat;
-  goal_pose_.orientation = quat;
 
+
+  if (srv_plan.response.code.data !=0 )
+  {
+    goal_pose_.position = srv_plan.response.objective.point;
+    geometry_msgs::Quaternion quat;
+    goal_pose_.orientation = quat;
+    no_objective = false;
+  }
+  else
+  {
+    no_objective = true;
+  }
   // switch (srv_plan.response.code.data)
   // {
   // case _initialize:
