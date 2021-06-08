@@ -312,7 +312,11 @@ void SmHauler::stateInitialize()
     ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Waiting for TruePose service");
   }
 
+  RoverStatic(true);
+
   GetTruePose();
+
+  RoverStatic(false);
 
   ClearCostmaps();
 
