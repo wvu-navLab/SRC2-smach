@@ -843,7 +843,7 @@ void SmExcavator::manipulationCmdCallback(const std_msgs::Int64::ConstPtr &msg)
 
 void SmExcavator::plannerInterruptCallback(const std_msgs::Bool::ConstPtr &msg)
 {
-    flag_interrupt_plan = msg->data;
+    // flag_interrupt_plan = msg->data;
   // ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Interrupt flag updated." << *msg);
 }
 
@@ -1476,7 +1476,7 @@ void SmExcavator::Plan()
   switch (srv_plan.response.code.data)
   {
   case _initialize:
-    ROS_WARN_STREAM(robot_name_, "Task Planner: Initialize");
+    ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Task Planner: Initialize");
     // flag_have_true_pose = false;
     break;
 

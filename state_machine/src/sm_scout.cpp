@@ -753,7 +753,7 @@ void SmScout::feedbackCallback(const move_base_msgs::MoveBaseFeedback::ConstPtr&
 
 void SmScout::plannerInterruptCallback(const std_msgs::Bool::ConstPtr &msg)
 {
-    flag_interrupt_plan = msg->data;
+    // flag_interrupt_plan = msg->data;
   // ROS_INFO_STREAM("[" << robot_name_ << "] " <<"EXCAVATOR: Interrupt flag updated." << *msg);
 }
 
