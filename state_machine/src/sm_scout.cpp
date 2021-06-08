@@ -1234,7 +1234,7 @@ void SmScout::Plan()
   {
   case _initialize:
     ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Task Planner: Initialize");
-    flag_have_true_pose = false;
+    // flag_have_true_pose = false;
     break;
 
   case _planning:

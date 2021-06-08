@@ -1476,7 +1476,7 @@ void SmExcavator::Plan()
   switch (srv_plan.response.code.data)
   {
   case _initialize:
-    ROS_WARN_NAMED(robot_name_, "Task Planner: Initialize");
+    ROS_WARN_STREAM(robot_name_, "Task Planner: Initialize");
     // flag_have_true_pose = false;
     break;
 
