@@ -209,40 +209,98 @@ void SmHauler::stateInitialize()
   {
     ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Waiting for Lights");
   }
-
+  double progress = 0;
   Lights(20);
-
-  while (!clt_approach_base.waitForExistence())
-  {
-    ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Waiting for ApproachChargingStation service");
-  }
-  
-  src2_approach_services::ApproachChargingStation srv_approach_charging_station;
-  srv_approach_charging_station.request.approach_charging_station.data = true;
-  bool approachSuccess = false;
-  int baseStationApproachRecoveryCount = 0;
-  while(!approachSuccess && baseStationApproachRecoveryCount<3){
-    if (clt_approach_base.call(srv_approach_charging_station))
+  if(robot_id_==1){
+    while (!clt_approach_base.waitForExistence())
     {
-      ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Called service ApproachChargingStation");
-      ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Success finding the baseStation? "<< srv_approach_charging_station.response.success.data);
-      if(srv_approach_charging_station.response.success.data){
+      ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Waiting for ApproachChargingStation service");
+    }
+
+    src2_approach_services::ApproachChargingStation srv_approach_charging_station;
+    srv_approach_charging_station.request.approach_charging_station.data = true;
+    bool approachSuccess = false;
+    int baseStationApproachRecoveryCount = 0;
+    while(!approachSuccess && baseStationApproachRecoveryCount<3){
+      if (clt_approach_base.call(srv_approach_charging_station))
+      {
+        ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Called service ApproachChargingStation");
+        ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Success finding the baseStation? "<< srv_approach_charging_station.response.success.data);
+        if(srv_approach_charging_station.response.success.data){
         // homingRecovery(); //TODO: bin recovery behavior/fine align
         // }
         // else
-  
-        approachSuccess=true;
-        ROS_INFO_STREAM("[" << robot_name_ << "] " <<"approach base Station with classifier successful");
+
+          approachSuccess=true;
+          ROS_INFO_STREAM("[" << robot_name_ << "] " <<"approach base Station with classifier successful");
+        }
+      }
+      else
+      {
+        ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Failed  to call service ApproachChargingStation");
+      }
+      baseStationApproachRecoveryCount=baseStationApproachRecoveryCount+1;
+    }
+
+    BrakeRamp(100, 3, 0);
+    if(approachSuccess)
+    {
+    // Homing - Measurement Update
+      sensor_fusion::HomingUpdate srv_homing;
+    // ros::spinOnce();
+
+    base_location_ = srv_homing.response.base_location;
+      srv_homing.request.angle = pitch_ + .4; // pitch up is negative number
+      ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Requesting Angle for LIDAR "<<srv_homing.request.angle);
+      srv_homing.request.initializeLandmark = flag_need_init_landmark;
+      if (clt_homing.call(srv_homing))
+      {
+        ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Called service Homing [Update]");
+        if(srv_homing.request.initializeLandmark && srv_homing.response.success)
+        {
+            ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Saving Base Location  "<<base_location_.x << "," << base_location_.y);
+          }
+      // flag_localization_failure=false;
+      // flag_arrived_at_waypoint = true;
+      // flag_completed_homing = true;
+        if(srv_homing.response.success)
+        {
+          flag_recovering_localization = false;
+          flag_need_init_landmark = false;
+          progress = 1.0;
+        }
+      }
+      else
+      {
+        ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Failed to call service Homing [Update]");
+        progress = -1.0;
       }
     }
     else
     {
-      ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Failed  to call service ApproachChargingStation");
+      progress = -1.0;
+      ROS_ERROR_STREAM("[" << robot_name_ << "] " <<" Homing Attempt Failed, Just Moving On For Now");
     }
-    baseStationApproachRecoveryCount=baseStationApproachRecoveryCount+1;
+
+    Lights (20);
+
+    //Similar to initial homing, keep the localization good after homing.
+    Brake(0.0);
+
+    DriveCmdVel(-0.5,0.0,0.0,5);
+
+    BrakeRamp(100, 3, 0);
+
+    Brake(0.0);
+
+    RotateInPlace(0.2, 3);
+
+    BrakeRamp(100, 3, 0);
+
+    Brake(0.0);
+
+
   }
-
-
 
 
   Stop(2.0);
@@ -260,7 +318,6 @@ void SmHauler::stateInitialize()
 
   Brake(0.0);
 
-  double progress = 0;
   state_machine::RobotStatus status_msg;
   status_msg.progress.data = progress;
   status_msg.state.data = (uint8_t) _initialize;
