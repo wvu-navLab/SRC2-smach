@@ -1077,7 +1077,7 @@ void SmHauler::GetTruePose()
   if (clt_sf_true_pose.call(srv_sf_true_pose))
   {
     ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Called service TruePose");
-    ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Status of SF True Pose: "<< srv_sf_true_pose.response.success);
+    ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Status of SF True Pose: "<< (int) srv_sf_true_pose.response.success);
     flag_have_true_pose = true;
   }
   else
@@ -1319,7 +1319,7 @@ void SmHauler::Plan()
   {
   case _initialize:
     ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Task Planner: Initialize");
-    flag_have_true_pose = false;
+    // flag_have_true_pose = false;
     break;
 
   case _planning:

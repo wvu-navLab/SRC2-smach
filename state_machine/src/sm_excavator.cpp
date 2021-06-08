@@ -201,7 +201,7 @@ void SmExcavator::stateInitialize()
 
   while (!clt_lights.waitForExistence())
   {
-      ROS_WARN_STREAM("[" << robot_name_ << "] " <<" Waiting for Lights");
+      ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Waiting for Lights");
   }
 
   Lights(20);
@@ -210,6 +210,13 @@ void SmExcavator::stateInitialize()
   {
     ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Waiting for ApproachChargingStation service");
   }
+
+  while (!clt_home_arm.waitForExistence())
+  {
+    ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Waiting for HomeArm service");
+  }
+
+  executeHomeArm(2);
 
   Stop(2.0);
 
@@ -220,7 +227,11 @@ void SmExcavator::stateInitialize()
     ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Waiting for TruePose service");
   }
 
+  RoverStatic(true);
+
   GetTruePose();
+
+  RoverStatic(false);
 
   ClearCostmaps();
 
@@ -1012,7 +1023,7 @@ void SmExcavator::GetTruePose()
   if (clt_sf_true_pose.call(srv_sf_true_pose))
   {
     ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Called service TruePose");
-    ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Status of SF True Pose: "<< srv_sf_true_pose.response.success);
+    ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Status of SF True Pose: "<< (int) srv_sf_true_pose.response.success);
     flag_have_true_pose = true;
   }
   else
@@ -1466,7 +1477,7 @@ void SmExcavator::Plan()
   {
   case _initialize:
     ROS_WARN_NAMED(robot_name_, "Task Planner: Initialize");
-    flag_have_true_pose = false;
+    // flag_have_true_pose = false;
     break;
 
   case _planning:

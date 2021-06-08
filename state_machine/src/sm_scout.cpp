@@ -961,7 +961,7 @@ void SmScout::GetTruePose()
   if (clt_sf_true_pose.call(srv_sf_true_pose))
   {
     ROS_INFO_STREAM("[" << robot_name_ << "] " <<"EXCAVATOR: Called service TruePose");
-    ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Status of SF True Pose: "<< srv_sf_true_pose.response.success);
+    ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Status of SF True Pose: "<< (int) srv_sf_true_pose.response.success);
     flag_have_true_pose = true;
   }
   else
