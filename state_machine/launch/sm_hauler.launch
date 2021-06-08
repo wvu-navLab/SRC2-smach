@@ -4,12 +4,11 @@
     <param name="robot_id" value="1" />
 
     <!-- pcl_obstacle_avoidance launch file -->
-    <include file="$(find pcl_obstacle_detection)/launch/pcl_obj_detection.launch"/>
     <include file="$(find pcl_obstacle_detection)/launch/pcl_homing.launch"/>
 
     <!-- object_detection launch file -->
     <include file="$(find src2_object_detection)/launch/object_detection_services.launch"/>
-    
+
     <!-- motion_control launch file -->
     <include file="$(find motion_control)/launch/motion_control.launch"/>
 
@@ -18,7 +17,7 @@
 
     <!-- driving_control launch file -->
     <include file="$(find driving_control)/launch/hauler_driving_control.launch"/>
-    
+
     <!-- dead_reckoning launch file -->
     <include file="$(find rover_deadreckoning)/launch/dead_reckoning.launch"/>
 
@@ -50,9 +49,9 @@
 
     <!-- waypoint checker -->
     <include file="$(find waypoint_checker)/launch/waypoint_checker.launch"/>
-        
+
     <!-- state machine for hauler -->
-    <include file="$(find state_machine)/launch/hauler_state_machine.launch"/> 
+    <include file="$(find state_machine)/launch/hauler_state_machine.launch"/>
   </group>
 
   <!-- <include file="$(find mobility_checker)/launch/scout_mobility_checker.launch"/> -->

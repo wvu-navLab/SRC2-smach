@@ -4,7 +4,6 @@
     <param name="robot_id" value="1" />
 
     <!-- pcl_obstacle_avoidance launch file -->
-    <include file="$(find pcl_obstacle_detection)/launch/pcl_obj_detection.launch"/>
     <include file="$(find pcl_obstacle_detection)/launch/pcl_homing.launch"/>
 
     <!-- object_detection launch file -->
@@ -18,7 +17,7 @@
 
     <!-- driving_control launch file -->
     <include file="$(find driving_control)/launch/scout_driving_control.launch"/>
-    
+
     <!-- dead_reckoning launch file -->
     <include file="$(find rover_deadreckoning)/launch/dead_reckoning.launch"/>
 
@@ -41,15 +40,15 @@
 
    <!-- approach services -->
     <include file="$(find src2_approach_services)/launch/approach_charging_station.launch"/>
-    
+
     <!-- ranging services -->
     <include file="$(find range_to_base)/launch/range_to_base_service.launch"/>
 
     <!-- waypoint checker -->
     <include file="$(find waypoint_checker)/launch/waypoint_checker.launch"/>
-      
+
     <!-- state machine for scout -->
-    <include file="$(find state_machine)/launch/scout_state_machine.launch"/> 
+    <include file="$(find state_machine)/launch/scout_state_machine.launch"/>
   </group>
 
 

@@ -4,7 +4,6 @@
     <param name="robot_id" value="2" />
 
     <!-- pcl_obstacle_avoidance launch file -->
-    <include file="$(find pcl_obstacle_detection)/launch/pcl_obj_detection.launch"/>
     <include file="$(find pcl_obstacle_detection)/launch/pcl_homing.launch"/>
 
     <!-- object_detection launch file -->
@@ -12,7 +11,7 @@
 
     <!-- move_excavator launch file -->
     <include file="$(find move_excavator)/launch/move_excavator.launch"/>
-    
+
     <!-- motion_control launch file -->
     <include file="$(find motion_control)/launch/motion_control.launch"/>
 
@@ -21,7 +20,7 @@
 
     <!-- driving_control launch file -->
     <include file="$(find driving_control)/launch/excavator_driving_control.launch"/>
-    
+
     <!-- dead_reckoning launch file -->
     <include file="$(find rover_deadreckoning)/launch/dead_reckoning.launch"/>
 
@@ -50,12 +49,12 @@
 
    <!-- approach services -->
     <include file="$(find src2_approach_services)/launch/approach_charging_station.launch"/>
-    
+
     <!-- waypoint checker -->
     <include file="$(find waypoint_checker)/launch/waypoint_checker.launch"/>
-        
+
     <!-- state machine for excavator -->
-    <include file="$(find state_machine)/launch/excavator_state_machine.launch"/> 
+    <include file="$(find state_machine)/launch/excavator_state_machine.launch"/>
   </group>
 
 
