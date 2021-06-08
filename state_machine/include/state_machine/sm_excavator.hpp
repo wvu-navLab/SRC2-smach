@@ -77,6 +77,9 @@
 #define DROP_MODE 4
 #define START 9
 
+#define EXCAVATION_ENABLED 0
+#define EXCAVATION_READY_TO_DUMP 1
+
 typedef actionlib::SimpleActionClient<move_base_msgs::MoveBaseAction> MoveBaseClient;
 
 class SmExcavator

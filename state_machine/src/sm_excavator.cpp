@@ -312,12 +312,12 @@ if (!no_objective) {
   waypoint_timer = ros::Time::now();
   ac.sendGoal(move_base_goal, boost::bind(&SmExcavator::doneCallback, this,_1,_2), boost::bind(&SmExcavator::activeCallback, this), boost::bind(&SmExcavator::feedbackCallback, this,_1));
   ac.waitForResult(ros::Duration(0.25));
-  flag_arrived_at_waypoint = false;
-  flag_localizing_volatile = true;
+  // flag_arrived_at_waypoint = false;
+  // flag_localizing_volatile = true;
 }
 else
 {
-  ROS_WARN_STREAM("[" << robot_name_ << "] " <<"no_objective\n");
+  ROS_WARN_STREAM("[" << robot_name_ << "] " <<"No objective\n");
 }
 
   double progress = 0;
@@ -424,6 +424,11 @@ void SmExcavator::stateVolatileHandler()
     BrakeRamp(100, 1, 0);
     Brake(0.0);
     flag_manipulation_enabled = true;
+
+    std_msgs::Int64 msg;
+    msg.data = EXCAVATION_ENABLED;
+    excavation_status_pub.publish(msg);
+
     manipulation_timer = ros::Time::now();
   }
 
@@ -437,6 +442,10 @@ void SmExcavator::stateVolatileHandler()
         executeHomeArm(2);
         if(flag_bucket_full)
         {
+          std_msgs::Int64 msg;
+          msg.data = EXCAVATION_READY_TO_DUMP;
+          excavation_status_pub.publish(msg);
+          
           mode = EXTEND_MODE;
           // ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Is bucket full: " << flag_bucket_full);
         }
@@ -463,10 +472,11 @@ void SmExcavator::stateVolatileHandler()
       break;
     case EXTEND_MODE:
       {
-        executeGoToPose(10, bin_point_);
-        // executeExtendArm(4);
-        // ros::Duration(5).sleep();
-        mode = DROP_MODE;
+        if(flag_hauler_in_range)
+        {
+          executeGoToPose(10, bin_point_);
+          mode = DROP_MODE;
+        }
       }
       break;
     case DROP_MODE:
@@ -843,7 +853,7 @@ void SmExcavator::manipulationCmdCallback(const std_msgs::Int64::ConstPtr &msg)
 
 void SmExcavator::plannerInterruptCallback(const std_msgs::Bool::ConstPtr &msg)
 {
-    // flag_interrupt_plan = msg->data;
+  // flag_interrupt_plan = msg->data;
   // ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Interrupt flag updated." << *msg);
 }
 
@@ -1461,7 +1471,7 @@ void SmExcavator::Plan()
 
 
 
-  if (srv_plan.response.code.data !=0 )
+  if (srv_plan.response.code.data !=-1)
   {
     goal_pose_.position = srv_plan.response.objective.point;
     geometry_msgs::Quaternion quat;
@@ -1471,13 +1481,14 @@ void SmExcavator::Plan()
   else
   {
     no_objective = true;
+    flag_interrupt_plan = false;
   }
 
   switch (srv_plan.response.code.data)
   {
   case _initialize:
     ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Task Planner: Initialize");
-    // flag_have_true_pose = false;
+    flag_have_true_pose = false;
     break;
 
   case _planning:
@@ -1522,7 +1533,7 @@ void SmExcavator::Plan()
   }
 
   // srv_plan.response.id;
-  flag_interrupt_plan = false;
+  // flag_interrupt_plan = false;
 }
 
 //------------------------------------------------------------------------------------------------------------------------

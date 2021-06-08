@@ -393,12 +393,12 @@ if (!no_objective) {
   waypoint_timer = ros::Time::now();
   ac.sendGoal(move_base_goal, boost::bind(&SmHauler::doneCallback, this,_1,_2), boost::bind(&SmHauler::activeCallback, this), boost::bind(&SmHauler::feedbackCallback, this,_1));
   ac.waitForResult(ros::Duration(0.25));
-  flag_arrived_at_waypoint = false;
-  flag_localizing_volatile = true;
+  // flag_arrived_at_waypoint = false;
+  // flag_localizing_volatile = true;
 }
 else
 {
-  ROS_WARN_STREAM("[" << robot_name_ << "] " <<"no_objective\n");
+  ROS_WARN_STREAM("[" << robot_name_ << "] " <<"No objective\n");
 }
   double progress = 0;
   state_machine::RobotStatus status_msg;
@@ -1364,7 +1364,7 @@ void SmHauler::Plan()
     ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Failed to call service RotateInPlace");
   }
 
-  if (srv_plan.response.code.data !=0 )
+  if (srv_plan.response.code.data !=-1)
   {
     goal_pose_.position = srv_plan.response.objective.point;
     geometry_msgs::Quaternion quat;
@@ -1374,13 +1374,14 @@ void SmHauler::Plan()
   else
   {
     no_objective = true;
+    flag_interrupt_plan = false;
   }
 
   switch (srv_plan.response.code.data)
   {
   case _initialize:
     ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Task Planner: Initialize");
-    // flag_have_true_pose = false;
+    flag_have_true_pose = false;
     break;
 
   case _planning:
@@ -1425,7 +1426,7 @@ void SmHauler::Plan()
   }
 
   // srv_plan.response.id;
-  flag_interrupt_plan = false;
+  // flag_interrupt_plan = false;
 }
 
 //------------------------------------------------------------------------------------------------------------------------
