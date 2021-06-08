@@ -198,33 +198,6 @@ void SmScout::stateInitialize()
     ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Waiting for ApproachChargingStation service");
   }
 
-  // Approach Base Station
-  src2_approach_services::ApproachChargingStation srv_approach_base;
-  srv_approach_base.request.approach_charging_station.data= true;
-  bool approachSuccess = false;
-  int homingRecoveryCount = 0;
-  while(!approachSuccess && homingRecoveryCount<3)
-  {
-    if (clt_approach_base.call(srv_approach_base))
-    {
-      ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Called service ApproachChargingStation");
-      ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Success finding the Base? "<< srv_approach_base.response.success.data);
-      if(!srv_approach_base.response.success.data)
-      {
-      homingRecovery();
-      }
-      else
-      {
-        approachSuccess=true;
-      }
-    }
-    else
-    {
-      ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Failed  to call service ApproachChargingStation");
-    }
-    homingRecoveryCount=homingRecoveryCount+1;
-  }
-
   Stop(2.0);
 
   Brake(100.0);
@@ -234,70 +207,14 @@ void SmScout::stateInitialize()
     ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Waiting for TruePose service");
   }
 
-  GetTruePose();
-
   RoverStatic(true);
-
-  // if(approachSuccess)
-  // {
-  //   // Homing - Initialize Base Station Landmark
-  //   while (!clt_homing.waitForExistence())
-  //   {
-  //       ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Waiting for Homing Service");
-  //   }
-
-  //   sensor_fusion::HomingUpdate srv_homing;
-  //   // ros::spinOnce();
-
-  //   srv_homing.request.angle = pitch_ + .4; // pitch up is negative number
-  //   ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Requesting Angle for LIDAR "<<srv_homing.request.angle);
-  //   srv_homing.request.initializeLandmark = flag_need_init_landmark;
-  //   if (clt_homing.call(srv_homing))
-  //   {
-  //     ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Called service HomingUpdate");
-  //     if(srv_homing.response.success){
-  //       base_location_ = srv_homing.response.base_location;
-  //       flag_need_init_landmark = false;
-  //     }
-  //     else
-  //     {
-  //       ROS_ERROR_STREAM("[" << robot_name_ << "] " <<" Initial Homing Fail, Starting Without Base Location");
-  //     }
-  //   }
-  //   else
-  //   {
-  //     ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Failed to call service HomingUpdate");
-  //   }
-  // }
-  // else
-  // {
-  //   ROS_ERROR_STREAM("[" << robot_name_ << "] " <<" Initial Homing Fail, Starting Without Base Location");
-  // }
+  
+  GetTruePose();
 
   RoverStatic(false);
 
-  Lights(20);
+  ClearCostmaps();
 
-  // Minimal Maneuvers to keep the localization good and get rid of BaseStation obstacle before generating initial path.
-  // TODO: new maneuvers can be added here after testing
-  // Brake(0.0);
-  //
-  // DriveCmdVel(-0.5, 0.0, 0.0, 5.0);
-  //
-  // BrakeRamp(100, 3.0, 0);
-  //
-  // Brake(0.0);
-  //
-  // RotateInPlace(0.2, 3);
-  //
-  // BrakeRamp(100, 3, 0);
-  //
-  // Brake(0.0);
-  //
-  // // ToggleDetector(true);
-  //
-  // ClearCostmaps();
-  // BrakeRamp(100, 2, 0);
   Brake(0.0);
 
   // make sure we dont latch to a vol we skipped while homing
