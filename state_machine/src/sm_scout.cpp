@@ -451,16 +451,9 @@ void SmScout::stateTraverse()
     // BrakeRamp(100, 2, 0); // Give more time
     // Brake(0.0);
 
-<<<<<<< HEAD
-    // ROS_ERROR("Rover is stopped to clear the Map");
-    ROS_ERROR("Map timeout");
-    ROS_WARN_STREAM("Move Base State: "<< mb_state);
-    // ROS_WARN("Map Cleared");
-=======
     ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Rover is stopped to clear the Map");
     ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Move Base State: "<< mb_state);
     ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Map Cleared");
->>>>>>> 22744da175824bbd69be84136c0f98c3ea7c9bca
   }
 
   // ros::Duration timeoutWaypoint(120);
