@@ -430,6 +430,7 @@ void SmScout::stateLost()
     if (homingSuccess)
     {
       progress = 1.0;
+      flag_recovering_localization = false;
     }
     else
     {
