@@ -411,11 +411,6 @@ void SmExcavator::stateLost()
 
   BrakeRamp(100, 3, 0);
 
-  RoverStatic(true);
-
-  GetTruePose();
-
-  RoverStatic(false);
 
   if(approachSuccess)
   {
