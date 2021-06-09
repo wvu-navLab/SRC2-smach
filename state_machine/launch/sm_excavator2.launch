@@ -2,6 +2,8 @@
   <group ns="small_excavator_2">
     <param name="robot_name" value="small_excavator_2" />
     <param name="robot_id" value="2" />
+    
+    <!-- static transform from odom to map-->
     <node pkg="tf" type="static_transform_publisher" name="map_to_odom" args="0 0 0 0 0 0 map small_excavator_2_odom 100" />
 
     <!-- pcl_obstacle_avoidance launch file -->
