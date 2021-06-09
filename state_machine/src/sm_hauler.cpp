@@ -1243,21 +1243,25 @@ double SmHauler::HomingUpdate(bool init_landmark)
 
   if (clt_homing.call(srv_homing))
   {
-    ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Called service Homing [Update]");
+    ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Called service Homing.");
     if(init_landmark && srv_homing.response.success)
     {
       base_location_ = srv_homing.response.base_location;
-      ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Saving Base Location  "<<base_location_.x << "," << base_location_.y);
+      ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Homing [Init] successful. Saving Base Location "<<base_location_.x << "," << base_location_.y);
       progress = 1.0;
     }
     else if (!init_landmark && srv_homing.response.success)
     {
-      ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Homing successful.");
+      ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Homing [Update] successful.");
+    }
+    else
+    {
+      ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Homing NOT SUCCESSFUL.");
     }
   }
   else
   {
-    ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Failed to call service Homing [Update]");
+    ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Failed to call service Homing Service.");
     progress = -1.0;
   }
   return progress;
