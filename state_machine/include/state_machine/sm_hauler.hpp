@@ -3,7 +3,6 @@
 #include <algorithm>
 #include <boost/bind.hpp>
 
-
 //ROS headers
 #include <ros/ros.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
@@ -199,7 +198,6 @@ public:
   double min_volatile_detected_distance = 30.0;
   double prev_volatile_detected_distance = -1.0;
 
-  bool actionDone = false;
   bool no_objective = false;
   
   int timer_counter = 0;
@@ -213,4 +211,5 @@ public:
   const int LASER_COUNTER_THRESH = 20;
 
   // Planning
+  task_planning::PlanInfo prev_srv_plan; 
 };

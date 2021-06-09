@@ -144,6 +144,8 @@ public:
   ros::Subscriber target_bin_sub;
   ros::Subscriber manipulation_cmd_sub;
   ros::Subscriber planner_interrupt_sub;
+  ros::Subscriber hauler1_odom_sub;
+  ros::Subscriber hauler2_odom_sub;
 
   // Services
   ros::ServiceClient clt_sf_true_pose;
@@ -207,6 +209,8 @@ public:
   void feedbackCallback(const move_base_msgs::MoveBaseFeedbackConstPtr& feedback);
   void doneCallback(const actionlib::SimpleClientGoalState& state, const move_base_msgs::MoveBaseResultConstPtr& result);
   void plannerInterruptCallback(const std_msgs::Bool::ConstPtr &msg);
+  void hauler1OdomCallback(const nav_msgs::Odometry::ConstPtr &msg);
+  void hauler2OdomCallback(const nav_msgs::Odometry::ConstPtr &msg);
 
   // Service providers
   bool setMobility(state_machine::SetMobility::Request &req, state_machine::SetMobility::Response &res);
@@ -239,8 +243,7 @@ public:
   void ExecuteExtendArm(double timeout);
   void ExecuteDrop(double timeout);
   void ExecuteGoToPose(double timeout, const geometry_msgs::PointStamped &point);
-  void getForwardKinematics(double timeout);
-  void getRelativePosition();
+  void GetForwardKinematics(double timeout);
   void PublishExcavationStatus();
   bool HomingUpdate(bool init_landmark);
   void Plan();
@@ -278,12 +281,15 @@ public:
   geometry_msgs::TransformStamped camera_link_to_arm_mount;
   geometry_msgs::TransformStamped arm_mount_to_camera_link;
 
+  nav_msgs::Odometry small_hauler_1_odom;
+  nav_msgs::Odometry small_hauler_2_odom;
+
   double volatile_heading_ = 0;
-  double relative_heading_ = 1.57;
-  double pitch_ = 0, roll_ = 0, yaw_ = 0, yaw_prev_ = 0;
+  double relative_heading_ = 0;
+
   double goal_yaw_;
 
-  bool actionDone_ = false;
+  double pitch_ = 0, roll_ = 0, yaw_ = 0, yaw_prev_ = 0;
 
   int timer_counter = 0;
 
@@ -298,5 +304,6 @@ public:
   double q3_pos_ = 0.0;
   double q4_pos_ = 0.0;
 
-  // Planning
+  // Planning  
+  task_planning::PlanInfo prev_srv_plan; 
 };

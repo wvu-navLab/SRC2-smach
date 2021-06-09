@@ -626,13 +626,12 @@ void SmScout::laserCallback(const sensor_msgs::LaserScan::ConstPtr& msg)
 
 void SmScout::doneCallback(const actionlib::SimpleClientGoalState& state, const move_base_msgs::MoveBaseResult::ConstPtr& result)
 {
-    actionDone = true;
-    // ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Goal done");
+  // ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Goal done");
 }
 
 void SmScout::activeCallback()
 {
-    // ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Goal went active");
+  // ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Goal went active");
 }
 
 void SmScout::feedbackCallback(const move_base_msgs::MoveBaseFeedback::ConstPtr& feedback)
@@ -642,8 +641,26 @@ void SmScout::feedbackCallback(const move_base_msgs::MoveBaseFeedback::ConstPtr&
 
 void SmScout::plannerInterruptCallback(const std_msgs::Bool::ConstPtr &msg)
 {
-    // flag_interrupt_plan = msg->data;
-  // ROS_INFO_STREAM("[" << robot_name_ << "] " <<"EXCAVATOR: Interrupt flag updated." << *msg);
+  task_planning::PlanInfo srv_plan; 
+  srv_plan.request.replan.data = false;
+  srv_plan.request.type.data = mac::SCOUT;
+  srv_plan.request.id.data = robot_id_;
+
+  if (clt_task_planning.call(srv_plan))
+  {
+    ROS_INFO_STREAM_THROTTLE(5,"[" << robot_name_ << "] " <<"Called service Plan");
+  }
+  else
+  {
+    ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Failed to call service RotateInPlace");
+  }
+
+  if(!(prev_srv_plan.response.objective.point.x == srv_plan.response.objective.point.x && 
+  prev_srv_plan.response.objective.point.y == srv_plan.response.objective.point.y &&
+  prev_srv_plan.response.code == srv_plan.response.code))
+  {
+    flag_interrupt_plan = true;
+  }
 }
 
 // Methods +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -659,7 +676,6 @@ void SmScout::setPoseGoal(move_base_msgs::MoveBaseGoal &poseGoal, double x, doub
   double cp = cos(pitch * 0.5);
   double sp = sin(pitch * 0.5);
 
-  //********************************************************************************************************
   poseGoal.target_pose.header.frame_id = robot_name_ + "_odom";
   poseGoal.target_pose.pose.position.x = x;
   poseGoal.target_pose.pose.position.y = y;
@@ -844,18 +860,17 @@ void SmScout::ClearCostmaps()
 
 void SmScout::GetTruePose()
 {
-  // Update SF with True Pose
   sensor_fusion::GetTruePose srv_sf_true_pose;
   srv_sf_true_pose.request.start = true;
   if (clt_sf_true_pose.call(srv_sf_true_pose))
   {
-    ROS_INFO_STREAM("[" << robot_name_ << "] " <<"EXCAVATOR: Called service TruePose");
+    ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Called service TruePose");
     ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Status of SF True Pose: "<< (int) srv_sf_true_pose.response.success);
     flag_have_true_pose = true;
   }
   else
   {
-    ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"EXCAVATOR: Failed  to call service Pose Update");
+    ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Failed to call Pose Update service");
   }
 }
 
@@ -1043,20 +1058,6 @@ void SmScout::DriveCmdVel(double vx, double vy, double wz, double time)
   }
 }
 
-// void SmScout::ToggleDetector(bool flag)
-// {
-//   volatile_handler::ToggleDetector srv_vol_detect;
-//   srv_vol_detect.request.on  = flag;
-//   if (clt_vol_detect_.call(srv_vol_detect))
-//   {
-//     ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Called service ToggleDetector. Turned on? " << flag);
-//   }
-//   else
-//   {
-//     ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Failed  to call service ToggleDetector");
-//   }
-// }
-
 void SmScout::RoverStatic(bool flag)
 {
   // Start attitude constraints for static rover
@@ -1223,6 +1224,8 @@ void SmScout::Plan()
     no_objective = true;
     flag_interrupt_plan = false;
   }
+
+  prev_srv_plan = srv_plan;
 
   switch (srv_plan.response.code.data)
   {

@@ -199,7 +199,6 @@ public:
   double min_vol_detected_dist_ = 30.0;
   double prev_vol_detected_dist_ = -1.0;
 
-  bool actionDone = false;
   bool no_objective =false;
   int timer_counter = 0;
 
@@ -215,4 +214,5 @@ public:
   int honing_direction_ = 1;
 
   // Planning
+  task_planning::PlanInfo prev_srv_plan; 
 };

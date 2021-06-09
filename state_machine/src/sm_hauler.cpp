@@ -697,48 +697,60 @@ void SmHauler::laserCallback(const sensor_msgs::LaserScan::ConstPtr& msg)
 
 void SmHauler::setPoseGoal(move_base_msgs::MoveBaseGoal &poseGoal, double x, double y, double yaw) // m, m, rad
 {
-    const double pitch = 0.0;
-    const double roll = 0.0;
-    double cy = cos(yaw * 0.5);
-    double sy = sin(yaw * 0.5);
-    double cr = cos(roll * 0.5);
-    double sr = sin(roll * 0.5);
-    double cp = cos(pitch * 0.5);
-    double sp = sin(pitch * 0.5);
+  const double pitch = 0.0;
+  const double roll = 0.0;
+  double cy = cos(yaw * 0.5);
+  double sy = sin(yaw * 0.5);
+  double cr = cos(roll * 0.5);
+  double sr = sin(roll * 0.5);
+  double cp = cos(pitch * 0.5);
+  double sp = sin(pitch * 0.5);
 
-
-
-
-
-//********************************************************************************************************
-    poseGoal.target_pose.header.frame_id = robot_name_+"_odom";
-    poseGoal.target_pose.pose.position.x = x;
-    poseGoal.target_pose.pose.position.y = y;
-    poseGoal.target_pose.pose.position.z = 0.0;
-    poseGoal.target_pose.pose.orientation.w = cy * cr * cp + sy * sr * sp;
-    poseGoal.target_pose.pose.orientation.x = cy * sr * cp - sy * cr * sp;
-    poseGoal.target_pose.pose.orientation.y = cy * cr * sp + sy * sr * cp;
-    poseGoal.target_pose.pose.orientation.z = sy * cr * cp - cy * sr * sp;
+  poseGoal.target_pose.header.frame_id = robot_name_+"_odom";
+  poseGoal.target_pose.pose.position.x = x;
+  poseGoal.target_pose.pose.position.y = y;
+  poseGoal.target_pose.pose.position.z = 0.0;
+  poseGoal.target_pose.pose.orientation.w = cy * cr * cp + sy * sr * sp;
+  poseGoal.target_pose.pose.orientation.x = cy * sr * cp - sy * cr * sp;
+  poseGoal.target_pose.pose.orientation.y = cy * cr * sp + sy * sr * cp;
+  poseGoal.target_pose.pose.orientation.z = sy * cr * cp - cy * sr * sp;
 }
 
 void SmHauler::doneCallback(const actionlib::SimpleClientGoalState& state, const move_base_msgs::MoveBaseResult::ConstPtr& result)
 {
-    actionDone = true;
-    // ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Goal done");
+  // ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Goal done");
 }
 void SmHauler::activeCallback()
 {
-    // ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Goal went active");
+  // ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Goal went active");
 }
 void SmHauler::feedbackCallback(const move_base_msgs::MoveBaseFeedback::ConstPtr& feedback)
 {
-  //  ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Got feedback");
+  // ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Got feedback");
 }
 
 void SmHauler::plannerInterruptCallback(const std_msgs::Bool::ConstPtr &msg)
 {
-    // flag_interrupt_plan = msg->data;
-  // ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Interrupt flag updated." << *msg);
+  task_planning::PlanInfo srv_plan; 
+  srv_plan.request.replan.data = false;
+  srv_plan.request.type.data = mac::SCOUT;
+  srv_plan.request.id.data = robot_id_;
+
+  if (clt_task_planning.call(srv_plan))
+  {
+    ROS_INFO_STREAM_THROTTLE(5,"[" << robot_name_ << "] " <<"Called service Plan");
+  }
+  else
+  {
+    ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Failed to call service RotateInPlace");
+  }
+
+  if(!(prev_srv_plan.response.objective.point.x == srv_plan.response.objective.point.x && 
+  prev_srv_plan.response.objective.point.y == srv_plan.response.objective.point.y &&
+  prev_srv_plan.response.code == srv_plan.response.code))
+  {
+    flag_interrupt_plan = true;
+  }
 }
 
 void SmHauler::RotateToHeading(double desired_yaw)
@@ -925,7 +937,7 @@ void SmHauler::GetTruePose()
   }
   else
   {
-    ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Failed  to call service Pose Update");
+    ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Failed to call Pose Update service");
   }
 }
 
@@ -1083,20 +1095,6 @@ void SmHauler::DriveCmdVel(double vx, double vy, double wz, double time)
     cmd_vel_pub.publish(cmd_vel);
   }
 }
-
-// void SmHauler::ToggleDetector(bool flag)
-// {
-//   volatile_handler::ToggleDetector srv_vol_detect;
-//   srv_vol_detect.request.on  = flag;
-//   if (clt_vol_detect_.call(srv_vol_detect))
-//   {
-//     ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Called service ToggleDetector. Turned on? " << flag);
-//   }
-//   else
-//   {
-//     ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Failed  to call service ToggleDetector");
-//   }
-// }
 
 void SmHauler::RoverStatic(bool flag)
 {
@@ -1355,6 +1353,8 @@ void SmHauler::Plan()
     no_objective = true;
     flag_interrupt_plan = false;
   }
+
+  prev_srv_plan = srv_plan;
 
   switch (srv_plan.response.code.data)
   {

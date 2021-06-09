@@ -27,6 +27,9 @@ move_base_state(actionlib::SimpleClientGoalState::PREEMPTED)
   manipulation_cmd_sub = nh.subscribe("manipulation/cmd", 1, &SmExcavator::manipulationCmdCallback, this);
   planner_interrupt_sub = nh.subscribe("/planner_interrupt", 1, &SmExcavator::plannerInterruptCallback, this);
 
+  hauler1_odom_sub = nh.subscribe("/small_hauler_1/localization/odometry/sensor_fusion", 1, &SmExcavator::hauler1OdomCallback, this);
+  hauler2_odom_sub = nh.subscribe("/small_hauler_2/localization/odometry/sensor_fusion", 1, &SmExcavator::hauler2OdomCallback, this);
+
   // Clients
   clt_wp_gen = nh.serviceClient<waypoint_gen::GenerateWaypoint>("navigation/generate_goal");
   clt_wp_start = nh.serviceClient<waypoint_gen::StartWaypoint>("navigation/start");
@@ -561,7 +564,6 @@ void SmExcavator::setPoseGoal(move_base_msgs::MoveBaseGoal &poseGoal, double x, 
   double cp = cos(pitch * 0.5);
   double sp = sin(pitch * 0.5);
 
-  //********************************************************************************************************
   poseGoal.target_pose.header.frame_id = robot_name_+"_odom";
   poseGoal.target_pose.pose.position.x = x;
   poseGoal.target_pose.pose.position.y = y;
@@ -574,7 +576,6 @@ void SmExcavator::setPoseGoal(move_base_msgs::MoveBaseGoal &poseGoal, double x, 
 
 void SmExcavator::doneCallback(const actionlib::SimpleClientGoalState& state, const move_base_msgs::MoveBaseResult::ConstPtr& result)
 {
-  actionDone_ = true;
   // ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Goal done");
 }
 void SmExcavator::activeCallback()
@@ -583,7 +584,7 @@ void SmExcavator::activeCallback()
 }
 void SmExcavator::feedbackCallback(const move_base_msgs::MoveBaseFeedback::ConstPtr& feedback)
 {
-  //  ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Got feedback");
+  // ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Got feedback");
 }
 
 void SmExcavator::jointStateCallback(const sensor_msgs::JointState::ConstPtr &msg)
@@ -690,8 +691,36 @@ void SmExcavator::manipulationCmdCallback(const std_msgs::Int64::ConstPtr &msg)
 
 void SmExcavator::plannerInterruptCallback(const std_msgs::Bool::ConstPtr &msg)
 {
-  // flag_interrupt_plan = msg->data;
-  // ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Interrupt flag updated." << *msg);
+  task_planning::PlanInfo srv_plan; 
+  srv_plan.request.replan.data = false;
+  srv_plan.request.type.data = mac::SCOUT;
+  srv_plan.request.id.data = robot_id_;
+
+  if (clt_task_planning.call(srv_plan))
+  {
+    ROS_INFO_STREAM_THROTTLE(5,"[" << robot_name_ << "] " <<"Called service Plan");
+  }
+  else
+  {
+    ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Failed to call service RotateInPlace");
+  }
+
+  if(!(prev_srv_plan.response.objective.point.x == srv_plan.response.objective.point.x && 
+  prev_srv_plan.response.objective.point.y == srv_plan.response.objective.point.y &&
+  prev_srv_plan.response.code == srv_plan.response.code))
+  {
+    flag_interrupt_plan = true;
+  }
+}
+
+void SmExcavator::hauler1OdomCallback(const nav_msgs::Odometry::ConstPtr &msg)
+{
+  small_hauler_1_odom = *msg;
+}
+
+void SmExcavator::hauler2OdomCallback(const nav_msgs::Odometry::ConstPtr &msg)
+{
+  small_hauler_2_odom = *msg;
 }
 
 void SmExcavator::RotateToHeading(double desired_yaw)
@@ -864,7 +893,6 @@ void SmExcavator::ClearCostmaps()
 
 void SmExcavator::GetTruePose()
 {
-  // Update SF with True Pose
   sensor_fusion::GetTruePose srv_sf_true_pose;
   srv_sf_true_pose.request.start = true;
   if (clt_sf_true_pose.call(srv_sf_true_pose))
@@ -875,7 +903,7 @@ void SmExcavator::GetTruePose()
   }
   else
   {
-    ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Failed  to call service Pose Update");
+    ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Failed to call Pose Update service");
   }
 }
 
@@ -1064,20 +1092,6 @@ void SmExcavator::DriveCmdVel(double vx, double vy, double wz, double time)
   }
 }
 
-// void SmExcavator::ToggleDetector(bool flag)
-// {
-//   volatile_handler::ToggleDetector srv_vol_detect;
-//   srv_vol_detect.request.on  = flag;
-//   if (clt_vol_detect_.call(srv_vol_detect))
-//   {
-//     ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Called service ToggleDetector. Turned on? " << flag);
-//   }
-//   else
-//   {
-//     ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Failed  to call service ToggleDetector");
-//   }
-// }
-
 void SmExcavator::RoverStatic(bool flag)
 {
   // Start attitude constraints for static rover
@@ -1101,15 +1115,6 @@ bool SmExcavator::setMobility(state_machine::SetMobility::Request &req, state_ma
   //ros::Duration(2).sleep();
   res.success = true;
   return true;
-}
-
-void SmExcavator::getRelativePosition()
-{
-  relative_heading_ = 1.2;
-  // ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Hauler odometry updated. Pose:" << msg->pose.pose);
-  // ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Range:" << relative_range);
-  // ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Is Hauler in range:" << hauler_in_range_);
-  // ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Relative heading:" << yaw_);
 }
 
 void SmExcavator::ExecuteHomeArm(double timeout)
@@ -1257,7 +1262,7 @@ void SmExcavator::ExecuteGoToPose(double timeout, const geometry_msgs::PointStam
   bool success = clt_go_to_pose.call(srv);
 }
 
-void SmExcavator::getForwardKinematics(double timeout)
+void SmExcavator::GetForwardKinematics(double timeout)
 {
   move_excavator::ExcavatorFK srv;
   motion_control::ArmGroup q;
@@ -1495,6 +1500,8 @@ void SmExcavator::Plan()
     no_objective = true;
     flag_interrupt_plan = false;
   }
+
+  prev_srv_plan = srv_plan;
 
   switch (srv_plan.response.code.data)
   {

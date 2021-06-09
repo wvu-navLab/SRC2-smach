@@ -299,7 +299,6 @@ bool TaskPlanner::taskPlanService(task_planning::PlanInfo::Request &req,task_pla
           if(robot.type == mac::SCOUT)
           {
             res.code.data = robot.plan[0].point.z;
-            robot.plan[0].point.z = 0;
           }
           else
           {
@@ -307,6 +306,7 @@ bool TaskPlanner::taskPlanService(task_planning::PlanInfo::Request &req,task_pla
           }
           ROS_WARN_STREAM("[TASK PLANNER] Objective " << robot.plan[0]);
           res.objective = robot.plan[0];
+          res.objective.point.z = 0;
         }
         else
         {
