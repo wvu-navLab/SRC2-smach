@@ -77,7 +77,7 @@ public:
   bool flag_fallthrough_condition = false;
   bool flag_completed_homing = false;
   bool flag_heading_fail=false;
-  bool flag_need_init_landmark=true;
+  bool flag_need_init_landmark = false;
   bool flag_interrupt_plan = false;
   bool flag_volatile_detected = false;
 
@@ -177,6 +177,9 @@ public:
   void RoverStatic(bool flag);
   void homingRecovery();
   void immobilityRecovery(int type);
+  void CheckWaypoint(int max_count);
+  bool ApproachChargingStation(int max_count);
+  double HomingUpdate(bool init_landmark);
   void Plan();
 
   // Parameters

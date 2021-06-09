@@ -110,7 +110,7 @@ public:
   bool flag_bucket_full = false;
   bool flag_hauler_in_range = false;
   bool flag_found_volatile = false;
-  bool flag_need_init_landmark=true;
+  bool flag_need_init_landmark = false;
   bool flag_volatile_dug=true;
   bool flag_interrupt_plan = false;
 
@@ -228,14 +228,17 @@ public:
   void RoverStatic(bool flag);
   void homingRecovery();
   void immobilityRecovery(int type);
+  void CheckWaypoint(int max_count);
+  bool ApproachChargingStation(int max_count);
+  double HomingUpdate(bool init_landmark);
   void FindHauler(double timeout);
-  void executeHomeArm(double timeout);
-  void executeLowerArm(double timeout);
-  void executeScoop(double timeout);
-  void executeAfterScoop(double timeout);
-  void executeExtendArm(double timeout);
-  void executeDrop(double timeout);
-  void executeGoToPose(double timeout, const geometry_msgs::PointStamped &point);
+  void ExecuteHomeArm(double timeout);
+  void ExecuteLowerArm(double timeout);
+  void ExecuteScoop(double timeout);
+  void ExecuteAfterScoop(double timeout);
+  void ExecuteExtendArm(double timeout);
+  void ExecuteDrop(double timeout);
+  void ExecuteGoToPose(double timeout, const geometry_msgs::PointStamped &point);
   void getForwardKinematics(double timeout);
   void getRelativePosition();
   void outputManipulationStatus();
