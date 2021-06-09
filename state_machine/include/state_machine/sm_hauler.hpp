@@ -51,26 +51,27 @@ public:
   const unsigned int num_states = 6;
   enum STATE_T {_initialize=0, _planning=1, _traverse=2, _volatile_handler=3, _lost=4, _hauler_dumping=5};
 
-  // Condition flag declarations
-  // bool flag_localized_base = false;
-  int flag_localized_base = 0;
-  int flag_mobility = 1;
+  // State transition flag declarations
+  bool flag_interrupt_plan = false;
   bool flag_have_true_pose = false;
-  bool flag_waypoint_unreachable = false;
   bool flag_arrived_at_waypoint = true;
   bool flag_localizing_volatile = false;
+  bool flag_recovering_localization = false;
+  bool flag_dumping = false;
+  bool flag_brake_engaged = false;
+  bool flag_fallthrough_condition = false;
+
+  // Secondary flag declarations
+  bool flag_waypoint_unreachable = false;
   bool flag_volatile_recorded = false;
   bool flag_volatile_unreachable = false;
   bool flag_localization_failure = false;
-  bool flag_recovering_localization = false;
-  bool flag_brake_engaged = false;
-  bool flag_fallthrough_condition = false;
   bool flag_completed_homing = false;
   bool flag_heading_fail = false;
   bool flag_need_init_landmark = false;
-  bool flag_dumping = false; //true for testing dump
-  bool flag_interrupt_plan = false;
   bool flag_approach_excavator = true;
+  bool flag_localized_base = false;
+  bool flag_mobility = true;
 
 
   ros::Time detection_timer, not_detected_timer, wp_checker_timer;

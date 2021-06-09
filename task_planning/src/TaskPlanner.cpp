@@ -304,11 +304,12 @@ bool TaskPlanner::taskPlanService(task_planning::PlanInfo::Request &req,task_pla
           {
             res.code.data = 3;
           }
-          ROS_ERROR_STREAM("Objective " << robot.plan[0]);
+          ROS_WARN_STREAM("[TASK PLANNER] Objective " << robot.plan[0]);
         }
         else
         {
           res.code.data = -1;
+          ROS_ERROR_STREAM("[TASK PLANNER] No objective.");
         }
       }
     }

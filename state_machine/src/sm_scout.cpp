@@ -93,7 +93,7 @@ void SmScout::run()
     {
       state_to_exec.at(_planning) = 1;
     }
-    else if(flag_volatile_detected && flag_localizing_volatile && !flag_brake_engaged)
+    else if(flag_localizing_volatile && !flag_brake_engaged) // Removed flag_volatile_detected
     {
       state_to_exec.at(_volatile_handler) = 1;
     }
@@ -186,13 +186,6 @@ void SmScout::stateInitialize()
 
   Brake(0.0);
 
-  // make sure we dont latch to a vol we skipped while homing
-  vol_detected_dist_ = -1.0;
-
-  flag_arrived_at_waypoint = true;
-  flag_recovering_localization = false;
-  flag_localizing_volatile = false;
-
   double progress = 1.0;
   state_machine::RobotStatus status_msg;
   status_msg.progress.data = progress;
@@ -236,7 +229,6 @@ void SmScout::statePlanning()
     waypoint_timer = ros::Time::now();
     ac.sendGoal(move_base_goal, boost::bind(&SmScout::doneCallback, this,_1,_2), boost::bind(&SmScout::activeCallback, this), boost::bind(&SmScout::feedbackCallback, this,_1));
     ac.waitForResult(ros::Duration(0.25));
-    // flag_arrived_at_waypoint = false;
   }
   else
   {
@@ -355,21 +347,32 @@ void SmScout::stateVolatileHandler()
 
     Brake(0.0);
 
-    detection_timer = ros::Time::now();
-  }
+    ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Turning wheels sideways.");
+    TurnWheelsSideways(true, 10.0);
 
-  if (vol_detected_dist_ < VOL_FOUND_THRESH || ros::Time::now() - detection_timer > timeoutVolatileHandling || flag_volatile_honed)
+    ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Moving sideways (Right).");
+    MoveSideways(0.1, 10.0);
+
+    ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Moving sideways (Left).");
+    MoveSideways(-0.1, 20.0);
+
+    ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Moving sideways (Right).");
+    MoveSideways(0.1, 10.0);
+
+    flag_volatile_honed = true;
+  }
+  else
   {
     Stop(0.1);
 
     DriveCmdVel(1, 0, 0, 3);
 
+    Stop(0.1);
+
     BrakeRamp(100, 0.5, 0);
 
     Brake(0.0);
 
-    flag_localizing_volatile = false;
-    flag_volatile_honed = false;
     dynamic_reconfigure::ReconfigureRequest srv_req;
     dynamic_reconfigure::ReconfigureResponse srv_resp;
     dynamic_reconfigure::DoubleParameter double_param;
@@ -385,23 +388,10 @@ void SmScout::stateVolatileHandler()
     {
       ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Called service to reconfigure MoveBase (increase max speed).");
     }
-  }
-  else
-  {
 
-    ROS_WARN_STREAM("[" << robot_name_ << "] " <<"SCOUT:Turning wheels sideways.");
-    TurnWheelsSideways(true, 10.0);
-
-    ROS_WARN_STREAM("[" << robot_name_ << "] " <<"SCOUT:Moving sideways (Right).");
-    MoveSideways(0.1, 10.0);
-
-    ROS_WARN_STREAM("[" << robot_name_ << "] " <<"SCOUT:Moving sideways (Left).");
-    MoveSideways(-0.1, 20.0);
-
-    ROS_WARN_STREAM("[" << robot_name_ << "] " <<"SCOUT:Moving sideways (Right).");
-    MoveSideways(0.1, 10.0);
-
-    flag_volatile_honed = true;
+    flag_volatile_honed = false;
+    flag_localizing_volatile = false;
+    flag_interrupt_plan = true;
   }
 
   double progress = 0.0;
@@ -483,13 +473,14 @@ void SmScout::stateLost()
 // Callbacks +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 void SmScout::localizedBaseCallback(const std_msgs::Int64::ConstPtr& msg)
 {
-  flag_localized_base = msg->data;
-  if (flag_localized_base) {
-    ROS_WARN_STREAM_ONCE("Initial Localization Successful = " << (int)flag_localized_base);
-
+  flag_localized_base = (bool) msg->data;
+  if (flag_localized_base) 
+  {
+    ROS_WARN_STREAM_ONCE("Initial Localization Successful = " << (int) flag_localized_base);
   }
-  else {
-    ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Waiting for Initial Localization  = " << (int)flag_localized_base);
+  else 
+  {
+    ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Waiting for Initial Localization  = " << (int) flag_localized_base);
   }
 }
 
@@ -534,9 +525,12 @@ void SmScout::volatileSensorCallback(const srcp2_msgs::VolSensorMsg::ConstPtr& m
   {
     flag_volatile_detected = false;
   }
-  if (min_vol_detected_dist_<30){
-  ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Minimum volatile detected." << min_vol_detected_dist_);
-}
+
+  if (min_vol_detected_dist_<30)
+  {
+    ROS_INFO_STREAM("[" << robot_name_ << "] " << "Minimum detected volatile distance: " << min_vol_detected_dist_);
+  }
+
 }
 
 void SmScout::volatileCmdCallback(const std_msgs::Int64::ConstPtr& msg)
@@ -1197,7 +1191,7 @@ bool SmScout::HomingUpdate(bool init_landmark)
 void SmScout::Plan()
 {
   task_planning::PlanInfo srv_plan;
-  if (!  flag_interrupt_plan)
+  if (!flag_interrupt_plan)
   {
     srv_plan.request.replan.data = true;
   }
@@ -1217,7 +1211,7 @@ void SmScout::Plan()
     ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Failed to call service RotateInPlace");
   }
 
-  if (srv_plan.response.code.data !=-1 )
+  if (srv_plan.response.code.data !=-1)
   {
     goal_pose_.position = srv_plan.response.objective.point;
     geometry_msgs::Quaternion quat;

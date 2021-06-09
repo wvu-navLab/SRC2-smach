@@ -585,7 +585,7 @@ void SmHauler::stateDump()
 // Callbacks +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 void SmHauler::localizedBaseCallback(const std_msgs::Int64::ConstPtr& msg)
 {
-  flag_localized_base = msg->data;
+  flag_localized_base = (bool) msg->data;
   if (flag_localized_base) {
     ROS_WARN_STREAM_ONCE("Initial Localization Successful = " << (int)flag_localized_base);
 

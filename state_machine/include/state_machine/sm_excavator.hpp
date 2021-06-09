@@ -92,18 +92,18 @@ public:
   int excavation_state = HOME_MODE;
   actionlib::SimpleClientGoalState move_base_state;
 
-  // Condition flag declarations
-  // bool flag_localized_base = false;
-  int flag_localized_base = 0;
-  int flag_mobility = 1;
+  // State transition flag declarations
+  bool flag_interrupt_plan = false;
   bool flag_have_true_pose = false;
-  bool flag_waypoint_unreachable = false;
   bool flag_arrived_at_waypoint = true;
   bool flag_localizing_volatile = false;
-  bool flag_localization_failure = false;
   bool flag_recovering_localization = false;
   bool flag_brake_engaged = false;
   bool flag_fallthrough_condition = false;
+
+  // Secondary flag declarations
+  bool flag_waypoint_unreachable = false;
+  bool flag_localization_failure = false;
   bool flag_completed_homing = false;
   bool flag_heading_fail=false;
   bool flag_manipulation_enabled = false;
@@ -112,7 +112,8 @@ public:
   bool flag_found_volatile = false;
   bool flag_need_init_landmark = false;
   bool flag_volatile_dug=true;
-  bool flag_interrupt_plan = false;
+  bool flag_localized_base = false;
+  bool flag_mobility = true;
 
   ros::Time manipulation_timer;
   ros::Time detection_timer, not_detected_timer, wp_checker_timer;

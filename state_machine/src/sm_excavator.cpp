@@ -316,7 +316,7 @@ void SmExcavator::stateTraverse()
     BrakeRamp(100, 2, 0); // Give more time
     Brake(0.0);
 
-    ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Rover is stopped to clear the Map");
+    ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Rover has stopped to clear the Map");
     ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Move Base State: "<< mb_state);
     ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Map Cleared");
   }
@@ -462,7 +462,7 @@ void SmExcavator::stateLost()
 // Callbacks +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 void SmExcavator::localizedBaseCallback(const std_msgs::Int64::ConstPtr& msg)
 {
-  flag_localized_base = msg->data;
+  flag_localized_base = (bool) msg->data;
   if (flag_localized_base) {
     ROS_WARN_STREAM_ONCE("Initial Localization Successful = " << (int)flag_localized_base);
 
@@ -1482,8 +1482,6 @@ void SmExcavator::Plan()
   {
     ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Failed to call service RotateInPlace");
   }
-
-
 
   if (srv_plan.response.code.data !=-1)
   {

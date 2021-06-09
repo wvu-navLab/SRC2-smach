@@ -85,7 +85,6 @@ int main(int argc, char** argv)
 
 		mac::TaskPlanner tp(cf,robots, planning_params);
 
-  		ROS_ERROR("After Constructor.");
     /**----------------- Initialize Rover Metric Class------------------------------*/
 		ros::spin();
 
