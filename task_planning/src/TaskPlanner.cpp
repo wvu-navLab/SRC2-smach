@@ -39,6 +39,7 @@ void TaskPlanner::populate_prior_plan()
         {
           temp.point.x = planning_params_.plan[2][i];
           temp.point.y = planning_params_.plan[3][i];
+          temp.point.z = planning_params_.plan[4][i];
           robots_[j].plan.push_back(temp);
           ROS_INFO_STREAM("Plan: (" << temp.point.x << ", " << temp.point.y << ")");
         }
@@ -295,16 +296,17 @@ bool TaskPlanner::taskPlanService(task_planning::PlanInfo::Request &req,task_pla
       {
         if (!robot.plan.empty())
         {
-          res.objective = robot.plan[0];
           if(robot.type == mac::SCOUT)
           {
-            res.code.data = 2;
+            res.code.data = robot.plan[0].point.z;
+            robot.plan[0].point.z = 0;
           }
           else
           {
             res.code.data = 3;
           }
           ROS_WARN_STREAM("[TASK PLANNER] Objective " << robot.plan[0]);
+          res.objective = robot.plan[0];
         }
         else
         {

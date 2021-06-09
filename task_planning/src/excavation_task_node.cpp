@@ -57,6 +57,9 @@ int main(int argc, char** argv)
     plan.push_back(temp);
     nh.getParam("/waypoints/y", temp);
     plan.push_back(temp);
+	nh.getParam("/waypoints/type", temp);
+    plan.push_back(temp); 
+	
     /**----------------- Initialize -----------------------------*/
 		// Initialize Robots
 		std::vector<mac::Robot> robots;

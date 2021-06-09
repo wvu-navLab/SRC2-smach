@@ -67,6 +67,9 @@ int main(int argc, char** argv)
     nh.getParam("/waypoints/y", temp);
     print_vector(temp,"y");
     plan.push_back(temp);
+    nh.getParam("/waypoints/type", temp);
+    print_vector(temp,"type");
+    plan.push_back(temp);  
 
     // ROS_INFO_STREAM("Plan: " << plan);
     std::cout << "Plan 1:" << std::endl;
