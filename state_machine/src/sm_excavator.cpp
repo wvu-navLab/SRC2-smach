@@ -10,8 +10,7 @@ move_base_state(actionlib::SimpleClientGoalState::PREEMPTED)
   sm_status_pub = nh.advertise<state_machine::RobotStatus>("state_machine/status", 1);
   cmd_vel_pub = nh.advertise<geometry_msgs::Twist>("driving/cmd_vel", 1);
   driving_mode_pub = nh.advertise<std_msgs::Int64>("driving/driving_mode", 1);
-  manipulation_state_pub = nh.advertise<std_msgs::Int64>("manipulation/manipulation_state",1);
-  excavation_status_pub = nh.advertise<std_msgs::Int64>("manipulation/excavation_status",1);
+  excavation_status_pub = nh.advertise<state_machine::ExcavationStatus>("state_machine/excavation_status",1);
 
   // Subscribers
   localized_base_sub = nh.subscribe("state_machine/localized_base", 1, &SmExcavator::localizedBaseCallback, this);
@@ -358,87 +357,32 @@ void SmExcavator::stateVolatileHandler()
   if(flag_manipulation_enabled == false)
   {
     ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Enabling Excavation State Machine.");
+    Stop(1);
     BrakeRamp(100, 1, 0);
     Brake(0.0);
-    flag_manipulation_enabled = true;
-
-    std_msgs::Int64 msg;
-    msg.data = EXCAVATION_ENABLED;
-    excavation_status_pub.publish(msg);
-
     manipulation_timer = ros::Time::now();
+    flag_manipulation_enabled = true;
   }
 
   if (flag_manipulation_enabled && (ros::Time::now() - manipulation_timer) < ros::Duration(420))
   {
-    ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Excavation State Machine.");
-    switch (mode)
-    {
-    case HOME_MODE:
-      {
-        ExecuteHomeArm(2);
-        if(flag_bucket_full)
-        {
-          std_msgs::Int64 msg;
-          msg.data = EXCAVATION_READY_TO_DUMP;
-          excavation_status_pub.publish(msg);
-          
-          mode = EXTEND_MODE;
-          // ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Is bucket full: " << flag_bucket_full);
-        }
-        else
-        {
-          mode = LOWER_MODE;
-          // ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Is bucket full: " << flag_bucket_full);
-        }
-      }
-      break;
-    case LOWER_MODE:
-      {
-        ExecuteLowerArm(2);
-        mode = SCOOP_MODE;
-      }
-      break;
-    case SCOOP_MODE:
-      {
-        ExecuteScoop(2);
-        FindHauler(30);
-        ExecuteAfterScoop(2);
-        mode = HOME_MODE;
-      }
-      break;
-    case EXTEND_MODE:
-      {
-        if(flag_hauler_in_range)
-        {
-          ExecuteGoToPose(10, bin_point_);
-          mode = DROP_MODE;
-        }
-      }
-      break;
-    case DROP_MODE:
-      {
-        // ExecuteDrop(3);
-        flag_manipulation_enabled = false;
-        flag_localizing_volatile = false;
-        mode = HOME_MODE;
-      }
-      break;
-    }
+    ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Excavation State Machine enabled.");
+    ExcavationStateMachine();
   }
   else if (flag_manipulation_enabled && (ros::Time::now() - manipulation_timer) > ros::Duration(420))
   {
     flag_manipulation_enabled = false;
     flag_localizing_volatile = false;
-    outputManipulationStatus();
-    ROS_INFO_STREAM("[" << robot_name_ << "] " <<"MANIPULATION: interrupted by timeout.");
+    ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Excavation State Machine interrupted by timeout.");
   }
   else
   {
     flag_manipulation_enabled = false;
     flag_localizing_volatile = false;
-    ROS_INFO_STREAM("[" << robot_name_ << "] " <<"MANIPULATION: disabled.");
+    ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Excavation State Machine disabled.");
   }
+
+  PublishExcavationStatus();
 
   double progress = 0;
   state_machine::RobotStatus status_msg;
@@ -451,7 +395,7 @@ void SmExcavator::stateLost()
 {
   ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"LOST STATE!\n");
 
-  double progress = 1.0;
+  double progress = 0.0;
 
   ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Canceling MoveBase goal.");
   ac.waitForServer();
@@ -472,12 +416,19 @@ void SmExcavator::stateLost()
 
   if(approachSuccess)
   {
-    progress = HomingUpdate(flag_need_init_landmark);
+    bool homingSuccess = HomingUpdate(flag_need_init_landmark);
+    if (homingSuccess)
+    {
+      progress = 1.0;
+    }
+    else
+    {
+      progress = -1.0;
+    }
   }
   else
   {
     progress = -1.0;
-    ROS_ERROR_STREAM("[" << robot_name_ << "] " <<" Homing Attempt Failed, Just Moving On For Now");
     // TODO: SOMETHING
   }
 
@@ -1321,18 +1272,6 @@ void SmExcavator::getForwardKinematics(double timeout)
   eePose_ = srv.response.eePose;
 }
 
-void SmExcavator::outputManipulationStatus()
-{
-  move_excavator::ExcavationStatus msg;
-  msg.isFinished = true;
-  msg.foundVolatile = flag_found_volatile;
-  msg.collectedMass = 0;
-  msg.haulerInRange = flag_hauler_in_range;
-  excavation_status_pub.publish(msg);
-  ROS_INFO_STREAM("[" << robot_name_ << "] " <<"MANIPULATION: has finished. Publishing to State Machine.");
-}
-
-
 bool SmExcavator::ApproachChargingStation(int max_count)
 {
   src2_approach_services::ApproachChargingStation srv_approach_charging_station;
@@ -1345,17 +1284,21 @@ bool SmExcavator::ApproachChargingStation(int max_count)
   {
     if (clt_approach_base.call(srv_approach_charging_station))
     {
-      ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Called service ApproachChargingStation");
-      ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Success finding the baseStation? "<< srv_approach_charging_station.response.success.data);
       if(srv_approach_charging_station.response.success.data)
       {
         success = true;
-        ROS_INFO_STREAM("[" << robot_name_ << "] " <<"approach base Station with classifier successful");
+        ROS_INFO_STREAM("[" << robot_name_ << "] " <<"ApproachChargingStation with classifier successful");
+      }
+      else
+      {
+        success = false;
+        ROS_INFO_STREAM("[" << robot_name_ << "] " <<"ApproachChargingStation with classifier successful");
       }
     }
     else
     {
-      ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Failed  to call service ApproachChargingStation");
+      success = false;
+      ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Failed to call ApproachChargingStation service");
     }
     count = count + 1;
   }
@@ -1400,27 +1343,27 @@ void SmExcavator::CheckWaypoint(int max_count)
   }
 }
 
-double SmExcavator::HomingUpdate(bool init_landmark)
+bool SmExcavator::HomingUpdate(bool init_landmark)
 {
-  double progress = 0.0;
-
   sensor_fusion::HomingUpdate srv_homing;
-  srv_homing.request.angle = pitch_ + .4; // pitch up is negative number
-  ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Requesting Angle for LIDAR " << srv_homing.request.angle);
+  srv_homing.request.angle = pitch_ - 0.4; // pitch up is negative number
   srv_homing.request.initializeLandmark = init_landmark;
+
+  bool success = false;
 
   if (clt_homing.call(srv_homing))
   {
-    ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Called service Homing.");
     if(init_landmark && srv_homing.response.success)
     {
       base_location_ = srv_homing.response.base_location;
-      ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Homing [Init] successful. Saving Base Location "<<base_location_.x << "," << base_location_.y);
-      progress = 1.0;
+      ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Homing [Init] successful.");
+      ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Saving Base Location "<<base_location_.x << "," << base_location_.y);
+      success = true;
     }
     else if (!init_landmark && srv_homing.response.success)
     {
       ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Homing [Update] successful.");
+      success = true;
     }
     else
     {
@@ -1429,10 +1372,92 @@ double SmExcavator::HomingUpdate(bool init_landmark)
   }
   else
   {
-    ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Failed to call service Homing Service.");
-    progress = -1.0;
+    ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Failed to call Homing Service.");
   }
-  return progress;
+  return success;
+}
+
+void SmExcavator::ExcavationStateMachine()
+{
+  switch (excavation_state)
+  {
+    case HOME_MODE:
+    {
+      ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Excavation: Homing Arm.");
+      ExecuteHomeArm(2);
+      if(flag_bucket_full)
+      {
+        std_msgs::Int64 msg;
+        msg.data = EXCAVATION_READY_TO_DUMP;
+        excavation_status_pub.publish(msg);
+        
+        excavation_state = EXTEND_MODE;
+        // ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Is bucket full: " << flag_bucket_full);
+      }
+      else
+      {
+        if (flag_found_volatile)
+        {
+          excavation_state = LOWER_MODE;
+        }
+        else
+        {
+          excavation_state = SEARCH_MODE;
+        }
+        // 
+      }
+    }
+    break;
+    case SEARCH_MODE:
+    {
+      ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Excavation: Searching.");
+      
+    }
+    break;
+    case LOWER_MODE:
+    {
+      ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Excavation: Lowering Arm.");
+      ExecuteLowerArm(2);
+      excavation_state = SCOOP_MODE;
+    }
+    break;
+    case SCOOP_MODE:
+    {
+      ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Excavation: Scooping.");
+      ExecuteScoop(2);
+      FindHauler(30);
+      ExecuteAfterScoop(2);
+      excavation_state = HOME_MODE;
+    }
+    break;
+    case EXTEND_MODE:
+    {
+      ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Excavation: Extending Arm.");
+      if(flag_hauler_in_range)
+      {
+        ExecuteGoToPose(10, bin_point_);
+        excavation_state = DROP_MODE;
+      }
+    }
+    break;
+    case DROP_MODE:
+    {
+      ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Excavation: Dropping Bucket Content.");
+      // ExecuteDrop(3);
+      flag_manipulation_enabled = false;
+      flag_localizing_volatile = false;
+      excavation_state = HOME_MODE;
+    }
+    break;
+  }
+}
+
+void SmExcavator::PublishExcavationStatus()
+{
+  state_machine::ExcavationStatus msg;
+  msg.state.data = (uint8_t) excavation_state;
+  msg.progress.data = 0.0;
+  ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Publishing Excavation State Machine Status.");
 }
 
 void SmExcavator::Plan()

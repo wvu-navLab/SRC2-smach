@@ -179,7 +179,7 @@ public:
   void immobilityRecovery(int type);
   void CheckWaypoint(int max_count);
   bool ApproachChargingStation(int max_count);
-  double HomingUpdate(bool init_landmark);
+  bool HomingUpdate(bool init_landmark);
   void Plan();
 
   // Parameters

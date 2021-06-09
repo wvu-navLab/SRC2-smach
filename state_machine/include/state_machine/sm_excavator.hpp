@@ -41,8 +41,6 @@
 #include <state_machine/SetMobility.h>
 #include <actionlib/client/simple_action_client.h>
 #include <motion_control/ArmGroup.h>
-#include <move_excavator/MultiAgentState.h>
-#include <move_excavator/ExcavationStatus.h>
 #include <move_excavator/HomeArm.h>
 #include <move_excavator/LowerArm.h>
 #include <move_excavator/Scoop.h>
@@ -56,6 +54,7 @@
 #include <task_planning/PlanInfo.h>
 #include <task_planning/Types.hpp>
 #include <state_machine/RobotStatus.h>
+#include <state_machine/ExcavationStatus.h>
 
 
 #define PI 3.141592653589793
@@ -71,10 +70,11 @@
 
 #define STOP -1
 #define HOME_MODE 0
-#define LOWER_MODE 1
-#define SCOOP_MODE 2
-#define EXTEND_MODE 3
-#define DROP_MODE 4
+#define SEARCH_MODE 1
+#define LOWER_MODE 2
+#define SCOOP_MODE 3
+#define EXTEND_MODE 4
+#define DROP_MODE 5
 #define START 9
 
 #define EXCAVATION_ENABLED 0
@@ -89,7 +89,7 @@ public:
   const unsigned int num_states = 5;
   enum STATE_T {_initialize=0, _planning=1, _traverse=2, _volatile_handler=3, _lost=4};
  // State-machine mode
-  int mode = HOME_MODE;
+  int excavation_state = HOME_MODE;
   actionlib::SimpleClientGoalState move_base_state;
 
   // Condition flag declarations
@@ -127,7 +127,6 @@ public:
   ros::Publisher sm_status_pub;
   ros::Publisher cmd_vel_pub;
   ros::Publisher driving_mode_pub;
-  ros::Publisher manipulation_state_pub;
   ros::Publisher excavation_status_pub;
 
   // Subscribers
@@ -230,8 +229,8 @@ public:
   void immobilityRecovery(int type);
   void CheckWaypoint(int max_count);
   bool ApproachChargingStation(int max_count);
-  double HomingUpdate(bool init_landmark);
   void FindHauler(double timeout);
+  void ExcavationStateMachine();
   void ExecuteHomeArm(double timeout);
   void ExecuteLowerArm(double timeout);
   void ExecuteScoop(double timeout);
@@ -241,7 +240,8 @@ public:
   void ExecuteGoToPose(double timeout, const geometry_msgs::PointStamped &point);
   void getForwardKinematics(double timeout);
   void getRelativePosition();
-  void outputManipulationStatus();
+  void PublishExcavationStatus();
+  bool HomingUpdate(bool init_landmark);
   void Plan();
 
   // Parameters

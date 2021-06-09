@@ -104,7 +104,7 @@ void SmHauler::run()
     {
       state_to_exec.at(_lost) = 1;
     }
-    else if(flag_arrived_at_waypoint && flag_localizing_volatile && !flag_brake_engaged && flag_volatile_handler)
+    else if(flag_arrived_at_waypoint && flag_localizing_volatile && !flag_brake_engaged)
     {
       state_to_exec.at(_volatile_handler) = 1;
     }
@@ -214,12 +214,20 @@ void SmHauler::stateInitialize()
 
     if(approachSuccess)
     {
-      progress = HomingUpdate(flag_need_init_landmark);
+      bool homingSuccess = HomingUpdate(flag_need_init_landmark);
+      if (homingSuccess)
+      {
+        progress = 1.0;
+      }
+      else
+      {
+        progress = -1.0;
+      }
     }
     else
     {
       progress = -1.0;
-      ROS_ERROR_STREAM("[" << robot_name_ << "] " <<" Homing Attempt Failed, Just Moving On For Now");
+      // TODO: SOMETHING
     }
 
     //Similar to initial homing, keep the localization good after homing.
@@ -402,40 +410,36 @@ void SmHauler::stateTraverse()
 void SmHauler::stateVolatileHandler()
 {
   ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Volatile Handling State!");
+  double progress = 0.0;
 
+  //TODO: Get feedback from Excavator before approaching
+  if(flag_approach_excavator)
+  {
+    bool approachSuccess = ApproachExcavator(3);
 
-  // approach bin with cv detector
-  src2_approach_services::ApproachExcavator srv_approach_excavator;
-  srv_approach_excavator.request.approach_excavator.data= true;
-  bool approachSuccess = false;
-  int ExcavatorApproachRecoveryCount = 0;
-  while(!approachSuccess && ExcavatorApproachRecoveryCount<3){
-    if (clt_approach_excavator.call(srv_approach_excavator))
+    if (approachSuccess)
     {
-      ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Called service ApproachExcavator");
-      ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Success finding the Excavator? "<< srv_approach_excavator.response.success.data);
-      if(srv_approach_excavator.response.success.data){
-        // homingRecovery(); //TODO: bin recovery behavior/fine align
-        // }
-        // else
-
-        approachSuccess=true;
-        ROS_INFO_STREAM("[" << robot_name_ << "] " <<"approach excavator with classifier successful");
-        flag_dumping = true;
-        flag_volatile_handler = false;
-        // flag_arrived_at_waypoint = true;
-      }
+      //TODO: align?
+      progress = 1.0;
     }
     else
     {
-      ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Failed  to call service ApproachBin");
+      //TODO: something
+      progress = -1.0;
     }
-    ExcavatorApproachRecoveryCount= ExcavatorApproachRecoveryCount+1;
+  }
+  
+  //TODO: choose when to transition to dumping
+  if(false)
+  {
+    flag_dumping = true;
+    flag_localizing_volatile = false;
   }
 
-  if (!approachSuccess){
-    ROS_INFO_STREAM("[" << robot_name_ << "] " <<"HAULER : failed after 3 attempts");
-  }
+  state_machine::RobotStatus status_msg;
+  status_msg.progress.data = progress;
+  status_msg.state.data = (uint8_t) _volatile_handler;
+  sm_status_pub.publish(status_msg);
 }
 
 void SmHauler::stateLost()
@@ -461,14 +465,23 @@ void SmHauler::stateLost()
 
   RoverStatic(false);
 
+
+
   if(approachSuccess)
   {
-    progress = HomingUpdate(flag_need_init_landmark);
+    bool homingSuccess = HomingUpdate(flag_need_init_landmark);
+    if (homingSuccess)
+    {
+      progress = 1.0;
+    }
+    else
+    {
+      progress = -1.0;
+    }
   }
   else
   {
     progress = -1.0;
-    ROS_ERROR_STREAM("[" << robot_name_ << "] " <<" Homing Attempt Failed, Just Moving On For Now");
     // TODO: SOMETHING
   }
 
@@ -501,89 +514,47 @@ void SmHauler::stateLost()
 void SmHauler::stateDump()
 {
   ROS_WARN_STREAM("[" << robot_name_ << "] " <<"DUMPING STATE!\n");
-  double progress = 1.0;
+  
+  double progress = 0.0;
 
-  flag_arrived_at_waypoint = false;
-  flag_waypoint_unreachable = false;
-
-  // ToggleDetector(false);
-
-  // while (!clt_lights.waitForExistence())
-  // {
-  //     ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Waiting for Lights");
-  // }
-  // Lights(20);
-  //
-  // // *******get true pose for dump testing
-  // while (!clt_sf_true_pose.waitForExistence())
-  // {
-  //   ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Waiting for TruePose service");
-  // }
-  //
-  // // Update SF with True Pose
-  // sensor_fusion::GetTruePose srv_sf_true_pose;
-  // srv_sf_true_pose.request.start = true;
-  // if (clt_sf_true_pose.call(srv_sf_true_pose))
-  // {
-  //   ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Called service TruePose");
-  //   ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Status of SF True Pose: "<< srv_sf_true_pose.response.success);
-  // }
-  // else
-  // {
-  //   ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Failed  to call service Pose Update");
-  // }
-  //
-  // RoverStatic(true);
-
-  while (!clt_approach_bin.waitForExistence())
-  {
-    ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Waiting for ApproachBin service");
-  }
-
-  // approach bin with cv detector
-  src2_approach_services::ApproachBin srv_approach_bin;
-  srv_approach_bin.request.approach_bin.data= true;
-  bool approachSuccess = false;
-  int binApproachRecoveryCount = 0;
-  while(!approachSuccess && binApproachRecoveryCount<3){
-    if (clt_approach_bin.call(srv_approach_bin))
-    {
-      ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Called service ApproachBin");
-      ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Success finding the Bin? "<< srv_approach_bin.response.success.data);
-      if(srv_approach_bin.response.success.data){
-        // homingRecovery(); //TODO: bin recovery behavior/fine align
-        // }
-        // else
-
-        approachSuccess=true;
-        ROS_INFO_STREAM("[" << robot_name_ << "] " <<"approach bin with classifier successful");
-      }
-    }
-    else
-    {
-      ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Failed  to call service ApproachBin");
-    }
-    binApproachRecoveryCount=binApproachRecoveryCount+1;
-  }
-
+  bool approachSuccess = ApproachBin(3);
 
   // localize bin after approaching bin
-  if (approachSuccess){
-      range_to_base::LocationOfBin srv_location_of_bin;
-      srv_location_of_bin.request.location_of_bin.data=true;
-      bool binLocationSuccess = true;
+  if (approachSuccess)
+  {
+    bool locateBinSuccess = LocateBin();
+    if (locateBinSuccess)
+    {
       progress = 1.0;
+      flag_localizing_volatile = false;
+      flag_dumping = false;
 
-      // int binLocationRecoveryCount = 0;
-      clt_location_of_bin.call(srv_location_of_bin);
+      Brake(0.0);
 
-      if(!srv_location_of_bin.response.success.data){
-        ROS_INFO_STREAM("[" << robot_name_ << "] " <<"location of bin not reliable");
-        progress = -1.0;
+      DriveCmdVel(-0.5,0.0,0.0,5);
 
-      }
+      BrakeRamp(100, 3, 0);
 
-      //ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Hauler location: " << current_pose_);
+      Brake(0.0);
+
+      RotateInPlace(0.2, 3);
+
+      BrakeRamp(100, 3, 0);
+
+      Brake(0.0);
+
+      ClearCostmaps();
+
+      BrakeRamp(100, 2, 0);
+
+      Brake(0.0);
+
+    }
+    
+  }
+  else
+  {
+    progress = -1.0;
   }
 
   // approach closely
@@ -602,24 +573,11 @@ void SmHauler::stateDump()
   // double dump_thresh = 0.5;
   //
   // if (dist < dump_thresh){
-  Brake(100.0);
-  // std_msgs::Int64 state_msg;
-  // state_msg.data = _hauler_dumping;
-  // sm_status_pub.publish(state_msg);
 
   state_machine::RobotStatus status_msg;
   status_msg.progress.data = progress;
   status_msg.state.data = (uint8_t) _hauler_dumping;
   sm_status_pub.publish(status_msg);
-
-
-  DriveCmdVel(-1.0,0.0,0.0,5);
-
-// }
-  // flag_arrived_at_waypoint = false;
-  flag_volatile_handler = false;
-  flag_dumping = false;
-
 }
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -1214,17 +1172,21 @@ bool SmHauler::ApproachChargingStation(int max_count)
   {
     if (clt_approach_base.call(srv_approach_charging_station))
     {
-      ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Called service ApproachChargingStation");
-      ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Success finding the baseStation? "<< srv_approach_charging_station.response.success.data);
       if(srv_approach_charging_station.response.success.data)
       {
         success = true;
-        ROS_INFO_STREAM("[" << robot_name_ << "] " <<"approach base Station with classifier successful");
+        ROS_INFO_STREAM("[" << robot_name_ << "] " <<"ApproachChargingStation with classifier successful");
+      }
+      else
+      {
+        success = false;
+        ROS_INFO_STREAM("[" << robot_name_ << "] " <<"ApproachChargingStation with classifier successful");
       }
     }
     else
     {
-      ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Failed  to call service ApproachChargingStation");
+      success = false;
+      ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Failed to call ApproachChargingStation service");
     }
     count = count + 1;
   }
@@ -1232,27 +1194,119 @@ bool SmHauler::ApproachChargingStation(int max_count)
   return success;
 }
 
-double SmHauler::HomingUpdate(bool init_landmark)
+bool SmHauler::ApproachExcavator(int max_count)
 {
-  double progress = 0.0;
+  src2_approach_services::ApproachExcavator srv_approach_excavator;
+  srv_approach_excavator.request.approach_excavator.data= true;
+  bool success = false;
+  int count = 0;
+  while(!success && count<max_count)
+  {
+    if (clt_approach_excavator.call(srv_approach_excavator))
+    {
+      if(srv_approach_excavator.response.success.data)
+      {
+        success = true;
+        ROS_INFO_STREAM("[" << robot_name_ << "] " <<"ApproachExcavator with classifier successful");
+      }
+      else
+      {
+        success = false;
+        ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"ApproachExcavator with classifier NOT successful");
+      }
+    }
+    else
+    {
+      ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Failed to call ApproachExcavator service");
+    }
+    count = count + 1;
+  }
 
+  return success;
+}
+
+bool SmHauler::ApproachBin(int max_count)
+{
+  src2_approach_services::ApproachBin srv_approach_bin;
+  srv_approach_bin.request.approach_bin.data= true;
+  bool success = false;
+  int count = 0;
+  while(!success && count < max_count)
+  {
+    if (clt_approach_bin.call(srv_approach_bin))
+    {
+      if(srv_approach_bin.response.success.data)
+      {
+        success = true;
+        ROS_INFO_STREAM("[" << robot_name_ << "] " <<"ApproachBin with classifier successful");
+      }
+      else
+      {
+        success = false;
+        ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"ApproachBin with classifier NOT successful");
+      }
+    }
+    else
+    {
+      ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Failed to call ApproachBin service");
+    }
+    count = count + 1;
+  }
+
+  return success;
+}
+
+
+bool SmHauler::LocateBin()
+{
+  range_to_base::LocationOfBin srv_location_of_bin;
+  srv_location_of_bin.request.location_of_bin.data=true;
+  
+  bool success = false;
+
+  if(clt_location_of_bin.call(srv_location_of_bin))
+  {
+    if(srv_location_of_bin.response.success.data)
+    {
+      ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Location of bin reliable");
+      success = true;
+    }
+    else
+    {
+      ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Location of bin not reliable");
+      success = false;
+    }
+  }
+  else
+  {
+    ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Failed to call LocateBin service");
+    success = false;
+  }
+
+  return success;
+}
+
+bool SmHauler::HomingUpdate(bool init_landmark)
+{
   sensor_fusion::HomingUpdate srv_homing;
-  srv_homing.request.angle = pitch_ + .4; // pitch up is negative number
-  ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Requesting Angle for LIDAR " << srv_homing.request.angle);
+  srv_homing.request.angle = pitch_ - 0.4; // pitch up is negative number
   srv_homing.request.initializeLandmark = init_landmark;
+
+  bool success = false;
 
   if (clt_homing.call(srv_homing))
   {
-    ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Called service Homing.");
     if(init_landmark && srv_homing.response.success)
     {
       base_location_ = srv_homing.response.base_location;
-      ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Homing [Init] successful. Saving Base Location "<<base_location_.x << "," << base_location_.y);
-      progress = 1.0;
+      ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Homing [Init] successful.");
+      ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Saving Base Location "<<base_location_.x << "," << base_location_.y);
+      success = true;
     }
     else if (!init_landmark && srv_homing.response.success)
     {
       ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Homing [Update] successful.");
+      success = true;
     }
     else
     {
@@ -1261,10 +1315,9 @@ double SmHauler::HomingUpdate(bool init_landmark)
   }
   else
   {
-    ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Failed to call service Homing Service.");
-    progress = -1.0;
+    ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Failed to call Homing Service.");
   }
-  return progress;
+  return success;
 }
 
 void SmHauler::Plan()

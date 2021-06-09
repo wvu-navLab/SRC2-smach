@@ -40,6 +40,7 @@
 #include <task_planning/PlanInfo.h>
 #include <task_planning/Types.hpp>
 #include <state_machine/RobotStatus.h>
+#include <state_machine/ExcavationStatus.h>
 
 typedef actionlib::SimpleActionClient<move_base_msgs::MoveBaseAction> MoveBaseClient;
 
@@ -69,7 +70,7 @@ public:
   bool flag_need_init_landmark = false;
   bool flag_dumping = false; //true for testing dump
   bool flag_interrupt_plan = false;
-  bool flag_volatile_handler = true;
+  bool flag_approach_excavator = true;
 
 
   ros::Time detection_timer, not_detected_timer, wp_checker_timer;
@@ -172,7 +173,10 @@ public:
   void immobilityRecovery(int type);
   void CheckWaypoint(int max_count);
   bool ApproachChargingStation(int max_count);
-  double HomingUpdate(bool init_landmark);
+  bool ApproachExcavator(int max_count);
+  bool ApproachBin(int max_count);
+  bool HomingUpdate(bool init_landmark);
+  bool LocateBin();
   void Plan();
 
   // Parameters

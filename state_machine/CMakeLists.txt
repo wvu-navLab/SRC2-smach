@@ -78,6 +78,7 @@ find_package(Eigen3 3.3 REQUIRED)
 add_message_files(
   FILES
   RobotStatus.msg
+  ExcavationStatus.msg
 )
 
 # Generate services in the 'srv' folder

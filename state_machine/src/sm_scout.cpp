@@ -415,7 +415,7 @@ void SmScout::stateLost()
 {
   ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"LOST STATE!\n");
 
-  double progress = 1.0;
+  double progress = 0.0;
 
   ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Canceling MoveBase goal.");
   ac.waitForServer();
@@ -436,12 +436,19 @@ void SmScout::stateLost()
 
   if(approachSuccess)
   {
-    progress = HomingUpdate(flag_need_init_landmark);
+    bool homingSuccess = HomingUpdate(flag_need_init_landmark);
+    if (homingSuccess)
+    {
+      progress = 1.0;
+    }
+    else
+    {
+      progress = -1.0;
+    }
   }
   else
   {
     progress = -1.0;
-    ROS_ERROR_STREAM("[" << robot_name_ << "] " <<" Homing Attempt Failed, Just Moving On For Now");
     // TODO: SOMETHING
   }
 
@@ -1131,17 +1138,21 @@ bool SmScout::ApproachChargingStation(int max_count)
   {
     if (clt_approach_base.call(srv_approach_charging_station))
     {
-      ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Called service ApproachChargingStation");
-      ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Success finding the baseStation? "<< srv_approach_charging_station.response.success.data);
       if(srv_approach_charging_station.response.success.data)
       {
         success = true;
-        ROS_INFO_STREAM("[" << robot_name_ << "] " <<"approach base Station with classifier successful");
+        ROS_INFO_STREAM("[" << robot_name_ << "] " <<"ApproachChargingStation with classifier successful");
+      }
+      else
+      {
+        success = false;
+        ROS_INFO_STREAM("[" << robot_name_ << "] " <<"ApproachChargingStation with classifier successful");
       }
     }
     else
     {
-      ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Failed  to call service ApproachChargingStation");
+      success = false;
+      ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Failed to call ApproachChargingStation service");
     }
     count = count + 1;
   }
@@ -1149,27 +1160,27 @@ bool SmScout::ApproachChargingStation(int max_count)
   return success;
 }
 
-double SmScout::HomingUpdate(bool init_landmark)
+bool SmScout::HomingUpdate(bool init_landmark)
 {
-  double progress = 0.0;
-
   sensor_fusion::HomingUpdate srv_homing;
-  srv_homing.request.angle = pitch_ + .4; // pitch up is negative number
-  ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Requesting Angle for LIDAR " << srv_homing.request.angle);
+  srv_homing.request.angle = pitch_ - 0.4; // pitch up is negative number
   srv_homing.request.initializeLandmark = init_landmark;
+
+  bool success = false;
 
   if (clt_homing.call(srv_homing))
   {
-    ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Called service Homing.");
     if(init_landmark && srv_homing.response.success)
     {
       base_location_ = srv_homing.response.base_location;
-      ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Homing [Init] successful. Saving Base Location "<<base_location_.x << "," << base_location_.y);
-      progress = 1.0;
+      ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Homing [Init] successful.");
+      ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Saving Base Location "<<base_location_.x << "," << base_location_.y);
+      success = true;
     }
     else if (!init_landmark && srv_homing.response.success)
     {
       ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Homing [Update] successful.");
+      success = true;
     }
     else
     {
@@ -1178,10 +1189,9 @@ double SmScout::HomingUpdate(bool init_landmark)
   }
   else
   {
-    ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Failed to call service Homing Service.");
-    progress = -1.0;
+    ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Failed to call Homing Service.");
   }
-  return progress;
+  return success;
 }
 
 void SmScout::Plan()
