@@ -296,15 +296,16 @@ bool TaskPlanner::taskPlanService(task_planning::PlanInfo::Request &req,task_pla
       {
         if (!robot.plan.empty())
         {
-          res.objective = robot.plan[0];
           if(robot.type == mac::SCOUT)
           {
-            res.code.data = robots_.plan[0].point.z;
+            res.code.data = robot.plan[0].point.z;
+            robot.plan[0].point.z = 0;
           }
           else
           {
             res.code.data = 3;
           }
+          res.objective = robot.plan[0];
           ROS_ERROR_STREAM("Objective " << robot.plan[0]);
         }
         else
