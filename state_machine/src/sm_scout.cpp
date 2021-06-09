@@ -418,12 +418,7 @@ void SmScout::stateLost()
 
   BrakeRamp(100, 3, 0);
 
-  RoverStatic(true);
-
-  GetTruePose();
-
-  RoverStatic(false);
-
+  
   if(approachSuccess)
   {
     bool homingSuccess = HomingUpdate(flag_need_init_landmark);
