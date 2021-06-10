@@ -14,15 +14,12 @@ move_base_state(actionlib::SimpleClientGoalState::PREEMPTED)
 
   // Subscribers
   localized_base_sub = nh.subscribe("state_machine/localized_base", 1, &SmExcavator::localizedBaseCallback, this);
-  waypoint_unreachable_sub = nh.subscribe("state_machine/waypoint_unreachable", 1, &SmExcavator::waypointUnreachableCallback, this);
-  arrived_at_waypoint_sub = nh.subscribe("state_machine/arrived_at_waypoint", 1, &SmExcavator::arrivedAtWaypointCallback, this);
-  localization_failure_sub = nh.subscribe("state_machine/localization_failure", 1, &SmExcavator::localizationFailureCallback, this);
   localization_sub  = nh.subscribe("localization/odometry/sensor_fusion", 1, &SmExcavator::localizationCallback, this);
   driving_mode_sub =nh.subscribe("driving/driving_mode",1, &SmExcavator::drivingModeCallback, this);
   laser_scan_sub =nh.subscribe("laser/scan",1, &SmExcavator::laserCallback, this);
   joint_states_sub = nh.subscribe("joint_states", 1, &SmExcavator::jointStateCallback, this);
   bucket_info_sub = nh.subscribe("scoop_info", 1, &SmExcavator::bucketCallback, this);
-  // target_bin_sub = nh.subscribe("manipulation/target_bin", 1, &SmExcavator::targetBinCallback, this);
+  target_bin_sub = nh.subscribe("manipulation/target_bin", 1, &SmExcavator::targetBinCallback, this);
   goal_volatile_sub = nh.subscribe("manipulation/volatile_pose", 1, &SmExcavator::goalVolatileCallback, this);
   manipulation_cmd_sub = nh.subscribe("manipulation/cmd", 1, &SmExcavator::manipulationCmdCallback, this);
   planner_interrupt_sub = nh.subscribe("/planner_interrupt", 1, &SmExcavator::plannerInterruptCallback, this);
@@ -31,8 +28,6 @@ move_base_state(actionlib::SimpleClientGoalState::PREEMPTED)
   hauler2_odom_sub = nh.subscribe("/small_hauler_2/localization/odometry/sensor_fusion", 1, &SmExcavator::hauler2OdomCallback, this);
 
   // Clients
-  clt_wp_gen = nh.serviceClient<waypoint_gen::GenerateWaypoint>("navigation/generate_goal");
-  clt_wp_start = nh.serviceClient<waypoint_gen::StartWaypoint>("navigation/start");
   clt_stop = nh.serviceClient<driving_tools::Stop>("driving/stop");
   clt_rip = nh.serviceClient<driving_tools::RotateInPlace>("driving/rotate_in_place");
   clt_move_side = nh.serviceClient<driving_tools::MoveSideways>("driving/move_sideways");
@@ -57,17 +52,10 @@ move_base_state(actionlib::SimpleClientGoalState::PREEMPTED)
   clt_find_hauler = nh.serviceClient<move_excavator::FindHauler>("manipulation/find_hauler");
   clt_task_planning = nh.serviceClient<task_planning::PlanInfo>("/task_planner_exc_haul");
 
-  // Service
-  srv_mobility = nh.advertiseService("state_machine/mobility_service",&SmExcavator::setMobility, this);
-
-  driving_mode = 0;
-  waypoint_type = 0;
-
-  detection_timer = ros::Time::now();
-  not_detected_timer = ros::Time::now();
-  laser_collision_timer = ros::Time::now();
   map_timer = ros::Time::now();
   wp_checker_timer = ros::Time::now();
+  laser_collision_timer = ros::Time::now();
+
   manipulation_timer = ros::Time::now();
 
   node_name_ = "state_machine";
@@ -286,7 +274,7 @@ void SmExcavator::stateTraverse()
       is_colliding = srv_wp_check.response.collision;
       if (is_colliding) {
         ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Waypoint Unreachable. Sending to Planning");
-        flag_waypoint_unreachable = true;
+        // flag_waypoint_unreachable = true;
       }
     }
     wp_checker_timer = ros::Time::now();
@@ -299,7 +287,7 @@ void SmExcavator::stateTraverse()
   if(mb_state==5 || mb_state==7)
   {
     ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"MoveBase has failed to make itself useful.");
-    flag_waypoint_unreachable= true;
+    // flag_waypoint_unreachable= true;
 
     Stop (1.0);
 
@@ -328,7 +316,7 @@ void SmExcavator::stateTraverse()
   if (ros::Time::now() - waypoint_timer > timeoutWaypoint )
   {
     ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Waypoint Unreachable");
-    flag_waypoint_unreachable= true;
+    // flag_waypoint_unreachable= true;
     Stop (1.0);
     ClearCostmaps();
     BrakeRamp(100, 2, 0);
@@ -411,7 +399,6 @@ void SmExcavator::stateLost()
 
   BrakeRamp(100, 3, 0);
 
-
   if(approachSuccess)
   {
     bool homingSuccess = HomingUpdate(flag_need_init_landmark);
@@ -462,43 +449,21 @@ void SmExcavator::stateLost()
 void SmExcavator::localizedBaseCallback(const std_msgs::Int64::ConstPtr& msg)
 {
   flag_localized_base = (bool) msg->data;
-  if (flag_localized_base) {
+  if (flag_localized_base) 
+  {
     ROS_WARN_STREAM_ONCE("Initial Localization Successful = " << (int)flag_localized_base);
 
   }
-  else {
+  else 
+  {
     ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Waiting for Initial Localization  = " << (int)flag_localized_base);
   }
 }
 
-// void SmExcavator::mobilityCallback(const std_msgs::Int64::ConstPtr& msg)
-// {
-// flag_mobility = msg->data;
-// if (flag_mobility == 0) {
-//   ROS_INFO_STREAM("[" << robot_name_ << "] " <<"ROVER IMMOBILIZATION!  = " << (int) flag_mobility);
-//   immobilityRecovery(1);
-// } else {
-//   ROS_WARN_STREAM_ONCE("Rover is traversing = " << (int) flag_mobility);
-// }
-// }
-
-void SmExcavator::waypointUnreachableCallback(const std_msgs::Bool::ConstPtr& msg)
-{
-  flag_waypoint_unreachable = msg->data;
-}
-
-void SmExcavator::arrivedAtWaypointCallback(const std_msgs::Bool::ConstPtr& msg)
-{
-  flag_arrived_at_waypoint = msg->data;
-}
-
-void SmExcavator::localizationFailureCallback(const std_msgs::Bool::ConstPtr& msg)
-{
-  flag_localization_failure = msg->data;
-}
 void SmExcavator::drivingModeCallback(const std_msgs::Int64::ConstPtr& msg){
   driving_mode=msg->data;
 }
+
 void SmExcavator::localizationCallback(const nav_msgs::Odometry::ConstPtr& msg)
 {
   current_pose_ = msg->pose.pose;
@@ -574,10 +539,11 @@ void SmExcavator::doneCallback(const actionlib::SimpleClientGoalState& state, co
 {
   // ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Goal done");
 }
+
 void SmExcavator::activeCallback()
 {
-  // ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Goal went active");
 }
+
 void SmExcavator::feedbackCallback(const move_base_msgs::MoveBaseFeedback::ConstPtr& feedback)
 {
   // ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Got feedback");
@@ -721,7 +687,7 @@ void SmExcavator::hauler2OdomCallback(const nav_msgs::Odometry::ConstPtr &msg)
 
 void SmExcavator::RotateToHeading(double desired_yaw)
 {
-  ros::Rate raterotateToHeading(20);
+  ros::Rate rateRotateToHeading(20);
 
   ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Starting yaw control.");
 
@@ -741,15 +707,16 @@ void SmExcavator::RotateToHeading(double desired_yaw)
       yaw_error = yaw_error + 2*M_PI;
     }
   }
-  flag_heading_fail=false;
-  ros::Time start_time = ros::Time::now();
-  ros::Duration timeoutHeading(30.0); // Timeout of 20 seconds
+
+  bool flag_heading_fail = false;
+  ros::Time rotate_timer = ros::Time::now();
+  ros::Duration timeoutHeading(10.0); // Timeout of 20 seconds
 
   while(fabs(yaw_error) > yaw_thres)
   {
     RotateInPlace(copysign(0.1*(1 + fabs(yaw_error)/M_PI), -yaw_error),0.0);
 
-    raterotateToHeading.sleep();
+    rateRotateToHeading.sleep();
     ros::spinOnce();
 
     yaw_error = desired_yaw - yaw_;
@@ -766,11 +733,11 @@ void SmExcavator::RotateToHeading(double desired_yaw)
     }
     // ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Trying to control yaw to desired angles. Yaw error: "<<yaw_error);
 
-    // ROS_ERROR_STREAM("TIME: "<<ros::Time::now() - start_time << ", TIMEOUT: " << timeoutHeading);
+    // ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"TIME: "<<ros::Time::now() - rotate_timer << ", TIMEOUT: " << timeoutHeading);
 
-    if (ros::Time::now() - start_time > timeoutHeading)
+    if (ros::Time::now() - rotate_timer > timeoutHeading)
     {
-      ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Yaw Control Failed. Possibly stuck. Break control.");
+      ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Yaw Control Failed. Possibly stuck. Break control.");
       flag_heading_fail = true;
       break;
     }
@@ -865,9 +832,9 @@ void SmExcavator::immobilityRecovery(int type)
 
   Brake(0.0);
 
-  flag_mobility=true;
+  // flag_mobility=true;
 
-  flag_waypoint_unreachable=true;
+  // flag_waypoint_unreachable=true;
 
 
 }
@@ -1102,15 +1069,6 @@ void SmExcavator::RoverStatic(bool flag)
     ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Failed to call service RoverStatic");
   }
 
-}
-
-bool SmExcavator::setMobility(state_machine::SetMobility::Request &req, state_machine::SetMobility::Response &res){
-  ROS_INFO_STREAM("[" << robot_name_ << "] " <<" GOT MOBILITY IN SM"<< req.mobility);
-  flag_mobility = req.mobility;
-  immobilityRecovery(1);
-  //ros::Duration(2).sleep();
-  res.success = true;
-  return true;
 }
 
 void SmExcavator::ExecuteHomeArm(double timeout)

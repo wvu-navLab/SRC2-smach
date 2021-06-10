@@ -13,23 +13,14 @@ move_base_state(actionlib::SimpleClientGoalState::PREEMPTED)
   driving_mode_pub = nh.advertise<std_msgs::Int64>("driving/driving_mode", 1);
   cmd_dump_pub = nh.advertise<std_msgs::Float64>("bin/command/position", 1);
 
-
-  // Subscribers
+  // Subscribers  
   localized_base_sub = nh.subscribe("state_machine/localized_base", 1, &SmHauler::localizedBaseCallback, this);
-  // mobility_sub = nh.subscribe("/state_machine/mobility_scout", 1, &SmHauler::mobilityCallback, this);
-  waypoint_unreachable_sub = nh.subscribe("state_machine/waypoint_unreachable", 1, &SmHauler::waypointUnreachableCallback, this);
-  arrived_at_waypoint_sub = nh.subscribe("state_machine/arrived_at_waypoint", 1, &SmHauler::arrivedAtWaypointCallback, this);
-  volatile_detected_sub = nh.subscribe("state_machine/volatile_detected", 1, &SmHauler::volatileDetectedCallback, this);
-  volatile_recorded_sub = nh.subscribe("state_machine/volatile_recorded", 1, &SmHauler::volatileRecordedCallback, this);
-  localization_failure_sub = nh.subscribe("state_machine/localization_failure", 1, &SmHauler::localizationFailureCallback, this);
   localization_sub  = nh.subscribe("localization/odometry/sensor_fusion", 1, &SmHauler::localizationCallback, this);
-  driving_mode_sub =nh.subscribe("driving/driving_mode",1, &SmHauler::drivingModeCallback, this);
-  laser_scan_sub =nh.subscribe("laser/scan",1, &SmHauler::laserCallback, this);
+  driving_mode_sub = nh.subscribe("driving/driving_mode",1, &SmHauler::drivingModeCallback, this);
+  laser_scan_sub = nh.subscribe("laser/scan",1, &SmHauler::laserCallback, this);
   planner_interrupt_sub = nh.subscribe("/planner_interrupt", 1, &SmHauler::plannerInterruptCallback, this);
 
   // Clients
-  clt_wp_gen = nh.serviceClient<waypoint_gen::GenerateWaypoint>("navigation/generate_goal");
-  clt_wp_start = nh.serviceClient<waypoint_gen::StartWaypoint>("navigation/start");
   clt_stop = nh.serviceClient<driving_tools::Stop>("driving/stop");
   clt_rip = nh.serviceClient<driving_tools::RotateInPlace>("driving/rotate_in_place");
   clt_drive = nh.serviceClient<driving_tools::MoveForward>("driving/move_forward");
@@ -46,17 +37,14 @@ move_base_state(actionlib::SimpleClientGoalState::PREEMPTED)
   clt_approach_bin = nh.serviceClient<src2_approach_services::ApproachBin>("approach_bin_service");
   clt_location_of_bin = nh.serviceClient<range_to_base::LocationOfBin>("location_of_bin_service");
 
-  srv_mobility = nh.advertiseService("state_machine/mobility_service",&SmHauler::setMobility, this);
-
-  driving_mode =0;
-  waypoint_type =0;
-  flag_need_init_landmark=true;
-
-  detection_timer = ros::Time::now();
-  not_detected_timer = ros::Time::now();
-  last_time_laser_collision = ros::Time::now();
   map_timer = ros::Time::now();
   wp_checker_timer=  ros::Time::now();
+  laser_collision_timer = ros::Time::now();
+
+  // Local copy of the processing plant location
+  proc_plant_bin_location_.x = 13.5;
+  proc_plant_bin_location_.y = 9.0;
+  proc_plant_bin_location_.z = 0.0;
 
   node_name_ = "state_machine";
   if (ros::param::get("robot_name", robot_name_) == false)
@@ -71,6 +59,7 @@ move_base_state(actionlib::SimpleClientGoalState::PREEMPTED)
     ros::shutdown();
     exit(1);
   }
+
 }
 
 void SmHauler::run()
@@ -328,7 +317,7 @@ void SmHauler::stateTraverse()
   ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Traverse State\n");
 
   double distance_to_goal = std::hypot(goal_pose_.position.y - current_pose_.position.y, goal_pose_.position.x - current_pose_.position.x);
-  if (distance_to_goal < 2.0)
+  if (distance_to_goal < 2.0) // CHANGE TO 6.0
   {
     ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Close to goal, getting new waypoint.");
     flag_arrived_at_waypoint = true;
@@ -343,7 +332,7 @@ void SmHauler::stateTraverse()
       is_colliding = srv_wp_check.response.collision;
       if (is_colliding) {
         ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Waypoint Unreachable. Sending to Planning");
-        flag_waypoint_unreachable = true;
+        // flag_waypoint_unreachable = true;
       }
     }
     wp_checker_timer = ros::Time::now();
@@ -356,7 +345,7 @@ void SmHauler::stateTraverse()
   if(mb_state==5 || mb_state==7)
   {
     ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"MoveBase has failed to make itself useful.");
-    flag_waypoint_unreachable= true;
+    // flag_waypoint_unreachable= true;
 
     Stop (1.0);
 
@@ -386,7 +375,7 @@ void SmHauler::stateTraverse()
   if (ros::Time::now() - waypoint_timer > timeoutWaypoint )
   {
     ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Waypoint Unreachable");
-    flag_waypoint_unreachable= true;
+    // flag_waypoint_unreachable= true;
     Stop (1.0);
     ClearCostmaps();
     BrakeRamp(100, 2, 0);
@@ -412,28 +401,53 @@ void SmHauler::stateVolatileHandler()
   ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Volatile Handling State!");
   double progress = 0.0;
 
-  //TODO: Get feedback from Excavator before approaching
+  flag_full_bin = false;
+
+  // TODO: Get feedback from Excavator before approaching
+  // Include callback to ExcavationStatus
+  // According with ExcavationStatus we approach and park
+
   if(flag_approach_excavator)
   {
     bool approachSuccess = ApproachExcavator(3);
 
     if (approachSuccess)
     {
-      //TODO: align?
+      // TODO: This is where we are gonna call the parallel parking
+      // Include new method: SmHauler::ParallelParking that calls the service
       progress = 1.0;
+      flag_approach_excavator = false;
+      flag_full_bin = true;
     }
     else
     {
-      //TODO: something
+      // TODO: What do we do if approach fails? 
+      // Maybe send a new waypoint?
       progress = -1.0;
     }
   }
   
-  //TODO: choose when to transition to dumping
-  if(false)
+  // TODO: choose when to transition to dumping
+  // We need to check what is a good condition. Some possibilities:
+  // Five dumps?
+  // Node that checks the srcp2_score
+  // Node that checks the amount of material in the bin with the camera
+
+  
+  if(flag_full_bin)
   {
-    flag_dumping = true;
     flag_localizing_volatile = false;
+    flag_arrived_at_waypoint = false;
+    flag_dumping = true;
+
+    goal_pose_.position = proc_plant_bin_location_;
+    move_base_msgs::MoveBaseGoal move_base_goal;
+    ac.waitForServer();
+    setPoseGoal(move_base_goal, goal_pose_.position.x, goal_pose_.position.y, goal_yaw_);
+    ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Sending goal to MoveBase: " << move_base_goal);
+    waypoint_timer = ros::Time::now();
+    ac.sendGoal(move_base_goal, boost::bind(&SmHauler::doneCallback, this,_1,_2), boost::bind(&SmHauler::activeCallback, this), boost::bind(&SmHauler::feedbackCallback, this,_1));
+    ac.waitForResult(ros::Duration(0.25));  
   }
 
   state_machine::RobotStatus status_msg;
@@ -458,8 +472,6 @@ void SmHauler::stateLost()
   bool approachSuccess = ApproachChargingStation(3);
 
   BrakeRamp(100, 3, 0);
-
-
 
   if(approachSuccess)
   {
@@ -590,56 +602,11 @@ void SmHauler::localizedBaseCallback(const std_msgs::Int64::ConstPtr& msg)
   }
 }
 
-// void SmHauler::mobilityCallback(const std_msgs::Int64::ConstPtr& msg)
-// {
-// flag_mobility = msg->data;
-// if (flag_mobility == 0) {
-//   ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"ROVER IMMOBILIZATION!  = " << (int) flag_mobility);
-//   immobilityRecovery(1);
-// } else {
-//   ROS_WARN_STREAM_ONCE("Rover is traversing = " << (int) flag_mobility);
-// }
-// }
-
-void SmHauler::waypointUnreachableCallback(const std_msgs::Bool::ConstPtr& msg)
+void SmHauler::drivingModeCallback(const std_msgs::Int64::ConstPtr& msg)
 {
-  flag_waypoint_unreachable = msg->data;
-}
-
-void SmHauler::arrivedAtWaypointCallback(const std_msgs::Bool::ConstPtr& msg)
-{
-  flag_arrived_at_waypoint = msg->data;
-}
-
-void SmHauler::volatileDetectedCallback(const std_msgs::Float32::ConstPtr& msg)
-{
-
-  prev_volatile_detected_distance = volatile_detected_distance;
-  volatile_detected_distance = msg->data;
-
-}
-
-void SmHauler::volatileRecordedCallback(const std_msgs::Bool::ConstPtr& msg)
-{
-  flag_volatile_recorded = msg->data;
-  ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Record: " << flag_volatile_recorded);
-  if (flag_volatile_recorded == true)
-  {
-          volatile_detected_distance = -1.0;
-  }else
-  {
-    not_detected_timer = ros::Time::now();
-    ROS_INFO_STREAM("[" << robot_name_ << "] " <<"NAO" << not_detected_timer.toSec());
-  }
-}
-
-void SmHauler::localizationFailureCallback(const std_msgs::Bool::ConstPtr& msg)
-{
-  flag_localization_failure = msg->data;
-}
-void SmHauler::drivingModeCallback(const std_msgs::Int64::ConstPtr& msg){
   driving_mode=msg->data;
 }
+
 void SmHauler::localizationCallback(const nav_msgs::Odometry::ConstPtr& msg)
 {
   current_pose_ = msg->pose.pose;
@@ -668,7 +635,7 @@ void SmHauler::laserCallback(const sensor_msgs::LaserScan::ConstPtr& msg)
 
   if (min_range < LASER_THRESH)
   {
-    if (ros::Time::now() - last_time_laser_collision < ros::Duration(20))
+    if (ros::Time::now() - laser_collision_timer < ros::Duration(20))
     {
       ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Close to wall.");
       counter_laser_collision_++;
@@ -679,7 +646,7 @@ void SmHauler::laserCallback(const sensor_msgs::LaserScan::ConstPtr& msg)
       counter_laser_collision_ = 0;
       ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Counter laser RESET!");
     }
-    last_time_laser_collision = ros::Time::now();
+    laser_collision_timer = ros::Time::now();
   }
 
   if (counter_laser_collision_ > LASER_COUNTER_THRESH)
@@ -711,14 +678,15 @@ void SmHauler::setPoseGoal(move_base_msgs::MoveBaseGoal &poseGoal, double x, dou
   poseGoal.target_pose.pose.orientation.z = sy * cr * cp - cy * sr * sp;
 }
 
+void SmHauler::activeCallback()
+{
+}
+
 void SmHauler::doneCallback(const actionlib::SimpleClientGoalState& state, const move_base_msgs::MoveBaseResult::ConstPtr& result)
 {
   // ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Goal done");
 }
-void SmHauler::activeCallback()
-{
-  // ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Goal went active");
-}
+
 void SmHauler::feedbackCallback(const move_base_msgs::MoveBaseFeedback::ConstPtr& feedback)
 {
   // ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Got feedback");
@@ -750,7 +718,7 @@ void SmHauler::plannerInterruptCallback(const std_msgs::Bool::ConstPtr &msg)
 
 void SmHauler::RotateToHeading(double desired_yaw)
 {
-  ros::Rate raterotateToHeading(20);
+  ros::Rate rateRotateToHeading(20);
 
   ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Starting yaw control.");
 
@@ -770,15 +738,16 @@ void SmHauler::RotateToHeading(double desired_yaw)
       yaw_error = yaw_error + 2*M_PI;
     }
   }
-  flag_heading_fail=false;
-  ros::Time start_time = ros::Time::now();
+
+  bool flag_heading_fail = false;
+  ros::Time rotate_timer = ros::Time::now();
   ros::Duration timeoutHeading(10.0); // Timeout of 20 seconds
 
   while(fabs(yaw_error) > yaw_thres)
   {
     RotateInPlace(copysign(0.1*(1 + fabs(yaw_error)/M_PI), -yaw_error),0.0);
 
-    raterotateToHeading.sleep();
+    rateRotateToHeading.sleep();
     ros::spinOnce();
 
     yaw_error = desired_yaw - yaw_;
@@ -795,9 +764,9 @@ void SmHauler::RotateToHeading(double desired_yaw)
     }
     // ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Trying to control yaw to desired angles. Yaw error: "<<yaw_error);
 
-    // ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"TIME: "<<ros::Time::now() - start_time << ", TIMEOUT: " << timeoutHeading);
+    // ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"TIME: "<<ros::Time::now() - rotate_timer << ", TIMEOUT: " << timeoutHeading);
 
-    if (ros::Time::now() - start_time > timeoutHeading)
+    if (ros::Time::now() - rotate_timer > timeoutHeading)
     {
       ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Yaw Control Failed. Possibly stuck. Break control.");
       flag_heading_fail = true;
@@ -897,9 +866,9 @@ void SmHauler::immobilityRecovery(int type)
 
   Brake(0.0);
 
-  flag_mobility=true;
+  // flag_mobility=true;
 
-  flag_waypoint_unreachable=true;
+  // flag_waypoint_unreachable=true;
 
 
 }
@@ -1105,15 +1074,6 @@ void SmHauler::RoverStatic(bool flag)
     ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Failed to call service RoverStatic");
   }
 
-}
-
-bool SmHauler::setMobility(state_machine::SetMobility::Request &req, state_machine::SetMobility::Response &res){
-  ROS_ERROR_STREAM("[" << robot_name_ << "] " <<" GOT MOBILITY IN SM"<< req.mobility);
-  flag_mobility = req.mobility;
-  immobilityRecovery(1);
-  //ros::Duration(2).sleep();
-  res.success = true;
-  return true;
 }
 
 void SmHauler::CheckWaypoint(int max_count)

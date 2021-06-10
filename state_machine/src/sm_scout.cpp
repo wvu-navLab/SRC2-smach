@@ -12,20 +12,14 @@ move_base_state(actionlib::SimpleClientGoalState::PREEMPTED)
 
   // Subscribers
   localized_base_sub = nh.subscribe("state_machine/localized_base", 1, &SmScout::localizedBaseCallback, this);
-  // mobility_sub = nh.subscribe("/state_machine/mobility_scout", 1, &SmScout::mobilityCallback, this);
-  waypoint_unreachable_sub = nh.subscribe("state_machine/waypoint_unreachable", 1, &SmScout::waypointUnreachableCallback, this);
-  arrived_at_waypoint_sub = nh.subscribe("state_machine/arrived_at_waypoint", 1, &SmScout::arrivedAtWaypointCallback, this);
   volatile_sensor_sub = nh.subscribe("volatile_sensor", 1, &SmScout::volatileSensorCallback, this);
   volatile_cmd_sub = nh.subscribe("volatile_map/cmd", 1, &SmScout::volatileCmdCallback, this);
-  localization_failure_sub = nh.subscribe("state_machine/localization_failure", 1, &SmScout::localizationFailureCallback, this);
   localization_sub  = nh.subscribe("localization/odometry/sensor_fusion", 1, &SmScout::localizationCallback, this);
   driving_mode_sub =nh.subscribe("driving/driving_mode_",1, &SmScout::drivingModeCallback, this);
   laser_scan_sub =nh.subscribe("laser/scan",1, &SmScout::laserCallback, this);
   planner_interrupt_sub = nh.subscribe("/planner_interrupt", 1, &SmScout::plannerInterruptCallback, this);
 
   // Clients
-  clt_wp_gen = nh.serviceClient<waypoint_gen::GenerateWaypoint>("navigation/generate_goal");
-  clt_wp_start = nh.serviceClient<waypoint_gen::StartWaypoint>("navigation/start");
   clt_stop = nh.serviceClient<driving_tools::Stop>("driving/stop");
   clt_rip = nh.serviceClient<driving_tools::RotateInPlace>("driving/rotate_in_place");
   clt_move_side = nh.serviceClient<driving_tools::MoveSideways>("driving/move_sideways");
@@ -41,17 +35,9 @@ move_base_state(actionlib::SimpleClientGoalState::PREEMPTED)
   clt_srcp2_brake_rover = nh.serviceClient<srcp2_msgs::BrakeRoverSrv>("brake_rover");
   clt_task_planning = nh.serviceClient<task_planning::PlanInfo>("/task_planner_scout");
 
-  // Service
-  srv_mobility = nh.advertiseService("state_machine/mobility_service",&SmScout::setMobility, this);
-
-  driving_mode_ = 0;
-  waypoint_type_ = 0;
-
-  detection_timer = ros::Time::now();
-  not_detected_timer = ros::Time::now();
-  laser_collision_timer = ros::Time::now();
   map_timer = ros::Time::now();
   wp_checker_timer =  ros::Time::now();
+  laser_collision_timer = ros::Time::now();
 
   node_name_ = "state_machine";
   if (ros::param::get("robot_name", robot_name_) == false)
@@ -418,7 +404,6 @@ void SmScout::stateLost()
 
   BrakeRamp(100, 3, 0);
 
-  
   if(approachSuccess)
   {
     bool homingSuccess = HomingUpdate(flag_need_init_landmark);
@@ -478,27 +463,6 @@ void SmScout::localizedBaseCallback(const std_msgs::Int64::ConstPtr& msg)
   {
     ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Waiting for Initial Localization  = " << (int) flag_localized_base);
   }
-}
-
-// void SmScout::mobilityCallback(const std_msgs::Int64::ConstPtr& msg)
-// {
-// flag_mobility = msg->data;
-// if (flag_mobility == 0) {
-//   ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"ROVER IMMOBILIZATION!  = " << (int) flag_mobility);
-//   immobilityRecovery(1);
-// } else {
-//   ROS_WARN_STREAM_ONCE("Rover is traversing = " << (int) flag_mobility);
-// }
-// }
-
-void SmScout::waypointUnreachableCallback(const std_msgs::Bool::ConstPtr& msg)
-{
-  flag_waypoint_unreachable = msg->data;
-}
-
-void SmScout::arrivedAtWaypointCallback(const std_msgs::Bool::ConstPtr& msg)
-{
-  flag_arrived_at_waypoint = msg->data;
 }
 
 void SmScout::volatileSensorCallback(const srcp2_msgs::VolSensorMsg::ConstPtr& msg)
@@ -561,11 +525,6 @@ void SmScout::volatileCmdCallback(const std_msgs::Int64::ConstPtr& msg)
 
 }
 
-void SmScout::localizationFailureCallback(const std_msgs::Bool::ConstPtr& msg)
-{
-  flag_localization_failure = msg->data;
-}
-
 void SmScout::drivingModeCallback(const std_msgs::Int64::ConstPtr& msg){
   driving_mode_ =msg->data;
 }
@@ -582,6 +541,10 @@ void SmScout::localizationCallback(const nav_msgs::Odometry::ConstPtr& msg)
 
   tf2::Matrix3x3(q).getRPY(roll_, pitch_, yaw_);
 
+}
+
+void SmScout::activeCallback()
+{
 }
 
 void SmScout::laserCallback(const sensor_msgs::LaserScan::ConstPtr& msg)
@@ -623,11 +586,6 @@ void SmScout::laserCallback(const sensor_msgs::LaserScan::ConstPtr& msg)
 void SmScout::doneCallback(const actionlib::SimpleClientGoalState& state, const move_base_msgs::MoveBaseResult::ConstPtr& result)
 {
   // ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Goal done");
-}
-
-void SmScout::activeCallback()
-{
-  // ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Goal went active");
 }
 
 void SmScout::feedbackCallback(const move_base_msgs::MoveBaseFeedback::ConstPtr& feedback)
@@ -705,9 +663,9 @@ void SmScout::RotateToHeading(double desired_yaw)
     }
   }
 
-  flag_heading_fail=false;
-  ros::Time start_time = ros::Time::now();
-  ros::Duration timeoutHeading(30.0); // Timeout of 20 seconds
+  bool flag_heading_fail = false;
+  ros::Time rotate_timer = ros::Time::now();
+  ros::Duration timeoutHeading(10.0); // Timeout of 20 seconds
 
   while(fabs(yaw_error) > yaw_thres)
   {
@@ -730,9 +688,9 @@ void SmScout::RotateToHeading(double desired_yaw)
     }
     // ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Trying to control yaw to desired angles. Yaw error: "<<yaw_error);
 
-    // ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"TIME: " << ros::Time::now() - start_time << ", TIMEOUT: " << timeoutHeading);
+    // ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"TIME: "<<ros::Time::now() - rotate_timer << ", TIMEOUT: " << timeoutHeading);
 
-    if (ros::Time::now() - start_time > timeoutHeading)
+    if (ros::Time::now() - rotate_timer > timeoutHeading)
     {
       ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Yaw Control Failed. Possibly stuck. Break control.");
       flag_heading_fail = true;
@@ -753,7 +711,7 @@ void SmScout::RotateToHeading(double desired_yaw)
      Brake(0.0);
      // Stop(2.0);
 
-    //  immobilityRecovery(); //TODO: Use this instead of Stop and Drive at line 714 and 716
+  //  immobilityRecovery(); //TODO: Use this instead of Stop and Drive at line 714 and 716
 
     flag_heading_fail=false;
   }
@@ -832,9 +790,9 @@ void SmScout::immobilityRecovery(int type)
 
   Brake(0.0);
 
-  flag_mobility=true;
+  // flag_mobility=true;
 
-  flag_waypoint_unreachable=true;
+  // flag_waypoint_unreachable=true;
 
 
 }
@@ -1068,16 +1026,6 @@ void SmScout::RoverStatic(bool flag)
     ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Failed to call service RoverStatic");
   }
 
-}
-
-bool SmScout::setMobility(state_machine::SetMobility::Request &req, state_machine::SetMobility::Response &res)
-{
-  ROS_ERROR_STREAM("[" << robot_name_ << "] " <<" GOT MOBILITY IN SM"<< req.mobility);
-  flag_mobility = req.mobility;
-  immobilityRecovery(1);
-  //ros::Duration(2).sleep();
-  res.success = true;
-  return true;
 }
 
 void SmScout::CheckWaypoint(int max_count)
