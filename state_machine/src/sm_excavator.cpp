@@ -677,12 +677,14 @@ void SmExcavator::plannerInterruptCallback(const std_msgs::Bool::ConstPtr &msg)
 
 void SmExcavator::hauler1OdomCallback(const nav_msgs::Odometry::ConstPtr &msg)
 {
-  small_hauler_1_odom = *msg;
+  small_hauler_1_odom_ = *msg;
+  // ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Got small_hauler_1 odometry.");
 }
 
 void SmExcavator::hauler2OdomCallback(const nav_msgs::Odometry::ConstPtr &msg)
 {
-  small_hauler_2_odom = *msg;
+  small_hauler_2_odom_ = *msg;
+  // ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Got small_hauler_2 odometry.");
 }
 
 void SmExcavator::RotateToHeading(double desired_yaw)

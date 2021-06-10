@@ -160,8 +160,8 @@ void TaskPlanner::exc_haul_plan_default()
     }
     if (vol_pose[0] != 0 || vol_pose[1] != 0)
     {
-      temp.point.x = vol_pose[0]-2;
-      temp.point.y = vol_pose[1]-2;
+      temp.point.x = vol_pose[0]-5; // TODO: OFFSET FOR HAULER
+      temp.point.y = vol_pose[1]-5;
       robots_[nearest_int].plan.push_back(temp);
     }
   }

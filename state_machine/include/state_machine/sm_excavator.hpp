@@ -260,8 +260,8 @@ public:
   geometry_msgs::TransformStamped camera_link_to_arm_mount;
   geometry_msgs::TransformStamped arm_mount_to_camera_link;
 
-  nav_msgs::Odometry small_hauler_1_odom;
-  nav_msgs::Odometry small_hauler_2_odom;
+  nav_msgs::Odometry small_hauler_1_odom_;
+  nav_msgs::Odometry small_hauler_2_odom_;
 
   double volatile_heading_ = 0;
   double relative_heading_ = 0;

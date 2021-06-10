@@ -18,7 +18,10 @@ move_base_state(actionlib::SimpleClientGoalState::PREEMPTED)
   localization_sub  = nh.subscribe("localization/odometry/sensor_fusion", 1, &SmHauler::localizationCallback, this);
   driving_mode_sub = nh.subscribe("driving/driving_mode",1, &SmHauler::drivingModeCallback, this);
   laser_scan_sub = nh.subscribe("laser/scan",1, &SmHauler::laserCallback, this);
+  excavation_status_sub = nh.subscribe("state_machine/excavation_status",1, &SmHauler::excavationStatusCallback, this);
   planner_interrupt_sub = nh.subscribe("/planner_interrupt", 1, &SmHauler::plannerInterruptCallback, this);
+  excavator1_odom_sub = nh.subscribe("/small_excavator_1/localization/odometry/sensor_fusion",1, &SmHauler::excavator1OdomCallback, this);
+  excavator2_odom_sub = nh.subscribe("/small_excavator_2/localization/odometry/sensor_fusion",1, &SmHauler::excavator2OdomCallback, this);
 
   // Clients
   clt_stop = nh.serviceClient<driving_tools::Stop>("driving/stop");
@@ -402,6 +405,7 @@ void SmHauler::stateVolatileHandler()
   double progress = 0.0;
 
   flag_full_bin = false;
+  flag_approach_excavator = true;
 
   // TODO: Get feedback from Excavator before approaching
   // Include callback to ExcavationStatus
@@ -593,11 +597,12 @@ void SmHauler::stateDump()
 void SmHauler::localizedBaseCallback(const std_msgs::Int64::ConstPtr& msg)
 {
   flag_localized_base = (bool) msg->data;
-  if (flag_localized_base) {
+  if (flag_localized_base) 
+  {
     ROS_WARN_STREAM_ONCE("Initial Localization Successful = " << (int)flag_localized_base);
-
   }
-  else {
+  else 
+  {
     ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Waiting for Initial Localization  = " << (int)flag_localized_base);
   }
 }
@@ -655,6 +660,24 @@ void SmHauler::laserCallback(const sensor_msgs::LaserScan::ConstPtr& msg)
     ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"LASER COUNTER > 20 ! Starting Recovery.");
     immobilityRecovery(2);
   }
+}
+
+void SmHauler::excavationStatusCallback(const state_machine::ExcavationStatus::ConstPtr& msg)
+{
+  excavation_status_ = *msg;
+  // ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Got excavation status.");
+}
+
+void SmHauler::excavator1OdomCallback(const nav_msgs::Odometry::ConstPtr& msg)
+{
+  small_excavator_1_odom_ = *msg;
+  // ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Got small_excavator_1 odometry.");
+}
+
+void SmHauler::excavator2OdomCallback(const nav_msgs::Odometry::ConstPtr& msg)
+{
+  small_excavator_2_odom_ = *msg;
+  // ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Got small_excavator_2 odometry.");
 }
 
 void SmHauler::setPoseGoal(move_base_msgs::MoveBaseGoal &poseGoal, double x, double y, double yaw) // m, m, rad
@@ -1362,5 +1385,6 @@ void SmHauler::Plan()
   // srv_plan.response.id;
   // flag_interrupt_plan = false;
 }
+
 
 //------------------------------------------------------------------------------------------------------------------------

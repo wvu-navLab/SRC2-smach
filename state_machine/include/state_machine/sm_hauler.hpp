@@ -86,6 +86,9 @@ public:
   ros::Subscriber driving_mode_sub;
   ros::Subscriber laser_scan_sub;
   ros::Subscriber planner_interrupt_sub;
+  ros::Subscriber excavator1_odom_sub;
+  ros::Subscriber excavator2_odom_sub;
+  ros::Subscriber excavation_status_sub;
 
   ros::ServiceClient clt_sf_true_pose;
   ros::ServiceClient clt_vh_report;
@@ -127,6 +130,9 @@ public:
   void feedbackCallback(const move_base_msgs::MoveBaseFeedbackConstPtr& feedback);
   void activeCallback();
   void plannerInterruptCallback(const std_msgs::Bool::ConstPtr &msg);
+  void excavationStatusCallback(const state_machine::ExcavationStatus::ConstPtr& msg);
+  void excavator1OdomCallback(const nav_msgs::Odometry::ConstPtr& msg);
+  void excavator2OdomCallback(const nav_msgs::Odometry::ConstPtr& msg);
 
   // Methods
   void setPoseGoal(move_base_msgs::MoveBaseGoal& poseGoal, double x, double y, double yaw); // m, m, rad
@@ -163,6 +169,11 @@ public:
   geometry_msgs::Point base_location_;
   geometry_msgs::Point proc_plant_bin_location_;
 
+  nav_msgs::Odometry small_excavator_1_odom_;
+  nav_msgs::Odometry small_excavator_2_odom_;
+
+  state_machine::ExcavationStatus excavation_status_;
+
   // Transforms
   tf2_ros::Buffer tf_buffer;
   tf2_ros::TransformListener tf2_listener;
@@ -185,5 +196,4 @@ public:
 
   // Planning
   task_planning::PlanInfo prev_srv_plan;
- 
 };
