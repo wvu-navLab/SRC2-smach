@@ -34,6 +34,8 @@ struct Robot {
     nav_msgs::Odometry odom;
     std::vector<geometry_msgs::PointStamped> plan;
     bool is_initialized = false;
+    bool toggle_sleep = false;
+    double power;
 };
 
 struct Volatile {
@@ -67,6 +69,30 @@ struct PlanningParams {
     std::vector<std::vector<double>> plan;
     // Environment
     double wait_time; //seconds
+    double max_v_scout; // m/s
+    double max_v_excavator; // m/s
+    double max_v_hauler; // m/s
+    double vol_handling_time_scout;
+    double vol_handling_time_excavator;
+    double vol_handling_time_hauler;
+    double homing_time_scout;
+    double homing_time_excavator;
+    double homing_time_hauler;
+    double dumping_time;
+    std::vector<double> planning_scout_power_weights;
+    std::vector<double> vol_handle_scout_power_weights;
+    std::vector<double> lost_scout_power_weights;
+    std::vector<double> planning_excavator_power_weights;
+    std::vector<double> vol_handle_excavator_power_weights;
+    std::vector<double> lost_excavator_power_weights;
+    std::vector<double> planning_hauler_power_weights;
+    std::vector<double> vol_handle_hauler_power_weights;
+    std::vector<double> lost_hauler_power_weights;
+    std::vector<double> lost_hauler_power_weights;
+
+    std::vector<double> power_rates;
+
+
     // list parameters here such as power depletion rates, velocity, etc
 
 };
