@@ -585,23 +585,6 @@ void SmHauler::stateDump()
     progress = -1.0;
   }
 
-  // approach closely
-  // compare bin location w/ current location
-  //  current_pose_
-  // driving commands
-  // call bin location + verify
-  // dump action
-
-  // double distx = current_pose_.position.x - srv_location_of_bin.response.position.x;
-  // double disty = current_pose_.position.y - srv_location_of_bin.response.position.y;
-  //
-  // double dist  = std::pow((distx*distx + disty*disty), 0.5);
-  //
-  //
-  // double dump_thresh = 0.5;
-  //
-  // if (dist < dump_thresh){
-
   state_machine::RobotStatus status_msg;
   status_msg.progress.data = progress;
   status_msg.state.data = (uint8_t) _hauler_dumping;
