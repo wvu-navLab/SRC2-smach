@@ -656,6 +656,9 @@ void SmScout::plannerInterruptCallback(const std_msgs::Bool::ConstPtr &msg)
   prev_srv_plan.response.code == srv_plan.response.code))
   {
     flag_interrupt_plan = true;
+  } else
+  {
+    flag_interrupt_plan = false;
   }
 }
 
