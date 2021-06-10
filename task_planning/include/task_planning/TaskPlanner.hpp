@@ -22,6 +22,7 @@
 #include <task_planning/CostFunction.hpp>
 // #include <state_machine/RobotStatus.h>
 #include <task_planning/PlanInfo.h>
+//#include <task_planning/ForwardSearch.h>
 #include <volatile_map/VolatileMap.h>
 #include <geometry_msgs/PointStamped.h>
 
@@ -60,14 +61,16 @@ namespace mac {
 
 const int SCOUT_PLANNER_DEFAULT = 0;
 const int EXC_HAUL_PLANNER_DEFAULT = 1;
+const int EXC_HAUL_FORWARD_SEARCH = 2;
 
 class TaskPlanner {
 
   public:
 
     /** \brief  */
-    TaskPlanner(const CostFunction       & cost_function,
-                const std::vector<mac::Robot> & robots, const PlanningParams &planning_params);
+    TaskPlanner(const CostFunction            & cost_function,
+                const std::vector<mac::Robot> & robots, 
+                const PlanningParams          & planning_params);
 
   protected:
     /** \brief  */
@@ -104,6 +107,9 @@ class TaskPlanner {
     ros::ServiceServer server_task_planner;
 
     /** \brief  */
+    //ForwardSearch forward_search_;
+
+    /** \brief  */
     void timeCallback(const rosgraph_msgs::Clock::ConstPtr &msg);
 
     /** \brief  */
@@ -115,7 +121,7 @@ class TaskPlanner {
     /** \brief  */
     //void taskStatusCallback(const ros::MessageEvent<std_msgs::Bool const>& event);
     /** \brief */
-    bool taskPlanService(task_planning::PlanInfo::Request &req,task_planning::PlanInfo::Response &res);
+    bool taskPlanService(task_planning::PlanInfo::Request &req, task_planning::PlanInfo::Response &res);
 
     //maybe track internal state of robots or something along the lines of that
       // how full is hauler

@@ -280,7 +280,9 @@ bool TaskPlanner::taskPlanService(task_planning::PlanInfo::Request &req,task_pla
         case EXC_HAUL_PLANNER_DEFAULT :
           this->exc_haul_plan_default();
           break;
-
+        // case EXC_HAUL_FORWARD_SEARCH:
+        //   this->forward_search_.plan(robots_, volatile_map_, time_);
+        //   break;
         default:
           ROS_ERROR("Task Planner type invalid!");
           break;
@@ -409,6 +411,8 @@ TaskPlanner::TaskPlanner(const CostFunction       & cost_function,
 
 
   this->populate_prior_plan();
+
+  //ForwardSearch forward_search_(cost_function_, planning_params_);
 
 
 }

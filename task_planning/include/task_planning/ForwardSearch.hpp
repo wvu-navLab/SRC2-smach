@@ -10,6 +10,7 @@
 
 #include <string>
 #include <vector>
+#include <numeric>
 
 #include <ros/ros.h>
 #include <std_msgs/String.h>
@@ -114,7 +115,7 @@ protected:
 
   /** \brief Return all possible actions for the system given the state where
    * the actions are the combinations of possible actions for the robots.*/
-  std::vector<Action> get_actions_all_robots(const State & s);
+  std::vector<std::vector<Action>> get_actions_all_robots(const State &s);
 
   /** \brief  Return all possible actions for a robot given the state. */
   std::vector<Action> get_actions_robot(int robot_index, const State & s);
@@ -159,8 +160,17 @@ protected:
 
 private:
   double simulate_time_remaining(Robot *robot);
-  void simulate_time_step(Robot *robot, double min_time)
+  double get_traverse_time(Robot &robot);
+  double get_handling_time(Robot &robot);
+  double get_homing_time(Robot &robot);
+  double get_dumping_time(Robot &robot);
 
+  void simulate_time_step(Robot &robot, double min_time);
+  double ForwardSearch::time_to_power(Robot &robot, double time);
+  double time_to_motion(Robot &robot, double time);
+
+  /** \brief  */
+  std::vector<std::vector<int>> cartesian_product(const std::vector<std::vector<int>> & v);
 
   int get_robot_index(int robot_type, int robot_id);
 
