@@ -13,7 +13,7 @@ move_base_state(actionlib::SimpleClientGoalState::PREEMPTED)
   driving_mode_pub = nh.advertise<std_msgs::Int64>("driving/driving_mode", 1);
   cmd_dump_pub = nh.advertise<std_msgs::Float64>("bin/command/position", 1);
 
-  // Subscribers  
+  // Subscribers
   localized_base_sub = nh.subscribe("state_machine/localized_base", 1, &SmHauler::localizedBaseCallback, this);
   localization_sub  = nh.subscribe("localization/odometry/sensor_fusion", 1, &SmHauler::localizationCallback, this);
   driving_mode_sub = nh.subscribe("driving/driving_mode",1, &SmHauler::drivingModeCallback, this);
@@ -279,7 +279,7 @@ void SmHauler::statePlanning()
   RotateToHeading(goal_yaw_);
 
   BrakeRamp(100, 3.0, 0);
-  
+
   CheckWaypoint(3);
 
   ClearCostmaps();
@@ -317,7 +317,7 @@ void SmHauler::stateTraverse()
   ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Traverse State\n");
 
   double distance_to_goal = std::hypot(goal_pose_.position.y - current_pose_.position.y, goal_pose_.position.x - current_pose_.position.x);
-  if (distance_to_goal < 2.0) // CHANGE TO 6.0
+  if (distance_to_goal < 6.0) // CHANGE TO 6.0
   {
     ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Close to goal, getting new waypoint.");
     flag_arrived_at_waypoint = true;
@@ -399,8 +399,13 @@ void SmHauler::stateTraverse()
 void SmHauler::stateVolatileHandler()
 {
   ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Volatile Handling State!");
-  double progress = 0.0;
 
+  ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Canceling MoveBase goal.");
+  ac.waitForServer();
+  ac.cancelGoal();
+  ac.waitForResult(ros::Duration(0.25));
+
+  double progress = 0.0;
   flag_full_bin = false;
 
   // TODO: Get feedback from Excavator before approaching
@@ -409,10 +414,14 @@ void SmHauler::stateVolatileHandler()
 
   if(flag_approach_excavator)
   {
+    ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"STARTING APPROACH EXCAVATOR");
+
     bool approachSuccess = ApproachExcavator(3);
 
     if (approachSuccess)
     {
+      ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"APPROACH SUCCESS + CHANGING FLAGS ***********");
+
       // TODO: This is where we are gonna call the parallel parking
       // Include new method: SmHauler::ParallelParking that calls the service
       progress = 1.0;
@@ -421,21 +430,25 @@ void SmHauler::stateVolatileHandler()
     }
     else
     {
-      // TODO: What do we do if approach fails? 
+      // TODO: What do we do if approach fails?
       // Maybe send a new waypoint?
       progress = -1.0;
     }
   }
-  
+
   // TODO: choose when to transition to dumping
   // We need to check what is a good condition. Some possibilities:
   // Five dumps?
   // Node that checks the srcp2_score
   // Node that checks the amount of material in the bin with the camera
 
-  
+  ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"FULL BIN");
+  flag_full_bin = true;
+  Brake(0.0);
   if(flag_full_bin)
   {
+    flag_interrupt_plan = false;
+    flag_recovering_localization = false;
     flag_localizing_volatile = false;
     flag_arrived_at_waypoint = false;
     flag_dumping = true;
@@ -447,7 +460,7 @@ void SmHauler::stateVolatileHandler()
     ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Sending goal to MoveBase: " << move_base_goal);
     waypoint_timer = ros::Time::now();
     ac.sendGoal(move_base_goal, boost::bind(&SmHauler::doneCallback, this,_1,_2), boost::bind(&SmHauler::activeCallback, this), boost::bind(&SmHauler::feedbackCallback, this,_1));
-    ac.waitForResult(ros::Duration(0.25));  
+    ac.waitForResult(ros::Duration(0.25));
   }
 
   state_machine::RobotStatus status_msg;
@@ -455,7 +468,6 @@ void SmHauler::stateVolatileHandler()
   status_msg.state.data = (uint8_t) _volatile_handler;
   sm_status_pub.publish(status_msg);
 }
-
 void SmHauler::stateLost()
 {
   ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"LOST STATE!\n");
@@ -521,7 +533,12 @@ void SmHauler::stateLost()
 void SmHauler::stateDump()
 {
   ROS_WARN_STREAM("[" << robot_name_ << "] " <<"DUMPING STATE!\n");
-  
+
+  ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Canceling MoveBase goal.");
+  ac.waitForServer();
+  ac.cancelGoal();
+  ac.waitForResult(ros::Duration(0.25));
+
   double progress = 0.0;
 
   bool approachSuccess = ApproachBin(3);
@@ -557,7 +574,7 @@ void SmHauler::stateDump()
       Brake(0.0);
 
     }
-    
+
   }
   else
   {
@@ -694,7 +711,7 @@ void SmHauler::feedbackCallback(const move_base_msgs::MoveBaseFeedback::ConstPtr
 
 void SmHauler::plannerInterruptCallback(const std_msgs::Bool::ConstPtr &msg)
 {
-  task_planning::PlanInfo srv_plan; 
+  task_planning::PlanInfo srv_plan;
   srv_plan.request.replan.data = false;
   srv_plan.request.type.data = mac::SCOUT;
   srv_plan.request.id.data = robot_id_;
@@ -708,7 +725,7 @@ void SmHauler::plannerInterruptCallback(const std_msgs::Bool::ConstPtr &msg)
     ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Failed to call service RotateInPlace");
   }
 
-  if(!(prev_srv_plan.response.objective.point.x == srv_plan.response.objective.point.x && 
+  if(!(prev_srv_plan.response.objective.point.x == srv_plan.response.objective.point.x &&
   prev_srv_plan.response.objective.point.y == srv_plan.response.objective.point.y &&
   prev_srv_plan.response.code == srv_plan.response.code))
   {
@@ -1100,7 +1117,7 @@ void SmHauler::CheckWaypoint(int max_count)
         RotateToHeading(goal_yaw_);
 
         BrakeRamp(100, 3.0, 0);
-        
+
         Brake (0.0);
       }
     }
@@ -1214,7 +1231,7 @@ bool SmHauler::LocateBin()
 {
   range_to_base::LocationOfBin srv_location_of_bin;
   srv_location_of_bin.request.location_of_bin.data=true;
-  
+
   bool success = false;
 
   if(clt_location_of_bin.call(srv_location_of_bin))
