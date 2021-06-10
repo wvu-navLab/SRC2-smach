@@ -177,7 +177,7 @@ void SmScout::stateInitialize()
   Brake(100.0);
 
   RoverStatic(true);
-  
+
   GetTruePose();
 
   RoverStatic(false);
@@ -220,7 +220,7 @@ void SmScout::statePlanning()
 
   Brake(0.0);
 
-  if (!no_objective) 
+  if (!no_objective)
   {
     move_base_msgs::MoveBaseGoal move_base_goal;
     ac.waitForServer();
@@ -418,7 +418,7 @@ void SmScout::stateLost()
 
   BrakeRamp(100, 3, 0);
 
-  
+
   if(approachSuccess)
   {
     bool homingSuccess = HomingUpdate(flag_need_init_landmark);
@@ -470,11 +470,11 @@ void SmScout::stateLost()
 void SmScout::localizedBaseCallback(const std_msgs::Int64::ConstPtr& msg)
 {
   flag_localized_base = (bool) msg->data;
-  if (flag_localized_base) 
+  if (flag_localized_base)
   {
     ROS_WARN_STREAM_ONCE("Initial Localization Successful = " << (int) flag_localized_base);
   }
-  else 
+  else
   {
     ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Waiting for Initial Localization  = " << (int) flag_localized_base);
   }
@@ -637,7 +637,7 @@ void SmScout::feedbackCallback(const move_base_msgs::MoveBaseFeedback::ConstPtr&
 
 void SmScout::plannerInterruptCallback(const std_msgs::Bool::ConstPtr &msg)
 {
-  task_planning::PlanInfo srv_plan; 
+  task_planning::PlanInfo srv_plan;
   srv_plan.request.replan.data = false;
   srv_plan.request.type.data = mac::SCOUT;
   srv_plan.request.id.data = robot_id_;
@@ -651,7 +651,7 @@ void SmScout::plannerInterruptCallback(const std_msgs::Bool::ConstPtr &msg)
     ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Failed to call service RotateInPlace");
   }
 
-  if(!(prev_srv_plan.response.objective.point.x == srv_plan.response.objective.point.x && 
+  if(!(prev_srv_plan.response.objective.point.x == srv_plan.response.objective.point.x &&
   prev_srv_plan.response.objective.point.y == srv_plan.response.objective.point.y &&
   prev_srv_plan.response.code == srv_plan.response.code))
   {
@@ -1107,7 +1107,7 @@ void SmScout::CheckWaypoint(int max_count)
         RotateToHeading(goal_yaw_);
 
         BrakeRamp(100, 3.0, 0);
-        
+
         Brake (0.0);
       }
     }
