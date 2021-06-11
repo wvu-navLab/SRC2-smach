@@ -72,9 +72,10 @@ void TaskPlanner::exc_haul_plan_default()
   std::vector<double> pose_min, vol_pose, default_pose, current_pose;
   default_pose.push_back(0);
   default_pose.push_back(0);
-
+  ROS_ERROR_STREAM("VOL MAP SIZE: " << volatile_map_.vol.size());
   for (int i = 0; i < volatile_map_.vol.size(); ++i)
   {
+    ROS_ERROR_STREAM("STARTED CHECKING VOLS");
     //EXCAVATOR
 
     vol_pose = default_pose;
@@ -110,7 +111,7 @@ void TaskPlanner::exc_haul_plan_default()
           nearest_int = j;
           pose_min[0] = robots_[j].odom.pose.pose.position.x;
           pose_min[1] = robots_[j].odom.pose.pose.position.y;
-          // ROS_ERROR_STREAM("Excavator pose min " << pose_min[0] << "," << pose_min[1]);
+          ROS_ERROR_STREAM("Excavator pose min " << pose_min[0] << "," << pose_min[1]);
         }
       }
     }
@@ -155,6 +156,8 @@ void TaskPlanner::exc_haul_plan_default()
           nearest_int = j;
           pose_min[0] = robots_[j].odom.pose.pose.position.x;
           pose_min[1] = robots_[j].odom.pose.pose.position.y;
+          ROS_ERROR_STREAM("Hauler pose min " << pose_min[0] << "," << pose_min[1]);
+
         }
       }
     }
@@ -275,9 +278,11 @@ bool TaskPlanner::taskPlanService(task_planning::PlanInfo::Request &req,task_pla
       switch(planning_params_.type)
       {
         case SCOUT_PLANNER_DEFAULT :
+          ROS_WARN_STREAM("SCOUT PLANNER");
           this->scout_plan_default(req.type.data, req.id.data);
           break;
         case EXC_HAUL_PLANNER_DEFAULT :
+          ROS_WARN_STREAM("EXC HAUL PLANNER");
           this->exc_haul_plan_default();
           break;
         // case EXC_HAUL_FORWARD_SEARCH:
@@ -293,7 +298,28 @@ bool TaskPlanner::taskPlanService(task_planning::PlanInfo::Request &req,task_pla
       pub_interrupt.publish(msg);
     }
     for (auto&robot: robots_)
-    {
+    { 
+      switch(planning_params_.type)
+      {
+        case SCOUT_PLANNER_DEFAULT :
+          ROS_WARN_STREAM("SCOUT PLANNER");
+          break;
+        case EXC_HAUL_PLANNER_DEFAULT :
+          ROS_WARN_STREAM("EXC_HAUL PLANNER");
+          break;
+        default:
+          break;
+      }
+      ROS_WARN_STREAM("[TASK PLANNER]: request type" << (int) req.type.data << ", request robot.id " << (int) req.id.data);
+      ROS_WARN_STREAM("OBJECTIVE: type " << robot.type  << " robot.id " << robot.id);
+      if (!robot.plan.empty())
+      {
+        ROS_WARN_STREAM("plan: (" << robot.plan[0].point.x << ", " << robot.plan[0].point.y << ", " << robot.plan[0].point.z << ")");
+      } 
+      else
+      {
+        ROS_WARN_STREAM("No plan");
+      }
       if (req.type.data == robot.type && req.id.data == robot.id)
       {
         if (!robot.plan.empty())
@@ -312,9 +338,14 @@ bool TaskPlanner::taskPlanService(task_planning::PlanInfo::Request &req,task_pla
         }
         else
         {
-          res.code.data = -1;
+          res.code.data = 255;
           ROS_ERROR_STREAM("[TASK PLANNER] No objective.");
         }
+      } 
+      else
+      {
+        res.code.data = 255;
+        ROS_ERROR_STREAM("BRUH, Y NO GOOD ROBOT FOR TASK PLANNER");
       }
     }
   ROS_ERROR("Planning ended.");

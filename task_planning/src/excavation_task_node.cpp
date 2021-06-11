@@ -18,7 +18,7 @@
 
 int main(int argc, char** argv)
 {
-		ros::init(argc,argv,"scouting_task_node");
+		ros::init(argc,argv,"excavation_task_node");
 		ros::NodeHandle nh;
 
     /**----------------- Import Offline Plan -----------------------------*/
