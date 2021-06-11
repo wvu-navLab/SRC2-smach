@@ -60,12 +60,12 @@ void SmScout::run()
   while(ros::ok())
   {
     // Debug prints +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-    // ROS_INFO_STREAM("[" << robot_name_ << "] " <<"flag_have_true_pose: " << (int)flag_have_true_pose);
-    // ROS_INFO_STREAM("[" << robot_name_ << "] " <<"flag_interrupt_plan: " << (int)flag_interrupt_plan);
-    // ROS_INFO_STREAM("[" << robot_name_ << "] " <<"flag_arrived_at_waypoint: " << (int)flag_arrived_at_waypoint);
-    // ROS_INFO_STREAM("[" << robot_name_ << "] " <<"flag_localizing_volatile: " << (int)flag_localizing_volatile);
-    // ROS_INFO_STREAM("[" << robot_name_ << "] " <<"flag_recovering_localization: " << (int)flag_recovering_localization);
-    // ROS_INFO_STREAM("[" << robot_name_ << "] " <<"flag_brake_engaged: " << (int)flag_brake_engaged);
+    ROS_INFO_STREAM("[" << robot_name_ << "] " <<"flag_have_true_pose: " << (int)flag_have_true_pose);
+    ROS_INFO_STREAM("[" << robot_name_ << "] " <<"flag_interrupt_plan: " << (int)flag_interrupt_plan);
+    ROS_INFO_STREAM("[" << robot_name_ << "] " <<"flag_arrived_at_waypoint: " << (int)flag_arrived_at_waypoint);
+    ROS_INFO_STREAM("[" << robot_name_ << "] " <<"flag_localizing_volatile: " << (int)flag_localizing_volatile);
+    ROS_INFO_STREAM("[" << robot_name_ << "] " <<"flag_recovering_localization: " << (int)flag_recovering_localization);
+    ROS_INFO_STREAM("[" << robot_name_ << "] " <<"flag_brake_engaged: " << (int)flag_brake_engaged);
     //---------------------------------------------------------------------------------------------------------------------
 
     // State machine truth table ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -599,7 +599,7 @@ void SmScout::plannerInterruptCallback(const std_msgs::Bool::ConstPtr &msg)
   srv_plan.request.replan.data = false;
   srv_plan.request.type.data = (uint8_t) mac::SCOUT;
   srv_plan.request.id.data = (uint8_t) robot_id_;
-  ROS_WARN_STREAM("[" << robot_name_ << "] " << "SMACH, PLAN: " <<  (int) srv_plan.request.type.data << " id " << (int) srv_plan.request.id.data );
+  ROS_WARN_STREAM("[" << robot_name_ << "] " << " PLANNER INTERRUPT CALLBACK: robot.type " <<  (int) srv_plan.request.type.data << ", robot.id " << (int) srv_plan.request.id.data );
 
   if (clt_task_planning.call(srv_plan))
   {
@@ -1178,50 +1178,50 @@ void SmScout::Plan()
 
   switch (srv_plan.response.code.data)
   {
-  // case _initialize:
-  //   ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Task Planner: Initialize");
-  //   flag_have_true_pose = false;
-  //   break;
+    case _initialize:
+      ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Task Planner: Initialize");
+      // flag_have_true_pose = false;
+      break;
 
-  case _planning:
-    ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Task Planner: Planning");
-    flag_interrupt_plan = true;
-    flag_arrived_at_waypoint = true;
-    flag_recovering_localization = false;
-    flag_localizing_volatile = false;
-    break;
+    case _planning:
+      ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Task Planner: Planning");
+      flag_interrupt_plan = true;
+      flag_arrived_at_waypoint = true;
+      flag_recovering_localization = false;
+      flag_localizing_volatile = false;
+      break;
 
-  case _traverse:
-    ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Task Planner: Traverse");
-    flag_interrupt_plan = false;
-    flag_arrived_at_waypoint = false;
-    flag_recovering_localization = false;
-    flag_localizing_volatile = false;
-    break;
+    case _traverse:
+      ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Task Planner: Traverse");
+      flag_interrupt_plan = false;
+      flag_arrived_at_waypoint = false;
+      flag_recovering_localization = false;
+      flag_localizing_volatile = false;
+      break;
 
-  case _volatile_handler:
-    ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Task Planner: Vol Handler");
-    flag_interrupt_plan = false;
-    flag_arrived_at_waypoint = false;
-    flag_recovering_localization = false;
-    flag_localizing_volatile = true;
-    break;
+    case _volatile_handler:
+      ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Task Planner: Vol Handler");
+      flag_interrupt_plan = false;
+      flag_arrived_at_waypoint = false;
+      flag_recovering_localization = false;
+      flag_localizing_volatile = true;
+      break;
 
-  case _lost:
-    ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Task Planner: Homing");
-    flag_interrupt_plan = false;
-    flag_arrived_at_waypoint = false;
-    flag_recovering_localization = true;
-    flag_localizing_volatile = false;
-    break;
+    case _lost:
+      ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Task Planner: Homing");
+      flag_interrupt_plan = false;
+      flag_arrived_at_waypoint = false;
+      flag_recovering_localization = true;
+      flag_localizing_volatile = false;
+      break;
 
-  default:
-    ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Task Planner: No idea what Im doing");
-    flag_interrupt_plan = true;
-    flag_arrived_at_waypoint = true;
-    flag_recovering_localization = false;
-    flag_localizing_volatile = false;
-    break;
+    default:
+      ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Task Planner: No idea what Im doing");
+      flag_interrupt_plan = true;
+      flag_arrived_at_waypoint = true;
+      flag_recovering_localization = false;
+      flag_localizing_volatile = false;
+      break;
   }
 
   // srv_plan.response.id;
