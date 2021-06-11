@@ -5,7 +5,7 @@
   <include file="$(find volatile_map)/launch/volatile_map.launch"/>
 
   <!-- task_planning launch file -->
-  <!-- <include file="$(find task_planning)/launch/task_planning.launch"/> -->
+  <include file="$(find task_planning)/launch/task_planning.launch"/>
 
   <!-- obstacle_detection launch file -->
   <include file="$(find src2_object_detection)/launch/obstacle_detection_master.launch"/>
