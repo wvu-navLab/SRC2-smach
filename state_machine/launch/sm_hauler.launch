@@ -2,7 +2,7 @@
   <group ns="small_hauler_1">
     <param name="robot_name" value="small_hauler_1" />
     <param name="robot_id" value="1" />
-    
+
     <!-- static transform from odom to map-->
     <node pkg="tf" type="static_transform_publisher" name="map_to_odom" args="0 0 0 0 0 0 map small_hauler_1_odom 100" />
 
