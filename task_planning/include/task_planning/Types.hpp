@@ -68,7 +68,7 @@ struct PlanningParams {
     int type;
     std::vector<std::vector<double>> plan;
     // Environment
-    double wait_time; //seconds
+    double wait_time = 30; //seconds
     double max_v_scout; // m/s
     double max_v_excavator; // m/s
     double max_v_hauler; // m/s
@@ -87,7 +87,6 @@ struct PlanningParams {
     std::vector<double> lost_excavator_power_weights;
     std::vector<double> planning_hauler_power_weights;
     std::vector<double> vol_handle_hauler_power_weights;
-    std::vector<double> lost_hauler_power_weights;
     std::vector<double> lost_hauler_power_weights;
 
     std::vector<double> power_rates;

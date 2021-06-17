@@ -45,9 +45,12 @@ void print_vector(const std::vector<double> &v, std::string s)
 
 int main(int argc, char **argv)
 {
+  //set of doubles (set that we need cartesian product of)
   std::vector<double> Ad = {-1.1, 2.7, 3};
   std::vector<double> Bd = {500};
   std::vector<double> Cd = {0.097, 0.002};
+  
+  //print set of doubles
   std::cout << "INPUT VECTOR INDICES" << std::endl;
   print_vector(Ad, "Ad");
   print_vector(Bd, "Bd");
@@ -57,12 +60,15 @@ int main(int argc, char **argv)
   Sd.push_back(Bd);
   Sd.push_back(Cd);
 
-  std::vector<int> A(3);
-  std::vector<int> B(1);
-  std::vector<int> C(2);
+  //index set (set that used for indexing set above)
+  std::vector<int> A(Ad.size());
+  std::vector<int> B(Bd.size());
+  std::vector<int> C(Cd.size());
   std::iota(A.begin(), A.end(), 0);
   std::iota(B.begin(), B.end(), 0);
   std::iota(C.begin(), C.end(), 0);
+  
+  //print index set
   std::cout << "INPUT VECTOR INDICES" << std::endl;
   print_vector(A, "A");
   print_vector(B, "B");
@@ -72,9 +78,11 @@ int main(int argc, char **argv)
   S.push_back(B);
   S.push_back(C);
 
+  //cartesian product
   std::vector<std::vector<int>> prod;
   prod = cartesian_product(S);
 
+  //print index set of cartesian product
   std::cout << "CARTESIAN PRODUCT" << std::endl;
   for (int i = 0; i < prod.size(); i++)
   {
@@ -86,6 +94,7 @@ int main(int argc, char **argv)
     std::cout << std::endl;
   }
 
+  //print cartesian product of 
   std::cout << "CARTESIAN PRODUCT MAPPED TO INPUTS" << std::endl;
   std::vector<std::vector<double>> prodd;
   for (int i = 0; i < prod.size(); i++)
