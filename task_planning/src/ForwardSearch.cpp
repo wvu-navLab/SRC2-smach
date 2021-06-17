@@ -45,9 +45,6 @@ namespace mac
     layer_root.push_back(root);
     tree_.push_back(layer_root);
 
-    // we don't have time
-    // we do have state, objective
-    // compute initial time remaining and add to state
     //construct tree
     int depth = 0;
     while (depth < n - 1)
@@ -132,6 +129,8 @@ namespace mac
 
   std::vector<std::vector<Action>> ForwardSearch::get_actions_all_robots(const State &s)
   {
+    //is there volatiles, and is the robots at home, then return no actionss at least for haulers and excavators
+
     //get all possible actions for individual robots
     std::vector<std::vector<Action>> all_robots_actions;
     std::vector<std::vector<int>> all_robots_actions_indices;
@@ -375,7 +374,7 @@ namespace mac
   int ForwardSearch::get_policy()
   {
     int max_ind = 0;
-    doublt max_cost = -5e6;
+    double max_cost = -5e6;
     for (auto &v : tree[tree.size() - 1])
     {
       if (max_cost < v.cost)

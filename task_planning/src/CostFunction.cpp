@@ -35,11 +35,14 @@ namespace mac
     case SWITCH_TASK:
       return this->cost_switch_task(s, joint_action, s_prime);
 
-    case G:
-      return this->cost_G(s, joint_action, s_prime);
+    case VOL_COLLECTED:
+      return this->cost_vol_collected(s, joint_action, s_prime);
 
-    case H:
-      return this->cost_H(s, joint_action, s_prime);
+    case TIME_PASSED:
+      return this->cost_time_passed(s, joint_action, s_prime);
+
+    case TIME_VOL_COLLECTED:
+      return this->cost_time_vol_collected(s, joint_action, s_prime);
 
     default:
       ROS_ERROR("CostFunction::compute_cost: cost_type invalid!");
@@ -109,17 +112,27 @@ namespace mac
     return 0;
   }
 
-  double CostFunction::cost_G(const State s,
-                              const std::vector<Action> joint_action,
-                              const State s_prime) const
+  double CostFunction::cost_vol_collected(const State s,
+                                          const std::vector<Action> joint_action,
+                                          const State s_prime) const
+  {
+    //de prioritized failed to collect vols
+    return 0;
+  }
+
+  double CostFunction::cost_time_passed(const State s,
+                                         const std::vector<Action> joint_action,
+                                         const State s_prime) const
   {
     return 0;
   }
 
-  double CostFunction::cost_H(const State s,
-                              const std::vector<Action> joint_action,
-                              const State s_prime) const
+  double CostFunction::cost_time_vol_collected(const State s,
+                                               const std::vector<Action> joint_action,
+                                               const State s_prime) const
   {
+    //cost_time_passed(s,joint_action,s_prime)
+    //cost_vol_collected(s,joint_action,s_prime)
     return 0;
   }
 

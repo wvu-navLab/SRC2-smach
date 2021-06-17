@@ -26,6 +26,8 @@
 #include <volatile_map/VolatileMap.h>
 #include <geometry_msgs/PointStamped.h>
 
+//TODO: add is_terminal() behavior
+
 namespace mac
 {
 
@@ -109,7 +111,7 @@ namespace mac
     };
 
     /** \brief  */
-    std::vector<vertex> expand(const State &s,
+    std::vector<Vertex> expand(const State &s,
                                const std::vector<Action> &joint_action);
 
     /** \brief Return all possible actions for the system given the state where
@@ -120,20 +122,20 @@ namespace mac
     std::vector<Action> get_actions_robot(int robot_index, const State &s);
 
     /** \brief  Return all possible actions for a scout given the state */
-    std::vector<Action> ForwardSearch::get_actions_scout(int robot_index, const State &s);
+    std::vector<Action> get_actions_scout(int robot_index, const State &s);
 
     /** \brief  Return all possible actions for an excavator given the state */
-    std::vector<Action> ForwardSearch::get_actions_excavator(int robot_index, const State &s);
+    std::vector<Action> get_actions_excavator(int robot_index, const State &s);
 
     /** \brief  Return all possible actions for a hauler given the state */
-    std::vector<Action> ForwardSearch::get_actions_hauler(int robot_index, const State &s);
+    std::vector<Action> get_actions_hauler(int robot_index, const State &s);
 
     //INCOMPLETE
     /** \brief  */
     int get_policy();
 
     /** \brief  */
-    vertex propagate(State s, Action a);
+    Vertex propagate(State s, Action a);
 
     //INCOMPLETE
     /** \brief  */

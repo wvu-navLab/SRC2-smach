@@ -23,8 +23,9 @@ namespace mac
   const int UNCERTAINTY_VOLATILE = 3;
   const int TIME_REMAINING = 4;
   const int SWITCH_TASK = 5;
-  const int G = 6;
-  const int H = 7;
+  const int VOL_COLLECTED = 6;
+  const int TIME_PASSED = 7;
+  const int TIME_VOL_COLLECTED = 8;
 
   class CostFunction
   {
@@ -80,14 +81,19 @@ namespace mac
                             const State s_prime) const;
 
     /** \brief  */
-    double cost_G(const State s,
-                  const std::vector<Action> joint_action,
-                  const State s_prime) const;
+    double cost_vol_collected(const State s,
+                              const std::vector<Action> joint_action,
+                              const State s_prime) const;
 
     /** \brief  */
-    double cost_H(const State s,
-                  const std::vector<Action> joint_action,
-                  const State s_prime) const;
+    double cost_time_passed(const State s,
+                            const std::vector<Action> joint_action,
+                            const State s_prime) const;
+
+    /** \brief  */
+    double cost_time_vol_collected(const State s,
+                                   const std::vector<Action> joint_action,
+                                   const State s_prime) const;
 
     /** \brief  */
     //double cost_B(const Volatile & volatile,

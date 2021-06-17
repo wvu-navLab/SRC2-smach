@@ -140,6 +140,11 @@ target_link_libraries(TaskPlannerLib
   ${catkin_LIBRARIES}
 )
 
+# add_library(ForwardSearchLib src/ForwardSearch.cpp)
+# target_link_libraries(ForwardSearchLib
+# 	#/usr/local/lib
+#   ${catkin_LIBRARIES}
+# )
 
 ## Add cmake target dependencies of the library
 ## as an example, code may need to be generated before libraries
