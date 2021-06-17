@@ -34,7 +34,6 @@
 #include <sensor_fusion/RoverStatic.h>
 #include <sensor_fusion/GetTruePose.h>
 #include <sensor_fusion/HomingUpdate.h>
-#include <state_machine/SetMobility.h>
 #include <actionlib/client/simple_action_client.h>
 #include <task_planning/PlanInfo.h>
 #include <task_planning/Types.hpp>
@@ -61,20 +60,12 @@ public:
   bool flag_fallthrough_condition = false;
 
   // Secondary flag declarations
-  bool flag_waypoint_unreachable = false;
-  bool flag_volatile_recorded = false;
-  bool flag_volatile_unreachable = false;
-  bool flag_localization_failure = false;
-  bool flag_completed_homing = false;
-  bool flag_heading_fail = false;
   bool flag_need_init_landmark = false;
-  bool flag_approach_excavator = true;
   bool flag_localized_base = false;
-  bool flag_mobility = true;
+  bool flag_approach_excavator = true;
+  bool flag_full_bin = true;
 
-
-  ros::Time detection_timer, not_detected_timer, wp_checker_timer;
-  ros::Time last_time_laser_collision, map_timer, waypoint_timer;
+  ros::Time wp_checker_timer,laser_collision_timer, map_timer, waypoint_timer;
 
   // State vector
   std::vector<int> state_to_exec; // Only one should be true at a time, if multiple are true then a default state should be executed
@@ -91,19 +82,15 @@ public:
 
   // Subscribers
   ros::Subscriber localized_base_sub;
-  ros::Subscriber waypoint_unreachable_sub;
-  ros::Subscriber arrived_at_waypoint_sub;
-  ros::Subscriber volatile_detected_sub;
-  ros::Subscriber volatile_recorded_sub;
-  ros::Subscriber localization_failure_sub;
   ros::Subscriber localization_sub;
   ros::Subscriber driving_mode_sub;
   ros::Subscriber laser_scan_sub;
   ros::Subscriber planner_interrupt_sub;
+  ros::Subscriber excavator1_odom_sub;
+  ros::Subscriber excavator2_odom_sub;
+  ros::Subscriber excavation_status_sub;
 
   ros::ServiceClient clt_sf_true_pose;
-  ros::ServiceClient clt_wp_gen;
-  ros::ServiceClient clt_wp_start;
   ros::ServiceClient clt_vh_report;
   ros::ServiceClient clt_stop;
   ros::ServiceClient clt_rip;
@@ -121,10 +108,6 @@ public:
   ros::ServiceClient clt_location_of_bin;
 
   MoveBaseClient ac;
-
-  // Clients
-  ros::ServiceServer srv_mobility;
-
   actionlib::SimpleClientGoalState move_base_state;
 
   // Methods ----------------------------------------------------------------------------------------------------------------------------
@@ -140,21 +123,16 @@ public:
 
   /// Subscriber callbacks
   void localizedBaseCallback(const std_msgs::Int64::ConstPtr& msg);
-  void mobilityCallback(const std_msgs::Int64::ConstPtr& msg);
-  void waypointUnreachableCallback(const std_msgs::Bool::ConstPtr& msg);
-  void arrivedAtWaypointCallback(const std_msgs::Bool::ConstPtr& msg);
-  void localizationFailureCallback(const std_msgs::Bool::ConstPtr& msg);
   void localizationCallback(const nav_msgs::Odometry::ConstPtr& msg);
   void drivingModeCallback(const std_msgs::Int64::ConstPtr& msg);
-  void volatileDetectedCallback(const std_msgs::Float32::ConstPtr& msg);
-  void volatileRecordedCallback(const std_msgs::Bool::ConstPtr& msg);
   void laserCallback(const sensor_msgs::LaserScan::ConstPtr& msg);
   void doneCallback(const actionlib::SimpleClientGoalState& state, const move_base_msgs::MoveBaseResultConstPtr& result);
-  void activeCallback();
   void feedbackCallback(const move_base_msgs::MoveBaseFeedbackConstPtr& feedback);
+  void activeCallback();
   void plannerInterruptCallback(const std_msgs::Bool::ConstPtr &msg);
-
-  bool setMobility(state_machine::SetMobility::Request &req, state_machine::SetMobility::Response &res);
+  void excavationStatusCallback(const state_machine::ExcavationStatus::ConstPtr& msg);
+  void excavator1OdomCallback(const nav_msgs::Odometry::ConstPtr& msg);
+  void excavator2OdomCallback(const nav_msgs::Odometry::ConstPtr& msg);
 
   // Methods
   void setPoseGoal(move_base_msgs::MoveBaseGoal& poseGoal, double x, double y, double yaw); // m, m, rad
@@ -184,11 +162,17 @@ public:
   std::string robot_name_;
   int robot_id_;
 
-  double waypoint_type;
-  int driving_mode;
+  double waypoint_type = 0;
+  int driving_mode = 0;
 
   geometry_msgs::Pose current_pose_, goal_pose_;
   geometry_msgs::Point base_location_;
+  geometry_msgs::Point proc_plant_bin_location_;
+
+  nav_msgs::Odometry small_excavator_1_odom_;
+  nav_msgs::Odometry small_excavator_2_odom_;
+
+  state_machine::ExcavationStatus excavation_status_;
 
   // Transforms
   tf2_ros::Buffer tf_buffer;
@@ -211,5 +195,5 @@ public:
   const int LASER_COUNTER_THRESH = 20;
 
   // Planning
-  task_planning::PlanInfo prev_srv_plan; 
+  task_planning::PlanInfo prev_srv_plan;
 };

@@ -38,7 +38,6 @@
 #include <sensor_fusion/RoverStatic.h>
 #include <sensor_fusion/GetTruePose.h>
 #include <sensor_fusion/HomingUpdate.h>
-#include <state_machine/SetMobility.h>
 #include <actionlib/client/simple_action_client.h>
 #include <motion_control/ArmGroup.h>
 #include <move_excavator/HomeArm.h>
@@ -90,7 +89,6 @@ public:
   enum STATE_T {_initialize=0, _planning=1, _traverse=2, _volatile_handler=3, _lost=4};
  // State-machine mode
   int excavation_state = HOME_MODE;
-  actionlib::SimpleClientGoalState move_base_state;
 
   // State transition flag declarations
   bool flag_interrupt_plan = false;
@@ -102,22 +100,16 @@ public:
   bool flag_fallthrough_condition = false;
 
   // Secondary flag declarations
-  bool flag_waypoint_unreachable = false;
-  bool flag_localization_failure = false;
-  bool flag_completed_homing = false;
-  bool flag_heading_fail=false;
+  bool flag_need_init_landmark = false;
+  bool flag_localized_base = false;
   bool flag_manipulation_enabled = false;
   bool flag_bucket_full = false;
   bool flag_hauler_in_range = false;
   bool flag_found_volatile = false;
-  bool flag_need_init_landmark = false;
   bool flag_volatile_dug=true;
-  bool flag_localized_base = false;
-  bool flag_mobility = true;
 
+  ros::Time wp_checker_timer, laser_collision_timer, map_timer, waypoint_timer;
   ros::Time manipulation_timer;
-  ros::Time detection_timer, not_detected_timer, wp_checker_timer;
-  ros::Time laser_collision_timer, map_timer, waypoint_timer;
 
   // State vector
   std::vector<int> state_to_exec; // Only one should be true at a time, if multiple are true then a default state should be executed
@@ -132,9 +124,6 @@ public:
 
   // Subscribers
   ros::Subscriber localized_base_sub;
-  ros::Subscriber waypoint_unreachable_sub;
-  ros::Subscriber arrived_at_waypoint_sub;
-  ros::Subscriber localization_failure_sub;
   ros::Subscriber localization_sub;
   ros::Subscriber driving_mode_sub;
   ros::Subscriber laser_scan_sub;
@@ -149,8 +138,6 @@ public:
 
   // Services
   ros::ServiceClient clt_sf_true_pose;
-  ros::ServiceClient clt_wp_gen;
-  ros::ServiceClient clt_wp_start;
   ros::ServiceClient clt_vh_report;
   ros::ServiceClient clt_stop;
   ros::ServiceClient clt_rip;
@@ -176,9 +163,7 @@ public:
   ros::ServiceClient clt_task_planning;
 
   MoveBaseClient ac;
-
-  // Clients
-  ros::ServiceServer srv_mobility;
+  actionlib::SimpleClientGoalState move_base_state;
 
   // Methods ----------------------------------------------------------------------------------------------------------------------------
   SmExcavator(); // Constructor
@@ -193,10 +178,6 @@ public:
 
   // Subscriber callbacks
   void localizedBaseCallback(const std_msgs::Int64::ConstPtr& msg);
-  void mobilityCallback(const std_msgs::Int64::ConstPtr& msg);
-  void waypointUnreachableCallback(const std_msgs::Bool::ConstPtr& msg);
-  void arrivedAtWaypointCallback(const std_msgs::Bool::ConstPtr& msg);
-  void localizationFailureCallback(const std_msgs::Bool::ConstPtr& msg);
   void localizationCallback(const nav_msgs::Odometry::ConstPtr& msg);
   void drivingModeCallback(const std_msgs::Int64::ConstPtr& msg);
   void bucketCallback(const srcp2_msgs::ExcavatorScoopMsg::ConstPtr &msg);
@@ -205,15 +186,13 @@ public:
   void jointStateCallback(const sensor_msgs::JointState::ConstPtr &msg);
   void targetBinCallback(const geometry_msgs::PointStamped::ConstPtr &msg);
   void manipulationCmdCallback(const std_msgs::Int64::ConstPtr &msg);
-  void activeCallback();
   void feedbackCallback(const move_base_msgs::MoveBaseFeedbackConstPtr& feedback);
   void doneCallback(const actionlib::SimpleClientGoalState& state, const move_base_msgs::MoveBaseResultConstPtr& result);
+  void activeCallback();
   void plannerInterruptCallback(const std_msgs::Bool::ConstPtr &msg);
+
   void hauler1OdomCallback(const nav_msgs::Odometry::ConstPtr &msg);
   void hauler2OdomCallback(const nav_msgs::Odometry::ConstPtr &msg);
-
-  // Service providers
-  bool setMobility(state_machine::SetMobility::Request &req, state_machine::SetMobility::Response &res);
 
   // Methods
   void setPoseGoal(move_base_msgs::MoveBaseGoal& poseGoal, double x, double y, double yaw); // m, m, rad
@@ -253,8 +232,8 @@ public:
   std::string robot_name_;
   int robot_id_;
 
-  double waypoint_type;
-  int driving_mode;
+  double waypoint_type = 0;
+  int driving_mode = 0;
 
   // Bucket Info Init
   bool volatile_in_bucket = false;
@@ -281,8 +260,8 @@ public:
   geometry_msgs::TransformStamped camera_link_to_arm_mount;
   geometry_msgs::TransformStamped arm_mount_to_camera_link;
 
-  nav_msgs::Odometry small_hauler_1_odom;
-  nav_msgs::Odometry small_hauler_2_odom;
+  nav_msgs::Odometry small_hauler_1_odom_;
+  nav_msgs::Odometry small_hauler_2_odom_;
 
   double volatile_heading_ = 0;
   double relative_heading_ = 0;

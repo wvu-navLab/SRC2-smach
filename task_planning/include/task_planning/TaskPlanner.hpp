@@ -145,6 +145,8 @@ class TaskPlanner {
     void exc_haul_plan_default();
     /** \brief */
     void populate_prior_plan();
+
+    int plan_call_counter = 0;
 };
 
 }

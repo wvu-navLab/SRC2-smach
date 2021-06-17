@@ -13,23 +13,17 @@ move_base_state(actionlib::SimpleClientGoalState::PREEMPTED)
   driving_mode_pub = nh.advertise<std_msgs::Int64>("driving/driving_mode", 1);
   cmd_dump_pub = nh.advertise<std_msgs::Float64>("bin/command/position", 1);
 
-
   // Subscribers
   localized_base_sub = nh.subscribe("state_machine/localized_base", 1, &SmHauler::localizedBaseCallback, this);
-  // mobility_sub = nh.subscribe("/state_machine/mobility_scout", 1, &SmHauler::mobilityCallback, this);
-  waypoint_unreachable_sub = nh.subscribe("state_machine/waypoint_unreachable", 1, &SmHauler::waypointUnreachableCallback, this);
-  arrived_at_waypoint_sub = nh.subscribe("state_machine/arrived_at_waypoint", 1, &SmHauler::arrivedAtWaypointCallback, this);
-  volatile_detected_sub = nh.subscribe("state_machine/volatile_detected", 1, &SmHauler::volatileDetectedCallback, this);
-  volatile_recorded_sub = nh.subscribe("state_machine/volatile_recorded", 1, &SmHauler::volatileRecordedCallback, this);
-  localization_failure_sub = nh.subscribe("state_machine/localization_failure", 1, &SmHauler::localizationFailureCallback, this);
   localization_sub  = nh.subscribe("localization/odometry/sensor_fusion", 1, &SmHauler::localizationCallback, this);
-  driving_mode_sub =nh.subscribe("driving/driving_mode",1, &SmHauler::drivingModeCallback, this);
-  laser_scan_sub =nh.subscribe("laser/scan",1, &SmHauler::laserCallback, this);
+  driving_mode_sub = nh.subscribe("driving/driving_mode",1, &SmHauler::drivingModeCallback, this);
+  laser_scan_sub = nh.subscribe("laser/scan",1, &SmHauler::laserCallback, this);
+  excavation_status_sub = nh.subscribe("state_machine/excavation_status",1, &SmHauler::excavationStatusCallback, this);
   planner_interrupt_sub = nh.subscribe("/planner_interrupt", 1, &SmHauler::plannerInterruptCallback, this);
+  excavator1_odom_sub = nh.subscribe("/small_excavator_1/localization/odometry/sensor_fusion",1, &SmHauler::excavator1OdomCallback, this);
+  excavator2_odom_sub = nh.subscribe("/small_excavator_2/localization/odometry/sensor_fusion",1, &SmHauler::excavator2OdomCallback, this);
 
   // Clients
-  clt_wp_gen = nh.serviceClient<waypoint_gen::GenerateWaypoint>("navigation/generate_goal");
-  clt_wp_start = nh.serviceClient<waypoint_gen::StartWaypoint>("navigation/start");
   clt_stop = nh.serviceClient<driving_tools::Stop>("driving/stop");
   clt_rip = nh.serviceClient<driving_tools::RotateInPlace>("driving/rotate_in_place");
   clt_drive = nh.serviceClient<driving_tools::MoveForward>("driving/move_forward");
@@ -46,17 +40,14 @@ move_base_state(actionlib::SimpleClientGoalState::PREEMPTED)
   clt_approach_bin = nh.serviceClient<src2_approach_services::ApproachBin>("approach_bin_service");
   clt_location_of_bin = nh.serviceClient<range_to_base::LocationOfBin>("location_of_bin_service");
 
-  srv_mobility = nh.advertiseService("state_machine/mobility_service",&SmHauler::setMobility, this);
-
-  driving_mode =0;
-  waypoint_type =0;
-  flag_need_init_landmark=true;
-
-  detection_timer = ros::Time::now();
-  not_detected_timer = ros::Time::now();
-  last_time_laser_collision = ros::Time::now();
   map_timer = ros::Time::now();
   wp_checker_timer=  ros::Time::now();
+  laser_collision_timer = ros::Time::now();
+
+  // Local copy of the processing plant location
+  proc_plant_bin_location_.x = 13.5;
+  proc_plant_bin_location_.y = 9.0;
+  proc_plant_bin_location_.z = 0.0;
 
   node_name_ = "state_machine";
   if (ros::param::get("robot_name", robot_name_) == false)
@@ -71,6 +62,7 @@ move_base_state(actionlib::SimpleClientGoalState::PREEMPTED)
     ros::shutdown();
     exit(1);
   }
+
 }
 
 void SmHauler::run()
@@ -290,7 +282,7 @@ void SmHauler::statePlanning()
   RotateToHeading(goal_yaw_);
 
   BrakeRamp(100, 3.0, 0);
-  
+
   CheckWaypoint(3);
 
   ClearCostmaps();
@@ -328,7 +320,7 @@ void SmHauler::stateTraverse()
   ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Traverse State\n");
 
   double distance_to_goal = std::hypot(goal_pose_.position.y - current_pose_.position.y, goal_pose_.position.x - current_pose_.position.x);
-  if (distance_to_goal < 2.0)
+  if (distance_to_goal < 2.0) // CHANGE TO 6.0
   {
     ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Close to goal, getting new waypoint.");
     flag_arrived_at_waypoint = true;
@@ -343,7 +335,7 @@ void SmHauler::stateTraverse()
       is_colliding = srv_wp_check.response.collision;
       if (is_colliding) {
         ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Waypoint Unreachable. Sending to Planning");
-        flag_waypoint_unreachable = true;
+        // flag_waypoint_unreachable = true;
       }
     }
     wp_checker_timer = ros::Time::now();
@@ -351,12 +343,12 @@ void SmHauler::stateTraverse()
 
   move_base_state = ac.getState();
   int mb_state =(int) move_base_state.state_;
-  ROS_WARN_STREAM("[" << robot_name_ << "] " <<"MoveBase status: "<< mb_state);
+  ROS_WARN_STREAM_THROTTLE(5,"[" << robot_name_ << "] " <<"MoveBase status: "<< mb_state);
 
   if(mb_state==5 || mb_state==7)
   {
     ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"MoveBase has failed to make itself useful.");
-    flag_waypoint_unreachable= true;
+    // flag_waypoint_unreachable= true;
 
     Stop (1.0);
 
@@ -386,7 +378,7 @@ void SmHauler::stateTraverse()
   if (ros::Time::now() - waypoint_timer > timeoutWaypoint )
   {
     ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Waypoint Unreachable");
-    flag_waypoint_unreachable= true;
+    // flag_waypoint_unreachable= true;
     Stop (1.0);
     ClearCostmaps();
     BrakeRamp(100, 2, 0);
@@ -410,30 +402,69 @@ void SmHauler::stateTraverse()
 void SmHauler::stateVolatileHandler()
 {
   ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Volatile Handling State!");
-  double progress = 0.0;
 
-  //TODO: Get feedback from Excavator before approaching
+  ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Canceling MoveBase goal.");
+  ac.waitForServer();
+  ac.cancelGoal();
+  ac.waitForResult(ros::Duration(0.25));
+
+  double progress = 0.0;
+  flag_full_bin = false;
+  flag_approach_excavator = true;
+
+  // TODO: Get feedback from Excavator before approaching
+  // Include callback to ExcavationStatus
+  // According with ExcavationStatus we approach and park
+
   if(flag_approach_excavator)
   {
+    ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"STARTING APPROACH EXCAVATOR");
+
     bool approachSuccess = ApproachExcavator(3);
 
     if (approachSuccess)
     {
-      //TODO: align?
+      ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"APPROACH SUCCESS + CHANGING FLAGS ***********");
+
+      // TODO: This is where we are gonna call the parallel parking
+      // Include new method: SmHauler::ParallelParking that calls the service
       progress = 1.0;
+      flag_approach_excavator = false;
+      flag_full_bin = true;
     }
     else
     {
-      //TODO: something
+      // TODO: What do we do if approach fails?
+      // Maybe send a new waypoint?
       progress = -1.0;
     }
   }
-  
-  //TODO: choose when to transition to dumping
-  if(false)
+
+  // TODO: choose when to transition to dumping
+  // We need to check what is a good condition. Some possibilities:
+  // Five dumps?
+  // Node that checks the srcp2_score
+  // Node that checks the amount of material in the bin with the camera
+
+  ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"FULL BIN");
+  flag_full_bin = true;
+  Brake(0.0);
+  if(flag_full_bin)
   {
-    flag_dumping = true;
+    flag_interrupt_plan = false;
+    flag_recovering_localization = false;
     flag_localizing_volatile = false;
+    flag_arrived_at_waypoint = false;
+    flag_dumping = true;
+
+    goal_pose_.position = proc_plant_bin_location_;
+    move_base_msgs::MoveBaseGoal move_base_goal;
+    ac.waitForServer();
+    setPoseGoal(move_base_goal, goal_pose_.position.x, goal_pose_.position.y, goal_yaw_);
+    ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Sending goal to MoveBase: " << move_base_goal);
+    waypoint_timer = ros::Time::now();
+    ac.sendGoal(move_base_goal, boost::bind(&SmHauler::doneCallback, this,_1,_2), boost::bind(&SmHauler::activeCallback, this), boost::bind(&SmHauler::feedbackCallback, this,_1));
+    ac.waitForResult(ros::Duration(0.25));
   }
 
   state_machine::RobotStatus status_msg;
@@ -441,7 +472,6 @@ void SmHauler::stateVolatileHandler()
   status_msg.state.data = (uint8_t) _volatile_handler;
   sm_status_pub.publish(status_msg);
 }
-
 void SmHauler::stateLost()
 {
   ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"LOST STATE!\n");
@@ -458,8 +488,6 @@ void SmHauler::stateLost()
   bool approachSuccess = ApproachChargingStation(3);
 
   BrakeRamp(100, 3, 0);
-
-
 
   if(approachSuccess)
   {
@@ -509,7 +537,12 @@ void SmHauler::stateLost()
 void SmHauler::stateDump()
 {
   ROS_WARN_STREAM("[" << robot_name_ << "] " <<"DUMPING STATE!\n");
-  
+
+  ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Canceling MoveBase goal.");
+  ac.waitForServer();
+  ac.cancelGoal();
+  ac.waitForResult(ros::Duration(0.25));
+
   double progress = 0.0;
 
   bool approachSuccess = ApproachBin(3);
@@ -545,29 +578,12 @@ void SmHauler::stateDump()
       Brake(0.0);
 
     }
-    
+
   }
   else
   {
     progress = -1.0;
   }
-
-  // approach closely
-  // compare bin location w/ current location
-  //  current_pose_
-  // driving commands
-  // call bin location + verify
-  // dump action
-
-  // double distx = current_pose_.position.x - srv_location_of_bin.response.position.x;
-  // double disty = current_pose_.position.y - srv_location_of_bin.response.position.y;
-  //
-  // double dist  = std::pow((distx*distx + disty*disty), 0.5);
-  //
-  //
-  // double dump_thresh = 0.5;
-  //
-  // if (dist < dump_thresh){
 
   state_machine::RobotStatus status_msg;
   status_msg.progress.data = progress;
@@ -581,65 +597,21 @@ void SmHauler::stateDump()
 void SmHauler::localizedBaseCallback(const std_msgs::Int64::ConstPtr& msg)
 {
   flag_localized_base = (bool) msg->data;
-  if (flag_localized_base) {
+  if (flag_localized_base) 
+  {
     ROS_WARN_STREAM_ONCE("Initial Localization Successful = " << (int)flag_localized_base);
-
   }
-  else {
+  else 
+  {
     ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Waiting for Initial Localization  = " << (int)flag_localized_base);
   }
 }
 
-// void SmHauler::mobilityCallback(const std_msgs::Int64::ConstPtr& msg)
-// {
-// flag_mobility = msg->data;
-// if (flag_mobility == 0) {
-//   ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"ROVER IMMOBILIZATION!  = " << (int) flag_mobility);
-//   immobilityRecovery(1);
-// } else {
-//   ROS_WARN_STREAM_ONCE("Rover is traversing = " << (int) flag_mobility);
-// }
-// }
-
-void SmHauler::waypointUnreachableCallback(const std_msgs::Bool::ConstPtr& msg)
+void SmHauler::drivingModeCallback(const std_msgs::Int64::ConstPtr& msg)
 {
-  flag_waypoint_unreachable = msg->data;
-}
-
-void SmHauler::arrivedAtWaypointCallback(const std_msgs::Bool::ConstPtr& msg)
-{
-  flag_arrived_at_waypoint = msg->data;
-}
-
-void SmHauler::volatileDetectedCallback(const std_msgs::Float32::ConstPtr& msg)
-{
-
-  prev_volatile_detected_distance = volatile_detected_distance;
-  volatile_detected_distance = msg->data;
-
-}
-
-void SmHauler::volatileRecordedCallback(const std_msgs::Bool::ConstPtr& msg)
-{
-  flag_volatile_recorded = msg->data;
-  ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Record: " << flag_volatile_recorded);
-  if (flag_volatile_recorded == true)
-  {
-          volatile_detected_distance = -1.0;
-  }else
-  {
-    not_detected_timer = ros::Time::now();
-    ROS_INFO_STREAM("[" << robot_name_ << "] " <<"NAO" << not_detected_timer.toSec());
-  }
-}
-
-void SmHauler::localizationFailureCallback(const std_msgs::Bool::ConstPtr& msg)
-{
-  flag_localization_failure = msg->data;
-}
-void SmHauler::drivingModeCallback(const std_msgs::Int64::ConstPtr& msg){
   driving_mode=msg->data;
 }
+
 void SmHauler::localizationCallback(const nav_msgs::Odometry::ConstPtr& msg)
 {
   current_pose_ = msg->pose.pose;
@@ -668,7 +640,7 @@ void SmHauler::laserCallback(const sensor_msgs::LaserScan::ConstPtr& msg)
 
   if (min_range < LASER_THRESH)
   {
-    if (ros::Time::now() - last_time_laser_collision < ros::Duration(20))
+    if (ros::Time::now() - laser_collision_timer < ros::Duration(20))
     {
       ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Close to wall.");
       counter_laser_collision_++;
@@ -679,7 +651,7 @@ void SmHauler::laserCallback(const sensor_msgs::LaserScan::ConstPtr& msg)
       counter_laser_collision_ = 0;
       ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Counter laser RESET!");
     }
-    last_time_laser_collision = ros::Time::now();
+    laser_collision_timer = ros::Time::now();
   }
 
   if (counter_laser_collision_ > LASER_COUNTER_THRESH)
@@ -688,6 +660,24 @@ void SmHauler::laserCallback(const sensor_msgs::LaserScan::ConstPtr& msg)
     ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"LASER COUNTER > 20 ! Starting Recovery.");
     immobilityRecovery(2);
   }
+}
+
+void SmHauler::excavationStatusCallback(const state_machine::ExcavationStatus::ConstPtr& msg)
+{
+  excavation_status_ = *msg;
+  // ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Got excavation status.");
+}
+
+void SmHauler::excavator1OdomCallback(const nav_msgs::Odometry::ConstPtr& msg)
+{
+  small_excavator_1_odom_ = *msg;
+  // ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Got small_excavator_1 odometry.");
+}
+
+void SmHauler::excavator2OdomCallback(const nav_msgs::Odometry::ConstPtr& msg)
+{
+  small_excavator_2_odom_ = *msg;
+  // ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Got small_excavator_2 odometry.");
 }
 
 void SmHauler::setPoseGoal(move_base_msgs::MoveBaseGoal &poseGoal, double x, double y, double yaw) // m, m, rad
@@ -711,14 +701,15 @@ void SmHauler::setPoseGoal(move_base_msgs::MoveBaseGoal &poseGoal, double x, dou
   poseGoal.target_pose.pose.orientation.z = sy * cr * cp - cy * sr * sp;
 }
 
+void SmHauler::activeCallback()
+{
+}
+
 void SmHauler::doneCallback(const actionlib::SimpleClientGoalState& state, const move_base_msgs::MoveBaseResult::ConstPtr& result)
 {
   // ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Goal done");
 }
-void SmHauler::activeCallback()
-{
-  // ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Goal went active");
-}
+
 void SmHauler::feedbackCallback(const move_base_msgs::MoveBaseFeedback::ConstPtr& feedback)
 {
   // ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Got feedback");
@@ -726,10 +717,11 @@ void SmHauler::feedbackCallback(const move_base_msgs::MoveBaseFeedback::ConstPtr
 
 void SmHauler::plannerInterruptCallback(const std_msgs::Bool::ConstPtr &msg)
 {
-  task_planning::PlanInfo srv_plan; 
+  task_planning::PlanInfo srv_plan;
   srv_plan.request.replan.data = false;
-  srv_plan.request.type.data = mac::SCOUT;
-  srv_plan.request.id.data = robot_id_;
+  srv_plan.request.type.data = (uint8_t) mac::HAULER;
+  srv_plan.request.id.data = (uint8_t) robot_id_;
+  ROS_WARN_STREAM("[" << robot_name_ << "] " << " PLANNER INTERRUPT CALLBACK: robot.type " <<  (int) srv_plan.request.type.data << ", robot.id " << (int) srv_plan.request.id.data );
 
   if (clt_task_planning.call(srv_plan))
   {
@@ -737,20 +729,24 @@ void SmHauler::plannerInterruptCallback(const std_msgs::Bool::ConstPtr &msg)
   }
   else
   {
-    ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Failed to call service RotateInPlace");
+    ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Failed to call Plan service");
   }
 
-  if(!(prev_srv_plan.response.objective.point.x == srv_plan.response.objective.point.x && 
+  if(!(prev_srv_plan.response.objective.point.x == srv_plan.response.objective.point.x &&
   prev_srv_plan.response.objective.point.y == srv_plan.response.objective.point.y &&
   prev_srv_plan.response.code == srv_plan.response.code))
   {
     flag_interrupt_plan = true;
   }
+  else
+  {
+    flag_interrupt_plan = false;
+  }
 }
 
 void SmHauler::RotateToHeading(double desired_yaw)
 {
-  ros::Rate raterotateToHeading(20);
+  ros::Rate rateRotateToHeading(20);
 
   ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Starting yaw control.");
 
@@ -770,15 +766,16 @@ void SmHauler::RotateToHeading(double desired_yaw)
       yaw_error = yaw_error + 2*M_PI;
     }
   }
-  flag_heading_fail=false;
-  ros::Time start_time = ros::Time::now();
-  ros::Duration timeoutHeading(10.0); // Timeout of 20 seconds
+
+  bool flag_heading_fail = false;
+  ros::Time rotate_timer = ros::Time::now();
+  ros::Duration timeoutHeading(30.0); // Timeout of 20 seconds
 
   while(fabs(yaw_error) > yaw_thres)
   {
     RotateInPlace(copysign(0.1*(1 + fabs(yaw_error)/M_PI), -yaw_error),0.0);
 
-    raterotateToHeading.sleep();
+    rateRotateToHeading.sleep();
     ros::spinOnce();
 
     yaw_error = desired_yaw - yaw_;
@@ -795,9 +792,9 @@ void SmHauler::RotateToHeading(double desired_yaw)
     }
     // ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Trying to control yaw to desired angles. Yaw error: "<<yaw_error);
 
-    // ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"TIME: "<<ros::Time::now() - start_time << ", TIMEOUT: " << timeoutHeading);
+    // ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"TIME: "<<ros::Time::now() - rotate_timer << ", TIMEOUT: " << timeoutHeading);
 
-    if (ros::Time::now() - start_time > timeoutHeading)
+    if (ros::Time::now() - rotate_timer > timeoutHeading)
     {
       ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Yaw Control Failed. Possibly stuck. Break control.");
       flag_heading_fail = true;
@@ -897,9 +894,9 @@ void SmHauler::immobilityRecovery(int type)
 
   Brake(0.0);
 
-  flag_mobility=true;
+  // flag_mobility=true;
 
-  flag_waypoint_unreachable=true;
+  // flag_waypoint_unreachable=true;
 
 
 }
@@ -1107,15 +1104,6 @@ void SmHauler::RoverStatic(bool flag)
 
 }
 
-bool SmHauler::setMobility(state_machine::SetMobility::Request &req, state_machine::SetMobility::Response &res){
-  ROS_ERROR_STREAM("[" << robot_name_ << "] " <<" GOT MOBILITY IN SM"<< req.mobility);
-  flag_mobility = req.mobility;
-  immobilityRecovery(1);
-  //ros::Duration(2).sleep();
-  res.success = true;
-  return true;
-}
-
 void SmHauler::CheckWaypoint(int max_count)
 {
   waypoint_checker::CheckCollision srv_wp_check;
@@ -1131,17 +1119,16 @@ void SmHauler::CheckWaypoint(int max_count)
       is_colliding = srv_wp_check.response.collision;
       if(is_colliding)
       {
-        Plan();
-
-        goal_yaw_ = atan2(goal_pose_.position.y - current_pose_.position.y, goal_pose_.position.x - current_pose_.position.x);
-
-        Brake (0.0);
-
-        RotateToHeading(goal_yaw_);
+        ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Canceling MoveBase goal.");
+        ac.waitForServer();
+        ac.cancelGoal();
+        ac.waitForResult(ros::Duration(0.25));
 
         BrakeRamp(100, 3.0, 0);
-        
+
         Brake (0.0);
+
+        flag_interrupt_plan = true;
       }
     }
     else
@@ -1254,7 +1241,7 @@ bool SmHauler::LocateBin()
 {
   range_to_base::LocationOfBin srv_location_of_bin;
   srv_location_of_bin.request.location_of_bin.data=true;
-  
+
   bool success = false;
 
   if(clt_location_of_bin.call(srv_location_of_bin))
@@ -1316,7 +1303,7 @@ bool SmHauler::HomingUpdate(bool init_landmark)
 void SmHauler::Plan()
 {
   task_planning::PlanInfo srv_plan;
-  if (!  flag_interrupt_plan)
+  if (!flag_interrupt_plan)
   {
     srv_plan.request.replan.data = true;
   }
@@ -1324,8 +1311,9 @@ void SmHauler::Plan()
   {
     srv_plan.request.replan.data = false;
   }
-  srv_plan.request.type.data = mac::HAULER;
-  srv_plan.request.id.data = robot_id_;
+  srv_plan.request.type.data = (uint8_t) mac::HAULER;
+  srv_plan.request.id.data = (uint8_t) robot_id_;
+  ROS_WARN_STREAM("[" << robot_name_ << "] " << "SMACH, PLAN: " <<  (int) srv_plan.request.type.data << " id " << (int) srv_plan.request.id.data );
 
   if (clt_task_planning.call(srv_plan))
   {
@@ -1333,10 +1321,10 @@ void SmHauler::Plan()
   }
   else
   {
-    ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Failed to call service RotateInPlace");
+    ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Failed to call Plan service");
   }
 
-  if (srv_plan.response.code.data !=-1)
+  if (srv_plan.response.code.data !=255)
   {
     goal_pose_.position = srv_plan.response.objective.point;
     geometry_msgs::Quaternion quat;
@@ -1353,54 +1341,68 @@ void SmHauler::Plan()
 
   switch (srv_plan.response.code.data)
   {
-  case _initialize:
-    ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Task Planner: Initialize");
-    flag_have_true_pose = false;
-    break;
+    case _initialize:
+      ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Task Planner: Initialize");
+      // flag_have_true_pose = false;
+      break;
 
-  case _planning:
-    ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Task Planner: Planning");
-    flag_interrupt_plan = true;
-    flag_arrived_at_waypoint = true;
-    flag_recovering_localization = false;
-    flag_localizing_volatile = false;
-    break;
+    case _planning:
+      ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Task Planner: Planning");
+      flag_interrupt_plan = true;
+      flag_arrived_at_waypoint = true;
+      flag_recovering_localization = false;
+      flag_localizing_volatile = false;
+      break;
 
-  case _traverse:
-    ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Task Planner: Traverse");
-    flag_interrupt_plan = false;
-    flag_arrived_at_waypoint = false;
-    flag_recovering_localization = false;
-    flag_localizing_volatile = false;
-    break;
+    case _traverse:
+      ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Task Planner: Traverse");
+      flag_interrupt_plan = false;
+      flag_arrived_at_waypoint = false;
+      flag_recovering_localization = false;
+      flag_localizing_volatile = false;
+      flag_dumping = false;
+      break;
 
-  case _volatile_handler:
-    ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Task Planner: Vol Handler");
-    flag_interrupt_plan = false;
-    flag_arrived_at_waypoint = false;
-    flag_recovering_localization = false;
-    flag_localizing_volatile = true;
-    break;
+    case _volatile_handler:
+      ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Task Planner: Vol Handler");
+      flag_interrupt_plan = false;
+      flag_arrived_at_waypoint = false;
+      flag_recovering_localization = false;
+      flag_localizing_volatile = true;
+      flag_dumping = false;
+      break;
 
-  case _lost:
-    ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Task Planner: Homing");
-    flag_interrupt_plan = false;
-    flag_arrived_at_waypoint = false;
-    flag_recovering_localization = true;
-    flag_localizing_volatile = false;
-    break;
+    case _lost:
+      ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Task Planner: Homing");
+      flag_interrupt_plan = false;
+      flag_arrived_at_waypoint = false;
+      flag_recovering_localization = true;
+      flag_localizing_volatile = false;
+      flag_dumping = false;
+      break;
 
-  default:
-    ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Task Planner: No idea what Im doing");
-    flag_interrupt_plan = true;
-    flag_arrived_at_waypoint = true;
-    flag_recovering_localization = false;
-    flag_localizing_volatile = false;
-    break;
+    case _hauler_dumping:
+      ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Task Planner: Dumping");
+      flag_interrupt_plan = false;
+      flag_arrived_at_waypoint = false;
+      flag_recovering_localization = false;
+      flag_localizing_volatile = false;
+      flag_dumping = true;
+      break;
+
+    default:
+      ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Task Planner: No idea what Im doing");
+      flag_interrupt_plan = true;
+      flag_arrived_at_waypoint = true;
+      flag_recovering_localization = false;
+      flag_localizing_volatile = false;
+      flag_dumping = false;
+      break;
   }
 
   // srv_plan.response.id;
   // flag_interrupt_plan = false;
 }
+
 
 //------------------------------------------------------------------------------------------------------------------------

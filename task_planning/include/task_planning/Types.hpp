@@ -89,6 +89,8 @@ struct PlanningParams {
     std::vector<double> vol_handle_hauler_power_weights;
     std::vector<double> lost_hauler_power_weights;
 
+  //  std::vector<double> lost_hauler_power_weights;
+
     std::vector<double> power_rates;
 
 

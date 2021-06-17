@@ -26,22 +26,22 @@ namespace mac {
 
 void TaskPlanner::populate_prior_plan()
 {
-  std::cout << "populating prior plan..." << std::endl;
+  ROS_INFO("[TASK PLANNER] Populating prior plan...");
   if (!planning_params_.plan.empty()){
     for(int i = 0; i < planning_params_.plan[0].size(); ++i)
     {
       geometry_msgs::PointStamped temp;
       for (int j = 0; j < robots_.size(); ++j)
       {
-        ROS_INFO_STREAM("Type current:" << robots_[j].type << " ||| plan" << planning_params_.plan[0][i]);
-        ROS_INFO_STREAM("ID current:" << robots_[j].id << " ||| plan" << planning_params_.plan[1][i]);
+        ROS_INFO_STREAM("[TASK PLANNER] [" << plan_call_counter << "] Type current:" << robots_[j].type << " ||| plan" << planning_params_.plan[0][i]);
+        ROS_INFO_STREAM("[TASK PLANNER] [" << plan_call_counter << "] ID current:" << robots_[j].id << " ||| plan" << planning_params_.plan[1][i]);
         if (robots_[j].type == planning_params_.plan[0][i] && robots_[j].id == planning_params_.plan[1][i])
         {
           temp.point.x = planning_params_.plan[2][i];
           temp.point.y = planning_params_.plan[3][i];
           temp.point.z = planning_params_.plan[4][i];
           robots_[j].plan.push_back(temp);
-          ROS_INFO_STREAM("Plan: (" << temp.point.x << ", " << temp.point.y << ")");
+          ROS_INFO_STREAM("[TASK PLANNER] [" << plan_call_counter << "] Plan: (" << temp.point.x << ", " << temp.point.y << ")");
         }
       }
     }
@@ -54,9 +54,9 @@ void TaskPlanner::scout_plan_default(int type, int id)
   {
     if (type == robot.type && id == robot.id)
     {
-      ROS_INFO_STREAM("Plan " << robot.plan[0]);
+      ROS_INFO_STREAM("[TASK PLANNER] [" << plan_call_counter << "] Plan " << robot.plan[0]);
       robot.plan.erase(robot.plan.begin());
-      ROS_INFO_STREAM("Plan " << robot.plan[0]);
+      ROS_INFO_STREAM("[TASK PLANNER] [" << plan_call_counter << "] Plan " << robot.plan[0]);
     }
   }
 }
@@ -72,9 +72,10 @@ void TaskPlanner::exc_haul_plan_default()
   std::vector<double> pose_min, vol_pose, default_pose, current_pose;
   default_pose.push_back(0);
   default_pose.push_back(0);
-
+  ROS_ERROR_STREAM("[TASK PLANNER] [" << plan_call_counter << "] Volatile Map Size: " << volatile_map_.vol.size());
   for (int i = 0; i < volatile_map_.vol.size(); ++i)
   {
+    ROS_ERROR_STREAM("[TASK PLANNER] [" << plan_call_counter << "] Started Checking Volatiles");
     //EXCAVATOR
 
     vol_pose = default_pose;
@@ -84,7 +85,7 @@ void TaskPlanner::exc_haul_plan_default()
     pose_min = default_pose;
     vol_pose[0] = volatile_map_.vol[i].position.point.x;
     vol_pose[1] = volatile_map_.vol[i].position.point.y;
-    ROS_ERROR_STREAM("Volatile pose " << vol_pose[0] << "," << vol_pose[1]);
+    ROS_ERROR_STREAM("[TASK PLANNER] [" << plan_call_counter << "] Volatile pose " << vol_pose[0] << "," << vol_pose[1]);
     // std::cout << "robots_.size() = " << robots_.size() << std::endl;
     for (int j = 0; j < robots_.size() ; ++j)
     {
@@ -94,7 +95,7 @@ void TaskPlanner::exc_haul_plan_default()
         {
           current_pose[0] = robots_[j].odom.pose.pose.position.x;
           current_pose[1] = robots_[j].odom.pose.pose.position.y;// robot of nearest in pose
-          ROS_ERROR_STREAM("Excavator pose " << current_pose[0] << "," << current_pose[1]);
+          ROS_ERROR_STREAM("[TASK PLANNER] [" << plan_call_counter << "] Excavator pose " << current_pose[0] << "," << current_pose[1]);
 
           // robot of current in pose
           double distance = TaskPlanner::dist(current_pose, vol_pose);
@@ -110,7 +111,7 @@ void TaskPlanner::exc_haul_plan_default()
           nearest_int = j;
           pose_min[0] = robots_[j].odom.pose.pose.position.x;
           pose_min[1] = robots_[j].odom.pose.pose.position.y;
-          // ROS_ERROR_STREAM("Excavator pose min " << pose_min[0] << "," << pose_min[1]);
+          ROS_ERROR_STREAM("[TASK PLANNER] [" << plan_call_counter << "] Excavator pose min " << pose_min[0] << "," << pose_min[1]);
         }
       }
     }
@@ -130,7 +131,7 @@ void TaskPlanner::exc_haul_plan_default()
     pose_min = default_pose;
     vol_pose[0] = volatile_map_.vol[i].position.point.x;
     vol_pose[1] = volatile_map_.vol[i].position.point.y;
-    ROS_ERROR_STREAM("Volatile pose " << vol_pose[0] << "," << vol_pose[1]);
+    ROS_ERROR_STREAM("[TASK PLANNER] [" << plan_call_counter << "] Volatile pose " << vol_pose[0] << "," << vol_pose[1]);
     for (int j = 0; j < robots_.size() ; ++j)
     {
       if (robots_[j].type == mac::HAULER)
@@ -139,7 +140,7 @@ void TaskPlanner::exc_haul_plan_default()
         {
           current_pose[0] = robots_[j].odom.pose.pose.position.x;
           current_pose[1] = robots_[j].odom.pose.pose.position.y;// robot of nearest in pose
-          ROS_ERROR_STREAM("Hauler pose " << current_pose[0] << "," << current_pose[1]);
+          ROS_ERROR_STREAM("[TASK PLANNER] [" << plan_call_counter << "] Hauler pose " << current_pose[0] << "," << current_pose[1]);
 
           // robot of current in pose
           double distance = TaskPlanner::dist(current_pose, vol_pose);
@@ -155,13 +156,15 @@ void TaskPlanner::exc_haul_plan_default()
           nearest_int = j;
           pose_min[0] = robots_[j].odom.pose.pose.position.x;
           pose_min[1] = robots_[j].odom.pose.pose.position.y;
+          ROS_ERROR_STREAM("[TASK PLANNER] [" << plan_call_counter << "] Hauler pose min " << pose_min[0] << "," << pose_min[1]);
+
         }
       }
     }
     if (vol_pose[0] != 0 || vol_pose[1] != 0)
     {
-      temp.point.x = vol_pose[0]-2;
-      temp.point.y = vol_pose[1]-2;
+      temp.point.x = vol_pose[0]-5; // TODO: OFFSET FOR HAULER
+      temp.point.y = vol_pose[1]-5;
       robots_[nearest_int].plan.push_back(temp);
     }
   }
@@ -215,7 +218,7 @@ void TaskPlanner::poseCallback(const ros::MessageEvent<nav_msgs::Odometry const>
 
       break;
     default:
-      ROS_ERROR("Incorrect Robot Type");
+      ROS_ERROR_STREAM("[TASK PLANNER] [" << plan_call_counter << "] Incorrect Robot Type");
 
   }
   //ROS_WARN("HRMM %s",topic.c_str());
@@ -256,7 +259,7 @@ void TaskPlanner::poseCallback(const ros::MessageEvent<nav_msgs::Odometry const>
 
       break;
     default:
-      ROS_ERROR("Incorrect Robot Type");
+      ROS_ERROR_STREAM("Incorrect Robot Type");
 
   }
   //ROS_WARN("HRMM %s",topic.c_str());
@@ -267,57 +270,89 @@ void TaskPlanner::poseCallback(const ros::MessageEvent<nav_msgs::Odometry const>
 
 bool TaskPlanner::taskPlanService(task_planning::PlanInfo::Request &req,task_planning::PlanInfo::Response &res)
 {
+  ROS_ERROR_STREAM("[TASK PLANNER] [" << plan_call_counter << "] Planning started.");
 
-  ROS_ERROR("Planning started.");
-    if (req.replan.data)
+  if (req.replan.data)
+  {
+    ROS_ERROR_STREAM("[TASK PLANNER] [" << plan_call_counter << "] Planning started.");
+    //perform planning type
+    switch(planning_params_.type)
     {
-      //perform planning type
-      switch(planning_params_.type)
-      {
-        case SCOUT_PLANNER_DEFAULT :
-          this->scout_plan_default(req.type.data, req.id.data);
-          break;
-        case EXC_HAUL_PLANNER_DEFAULT :
-          this->exc_haul_plan_default();
-          break;
-        // case EXC_HAUL_FORWARD_SEARCH:
-        //   this->forward_search_.plan(robots_, volatile_map_, time_);
-        //   break;
-        default:
-          ROS_ERROR("Task Planner type invalid!");
-          break;
+      case SCOUT_PLANNER_DEFAULT :
+        ROS_WARN_STREAM("[TASK PLANNER] [" << plan_call_counter << "] SCOUT PLANNER");
+        this->scout_plan_default(req.type.data, req.id.data);
+        break;
+      case EXC_HAUL_PLANNER_DEFAULT :
+        ROS_WARN_STREAM("[TASK PLANNER] [" << plan_call_counter << "] EXC HAUL PLANNER");
+        this->exc_haul_plan_default();
+        break;
+      // case EXC_HAUL_FORWARD_SEARCH:
+      //   this->forward_search_.plan(robots_, volatile_map_, time_);
+      //   break;
+      default:
+        ROS_ERROR_STREAM("[TASK PLANNER] [" << plan_call_counter << "] Task Planner type invalid!");
+        break;
 
-      }
-      std_msgs::Bool msg;
-      msg.data = true;
-      pub_interrupt.publish(msg);
     }
-    for (auto&robot: robots_)
+    std_msgs::Bool msg;
+    msg.data = true;
+    pub_interrupt.publish(msg);
+  }
+
+  switch(planning_params_.type)
+  {
+    case SCOUT_PLANNER_DEFAULT :
+      ROS_WARN_STREAM("[TASK PLANNER] [" << plan_call_counter << "] SCOUT PLANNER");
+      break;
+    case EXC_HAUL_PLANNER_DEFAULT :
+      ROS_WARN_STREAM("[TASK PLANNER] [" << plan_call_counter << "] EXC_HAUL PLANNER");
+      break;
+    default:
+      break;
+  }
+
+  ROS_WARN_STREAM("[TASK PLANNER] [" << plan_call_counter << "] REQUEST robot.type " << (int) req.type.data << ", robot.id " << (int) req.id.data);
+  
+  res.code.data = 255;
+
+  for (auto&robot: robots_)
+  { 
+    ROS_INFO_STREAM("[TASK PLANNER] [" << plan_call_counter << "] Checking robot.type " << robot.type << ", robot.id" << robot.id);
+    
+    if (!robot.plan.empty())
     {
-      if (req.type.data == robot.type && req.id.data == robot.id)
+      ROS_WARN_STREAM("[TASK PLANNER] [" << plan_call_counter << "] Checking plan: (" << robot.plan[0].point.x << ", " << robot.plan[0].point.y << ", " << robot.plan[0].point.z << ")");
+    }
+
+    if (req.type.data == robot.type && req.id.data == robot.id)
+    {
+      if (!robot.plan.empty())
       {
-        if (!robot.plan.empty())
+        if(robot.type == mac::SCOUT)
         {
-          if(robot.type == mac::SCOUT)
-          {
-            res.code.data = robot.plan[0].point.z;
-          }
-          else
-          {
-            res.code.data = 3;
-          }
-          ROS_WARN_STREAM("[TASK PLANNER] Objective " << robot.plan[0]);
-          res.objective = robot.plan[0];
-          res.objective.point.z = 0;
+          res.code.data = robot.plan[0].point.z;
         }
         else
         {
-          res.code.data = -1;
-          ROS_ERROR_STREAM("[TASK PLANNER] No objective.");
+          res.code.data = 3;
         }
+        ROS_WARN_STREAM("[TASK PLANNER] [" << plan_call_counter << "] Objective sent " << robot.plan[0]);
+        res.objective = robot.plan[0];
+        res.objective.point.z = 0;
+      }
+      else
+      {
+        ROS_ERROR_STREAM("[TASK PLANNER] [" << plan_call_counter << "] No objective.");
       }
     }
-  ROS_ERROR("Planning ended.");
+
+    ROS_WARN_STREAM("[TASK PLANNER] [" << plan_call_counter << "] Code sent " << (int) res.code.data);
+  }
+  
+  ROS_ERROR_STREAM("[TASK PLANNER] [" << plan_call_counter << "] Planning ended.");
+
+  plan_call_counter++;
+
   return true;
 }
 
@@ -362,7 +397,7 @@ TaskPlanner::TaskPlanner(const CostFunction       & cost_function,
         index_sub_hauler++;
         break;
       default:
-        ROS_ERROR("TaskPlanner::TaskPlanner: robot type invalid!");
+        ROS_ERROR_STREAM("[TASK PLANNER] [" << plan_call_counter << "] Robot type invalid!");
         break;
     }
   }
@@ -390,7 +425,7 @@ TaskPlanner::TaskPlanner(const CostFunction       & cost_function,
         index_pub_hauler++;
         break;
       default:
-        ROS_ERROR("TaskPlanner::TaskPlanner: robot type invalid!");
+        ROS_ERROR_STREAM("[TASK PLANNER] [" << plan_call_counter << "] Robot type invalid!");
         break;
     }
 
@@ -414,7 +449,6 @@ TaskPlanner::TaskPlanner(const CostFunction       & cost_function,
 
   //ForwardSearch forward_search_(cost_function_, planning_params_);
 
-
 }
 
 /////////////////////////////////////////////////////////////////////
@@ -437,7 +471,7 @@ int TaskPlanner::get_robot_index(int robot_type, int robot_id)
 double TaskPlanner::dist(const std::vector<double> p1, const std::vector<double> p2) {
 if(p1.size() != p2.size())
 {
-std::cout << "Error! p1.size() != p2.size() for computing distance!\n";
+// std::cout << "Error! p1.size() != p2.size() for computing distance!\n";
 exit(1); //TODO: remove exit
 }
 double val=0;
