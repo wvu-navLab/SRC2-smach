@@ -126,6 +126,11 @@ void SmExcavator::run()
     {
       stateInitialize();
     }
+    else
+    {
+      stateVolatileHandler(); // temporary
+    }
+    /*
     else if(state_to_exec.at(_planning))
     {
       statePlanning();
@@ -148,7 +153,7 @@ void SmExcavator::run()
       flag_fallthrough_condition = false;
     }
     // -------------------------------------------------------------------------------------------------------------------
-
+*/
     ros::spinOnce();
     loop_rate.sleep();
   }
@@ -1218,6 +1223,7 @@ void SmExcavator::ExecuteGoToPose(double timeout, const geometry_msgs::PointStam
 {
   move_excavator::GoToPose srv;
 
+  srv.request.timeLimit = timeout;
   srv.request.goal = point;
 
   bool success = clt_go_to_pose.call(srv);
@@ -1376,7 +1382,7 @@ void SmExcavator::ExcavationStateMachine()
     case SEARCH_MODE:
     {
       ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Excavation: Searching.");
-      
+      excavation_state = LOWER_MODE; // temporary
     }
     break;
     case LOWER_MODE:
@@ -1390,7 +1396,7 @@ void SmExcavator::ExcavationStateMachine()
     {
       ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Excavation: Scooping.");
       ExecuteScoop(2);
-      FindHauler(30);
+      FindHauler(60);
       ExecuteAfterScoop(2);
       excavation_state = HOME_MODE;
     }
@@ -1398,17 +1404,20 @@ void SmExcavator::ExcavationStateMachine()
     case EXTEND_MODE:
     {
       ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Excavation: Extending Arm.");
-      if(flag_hauler_in_range)
-      {
-        ExecuteGoToPose(10, bin_point_);
+      //if(flag_hauler_in_range)
+      //{
+        ExecuteGoToPose(5, bin_point_);
         excavation_state = DROP_MODE;
-      }
+        ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Excavation: Waiting in the goal position.");
+        ros::Duration(1).sleep();
+      //}
     }
     break;
     case DROP_MODE:
     {
       ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Excavation: Dropping Bucket Content.");
-      // ExecuteDrop(3);
+      ExecuteDrop(5);
+      ExecuteGoToPose(1, bin_point_); // Go up again to avoid collisions with the bin
       flag_manipulation_enabled = false;
       flag_localizing_volatile = false;
       excavation_state = HOME_MODE;
