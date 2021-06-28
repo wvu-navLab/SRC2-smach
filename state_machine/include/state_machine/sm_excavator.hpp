@@ -226,6 +226,7 @@ public:
   void PublishExcavationStatus();
   bool HomingUpdate(bool init_landmark);
   void Plan();
+  bool ExecuteSearch(double timeout);
 
   // Parameters
   std::string node_name_;
