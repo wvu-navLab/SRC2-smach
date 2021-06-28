@@ -103,6 +103,7 @@ public:
   bool flag_need_init_landmark = false;
   bool flag_localized_base = false;
   bool flag_manipulation_enabled = false;
+  bool flag_manipulation_interrupt = true;
   bool flag_bucket_full = false;
   bool flag_hauler_in_range = false;
   bool flag_found_volatile = false;
