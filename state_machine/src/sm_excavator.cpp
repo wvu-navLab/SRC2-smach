@@ -345,13 +345,16 @@ void SmExcavator::stateVolatileHandler()
 {
   ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Volatile Handling State!");
 
-  ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Canceling MoveBase goal.");
-  ac.waitForServer();
-  ac.cancelGoal();
-  ac.waitForResult(ros::Duration(0.25));
-
-  if(flag_manipulation_enabled == false)
+  // If not interrupted, this will cancel move-base goal and 
+  // manipulation will be enabled at first time 
+  if(!flag_manipulation_enabled && !flag_manipulation_interrupt)
   {
+    ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Canceling MoveBase goal.");
+    ac.waitForServer();
+    ac.cancelGoal();
+    ac.waitForResult(ros::Duration(0.25));
+
+
     ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Enabling Excavation State Machine.");
     Stop(1);
     BrakeRamp(100, 1, 0);
@@ -359,7 +362,8 @@ void SmExcavator::stateVolatileHandler()
     manipulation_timer = ros::Time::now();
     flag_manipulation_enabled = true;
   }
-
+  
+  // Then  the manipulation state-machine keeps being called unless timeout is reached or it is finished
   if (flag_manipulation_enabled && (ros::Time::now() - manipulation_timer) < ros::Duration(420))
   {
     ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Excavation State Machine enabled.");
@@ -374,7 +378,7 @@ void SmExcavator::stateVolatileHandler()
   else
   {
     flag_manipulation_enabled = false;
-    flag_localizing_volatile = false;
+    // flag_localizing_volatile = false;
     ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Excavation State Machine disabled.");
   }
 
@@ -617,11 +621,17 @@ void SmExcavator::manipulationCmdCallback(const std_msgs::Int64::ConstPtr &msg)
     {
       ExecuteHomeArm(2);
       flag_manipulation_enabled = false;
+      flag_manipulation_interrupt = true;
     }
     break;
   case HOME_MODE:
     {
       ExecuteHomeArm(2);
+    }
+    break;
+  case SEARCH_MODE:
+    {
+      // Search function goes here
     }
     break;
   case LOWER_MODE:
@@ -632,24 +642,31 @@ void SmExcavator::manipulationCmdCallback(const std_msgs::Int64::ConstPtr &msg)
   case SCOOP_MODE:
     {
       ExecuteScoop(2);
+      FindHauler(60);
       ExecuteAfterScoop(2);
     }
     break;
   case EXTEND_MODE:
     {
-      ExecuteExtendArm(4);
+      ExecuteGoToPose(5, bin_point_);
     }
     break;
   case DROP_MODE:
     {
       ExecuteDrop(2);
+      ExecuteGoToPose(1, bin_point_);
     }
     break;
   case START:
     {
-      flag_manipulation_enabled = true;
-      flag_found_volatile = false;
-      manipulation_timer = ros::Time::now();
+      flag_manipulation_enabled = false;
+      flag_manipulation_interrupt = false;
+      
+      flag_interrupt_plan = false;
+      flag_arrived_at_waypoint = true;
+      flag_recovering_localization = false;
+      flag_localizing_volatile = true;
+
       ROS_WARN_STREAM("[" << robot_name_ << "] " <<"MANIPULATION: has started!");
     }
     break;
@@ -1522,15 +1539,6 @@ void SmExcavator::Plan()
   }
 
   prev_srv_plan = srv_plan;
-
-  ROS_ERROR_STREAM("CODE" << (int)srv_plan.response.code.data);
-  ROS_ERROR_STREAM("CODE" << (int)srv_plan.response.code.data);
-  ROS_ERROR_STREAM("CODE" << (int)srv_plan.response.code.data);
-  ROS_ERROR_STREAM("CODE" << (int)srv_plan.response.code.data);
-  ROS_ERROR_STREAM("CODE" << (int)srv_plan.response.code.data);
-  ROS_ERROR_STREAM("CODE" << (int)srv_plan.response.code.data);
-  ROS_ERROR_STREAM("CODE" << (int)srv_plan.response.code.data);
-
 
   switch (srv_plan.response.code.data)
   {
