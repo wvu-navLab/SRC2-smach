@@ -631,7 +631,10 @@ void SmExcavator::manipulationCmdCallback(const std_msgs::Int64::ConstPtr &msg)
     break;
   case SEARCH_MODE:
     {
-      // Search function goes here
+      ExecuteHomeArm(2);
+      ExecuteLowerArm(2);
+      ExecuteSearch(2);
+      ExecuteHomeArm(2);
     }
     break;
   case LOWER_MODE:
@@ -1236,6 +1239,63 @@ void SmExcavator::ExecuteDrop(double timeout)
   }
 }
 
+bool SmExcavator::ExecuteSearch(double timeout)
+{
+  move_excavator::DropVolatile srv_drop;
+  move_excavator::Scoop srv_scoop;
+  srv_drop.request.timeLimit = timeout;
+  srv_scoop.request.timeLimit = timeout;
+
+  std::vector<double> q1s{ 0.0, -M_PI/6.0, M_PI/6.0, M_PI/3,  -M_PI/3};
+
+  for(int i=0; i<q1s.size(); i++)
+  {
+    srv_scoop.request.heading = q1s[i];  
+    //ROS_INFO(" i: %d q1s[i]: %f", i, srv_scoop.request.heading);
+
+    if (clt_scoop.call(srv_scoop))
+    {
+      ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Called service Scoop.");
+      ros::Duration(4.0).sleep();
+      ros::spinOnce();
+    }
+    else
+    {
+      ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Failed to call service Scoop");
+    }
+    
+    if (flag_found_volatile){
+     
+      ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Found volatil!");
+
+      volatile_heading_ = q1s[i];
+
+      return true;
+
+    }  
+    else // did not find volatil
+    {
+      if (clt_drop_volatile.call(srv_drop))
+      {
+        ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Called service Drop.");
+        ros::Duration(3.0).sleep();
+        ros::spinOnce();
+      }
+      else
+      {
+        ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Failed to call service Drop");
+      }
+
+    }
+  }
+
+
+  ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Did not find volatil!"); 
+  return false;
+  
+
+}
+
 void SmExcavator::ExecuteGoToPose(double timeout, const geometry_msgs::PointStamped &point)
 {
   move_excavator::GoToPose srv;
@@ -1405,16 +1465,16 @@ void SmExcavator::ExcavationStateMachine()
     case LOWER_MODE:
     {
       ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Excavation: Lowering Arm.");
-      ExecuteLowerArm(2);
+      ExecuteLowerArm(2); // Need to set heading
       excavation_state = SCOOP_MODE;
     }
     break;
     case SCOOP_MODE:
     {
       ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Excavation: Scooping.");
-      ExecuteScoop(2);
-      FindHauler(60);
-      ExecuteAfterScoop(2);
+      ExecuteScoop(2); // Need to set heading
+      FindHauler(60);  // What if we don't find hauler/check if it is reacheable
+      ExecuteAfterScoop(2); 
       excavation_state = HOME_MODE;
     }
     break;
@@ -1423,7 +1483,7 @@ void SmExcavator::ExcavationStateMachine()
       ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Excavation: Extending Arm.");
       //if(flag_hauler_in_range)
       //{
-        ExecuteGoToPose(5, bin_point_);
+        ExecuteGoToPose(5, bin_point_); // Include a second waypoint for obstacle avoidance
         excavation_state = DROP_MODE;
         ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Excavation: Waiting in the goal position.");
         ros::Duration(1).sleep();
@@ -1433,7 +1493,7 @@ void SmExcavator::ExcavationStateMachine()
     case DROP_MODE:
     {
       ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Excavation: Dropping Bucket Content.");
-      ExecuteDrop(5);
+      ExecuteDrop(5); // Adjust angles
       ExecuteGoToPose(1, bin_point_); // Go up again to avoid collisions with the bin
       flag_manipulation_enabled = false;
       flag_localizing_volatile = false;

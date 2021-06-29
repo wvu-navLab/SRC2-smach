@@ -29,7 +29,7 @@ struct Robot {
     int type;
     int volatile_index;
     double time_remaining; //0 = not start, 1 = full, -1 = failed
-    double current_task = -1;
+    int current_task = -1;
     double bucket_contents; //0 = empty, 1 = full
     nav_msgs::Odometry odom;
     std::vector<geometry_msgs::PointStamped> plan;
@@ -38,11 +38,6 @@ struct Robot {
     double power;
 };
 
-struct Volatile {
-    std::string id;
-    int points;
-    bool is_initialized = false;
-};
 
 struct State
 {
@@ -53,8 +48,8 @@ struct State
 
 struct Action
 {
-  std::pair<double, double> objective;
   int robot_type;
+  std::pair<double, double> objective;
   int id;
   int code;
   int volatile_index;
@@ -63,6 +58,7 @@ struct Action
 
 struct PlanningParams {
     int max_time; // seconds
+    int max_depth; //max depth to construct tree
     int timeout;
     bool demo;
     int type;

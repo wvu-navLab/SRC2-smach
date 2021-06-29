@@ -39,6 +39,8 @@ move_base_state(actionlib::SimpleClientGoalState::PREEMPTED)
   clt_approach_excavator = nh.serviceClient<src2_approach_services::ApproachExcavator>("approach_excavator_service");
   clt_approach_bin = nh.serviceClient<src2_approach_services::ApproachBin>("approach_bin_service");
   clt_location_of_bin = nh.serviceClient<range_to_base::LocationOfBin>("location_of_bin_service");
+  clt_location_of_excavator = nh.serviceClient<range_to_base::LocationOfExcavator>("location_of_excavator_service");
+
 
   map_timer = ros::Time::now();
   wp_checker_timer=  ros::Time::now();
@@ -424,7 +426,8 @@ void SmHauler::stateVolatileHandler()
 
     if (approachSuccess)
     {
-      ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"APPROACH SUCCESS + CHANGING FLAGS ***********");
+      ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"APPROACH SERVICE SUCCESS -- ESTIMATING EXCAV LOCATION ");
+      LocateExcavator();
 
       // TODO: This is where we are gonna call the parallel parking
       // Include new method: SmHauler::ParallelParking that calls the service
@@ -1231,6 +1234,39 @@ bool SmHauler::ApproachBin(int max_count)
       ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Failed to call ApproachBin service");
     }
     count = count + 1;
+  }
+
+  return success;
+}
+
+
+bool SmHauler::LocateExcavator()
+{
+  range_to_base::LocationOfExcavator srv_location_of_excavator;
+  srv_location_of_excavator.request.location_of_excavator.data=true;
+
+  bool success = false;
+
+  if(clt_location_of_excavator.call(srv_location_of_excavator))
+  {
+    if(srv_location_of_excavator.response.success.data)
+    {
+      ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Location of excavator reliable");
+      excavator_location_ = srv_location_of_excavator.response.excavator_location;
+      ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Saving Excavator Location "<<excavator_location_.x << "," << excavator_location_.y);
+
+      success = true;
+    }
+    else
+    {
+      ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Location of excavator not reliable");
+      success = false;
+    }
+  }
+  else
+  {
+    ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Failed to call LocateExcavator service");
+    success = false;
   }
 
   return success;
