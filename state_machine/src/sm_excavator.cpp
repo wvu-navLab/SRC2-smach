@@ -631,7 +631,10 @@ void SmExcavator::manipulationCmdCallback(const std_msgs::Int64::ConstPtr &msg)
     break;
   case SEARCH_MODE:
     {
-      // Search function goes here
+      ExecuteHomeArm(2);
+      ExecuteLowerArm(2);
+      ExecuteSearch(2);
+      ExecuteHomeArm(2);
     }
     break;
   case LOWER_MODE:
@@ -1240,37 +1243,43 @@ bool SmExcavator::ExecuteSearch(double timeout)
 {
   move_excavator::DropVolatile srv_drop;
   move_excavator::Scoop srv_scoop;
+  srv_drop.request.timeLimit = timeout;
+  srv_scoop.request.timeLimit = timeout;
 
-  std::vector<double> q1s{ 0.0, PI/12, -PI/12, -PI/6, PI/6 };
+  std::vector<double> q1s{ 0.0, -M_PI/6.0, M_PI/6.0, M_PI/3,  -M_PI/3};
 
-  for(int i=0; i++; i<q1s.size())
+  for(int i=0; i<q1s.size(); i++)
   {
     srv_scoop.request.heading = q1s[i];  
+    //ROS_INFO(" i: %d q1s[i]: %f", i, srv_scoop.request.heading);
 
     if (clt_scoop.call(srv_scoop))
     {
       ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Called service Scoop.");
+      ros::Duration(4.0).sleep();
+      ros::spinOnce();
     }
     else
     {
       ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Failed to call service Scoop");
     }
-    ros::Duration(0.1).sleep();
-    ros::spinOnce();
+    
     if (flag_found_volatile){
      
       ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Found volatil!");
 
-      volatile_heading_ = q1s[1];
+      volatile_heading_ = q1s[i];
 
       return true;
 
     }  
-    else
+    else // did not find volatil
     {
       if (clt_drop_volatile.call(srv_drop))
       {
         ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Called service Drop.");
+        ros::Duration(3.0).sleep();
+        ros::spinOnce();
       }
       else
       {
@@ -1279,8 +1288,9 @@ bool SmExcavator::ExecuteSearch(double timeout)
 
     }
   }
-   
-  ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Did not found volatil!"); 
+
+
+  ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Did not find volatil!"); 
   return false;
   
 
