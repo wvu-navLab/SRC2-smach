@@ -83,23 +83,29 @@ namespace mac
 
   public:
     /** \brief  */
-    ForwardSearch();
+    //ForwardSearch();
 
     /** \brief  */
-    ForwardSearch(const CostFunction &cost_function,
-                  const PlanningParams &planning_params);
+    ForwardSearch(const CostFunction cost_function,
+                  const PlanningParams planning_params);
 
     /** \brief  Run the forward search, which considers all possible actions
    * sequences given a specified horizon (i.e., maximum depth of the tree)
   */
     std::vector<Action> plan(const State &s);
 
-    /** \brief  */
-    // bool reinit();
+    //debugging
+    std::vector<std::vector<Action>> get_sequence_of_joint_actions(int depth, int layer_index);
+    std::vector<std::vector<std::vector<Action>>> get_all_sequences_of_joint_actions();
+    std::vector<std::vector<Action>> get_best_sequence_of_joint_actions();
 
-  protected:
-    /** \brief  Tree vertex used in the forward search */
-    struct Vertex
+
+        /** \brief  */
+        // bool reinit();
+
+        protected :
+        /** \brief  Tree vertex used in the forward search */
+        struct Vertex
     {
       State state;
       std::vector<Action> joint_action; //action to get to this vertex
@@ -139,10 +145,10 @@ namespace mac
     // void get_state(State s);
 
     /** \brief  */
-    CostFunction cost_function_;
+    const CostFunction cost_function_;
 
     /** \brief  */
-    PlanningParams planning_params_;
+    const PlanningParams planning_params_;
 
     //TODO(Jared): do we want to represent the tree as a vector instead of a vector of vectors
     //             to be consistent with the toolbox?

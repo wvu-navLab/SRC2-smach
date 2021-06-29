@@ -7,10 +7,10 @@ namespace mac
   /***************************CONSTRUCTORS****************************/
   /////////////////////////////////////////////////////////////////////
 
-  ForwardSearch::ForwardSearch() {}
+  // ForwardSearch::ForwardSearch() {}
 
-  ForwardSearch::ForwardSearch(const CostFunction &cost_function,
-                               const PlanningParams &planning_params)
+  ForwardSearch::ForwardSearch(const CostFunction cost_function,
+                               const PlanningParams planning_params)
       : cost_function_(cost_function),
         planning_params_(planning_params) {}
 
@@ -817,7 +817,7 @@ namespace mac
     return val;
   }
 
-  std::vector<std::vector<int>> cartesian_product(const std::vector<std::vector<int>> &v)
+  std::vector<std::vector<int>> ForwardSearch::cartesian_product(const std::vector<std::vector<int>> &v)
   {
     std::vector<std::vector<int>> s = {{}};
     for (const auto &u : v)
@@ -835,4 +835,50 @@ namespace mac
     }
     return s;
   }
+
+  std::vector<std::vector<Action>> ForwardSearch::get_sequence_of_joint_actions(int depth, int layer_index)
+  {
+    std::vector<std::vector<Action>> seq_joint_actions;
+
+    Vertex leaf = tree_[depth][layer_index];
+    while (leaf.depth != 0)
+    {
+      seq_joint_actions.push_back(leaf.joint_action);
+      leaf = tree_[leaf.depth - 1][leaf.parent_layer_index];
+    }
+
+    return seq_joint_actions;
+  }
+
+  std::vector<std::vector<std::vector<Action>>> ForwardSearch::get_all_sequences_of_joint_actions()
+  {
+    std::vector<std::vector<std::vector<Action>>> all_joint_actions;
+
+    for (const auto &leaf : tree_[tree_.size() - 1])
+    {
+      std::vector<std::vector<Action>> joint_actions = get_sequence_of_joint_actions(leaf.depth, leaf.layer_index);
+      all_joint_actions.push_back(joint_actions);
+    }
+    return all_joint_actions;
+  }
+
+  std::vector<std::vector<Action>> ForwardSearch::get_best_sequence_of_joint_actions()
+  {
+    //select leaf with minimum cost (only works if problem is deterministic)
+    int min_layer_index = -1;
+    int min_depth = -1;
+    double min_total_cost = 1e9;
+    for (auto &v : tree_[tree_.size() - 1])
+    {
+      if (min_total_cost < v.total_cost)
+      {
+        min_layer_index = v.layer_index;
+        min_depth = v.depth;
+        min_total_cost = v.total_cost;
+      }
+    }
+
+    return get_sequence_of_joint_actions(min_depth, min_layer_index);
+  }
+
 }

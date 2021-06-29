@@ -48,8 +48,8 @@ struct State
 
 struct Action
 {
-  std::pair<double, double> objective;
   int robot_type;
+  std::pair<double, double> objective;
   int id;
   int code;
   int volatile_index;
@@ -58,7 +58,7 @@ struct Action
 
 struct PlanningParams {
     int max_time; // seconds
-    int max_depth = 5; //max depth to construct tree
+    int max_depth; //max depth to construct tree
     int timeout;
     bool demo;
     int type;
