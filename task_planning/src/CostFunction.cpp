@@ -116,24 +116,33 @@ namespace mac
                                           const std::vector<Action> joint_action,
                                           const State s_prime) const
   {
-    //de prioritized failed to collect vols
+    double cost = 0;
+    for (int i = 0; i < s.volatile_map.vol.size(); ++i)
+    {
+      if (s_prime.volatile_map.vol[i].collected && !s.volatile_map.vol[i].collected)
+      {
+        cost += get_vol_value(s_prime.volatile_map.vol[i].type);
+      }
+    }
+
     return 0;
   }
 
   double CostFunction::cost_time_passed(const State s,
-                                         const std::vector<Action> joint_action,
-                                         const State s_prime) const
+                                        const std::vector<Action> joint_action,
+                                        const State s_prime) const
   {
-    return 0;
+    //maybe this doesn't work if changed task, so probably want to do checking... may check that it isn't zero
+    return params_.time_weight * (s.robots[0].time_remaining - s_prime.robots[0].time_remaining);
   }
 
   double CostFunction::cost_time_vol_collected(const State s,
                                                const std::vector<Action> joint_action,
                                                const State s_prime) const
   {
-    //cost_time_passed(s,joint_action,s_prime)
-    //cost_vol_collected(s,joint_action,s_prime)
-    return 0;
+    double time_cost = cost_time_passed(s, joint_action, s_prime);
+    double vol_cost = cost_vol_collected(s, joint_action, s_prime);
+    return params_.time_vol_weights[0] * time_cost + params_.time_vol_weights[1] * vol_cost;
   }
 
   double CostFunction::dist(const std::vector<double> p1, const std::vector<double> p2)
@@ -153,4 +162,48 @@ namespace mac
     return val;
   }
 
+  double CostFunction::get_vol_value(std::string vol)
+  {
+    if (vol.compare("ice"))
+    {
+      return 1; //points /kg
+    }
+    else if (vol.compare("ethane"))
+    {
+      return 20;
+    }
+    else if (vol.compare("methane"))
+    {
+      return 14;
+    }
+    else if (vol.compare("methanol"))
+    {
+      return 16;
+    }
+    else if (vol.compare("carbon_dioxide"))
+    {
+      return 3;
+    }
+    else if (vol.compare("ammonia"))
+    {
+      return 2;
+    }
+    else if (vol.compare("hydrogen_sulfite"))
+    {
+      return 1;
+    }
+    else if (vol.compare("sulfur_dioxide"))
+    {
+      return 1;
+    }
+    else if (vol.compare("regolith"))
+    {
+      return 0;
+    }
+    else
+    {
+      ROS_ERROR("Invalid volatile type: get_vol_value");
+      return -1;
+    }
+  }
 }

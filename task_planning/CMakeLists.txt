@@ -174,6 +174,11 @@ target_link_libraries(test_cartesian_product
 		${catkin_LIBRARIES}
 )
 
+add_executable(test_forward_search test/test_forward_search.cpp)
+target_link_libraries(test_forward_search
+		${catkin_LIBRARIES}
+)
+
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
 ## target back to the shorter version for ease of user use

@@ -18,25 +18,26 @@ namespace mac
   /***************************GETTERS*********************************/
   /////////////////////////////////////////////////////////////////////
 
-  void ForwardSearch::get_state(const std::vector<Robot> &robots,
-                                const volatile_map::VolatileMap &volatile_map,
-                                const ros::Time &time)
-  {
-    state_.robots = robots;
-    state_.volatile_map_ = volatile_map;
-    state_.time_ = time;
-  }
+  // void ForwardSearch::get_state(const std::vector<Robot> &robots,
+  //                               const volatile_map::VolatileMap &volatile_map,
+  //                               const ros::Time &time)
+  // {
+  //   state_.robots = robots;
+  //   state_.volatile_map_ = volatile_map;
+  //   state_.time_ = time;
+  // }
 
   /////////////////////////////////////////////////////////////////////
   /**************************CORE FUNCTIONALITY***********************/
   /////////////////////////////////////////////////////////////////////
-  Action ForwardSearch::plan(const State &s)
+  std::vector<Action> ForwardSearch::plan(const State &s)
   {
     //initialize tree
     tree_.clear();
     Vertex root;
     root.state = s;
     root.cost = 0;
+    root.total_cost = 0;
     root.parent_layer_index = -1;
     root.depth = 0;
     root.layer_index = 0;
@@ -47,7 +48,7 @@ namespace mac
 
     //construct tree
     int depth = 0;
-    while (depth < n - 1)
+    while (depth < planning_params_.max_depth - 1)
     {
       std::vector<Vertex> layer;
       for (auto &leaf : tree_[depth])
@@ -57,7 +58,9 @@ namespace mac
         {
           Vertex v_new;
           v_new.state = propagate(leaf.state, joint_action);
+          v_new.joint_action = joint_action;
           v_new.cost = cost_function_.compute_cost(leaf.state, joint_action, v_new.state);
+          v_new.total_cost = leaf.total_cost + v_new.cost;
           v_new.parent_layer_index = leaf.layer_index;
           v_new.depth = tree_.size();
           v_new.layer_index = layer.size();
@@ -70,7 +73,7 @@ namespace mac
       {
         tree_.push_back(layer);
       }
-      else 
+      else
       {
         std::cout << "No possible actions at current depth. Terminating constructing tree." << std::endl;
         break;
@@ -83,48 +86,51 @@ namespace mac
     return get_policy();
   }
 
-  bool ForwardSearch::reinit()
-  {
-  }
+  // bool ForwardSearch::reinit()
+  // {
+  // }
 
-  State propagate(const State &s,
-                  const std::vector<Action> &joint_action)
+  State ForwardSearch::propagate(const State &s,
+                                 const std::vector<Action> &joint_action)
   {
+    State s_copy = s;
 
     //foreach action
     for (auto &a : joint_action)
     {
-      int robot_ind get_robot_index(a.robot_type, a.id); //NOTE what if there are multiple
-      s.robots[robot_ind].status = 0;
-      s.robots[robot_ind].current_task = a.code;
-      s.robots[robot_ind].plan.clear();
+      int robot_ind = get_robot_index(s_copy, a.robot_type, a.id); //NOTE what if there are multiple
+      s_copy.robots[robot_ind].time_remaining = 0;
+      s_copy.robots[robot_ind].current_task = a.code;
+      s_copy.robots[robot_ind].plan.clear();
       geometry_msgs::PointStamped temp_msg;
-      temp_msg.point.x = a.objective.x;
-      temp_msg.point.y = a.objective.y;
-      s.toggle_sleep = a.toggle_sleep;
-      s.robots[robot_ind].plan.push_back(temp_msg);
-      s.robots[robot_ind].volatile_index = a.volatile_index;
+      temp_msg.point.x = a.objective.first;
+      temp_msg.point.y = a.objective.second;
+      s_copy.robots[robot_ind].plan.push_back(temp_msg);
+      s_copy.robots[robot_ind].toggle_sleep = a.toggle_sleep;
+      s_copy.robots[robot_ind].volatile_index = a.volatile_index;
     }
 
     // Find time remaining for each robot's task
-    std::vector<double> time_remaining = actions_to_time(s, joint_action);
+    std::vector<double> time_remaining = actions_to_time(s_copy, joint_action);
 
     // Find min time remaining
-    double min_time_idx = std::min_element(time_remaining.begin(), time_remaining.end()) - time_remaining.begin();
+    int min_time_idx = std::min_element(time_remaining.begin(), time_remaining.end()) - time_remaining.begin();
     double min_time = time_remaining[min_time_idx];
     // Update volatile completion if necessary
-    temp_vol_ind = s.robots[min_time_index].volatile_index;
-    if (s.robots[min_time_index] == ACTION_HAULER_T::_volatile_handler)
+    int temp_vol_ind = s_copy.robots[min_time_idx].volatile_index;
+
+    // Need to come back and change this to hauler dumping... For now we are only handling "Excavation"
+    if (s_copy.robots[min_time_idx].current_task == (int)ACTION_EXCAVATOR_T::_volatile_handler)
     {
-      s.volatile_map.vol[temp_vol_ind].collect = true;
+      s_copy.volatile_map.vol[temp_vol_ind].collected = true;
     }
     // propagate completion for each robot
-    for (auto &robot : s.robots)
+    for (auto &robot : s_copy.robots)
     {
-      simulate_time_step(*robot, min_time);
+      simulate_time_step(robot, min_time);
     }
 
-    return s;
+    return s_copy;
   }
 
   std::vector<std::vector<Action>> ForwardSearch::get_actions_all_robots(const State &s)
@@ -134,7 +140,7 @@ namespace mac
     //get all possible actions for individual robots
     std::vector<std::vector<Action>> all_robots_actions;
     std::vector<std::vector<int>> all_robots_actions_indices;
-    for (int i = 0; i < state_.robots.size(); i++)
+    for (int i = 0; i < s.robots.size(); i++)
     {
       //all possible actions for robot i
       std::vector<Action> robot_actions = get_actions_robot(i, s);
@@ -160,12 +166,14 @@ namespace mac
         joint_action.push_back(all_robots_actions[j][all_joints_actions_indices[i][j]]);
       }
     }
-    return joint_action;
+    return all_joint_actions;
   }
 
   std::vector<Action> ForwardSearch::get_actions_robot(int robot_index, const State &s)
   {
     std::vector<Action> actions;
+
+    Robot robot = s.robots[robot_index];
 
     //get actions for SCOUT
     if (robot.type == SCOUT)
@@ -189,8 +197,9 @@ namespace mac
     std::vector<Action> copy_actions = actions;
     for (const auto &action : copy_actions)
     {
-      action.toggle_sleep = true;
-      actions.push_back(action);
+      Action copy_action = action;
+      copy_action.toggle_sleep = true;
+      actions.push_back(copy_action);
     }
 
     return actions;
@@ -241,13 +250,13 @@ namespace mac
 
     //actions VOLATILES
     int volatile_index = 0;
-    for (const auto &vol : volatile_map.vol)
+    for (const auto &vol : s.volatile_map.vol)
     {
       //skip blacklisted volatiles
       bool is_vol_blacklisted = false;
       for (const auto vol_bl : vol_blacklist)
       {
-        if (vol == vol_bl)
+        if (volatile_index == vol_bl) //
         {
           is_vol_blacklisted = true;
         }
@@ -265,7 +274,7 @@ namespace mac
                                      vol.position.point.y);
         a.robot_type = robot.type;
         a.id = robot_index;
-        a.code = ACTION_EXCAVATOR_T::_volatile_handler;
+        a.code = (int)ACTION_EXCAVATOR_T::_volatile_handler;
         a.volatile_index = volatile_index;
         a.toggle_sleep = false;
         actions.push_back(a);
@@ -274,25 +283,29 @@ namespace mac
     }
 
     //action LOST
-    Action a;
-    a.objective = std::make_pair(0, 0);
-    a.robot_type = robot.type;
-    a.id = robot_index;
-    a.code = ACTION_EXCAVATOR_T::_lost;
-    a.volatile_index = -1;
-    a.toggle_sleep = false;
-    actions.push_back(a);
+    {
+      Action a;
+      a.objective = std::make_pair(0, 0);
+      a.robot_type = robot.type;
+      a.id = robot_index;
+      a.code = (int)ACTION_EXCAVATOR_T::_lost;
+      a.volatile_index = -1;
+      a.toggle_sleep = false;
+      actions.push_back(a);
+    }
 
     //action PLANNING (i.e., wait action)
-    Action a;
-    a.objective = std::make_pair(robot.odom.pose.pose.position.x,
-                                 robot.odom.pose.pose.position.y);
-    a.robot_type = robot.type;
-    a.id = robot_index;
-    a.code = ACTION_EXCAVATOR_T::_planning;
-    a.volatile_index = -1;
-    a.toggle_sleep = false;
-    actions.push_back(a);
+    {
+      Action a;
+      a.objective = std::make_pair(robot.odom.pose.pose.position.x,
+                                   robot.odom.pose.pose.position.y);
+      a.robot_type = robot.type;
+      a.id = robot_index;
+      a.code = (int)ACTION_EXCAVATOR_T::_planning;
+      a.volatile_index = -1;
+      a.toggle_sleep = false;
+      actions.push_back(a);
+    }
   }
 
   std::vector<Action> ForwardSearch::get_actions_hauler(int robot_index, const State &s)
@@ -328,76 +341,90 @@ namespace mac
     for (const auto &vol_index : vol_indices)
     {
       Action a;
-      a.objective = std::make_pair(volatile_map.vol[vol_index].position.point.x,
-                                   volatile_map.vol[vol_index].position.point.y);
+      a.objective = std::make_pair(s.volatile_map.vol[vol_index].position.point.x,
+                                   s.volatile_map.vol[vol_index].position.point.y);
       a.robot_type = robot.type;
       a.id = robot_index;
-      a.code = ACTION_HAULER_T::_volatile_handler;
+      a.code = (int)ACTION_HAULER_T::_volatile_handler;
       a.volatile_index = vol_index;
       a.toggle_sleep = false;
       actions.push_back(a);
-      volatile_index++;
     }
 
     //action LOST
-    Action a;
-    a.objective = std::make_pair(0, 0);
-    a.robot_type = robot.type;
-    a.id = robot_index;
-    a.code = ACTION_HAULER_T::_lost;
-    a.volatile_index = -1;
-    a.toggle_sleep = false;
-    actions.push_back(a);
-
+    {
+      Action a;
+      a.objective = std::make_pair(0, 0);
+      a.robot_type = robot.type;
+      a.id = robot_index;
+      a.code = (int)ACTION_HAULER_T::_lost;
+      a.volatile_index = -1;
+      a.toggle_sleep = false;
+      actions.push_back(a);
+    }
     //action PLANNING (i.e., wait action)
-    Action a;
-    a.objective = std::make_pair(robot.odom.pose.pose.position.x,
-                                 robot.odom.pose.pose.position.y);
-    a.robot_type = robot.type;
-    a.id = robot_index;
-    a.code = ACTION_HAULER_T::_planning;
-    a.volatile_index = -1;
-    a.toggle_sleep = false;
-    actions.push_back(a);
-
+    {
+      Action a;
+      a.objective = std::make_pair(robot.odom.pose.pose.position.x,
+                                   robot.odom.pose.pose.position.y);
+      a.robot_type = robot.type;
+      a.id = robot_index;
+      a.code = (int)ACTION_HAULER_T::_planning;
+      a.volatile_index = -1;
+      a.toggle_sleep = false;
+      actions.push_back(a);
+    }
     //action DUMP
-    Action a;
-    a.objective = std::make_pair(0, 0);
-    a.robot_type = robot.type;
-    a.id = robot_index;
-    a.code = ACTION_HAULER_T::_dump;
-    a.volatile_index = -1;
-    a.toggle_sleep = false;
-    actions.push_back(a);
+    {
+      Action a;
+      a.objective = std::make_pair(0, 0);
+      a.robot_type = robot.type;
+      a.id = robot_index;
+      a.code = (int)ACTION_HAULER_T::_hauler_dumping;
+      a.volatile_index = -1;
+      a.toggle_sleep = false;
+      actions.push_back(a);
+    }
   }
 
-  int ForwardSearch::get_policy()
+  std::vector<Action> ForwardSearch::get_policy()
   {
-    int max_ind = 0;
-    double max_cost = -5e6;
-    for (auto &v : tree[tree.size() - 1])
+    //select leaf with minimum cost (only works if problem is deterministic)
+    int min_layer_index = -1;
+    int min_depth = -1;
+    double min_total_cost = 1e9;
+    for (auto &v : tree_[tree_.size() - 1])
     {
-      if (max_cost < v.cost)
+      if (min_total_cost < v.total_cost)
       {
-        max_ind = v.index;
-        max_cost = v.cost;
+        min_layer_index = v.layer_index;
+        min_depth = v.depth;
+        min_total_cost = v.total_cost;
       }
     }
 
-    return get_parent(max_ind, tree.size());
-  }
+    if (min_layer_index == -1 || min_depth == -1)
+    {
+      std::cout << "get_policy: Error! No leaf selected in get_policy!" << std::endl;
+    }
 
-  int ForwardSearch::get_parent(int ind_v,
-                                int depth)
-  {
-    if (depth == 1)
+    //find optimal joint action given selected leaf
+    std::vector<Action> optimal_joint_action;
+    bool is_action_valid = false;
+    Vertex leaf = tree_[min_depth][min_layer_index];
+    while (leaf.depth != 0)
     {
-      return ind;
+      optimal_joint_action = leaf.joint_action;
+      is_action_valid = true;
+      leaf = tree_[leaf.depth - 1][leaf.parent_layer_index];
     }
-    else
+
+    if (!is_action_valid)
     {
-      get_parent(tree[depth][ind_v].parent, depth - 1);
+      std::cout << "get_policy: Error! No valid actions selected! Is the tree a depth of 0?." << std::endl;
     }
+
+    return optimal_joint_action;
   }
 
   /////////////////////////////////////////////////////////////////////
@@ -420,94 +447,104 @@ namespace mac
     //get robot
     Robot robot = s.robots[a.id];
 
+    double traverse_time, handling_time, homing_time, dumping_time;
+
     if (robot.type == SCOUT)
     {
-      switch (robot.code)
+      switch (a.code)
       {
-      case ACTION_SCOUT_T::_planning:
+      case (int)ACTION_SCOUT_T::_planning:
         return planning_params_.wait_time;
         break;
-      case ACTION_SCOUT_T::_volatile_handler:
-        double traverse_time = get_traverse_time(); // this will be based on dist to next next waypoint
-        double handling_time = get_handling_time(); // this will fraction of edges where there is volatile * time it takes to handle volatile... likely be a constant
+      case (int)ACTION_SCOUT_T::_volatile_handler:
+        traverse_time = get_traverse_time(robot);
+        handling_time = get_handling_time(robot);
         return traverse_time + handling_time;
         break;
-      case ACTION_SCOUT_T::_lost:
-        double traverse_time = get_traverse_time(); // time to get to "home base waypoint" --> this waypoint may not be fixed.... may need a function to compute that
-        double homing_time = get_homing_time();     // time to charge and localize with base station "home base waypoint"
+      case (int)ACTION_SCOUT_T::_lost:
+        traverse_time = get_traverse_time(robot);
+        homing_time = get_homing_time(robot);
         return traverse_time + homing_time;
         break;
       default:
+        ROS_ERROR("Invalid robot type: action_to_time");
+        break;
       }
     }
 
     if (robot.type == EXCAVATOR)
     {
-      switch (robot.code)
+      switch (a.code)
       {
-      case ACTION_EXCAVATOR_T::_planning:
+      case (int)ACTION_EXCAVATOR_T::_planning:
         return planning_params_.wait_time;
         break;
-      case ACTION_EXCAVATOR_T::_volatile_handler:
-        double traverse_time = get_traverse_time(); //see above
-        double handling_time = get_handling_time(); // excavation time estimate... who knows... bernardo help, plzzzz!!!
+      case (int)ACTION_EXCAVATOR_T::_volatile_handler:
+        traverse_time = get_traverse_time(robot);
+        handling_time = get_handling_time(robot);
         return traverse_time + handling_time;
         break;
-      case ACTION_EXCAVATOR_T::_lost:
-        double traverse_time = get_traverse_time(); //see above
-        double homing_time = get_homing_time();     //see above
+      case (int)ACTION_EXCAVATOR_T::_lost:
+        traverse_time = get_traverse_time(robot);
+        homing_time = get_homing_time(robot);
         return traverse_time + homing_time;
         break;
       default:
+        ROS_ERROR("Invalid robot type: action_to_time");
+        break;
       }
     }
 
     if (robot.type == HAULER)
     {
-      switch (robot.code)
+      switch (a.code)
       {
-      case ACTION_HAULER_T::_planning:
+      case (int)ACTION_HAULER_T::_planning:
         return planning_params_.wait_time;
         break;
-      case ACTION_HAULER_T::_volatile_handler:
-        double traverse_time = get_traverse_time(); //see above
-        double handling_time = get_handling_time(); //see above
+      case (int)ACTION_HAULER_T::_volatile_handler:
+        traverse_time = get_traverse_time(robot);
+        handling_time = get_handling_time(robot);
         return traverse_time + handling_time;
         break;
-      case ACTION_HAULER_T::_lost:
-        double traverse_time = get_traverse_time(); //see above
-        double homing_time = get_homing_time();     //see above
+      case (int)ACTION_HAULER_T::_lost:
+        traverse_time = get_traverse_time(robot);
+        homing_time = get_homing_time(robot);
         return traverse_time + homing_time;
         break;
-      case ACTION_HAULER_T::_hauler_dumping:
-        double traverse_time = get_traverse_time(); //see above
-        double dumping_time = get_dumping_time();   // time from "dumping waypoint" to alignment with base + dump
+      case (int)ACTION_HAULER_T::_hauler_dumping:
+        traverse_time = get_traverse_time(robot);
+        dumping_time = get_dumping_time(robot);
         return traverse_time + dumping_time;
         break;
       default:
+        ROS_ERROR("Invalid robot type: action_to_time");
+        break;
       }
     }
   }
 
   double ForwardSearch::get_traverse_time(Robot &robot)
   {
+    double v;
     switch (robot.type)
     {
-      double v;
     case mac::SCOUT:
-      v = max_v_scout;
+      v = planning_params_.max_v_scout;
       break;
     case mac::EXCAVATOR:
-      v = max_v_excavator;
+      v = planning_params_.max_v_excavator;
       break;
     case mac::HAULER:
-      v = max_v_hauler;
+      v = planning_params_.max_v_hauler;
       break;
     default:
       ROS_ERROR("Invalid robot type: get_traverse_time");
+      break;
     }
 
-    if toggle_sleep)  v *= 0.75;
+    if (robot.toggle_sleep)
+      v *= 0.75;
 
     std::vector<double> p1, p2;
     p1.push_back(robot.odom.pose.pose.position.x);
@@ -530,6 +567,7 @@ namespace mac
       return planning_params_.vol_handling_time_hauler;
     default:
       ROS_ERROR("Invalid robot type: get_handling_time");
+      break;
     }
   }
   double ForwardSearch::get_homing_time(Robot &robot)
@@ -544,6 +582,7 @@ namespace mac
       return planning_params_.homing_time_hauler;
     default:
       ROS_ERROR("Invalid robot type: get_traverse_time");
+      break;
     }
   }
 
@@ -560,99 +599,104 @@ namespace mac
     // simulate time change
     robot.time_remaining -= time;
     // simulate power
-    this->time_to_power(robot, time);
-    // simulate position and uncertainty
+    // this->time_to_power(robot, time);
+    // // simulate position and uncertainty
     this->time_to_motion(robot, time);
   }
 
-  double ForwardSearch::time_to_power(Robot &robot,
-                                      double time)
-  {
-    if (robot.type == SCOUT)
-    {
-      switch (robot->code)
-      {
-      case ACTION_SCOUT_T::_planning:
-        for (int i = 0; i < planning_params_.power_rates.size(); ++i)
-          robot.power -= planning_params_.planning_scout_power_weights[i] * planning_params_.power_rates[i] * time;
-        return;
-      case ACTION_SCOUT_T::_volatile_handler:
-        for (int i = 0; i < planning_params_.power_rates.size(); ++i)
-          robot.power -= planning_params_.vol_handle_scout_power_weights[i] * planning_params_.power_rates[i] * time;
-        return;
-      case ACTION_SCOUT_T::_lost:
-        for (int i = 0; i < planning_params_.power_rates.size(); ++i)
-          robot.power -= planning_params_.lost_scout_power_weights[i] * planning_params_.power_rates[i] * time;
-        return;
-      default:
-        ROS_ERROR("Invalid robot code: time_to_power");
-      }
-    }
+  // double ForwardSearch::time_to_power(Robot &robot,
+  //                                     double time)
+  // {
+  //   if (robot.type == SCOUT)
+  //   {
+  //     switch (robot->current_task)
+  //     {
+  //     case ACTION_SCOUT_T::_planning:
+  //       for (int i = 0; i < planning_params_.power_rates.size(); ++i)
+  //         robot.power -= planning_params_.planning_scout_power_weights[i] * planning_params_.power_rates[i] * time;
+  //       return robot.power;
+  //     case ACTION_SCOUT_T::_volatile_handler:
+  //       for (int i = 0; i < planning_params_.power_rates.size(); ++i)
+  //         robot.power -= planning_params_.vol_handle_scout_power_weights[i] * planning_params_.power_rates[i] * time;
+  //       return;
+  //     case ACTION_SCOUT_T::_lost:
+  //       for (int i = 0; i < planning_params_.power_rates.size(); ++i)
+  //         robot.power -= planning_params_.lost_scout_power_weights[i] * planning_params_.power_rates[i] * time;
+  //       return;
+  //     default:
+  //       ROS_ERROR("Invalid robot code: time_to_power");
+  //       break;
+  //     }
+  //   }
 
-    if (robot.type == EXCAVATOR)
-    {
-      switch (robot->code)
-      {
-      case ACTION_EXCAVATOR_T::_planning:
-        for (int i = 0; i < planning_params_.power_rates.size(); ++i)
-          robot.power -= planning_params_.planning_excavator_power_weights[i] * planning_params_.power_rates[i] * time;
-        return;
-      case ACTION_EXCAVATOR_T::_volatile_handler:
-        for (int i = 0; i < planning_params_.power_rates.size(); ++i)
-          robot.power -= planning_params_.vol_handle_excavator_power_weights[i] * planning_params_.power_rates[i] * time;
-        return;
-      case ACTION_EXCAVATOR_T::_lost:
-        for (int i = 0; i < planning_params_.power_rates.size(); ++i)
-          robot.power -= planning_params_.lost_excavator_power_weights[i] * planning_params_.power_rates[i] * time;
-        return;
-      default:
-        ROS_ERROR("Invalid robot code: time_to_power");
-      }
-    }
+  //   if (robot.type == EXCAVATOR)
+  //   {
+  //     switch (robot->current_task)
+  //     {
+  //     case ACTION_EXCAVATOR_T::_planning:
+  //       for (int i = 0; i < planning_params_.power_rates.size(); ++i)
+  //         robot.power -= planning_params_.planning_excavator_power_weights[i] * planning_params_.power_rates[i] * time;
+  //       return;
+  //     case ACTION_EXCAVATOR_T::_volatile_handler:
+  //       for (int i = 0; i < planning_params_.power_rates.size(); ++i)
+  //         robot.power -= planning_params_.vol_handle_excavator_power_weights[i] * planning_params_.power_rates[i] * time;
+  //       return;
+  //     case ACTION_EXCAVATOR_T::_lost:
+  //       for (int i = 0; i < planning_params_.power_rates.size(); ++i)
+  //         robot.power -= planning_params_.lost_excavator_power_weights[i] * planning_params_.power_rates[i] * time;
+  //       return;
+  //     default:
+  //       ROS_ERROR("Invalid robot code: time_to_power");
+  //       break;
+  //     }
+  //   }
 
-    if (robot.type == HAULER)
-    {
-      switch (robot->code)
-      {
-      case ACTION_HAULER_T::_planning:
-        for (int i = 0; i < planning_params_.power_rates.size(); ++i)
-          robot.power -= planning_params_.planning_hauler_power_weights[i] * planning_params_.power_rates[i] * time;
-        return;
-      case ACTION_HAULER_T::_volatile_handler:
-        for (int i = 0; i < planning_params_.power_rates.size(); ++i)
-          robot.power -= planning_params_.vol_handle_hauler_power_weights[i] * planning_params_.power_rates[i] * time;
-        return;
-      case ACTION_HAULER_T::_lost:
-        for (int i = 0; i < planning_params_.power_rates.size(); ++i)
-          robot.power -= planning_params_.lost_hauler_power_weights[i] * planning_params_.power_rates[i] * time;
-        return;
-      default:
-        ROS_ERROR("Invalid robot code: time_to_power");
-      }
-    }
-  }
+  //   if (robot.type == HAULER)
+  //   {
+  //     switch (robot->current_task)
+  //     {
+  //     case ACTION_HAULER_T::_planning:
+  //       for (int i = 0; i < planning_params_.power_rates.size(); ++i)
+  //         robot.power -= planning_params_.planning_hauler_power_weights[i] * planning_params_.power_rates[i] * time;
+  //       return;
+  //     case ACTION_HAULER_T::_volatile_handler:
+  //       for (int i = 0; i < planning_params_.power_rates.size(); ++i)
+  //         robot.power -= planning_params_.vol_handle_hauler_power_weights[i] * planning_params_.power_rates[i] * time;
+  //       return;
+  //     case ACTION_HAULER_T::_lost:
+  //       for (int i = 0; i < planning_params_.power_rates.size(); ++i)
+  //         robot.power -= planning_params_.lost_hauler_power_weights[i] * planning_params_.power_rates[i] * time;
+  //       return;
+  //     default:
+  //       ROS_ERROR("Invalid robot code: time_to_power");
+  //       break;
+  //     }
+  //   }
+  // }
 
   double ForwardSearch::time_to_motion(Robot &robot,
                                        double time)
   {
     // if position differs from target increment in direction, else do nothing
+    double v;
     switch (robot.type)
     {
-      double v;
     case mac::SCOUT:
-      v = max_v_scout;
+      v = planning_params_.max_v_scout;
       break;
     case mac::EXCAVATOR:
-      v = max_v_excavator;
+      v = planning_params_.max_v_excavator;
       break;
     case mac::HAULER:
-      v = max_v_hauler;
+      v = planning_params_.max_v_hauler;
       break;
     default:
       ROS_ERROR("Invalid robot type: get_traverse_time");
+      v = -1;
+      break;
     }
 
-    if (toggle_sleep)
+    if (robot.toggle_sleep)
       v *= 0.75;
 
     std::vector<double> p1, p2;
@@ -661,15 +705,14 @@ namespace mac
     p2.push_back(robot.plan[0].point.x);
     p2.push_back(robot.plan[0].point.y);
 
-    if (p1[0]] != p2[0]] || p1[1]] != p2[1]])
+    if (p1[0] != p2[0] || p1[1] != p2[1])
     {
-      double d = v * t / this->dist(p1, p2);
-      if d
-        <= 1.0
-        {
-          robot.odom.pose.pose.position.x += (p2[0] - p1[0]) * d;
-          robot.odom.pose.pose.position.y += (p2[1] - p1[1]) * d;
-        }
+      double d = v * time / this->dist(p1, p2);
+      if (d <= 1.0)
+      {
+        robot.odom.pose.pose.position.x += (p2[0] - p1[0]) * d;
+        robot.odom.pose.pose.position.y += (p2[1] - p1[1]) * d;
+      }
       else
       {
         robot.odom.pose.pose.position.x = p2[0];
@@ -677,67 +720,79 @@ namespace mac
       }
     }
 
-    if (robot.type == SCOUT)
-    {
-      switch (robot->code)
-      {
-      case ACTION_SCOUT_T::_planning:
-        return; // no change in position or uncertainty
-      case ACTION_SCOUT_T::_volatile_handler:
-        // no clear way account change in position
-        return;
-      case ACTION_SCOUT_T::_lost:
-        return;
-      default:
-        ROS_ERROR("Invalid robot code: time_to_motion");
-      }
-    }
+    return 0;
 
-    if (robot.type == EXCAVATOR)
-    {
-      switch (robot->code)
-      {
-      case ACTION_HAULER_T::_planning:
-        return; // no change in position or uncertainty
-      case ACTION_HAULER_T::_volatile_handler:
-        // no clear way account change in position
-        return;
-      case ACTION_HAULER_T::_lost:
-        return;
-      default:
-        ROS_ERROR("Invalid robot code: time_to_motion");
-      }
-    }
-    if (robot.type == HAULER)
-    {
-      switch (robot->code)
-      {
-      case ACTION_HAULER_T::_planning:
-        return; // no change in position or uncertainty
-      case ACTION_HAULER_T::_volatile_handler:
-        // no clear way account change in position
+    // if (robot.type == SCOUT)
+    // {
+    //   switch (robot->current_task)
+    //   {
+    //   case ACTION_SCOUT_T::_planning:
+    //     return; // no change in position or uncertainty
+    //     break;
+    //   case ACTION_SCOUT_T::_volatile_handler:
+    //     // no clear way account change in position
+    //     return;
+    //     break;
+    //   case ACTION_SCOUT_T::_lost:
+    //     return;
+    //     break;
+    //   default:
+    //     ROS_ERROR("Invalid robot code: time_to_motion");
+    //     break;
+    //   }
+    // }
 
-        return;
-      case ACTION_HAULER_T::_lost:
-
-        return;
-      case ACTION_HAULER_T::_hauler_dumping:
-
-        return;
-      default:
-        ROS_ERROR("Invalid robot code: time_to_motion");
-      }
-    }
+    // if (robot.type == EXCAVATOR)
+    // {
+    //   switch (robot->current_task)
+    //   {
+    //   case ACTION_HAULER_T::_planning:
+    //     return; // no change in position or uncertainty
+    //     break;
+    //   case ACTION_HAULER_T::_volatile_handler:
+    //     // no clear way account change in position
+    //     return;
+    //     break;
+    //   case ACTION_HAULER_T::_lost:
+    //     return;
+    //     break;
+    //   default:
+    //     ROS_ERROR("Invalid robot code: time_to_motion");
+    //     break;
+    //   }
+    // }
+    // if (robot.type == HAULER)
+    // {
+    //   switch (robot->current_task)
+    //   {
+    //   case ACTION_HAULER_T::_planning:
+    //     return; // no change in position or uncertainty
+    //     break;
+    //   case ACTION_HAULER_T::_volatile_handler:
+    //     // no clear way account change in position
+    //     return;
+    //     break;
+    //   case ACTION_HAULER_T::_lost:
+    //     return;
+    //     break;
+    //   case ACTION_HAULER_T::_hauler_dumping:
+    //     return;
+    //     break;
+    //   default:
+    //     ROS_ERROR("Invalid robot code: time_to_motion");
+    //     break;
+    //   }
+    // }
   }
 
   //------------------------------------------------------------------
 
-  int ForwardSearch::get_robot_index(int robot_type, int robot_id)
+  int ForwardSearch::get_robot_index(const State &s, int robot_type, int robot_id)
   {
     int index = -1;
-    for (int i = 0; i < robots_.size(); ++i)
+    for (int i = 0; i < s.robots.size(); ++i)
     {
-      if (robots_[i].type == robot_type && robots_[i].id == robot_id)
+      if (s.robots[i].type == robot_type && s.robots[i].id == robot_id)
       {
         index = i;
       }

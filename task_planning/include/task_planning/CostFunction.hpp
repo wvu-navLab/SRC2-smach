@@ -17,6 +17,13 @@
 namespace mac
 {
 
+  struct CFParams
+    {
+      double time_weight = -1;
+      double vol_weight = 1;
+      std::vector<double> time_vol_weights{1,2};
+    };
+
   const int DISTANCE = 0;
   const int POWER = 1;
   const int UNCERTAINTY_ROBOT = 2;
@@ -31,7 +38,10 @@ namespace mac
   {
   public:
     /** \brief  */
-    inline CostFunction() { cost_type_ = DISTANCE; };
+    CFParams params_;
+
+    /** \brief  */
+    inline CostFunction() { cost_type_ = TIME_VOL_COLLECTED; };
     /** \brief  */
     inline CostFunction(int cost_type)
         : cost_type_(cost_type){};
@@ -101,6 +111,7 @@ namespace mac
     //};
 
     static double dist(const std::vector<double> p1, const std::vector<double> p2);
+    static double get_vol_value(std::string vol);
   };
 }
 #endif // CostFunction_HPP
