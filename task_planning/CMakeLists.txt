@@ -140,11 +140,13 @@ target_link_libraries(TaskPlannerLib
   ${catkin_LIBRARIES}
 )
 
-# add_library(ForwardSearchLib src/ForwardSearch.cpp)
-# target_link_libraries(ForwardSearchLib
-# 	#/usr/local/lib
-#   ${catkin_LIBRARIES}
-# )
+add_library(ForwardSearchLib src/ForwardSearch.cpp)
+target_link_libraries(ForwardSearchLib
+	#/usr/local/lib
+  CostFunctionLib
+  TaskPlannerLib
+  ${catkin_LIBRARIES}
+)
 
 ## Add cmake target dependencies of the library
 ## as an example, code may need to be generated before libraries
@@ -171,6 +173,14 @@ target_link_libraries(excavation_task_node
 
 add_executable(test_cartesian_product test/test_cartesian_product.cpp)
 target_link_libraries(test_cartesian_product
+		${catkin_LIBRARIES}
+)
+
+add_executable(test_forward_search test/test_forward_search.cpp)
+target_link_libraries(test_forward_search
+    TaskPlannerLib
+    CostFunctionLib
+    ForwardSearchLib
 		${catkin_LIBRARIES}
 )
 
