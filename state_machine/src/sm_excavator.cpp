@@ -499,7 +499,7 @@ void SmExcavator::laserCallback(const sensor_msgs::LaserScan::ConstPtr& msg)
   min_range = min_range/LASER_SET_SIZE;
   ROS_INFO_STREAM_THROTTLE(2,"Minimum range average: " << min_range);
 
-  if (min_range < LASER_THRESH)
+  if (min_range < LASER_THRESH && min_range > 0.1)
   {
     if (ros::Time::now() - laser_collision_timer < ros::Duration(20))
     {
@@ -517,7 +517,7 @@ void SmExcavator::laserCallback(const sensor_msgs::LaserScan::ConstPtr& msg)
 
   if (counter_laser_collision_ > LASER_COUNTER_THRESH)
   {
-    counter_laser_collision_ =0;
+    counter_laser_collision_ = 0;
     ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"LASER COUNTER > 20 ! Starting Recovery.");
     immobilityRecovery(2);
   }
@@ -606,8 +606,10 @@ void SmExcavator::goalVolatileCallback(const geometry_msgs::PoseStamped::ConstPt
 
 void SmExcavator::targetBinCallback(const geometry_msgs::PointStamped::ConstPtr &msg)
 {
+  geometry_msgs::PointStamped bin_point = *msg;
+  bin_point.point.x += 0.1;
   camera_link_to_arm_mount = tf_buffer.lookupTransform(robot_name_+"_arm_mount", robot_name_+"_left_camera_optical", ros::Time(0), ros::Duration(1.0));
-  tf2::doTransform(*msg, bin_point_, camera_link_to_arm_mount);
+  tf2::doTransform(bin_point, bin_point_, camera_link_to_arm_mount);
 
   ROS_INFO_STREAM("[" << robot_name_ << "] " <<"MANIPULATION: Target bin updated. Point:" << *msg);
 }

@@ -31,6 +31,7 @@
 #include <src2_approach_services/ApproachBin.h>
 #include <src2_approach_services/ApproachExcavator.h>
 #include <range_to_base/LocationOfBin.h>
+#include <range_to_base/LocationOfExcavator.h>
 #include <sensor_fusion/RoverStatic.h>
 #include <sensor_fusion/GetTruePose.h>
 #include <sensor_fusion/HomingUpdate.h>
@@ -106,6 +107,8 @@ public:
   ros::ServiceClient clt_srcp2_brake_rover;
   ros::ServiceClient clt_task_planning;
   ros::ServiceClient clt_location_of_bin;
+  ros::ServiceClient clt_location_of_excavator;
+
 
   MoveBaseClient ac;
   actionlib::SimpleClientGoalState move_base_state;
@@ -155,6 +158,7 @@ public:
   bool ApproachBin(int max_count);
   bool HomingUpdate(bool init_landmark);
   bool LocateBin();
+  bool LocateExcavator();
   void Plan();
 
   // Parameters
@@ -167,6 +171,7 @@ public:
 
   geometry_msgs::Pose current_pose_, goal_pose_;
   geometry_msgs::Point base_location_;
+  geometry_msgs::Point excavator_location_;
   geometry_msgs::Point proc_plant_bin_location_;
 
   nav_msgs::Odometry small_excavator_1_odom_;
