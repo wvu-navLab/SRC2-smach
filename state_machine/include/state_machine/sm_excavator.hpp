@@ -275,7 +275,7 @@ public:
   int timer_counter = 0;
 
   int counter_laser_collision_ = 0;
-  const double LASER_THRESH = 0.3;
+  const double LASER_THRESH = 0.5;
   const int LASER_SET_SIZE = 20;
   const int LASER_COUNTER_THRESH = 20;
 

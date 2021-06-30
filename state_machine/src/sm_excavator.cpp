@@ -355,6 +355,7 @@ void SmExcavator::stateVolatileHandler()
     ac.waitForResult(ros::Duration(0.25));
 
 
+
     ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Enabling Excavation State Machine.");
     Stop(1);
     BrakeRamp(100, 1, 0);
@@ -499,7 +500,7 @@ void SmExcavator::laserCallback(const sensor_msgs::LaserScan::ConstPtr& msg)
   min_range = min_range/LASER_SET_SIZE;
   ROS_INFO_STREAM_THROTTLE(2,"Minimum range average: " << min_range);
 
-  if (min_range < LASER_THRESH && min_range > 0.1)
+  if (min_range < LASER_THRESH && min_range > 0.3)
   {
     if (ros::Time::now() - laser_collision_timer < ros::Duration(20))
     {
