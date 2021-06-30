@@ -1163,7 +1163,7 @@ void SmExcavator::ExecuteAfterScoop(double timeout)
 {
   move_excavator::AfterScoop srv;
 
-  srv.request.heading = volatile_heading_;
+  srv.request.heading =  volatile_heading_;
   srv.request.timeLimit = timeout;
 
   if (clt_after_scoop.call(srv))
@@ -1246,53 +1246,90 @@ bool SmExcavator::ExecuteSearch(double timeout)
 {
   move_excavator::DropVolatile srv_drop;
   move_excavator::Scoop srv_scoop;
+  
   srv_drop.request.timeLimit = timeout;
   srv_scoop.request.timeLimit = timeout;
+  
+  double v = 0.2; // motion speed
+  double t = 5;   // time of motion
 
-  std::vector<double> q1s{ 0.0, -M_PI/6.0, M_PI/6.0, M_PI/3,  -M_PI/3};
+  std::vector<double> q1s{ 0.0, M_PI/3,  -M_PI/3}; // Search angles
 
-  for(int i=0; i<q1s.size(); i++)
+  std::vector<double> directions{0.0, 1.0, -1.0, 1.0, -1.0}; // Directions
+  std::vector<bool> wheelOrientations{false, false, false, true, true}; // True turns wheels sideways
+
+  for (int j = 0; j < directions.size(); j++)
   {
-    srv_scoop.request.heading = q1s[i];  
-    //ROS_INFO(" i: %d q1s[i]: %f", i, srv_scoop.request.heading);
 
-    if (clt_scoop.call(srv_scoop))
-    {
-      ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Called service Scoop.");
-      ros::Duration(4.0).sleep();
-      ros::spinOnce();
-    }
+    if (!wheelOrientations[j])
+      Drive(v* directions[j], fabs(directions[j]) * t);
     else
+      MoveSideways(v * directions[j], fabs(directions[j]) * t);
+    Stop(1.0);
+    BrakeRamp(100, 3, 0);
+    Brake(0.0);
+
+    for (int i = 0; i < q1s.size(); i++) // Change the angle of arm to search
     {
-      ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Failed to call service Scoop");
-    }
-    
-    if (flag_found_volatile){
-     
-      ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Found volatil!");
+      srv_scoop.request.heading = q1s[i];
+      //ROS_INFO(" i: %d q1s[i]: %f", i, srv_scoop.request.heading);
 
-      volatile_heading_ = q1s[i];
-
-      return true;
-
-    }  
-    else // did not find volatil
-    {
-      if (clt_drop_volatile.call(srv_drop))
+      if (clt_scoop.call(srv_scoop))
       {
-        ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Called service Drop.");
+        ROS_INFO_STREAM("[" << robot_name_ << "] "
+                            << "Called service Scoop.");
         ros::Duration(3.0).sleep();
         ros::spinOnce();
       }
       else
       {
-        ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Failed to call service Drop");
+        ROS_ERROR_STREAM("[" << robot_name_ << "] "
+                             << "Failed to call service Scoop");
       }
 
+      if (flag_found_volatile)
+      {
+
+        ROS_INFO_STREAM("[" << robot_name_ << "] "
+                            << "Found volatil!");
+
+        volatile_heading_ = q1s[i];
+
+        return true;
+      }
+      else // did not find volatil
+      {
+        
+        if (clt_drop_volatile.call(srv_drop))
+        {
+          ROS_INFO_STREAM("[" << robot_name_ << "] "
+                              << "Called service Drop.");
+          ros::Duration(3.0).sleep();
+          ros::spinOnce();
+        }
+        else
+        {
+          ROS_ERROR_STREAM("[" << robot_name_ << "] "
+                               << "Failed to call service Drop");
+        }
+        
+        ExecuteAfterScoop(2); // This is to remove from the ground
+        ros::Duration(2.0).sleep();
+        ros::spinOnce();
+
+      }
     }
+    ExecuteHomeArm(2); 
+
+    if (!wheelOrientations[j])
+      Drive(-v * directions[j], fabs(directions[j]) * t);
+    else
+      MoveSideways(-v * directions[j], fabs(directions[j]) * t);
+    Stop(1.0);
+    BrakeRamp(100, 3, 0);
+    Brake(0.0);
+
   }
-
-
   ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Did not find volatil!"); 
   return false;
   
@@ -1468,7 +1505,7 @@ void SmExcavator::ExcavationStateMachine()
     case LOWER_MODE:
     {
       ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Excavation: Lowering Arm.");
-      ExecuteLowerArm(2); // Need to set heading
+      ExecuteLowerArm(2); 
       excavation_state = SCOOP_MODE;
     }
     break;
