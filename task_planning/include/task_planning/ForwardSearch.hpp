@@ -99,13 +99,12 @@ namespace mac
     std::vector<std::vector<std::vector<Action>>> get_all_sequences_of_joint_actions();
     std::vector<std::vector<Action>> get_best_sequence_of_joint_actions();
 
+    /** \brief  */
+    // bool reinit();
 
-        /** \brief  */
-        // bool reinit();
-
-        protected :
-        /** \brief  Tree vertex used in the forward search */
-        struct Vertex
+  protected:
+    /** \brief  Tree vertex used in the forward search */
+    struct Vertex
     {
       State state;
       std::vector<Action> joint_action; //action to get to this vertex

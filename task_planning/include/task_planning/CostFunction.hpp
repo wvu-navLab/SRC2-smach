@@ -42,6 +42,7 @@ namespace mac
 
     /** \brief  */
     inline CostFunction() { cost_type_ = TIME_VOL_COLLECTED; };
+    
     /** \brief  */
     inline CostFunction(int cost_type)
         : cost_type_(cost_type){};

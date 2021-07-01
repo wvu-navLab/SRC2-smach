@@ -14,7 +14,7 @@ volatile_map::VolatileMap create_volatile_map()
 
   volatile_map::VolatileMap VolatileMap;
 
-  for (int i = 0; i < 20; i++)
+  for (int i = 0; i < 2; i++)
   {
     volatile_map::Volatile vol;
 
@@ -47,6 +47,8 @@ volatile_map::VolatileMap create_volatile_map()
     //add to map
     VolatileMap.vol.push_back(vol);
   }
+  ROS_INFO_STREAM(VolatileMap);
+  return VolatileMap;
 }
 
 std::vector<mac::Robot> create_robots()
@@ -68,10 +70,11 @@ std::vector<mac::Robot> create_robots()
   {
     robot.id = i + 1;
     robot.type = mac::EXCAVATOR;
-    robot.time_remaining = 0;
+    robot.time_remaining = 1;
+    robot.volatile_index = -1;
     robot.current_task = -1;
-    robot.odom.pose.pose.position.x = 0;//xmin + randx * (xmax - xmin);
-    robot.odom.pose.pose.position.y = 0;//ymin + randy * (ymax - ymin);
+    robot.odom.pose.pose.position.x = 0; //xmin + randx * (xmax - xmin);
+    robot.odom.pose.pose.position.y = 0; //ymin + randy * (ymax - ymin);
     robot.toggle_sleep = false;
 
     robots.push_back(robot);
@@ -81,14 +84,17 @@ std::vector<mac::Robot> create_robots()
   {
     robot.id = i + 1;
     robot.type = mac::HAULER;
-    robot.time_remaining = 0;
+    robot.time_remaining = 1;
+    robot.volatile_index = -1;
     robot.bucket_contents = 0;
-    robot.odom.pose.pose.position.x = 0;//xmin + randx * (xmax - xmin);
-    robot.odom.pose.pose.position.y = 0;//ymin + randy * (ymax - ymin);
+    robot.odom.pose.pose.position.x = 0; //xmin + randx * (xmax - xmin);
+    robot.odom.pose.pose.position.y = 0; //ymin + randy * (ymax - ymin);
     robot.toggle_sleep = false;
 
     robots.push_back(robot);
   }
+
+  return robots;
 }
 
 void print_joint_action(std::vector<mac::Action> joint_action)
@@ -184,8 +190,14 @@ void print_joint_action(std::vector<mac::Action> joint_action)
 
 void print_sequence_of_joint_actions(std::vector<std::vector<mac::Action>> joint_actions)
 {
+  if (joint_actions.empty())
+  {
+    std::cout << "print_sequence_of_joint_actions:sequence of joint actions is empty." << std::endl; 
+    return;
+  }
+
   int counter = 0;
-  for (auto &joint_action:joint_actions)
+  for (auto &joint_action : joint_actions)
   {
     std::cout << "STEP[" << counter << "]" << std::endl;
     print_joint_action(joint_action);
@@ -199,6 +211,7 @@ int main(int argc, char **argv)
 
   ros::NodeHandle nh("");
 
+  std::cout << "main:: Initializing CostFunction..." << std::endl;
   const mac::CostFunction cf(mac::TIME_VOL_COLLECTED);
   mac::PlanningParams pp;
   pp.max_time = 5;  // seconds
@@ -216,20 +229,28 @@ int main(int argc, char **argv)
   pp.homing_time_hauler = 5;
   pp.dumping_time = 5;
 
+  std::cout << "main: Initializing PlanningParams..." << std::endl;
   const mac::PlanningParams pp2 = pp;
 
   //dummy state
+  std::cout << "main: Initializing State..." << std::endl;
   mac::State s;
   s.robots = create_robots();
   s.volatile_map = create_volatile_map();
   s.time = ros::Time::now();
 
   //run forward search
+  std::cout << "main: Initializing ForwardSearch..." << std::endl;
   mac::ForwardSearch fs(cf, pp2);
+
+  std::cout << "main: Running ForwardSearch::plan..." << std::endl;
   std::vector<mac::Action> joint_action;
   joint_action = fs.plan(s);
+
+  std::cout << "main: printing joint action." << std::endl;
   print_joint_action(joint_action);
 
+  std::cout << "main: printing sequence of joint actions." << std::endl;
   std::vector<std::vector<mac::Action>>
   best_seq_of_joint_actions = fs.get_best_sequence_of_joint_actions();
   print_sequence_of_joint_actions(best_seq_of_joint_actions);
