@@ -37,6 +37,7 @@ find_package(catkin REQUIRED COMPONENTS
   laser_tools_src2
   range_to_base
   src2_approach_services
+  waypoint_nav
 )
 
 find_package(Eigen3 3.3 REQUIRED)
@@ -138,6 +139,7 @@ catkin_package(
   waypoint_checker
   src2_object_detection
   src2_approach_services
+  waypoint_nav
   std_msgs std_srvs
   geometry_msgs
   nav_msgs

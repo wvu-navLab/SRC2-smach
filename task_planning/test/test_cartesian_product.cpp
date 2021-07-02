@@ -51,7 +51,7 @@ int main(int argc, char **argv)
   std::vector<double> Cd = {0.097, 0.002};
   
   //print set of doubles
-  std::cout << "INPUT VECTOR INDICES" << std::endl;
+  std::cout << "INPUT VECTOR VALUES" << std::endl;
   print_vector(Ad, "Ad");
   print_vector(Bd, "Bd");
   print_vector(Cd, "Cd");

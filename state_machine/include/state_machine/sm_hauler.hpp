@@ -40,6 +40,7 @@
 #include <task_planning/Types.hpp>
 #include <state_machine/RobotStatus.h>
 #include <state_machine/ExcavationStatus.h>
+#include <waypoint_nav/GoToGoal.h>
 
 typedef actionlib::SimpleActionClient<move_base_msgs::MoveBaseAction> MoveBaseClient;
 
@@ -108,6 +109,8 @@ public:
   ros::ServiceClient clt_task_planning;
   ros::ServiceClient clt_location_of_bin;
   ros::ServiceClient clt_location_of_excavator;
+  ros::ServiceClient clt_set_goal;
+  ros::ServiceClient clt_go_to_goal;
 
 
   MoveBaseClient ac;
@@ -188,7 +191,7 @@ public:
   double prev_volatile_detected_distance = -1.0;
 
   bool no_objective = false;
-  
+
   int timer_counter = 0;
 
   double pitch_ = 0, roll_ = 0, yaw_ = 0, yaw_prev_ = 0;
