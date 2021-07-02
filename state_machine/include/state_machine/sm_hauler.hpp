@@ -40,6 +40,7 @@
 #include <task_planning/Types.hpp>
 #include <state_machine/RobotStatus.h>
 #include <state_machine/ExcavationStatus.h>
+#include <waypoint_nav/GoToGoal.h>
 
 typedef actionlib::SimpleActionClient<move_base_msgs::MoveBaseAction> MoveBaseClient;
 

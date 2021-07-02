@@ -40,8 +40,7 @@ move_base_state(actionlib::SimpleClientGoalState::PREEMPTED)
   clt_approach_bin = nh.serviceClient<src2_approach_services::ApproachBin>("approach_bin_service");
   clt_location_of_bin = nh.serviceClient<range_to_base::LocationOfBin>("location_of_bin_service");
   clt_location_of_excavator = nh.serviceClient<range_to_base::LocationOfExcavator>("location_of_excavator_service");
-  // clt_set_goal = nh.serviceClient<waypoint_nav:GoToGoal>("navigation/set_goal");
-  clt_go_to_goal = nh.serviceClient<waypoint_nav:SetGoal>("navigation/go_to_goal");
+  clt_go_to_goal = nh.serviceClient<waypoint_nav::GoToGoal>("navigation/go_to_goal");
 
   map_timer = ros::Time::now();
   wp_checker_timer=  ros::Time::now();
@@ -433,16 +432,16 @@ void SmHauler::stateVolatileHandler()
 
       // TODO: This is where we are gonna call the parallel parking
       // Include new method: SmHauler::ParallelParking that calls the service
-      waypoint_nav:GoToGoal srv_gotoGoal;
+      waypoint_nav::GoToGoal srv_gotoGoal;
       srv_gotoGoal.request.start = true;
       srv_gotoGoal.request.goal.position = excavator_location_;
       srv_gotoGoal.request.thresh = 2.0;
-      srv_gotoGoal.request.timeout = 30;
+      srv_gotoGoal.request.timeOut = 30;
 
-      if(clt_go_to_goal.call(srv_gotoGoal){
+      if(clt_go_to_goal.call(srv_gotoGoal)){
           gotogoalsuccess = srv_gotoGoal.response.success;
           if (gotogoalsuccess){
-               ROS_INFO_STREAM("[" << robot_name_ << "] " <"PARKED NEAR EXCAVATOR");
+               ROS_INFO_STREAM("[" << robot_name_ << "] " <<"PARKED NEAR EXCAVATOR");
           }
       }
       else
