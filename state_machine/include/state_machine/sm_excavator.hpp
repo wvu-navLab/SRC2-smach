@@ -39,6 +39,7 @@
 #include <sensor_fusion/GetTruePose.h>
 #include <sensor_fusion/HomingUpdate.h>
 #include <actionlib/client/simple_action_client.h>
+#include <actionlib/client/simple_client_goal_state.h>
 #include <motion_control/ArmGroup.h>
 #include <move_excavator/HomeArm.h>
 #include <move_excavator/LowerArm.h>
@@ -103,9 +104,9 @@ public:
   bool flag_need_init_landmark = false;
   bool flag_localized_base = false;
   bool flag_manipulation_enabled = false;
-  bool flag_manipulation_interrupt = true;
+  bool flag_manipulation_interrupt = false;
   bool flag_bucket_full = false;
-  bool flag_hauler_in_range = false;
+  bool flag_found_hauler = false;
   bool flag_found_volatile = false;
   bool flag_volatile_dug=true;
 
@@ -131,7 +132,6 @@ public:
   ros::Subscriber joint_states_sub;
   ros::Subscriber bucket_info_sub;
   ros::Subscriber goal_volatile_sub;
-  ros::Subscriber target_bin_sub;
   ros::Subscriber manipulation_cmd_sub;
   ros::Subscriber planner_interrupt_sub;
   ros::Subscriber hauler1_odom_sub;
@@ -185,7 +185,6 @@ public:
   void laserCallback(const sensor_msgs::LaserScan::ConstPtr& msg);
   void goalVolatileCallback(const geometry_msgs::PoseStamped::ConstPtr &msg);
   void jointStateCallback(const sensor_msgs::JointState::ConstPtr &msg);
-  void targetBinCallback(const geometry_msgs::PointStamped::ConstPtr &msg);
   void manipulationCmdCallback(const std_msgs::Int64::ConstPtr &msg);
   void feedbackCallback(const move_base_msgs::MoveBaseFeedbackConstPtr& feedback);
   void doneCallback(const actionlib::SimpleClientGoalState& state, const move_base_msgs::MoveBaseResultConstPtr& result);
@@ -196,6 +195,8 @@ public:
   void hauler2OdomCallback(const nav_msgs::Odometry::ConstPtr &msg);
 
   // Methods
+  void CancelMoveBaseGoal();
+  void SetMoveBaseGoal();
   void setPoseGoal(move_base_msgs::MoveBaseGoal& poseGoal, double x, double y, double yaw); // m, m, rad
   void ClearCostmaps();
   void Lights(double intensity);
@@ -214,21 +215,22 @@ public:
   void immobilityRecovery(int type);
   void CheckWaypoint(int max_count);
   bool ApproachChargingStation(int max_count);
-  void FindHauler(double timeout);
-  void ExcavationStateMachine();
-  void ExecuteHomeArm(double timeout);
-  void ExecuteLowerArm(double timeout);
-  void ExecuteScoop(double timeout);
-  void ExecuteAfterScoop(double timeout);
-  void ExecuteExtendArm(double timeout);
-  void ExecuteDrop(double timeout);
-  void ExecuteGoToPose(double timeout, const geometry_msgs::PointStamped &point);
+  void ExecuteHomeArm(double duration, double wait_time);
+  void ExecuteLowerArm(double duration, double wait_time);
+  void ExecuteScoop(double duration, double wait_time, double heading);
+  void ExecuteAfterScoop(double duration, double wait_time);
+  void ExecuteExtendArm(double duration, double wait_time);
+  void ExecuteDrop(double duration, double wait_time, int type);
+  void ExecuteGoToPose(double duration, double wait_time, const geometry_msgs::PointStamped &point);
+  bool ExecuteSearch();
+  bool FindHauler(double timeout);
   void GetForwardKinematics(double timeout);
+  void ExcavationStateMachine();
   void PublishExcavationStatus();
+  void CancelExcavation(bool success);
   bool HomingUpdate(bool init_landmark);
   void Plan();
-  bool ExecuteSearch(double timeout);
-
+  
   // Parameters
   std::string node_name_;
   std::string robot_name_;
@@ -266,7 +268,9 @@ public:
   nav_msgs::Odometry small_hauler_2_odom_;
 
   double volatile_heading_ = 0;
+
   double relative_heading_ = 0;
+  double relative_range_ = 1.0;
 
   double goal_yaw_;
 
@@ -275,7 +279,7 @@ public:
   int timer_counter = 0;
 
   int counter_laser_collision_ = 0;
-  const double LASER_THRESH = 0.5;
+  const double LASER_THRESH = 0.3;
   const int LASER_SET_SIZE = 20;
   const int LASER_COUNTER_THRESH = 20;
 
@@ -287,4 +291,6 @@ public:
 
   // Planning  
   task_planning::PlanInfo prev_srv_plan; 
+
+  int counter_excavation_ = 0;
 };
