@@ -842,16 +842,16 @@ void SmExcavator::RotateToHeading(double desired_yaw)
   {
     ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Recovery action initiated in yaw control.");
 
-     Stop(0.1);
+    Stop(0.1);
 
-     DriveCmdVel (-0.5, 0.0, 0.0, 4.0);
+    DriveCmdVel (-0.5, 0.0, 0.0, 4.0);
 
-     BrakeRamp(100, 1, 0);
+    BrakeRamp(100, 1, 0);
 
-     Brake(0.0);
-     // Stop(0.1);
+    Brake(0.0);
+    // Stop(0.1);
 
-  //  immobilityRecovery(); //TODO: Use this instead of Stop and Drive at line 714 and 716
+    // immobilityRecovery(); //TODO: Use this instead of Stop and Drive at line 714 and 716
 
     flag_heading_fail=false;
   }
@@ -864,11 +864,9 @@ void SmExcavator::RotateToHeading(double desired_yaw)
 void SmExcavator::homingRecovery()
 {
 
-  ac.waitForServer();
-  ac.cancelGoal();
-  ac.waitForResult(ros::Duration(0.25));
-
   ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Starting Homing Recovery.");
+
+  CancelMoveBaseGoal();
 
   Lights(20);
 
@@ -903,11 +901,9 @@ void SmExcavator::homingRecovery()
 void SmExcavator::immobilityRecovery(int type)
 {
 
-  ac.waitForServer();
-  ac.cancelGoal();
-  ac.waitForResult(ros::Duration(0.25));
+  ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Starting Immobility Recovery.");
 
-  ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Starting Recovery.");
+  CancelMoveBaseGoal();
 
   Stop(0.1);
 

@@ -705,7 +705,7 @@ void SmScout::RotateToHeading(double desired_yaw)
 
     Brake(0.0);
 
-  //  immobilityRecovery(); //TODO: Use this instead of Stop and Drive at line 714 and 716
+    // immobilityRecovery(3); //TODO: Use this instead of Stop and Drive at line 714 and 716
 
     flag_heading_fail=false;
   }
@@ -717,12 +717,9 @@ void SmScout::RotateToHeading(double desired_yaw)
 
 void SmScout::homingRecovery()
 {
-
-  ac.waitForServer();
-  ac.cancelGoal();
-  ac.waitForResult(ros::Duration(0.25));
-
   ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Starting Homing Recovery.");
+
+  CancelMoveBaseGoal();
 
   Lights(20);
 
@@ -760,7 +757,7 @@ void SmScout::immobilityRecovery(int type)
 
   CancelMoveBaseGoal();
 
-  ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Starting Recovery.");
+  ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Starting Immobility Recovery.");
 
   Stop(0.1);
 

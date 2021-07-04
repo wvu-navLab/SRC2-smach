@@ -544,10 +544,7 @@ void SmHauler::stateDump()
 {
   ROS_WARN_STREAM("[" << robot_name_ << "] " <<"DUMPING STATE!\n");
 
-  ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Canceling MoveBase goal.");
-  ac.waitForServer();
-  ac.cancelGoal();
-  ac.waitForResult(ros::Duration(0.25));
+  CancelMoveBaseGoal();
 
   double progress = 0.0;
 
@@ -664,7 +661,7 @@ void SmHauler::laserCallback(const sensor_msgs::LaserScan::ConstPtr& msg)
   {
     counter_laser_collision_ =0;
     ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"LASER COUNTER > 20 ! Starting Recovery.");
-    immobilityRecovery(2);
+    // immobilityRecovery(2);
   }
 }
 
@@ -855,16 +852,15 @@ void SmHauler::RotateToHeading(double desired_yaw)
   {
     ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Recovery action initiated in yaw control.");
 
-     Stop(0.1);
+    Stop(0.1);
 
-     DriveCmdVel (-0.5, 0.0, 0.0, 4.0);
+    DriveCmdVel (-0.5, 0.0, 0.0, 4.0);
 
-     BrakeRamp(100, 1, 0);
+    BrakeRamp(100, 1, 0);
 
-     Brake(0.0);
-     // Stop(0.1);
+    Brake(0.0);
 
-  //  immobilityRecovery(); //TODO: Use this instead of Stop and Drive at line 714 and 716
+    // immobilityRecovery(); //TODO: Use this instead of Stop and Drive at line 714 and 716
 
     flag_heading_fail=false;
   }
@@ -876,12 +872,9 @@ void SmHauler::RotateToHeading(double desired_yaw)
 
 void SmHauler::homingRecovery()
 {
-
-  ac.waitForServer();
-  ac.cancelGoal();
-  ac.waitForResult(ros::Duration(0.25));
-
   ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Starting Homing Recovery.");
+
+  CancelMoveBaseGoal();
 
   Lights(20);
 
@@ -916,12 +909,9 @@ void SmHauler::homingRecovery()
 
 void SmHauler::immobilityRecovery(int type)
 {
+  ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Starting Immobility Recovery.");
 
-  ac.waitForServer();
-  ac.cancelGoal();
-  ac.waitForResult(ros::Duration(0.25));
-
-  ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Starting Recovery.");
+  CancelMoveBaseGoal();
 
   Stop(0.1);
 
