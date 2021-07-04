@@ -44,6 +44,7 @@
 #include <sensor_fusion/GetTruePose.h>
 #include <sensor_fusion/HomingUpdate.h>
 #include <actionlib/client/simple_action_client.h>
+#include <actionlib/client/simple_client_goal_state.h>
 #include <dynamic_reconfigure/DoubleParameter.h>
 #include <dynamic_reconfigure/Reconfigure.h>
 #include <dynamic_reconfigure/Config.h>
@@ -120,7 +121,7 @@ public:
   // Clients
   ros::ServiceServer srv_mobility;
 
-  actionlib::SimpleClientGoalState move_base_state;
+  actionlib::SimpleClientGoalState move_base_state_;
 
   // Methods ----------------------------------------------------------------------------------------------------------------------------
   SmScout(); // Constructor
@@ -145,6 +146,8 @@ public:
   void plannerInterruptCallback(const std_msgs::Bool::ConstPtr &msg);
 
   // Methods
+  void CancelMoveBaseGoal();
+  void SetMoveBaseGoal();
   void setPoseGoal(move_base_msgs::MoveBaseGoal& poseGoal, double x, double y, double yaw); // m, m, rad
   void ClearCostmaps();
   void Lights(double intensity);

@@ -3,7 +3,7 @@
 SmExcavator::SmExcavator() :
 ac("move_base", true),
 tf2_listener(tf_buffer),
-move_base_state(actionlib::SimpleClientGoalState::PREEMPTED)
+move_base_state_(actionlib::SimpleClientGoalState::PREEMPTED)
 {
   // Load Parameters
   node_name_ = "state_machine";
@@ -177,6 +177,8 @@ void SmExcavator::stateInitialize()
 {
   ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Initialization State!\n");
 
+  double progress = 0;
+
   while (!clt_lights.waitForExistence())
   {
       ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Waiting for Lights");
@@ -218,7 +220,7 @@ void SmExcavator::stateInitialize()
   // flag_manipulation_interrupt = true; // TODO: Remove this later
 
   // make sure we dont latch to a vol we skipped while homing
-  double progress = 0;
+  progress = 1.0;
   state_machine::RobotStatus status_msg;
   status_msg.progress.data = progress;
   status_msg.state.data = (uint8_t) _initialize;
@@ -228,6 +230,8 @@ void SmExcavator::stateInitialize()
 void SmExcavator::statePlanning()
 {
   ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Planning!\n");
+
+  double progress = 0;
 
   CancelMoveBaseGoal();
 
@@ -246,11 +250,14 @@ void SmExcavator::statePlanning()
 
     Brake(0.0);
 
-    // CheckWaypoint(3);
+    // CheckWaypoint(3); // TODO: Check if they needed
 
     ClearCostmaps();
 
     SetMoveBaseGoal();
+
+    progress = 1.0;
+
   }
   else
   {
@@ -258,8 +265,6 @@ void SmExcavator::statePlanning()
     ROS_WARN_STREAM("[" << robot_name_ << "] " <<"No objective. Will ask again in 20s.");
   }
 
-
-  double progress = 0;
   state_machine::RobotStatus status_msg;
   status_msg.progress.data = progress;
   status_msg.state.data = (uint8_t) _planning;
@@ -269,6 +274,9 @@ void SmExcavator::statePlanning()
 void SmExcavator::stateTraverse()
 {
   ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Traverse State\n");
+  move_base_state_ = ac.getState();
+
+  double progress = 0;
 
   double distance_to_goal = std::hypot(goal_pose_.position.y - current_pose_.position.y, goal_pose_.position.x - current_pose_.position.x);
   if (distance_to_goal < 2.0)
@@ -278,69 +286,46 @@ void SmExcavator::stateTraverse()
   }
   else
   {
-    ros::Duration timeOutWPCheck(3.0);
-    if (ros::Time::now() - wp_checker_timer > timeOutWPCheck) {
-      bool is_colliding = false;
-      waypoint_checker::CheckCollision srv_wp_check;
-      if (clt_waypoint_checker.call(srv_wp_check)) {
-        ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Called service Waypoint Checker");
-        is_colliding = srv_wp_check.response.collision;
-        if (is_colliding) {
-          ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Waypoint Unreachable. Sending to Planning");
-          // flag_waypoint_unreachable = true;
-        }
-      }
-      wp_checker_timer = ros::Time::now();
-    }
-
-    move_base_state = ac.getState();
-    int mb_state =(int) move_base_state.state_;
-    ROS_WARN_STREAM_THROTTLE(5,"[" << robot_name_ << "] " <<"MoveBase status: "<< mb_state);
-
-    if(mb_state==5 || mb_state==7)
+    if(move_base_state_ == actionlib::SimpleClientGoalState::ABORTED || move_base_state_ == actionlib::SimpleClientGoalState::LOST)
     {
+      ROS_WARN_STREAM_THROTTLE(5,"[" << robot_name_ << "] " <<"MoveBase status: "<< move_base_state_.text_);
       ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"MoveBase has failed to make itself useful.");
-      // flag_waypoint_unreachable= true;
 
-      Stop (1.0);
+      // flag_arrived_at_waypoint = true;
+      // flag_recovering_localization = false;
+      // flag_localizing_volatile = false;
 
-      ClearCostmaps();
+      // ClearCostmaps();  // TODO: Check if they needed
+
+      Stop (0.1);
+
       BrakeRamp(100, 1, 0);
-      Brake(0.0);
 
-    }
-
-    ros::Duration timeoutMap(90.0);
-    if (ros::Time::now() - map_timer > timeoutMap)
-    {
-      std_srvs::Empty emptymsg;
-      ros::service::call("move_base/clear_costmaps",emptymsg);
-      map_timer =ros::Time::now();
-      BrakeRamp(100, 1, 0); // Give more time
-      Brake(0.0);
-
-      ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Rover has stopped to clear the Map");
-      ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Move Base State: "<< mb_state);
-      ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Map Cleared");
-    }
-
-    ros::Duration timeoutWaypoint(120);
-    if (ros::Time::now() - waypoint_timer > timeoutWaypoint )
-    {
-      ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Waypoint Unreachable");
-      // flag_waypoint_unreachable= true;
-      Stop (1.0);
-      ClearCostmaps();
-      BrakeRamp(100, 1, 0);
       Brake(0.0);
     }
-    else
-    {
-      ROS_ERROR_STREAM_THROTTLE(1,"Remaining Time for Waypoint" << timeoutWaypoint - (ros::Time::now() - waypoint_timer));
-    }
+
+    // ros::Duration timeoutWaypointCheck(3.0);
+    // if (ros::Time::now() - wp_checker_timer > timeoutWaypointCheck) 
+    // {
+    //   CheckWaypoint(3);
+    //   wp_checker_timer = ros::Time::now();
+    // }
+
+    // ros::Duration timeoutMap(90.0);
+    // if (ros::Time::now() - map_timer > timeoutMap)
+    // {
+    //   ClearCostmaps();
+    //   map_timer =ros::Time::now();
+    // }
+
+    // ros::Duration timeoutWaypoint(120);
+    // if (ros::Time::now() - waypoint_timer > timeoutWaypoint )
+    // {
+    //   ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Waypoint reached timeout.");
+    //   ClearCostmaps();
+    // }
   }
 
-  double progress = 0;
   progress = distance_to_goal;
 
   state_machine::RobotStatus status_msg;
@@ -352,6 +337,8 @@ void SmExcavator::stateTraverse()
 void SmExcavator::stateVolatileHandler()
 {
   ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Volatile Handling State!");
+
+  double progress = 0;
 
   CancelMoveBaseGoal();
 
@@ -386,8 +373,6 @@ void SmExcavator::stateVolatileHandler()
     ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Excavation State Machine disabled.");
   }
 
-
-  double progress = 0;
   state_machine::RobotStatus status_msg;
   status_msg.progress.data = progress;
   status_msg.state.data = (uint8_t)  _volatile_handler;
@@ -950,18 +935,26 @@ void SmExcavator::immobilityRecovery(int type)
 }
 
 void SmExcavator::ClearCostmaps()
-{
+{  
+  ROS_ERROR_STREAM("[" << robot_name_ << "] " << "Braking rover to clear the Map");
+  BrakeRamp(100, 1, 0); // Give more time
+
+  ROS_WARN_STREAM("[" << robot_name_ << "] " << "Move Base State: " << move_base_state_.text_);
+  
   // Clear the costmap
   std_srvs::Empty emptymsg;
   ros::service::waitForService("move_base/clear_costmaps",ros::Duration(3.0));
   if (ros::service::call("move_base/clear_costmaps",emptymsg))
   {
-     ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Called service to clear costmap layers.");
+    ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Called service to clear costmap layers.");
+    ROS_WARN_STREAM("[" << robot_name_ << "] " << "Map Cleared");
   }
   else
   {
-     ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Failed calling clear_costmaps service.");
+    ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Failed calling clear_costmaps service.");
   }
+  
+  Brake(0.0);
 }
 
 void SmExcavator::GetTruePose()
@@ -1432,7 +1425,6 @@ bool SmExcavator::FindHauler(double timeout)
     relative_heading_ = atan2(bin_point_.point.y, bin_point_.point.x-0.7);
     return false;
   }
-
 }
 
 void SmExcavator::GetForwardKinematics(double timeout)
@@ -1499,10 +1491,7 @@ void SmExcavator::CheckWaypoint(int max_count)
       is_colliding = srv_wp_check.response.collision;
       if(is_colliding)
       {
-        ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Canceling MoveBase goal.");
-        ac.waitForServer();
-        ac.cancelGoal();
-        ac.waitForResult(ros::Duration(0.25));
+        CancelMoveBaseGoal();
 
         BrakeRamp(100, 1, 0);
 
@@ -1561,6 +1550,7 @@ void SmExcavator::ExcavationStateMachine()
     case HOME_MODE:
     {
       ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Excavation: Homing Arm.");
+      PublishExcavationStatus();
       
       ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Excavation: Bucket full? " << (int) flag_bucket_full);
       ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Excavation: Found volatile? " << (int) flag_found_volatile);
@@ -1591,6 +1581,8 @@ void SmExcavator::ExcavationStateMachine()
     case SEARCH_MODE:
     {
       ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Excavation: Searching.");
+      PublishExcavationStatus();
+
       ExecuteLowerArm(5,0); 
       flag_found_volatile = ExecuteSearch();
       if(!flag_found_volatile)
@@ -1604,14 +1596,18 @@ void SmExcavator::ExcavationStateMachine()
     break;
     case LOWER_MODE:
     {
-      ExecuteLowerArm(5,0); 
       ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Excavation: Lowering Arm.");
+      PublishExcavationStatus();
+
+      ExecuteLowerArm(5,0); 
       excavation_state_ = SEARCH_MODE;
     }
     break;
     case SCOOP_MODE:
     {
       ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Excavation: Scooping.");
+      PublishExcavationStatus();
+
       ExecuteScoop(5,0,volatile_heading_);
       if(!flag_found_hauler)
       {
@@ -1637,15 +1633,7 @@ void SmExcavator::ExcavationStateMachine()
     case EXTEND_MODE:
     {
       ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Excavation: Extending Arm.");
-
-      // geometry_msgs::PointStamped safe_point;
-      // safe_point_.header = bin_point_.header;
-      // safe_point_.point.x = 1.4;
-      // safe_point_.point.y = 0.0;
-      // safe_point_.point.z = 1.8;
-
-      // ExecuteGoToPose(5,0,safe_point);
-      // ExecuteGoToPose(5,0,bin_point_);
+      PublishExcavationStatus();
 
       ExecuteExtendArm(10,1);
       
@@ -1655,9 +1643,9 @@ void SmExcavator::ExcavationStateMachine()
     case DROP_MODE:
     {
       ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Excavation: Dropping Bucket Content.");
-      ExecuteDrop(5,0,1);
+      PublishExcavationStatus();
 
-      // ExecuteGoToPose(5,2,bin_point_);
+      ExecuteDrop(5,0,1);
 
       geometry_msgs::PointStamped safe_point;
       safe_point.header = bin_point_.header;
@@ -1704,6 +1692,8 @@ void SmExcavator::CancelExcavation(bool success)
   // Set flags to leave Volatile Handling State
   flag_manipulation_enabled = false;
   flag_localizing_volatile = false;
+
+  PublishExcavationStatus();
 }
 
 void SmExcavator::PublishExcavationStatus()
@@ -1750,6 +1740,7 @@ void SmExcavator::Plan()
     goal_pose_.position = srv_plan.response.objective.point;
     geometry_msgs::Quaternion quat;
     goal_pose_.orientation = quat;
+    partner_hauler_id_ = srv_plan.response.id.data;
     no_objective = false;
   }
   else

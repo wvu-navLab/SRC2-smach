@@ -36,6 +36,7 @@
 #include <sensor_fusion/GetTruePose.h>
 #include <sensor_fusion/HomingUpdate.h>
 #include <actionlib/client/simple_action_client.h>
+#include <actionlib/client/simple_client_goal_state.h>
 #include <task_planning/PlanInfo.h>
 #include <task_planning/Types.hpp>
 #include <state_machine/RobotStatus.h>
@@ -113,7 +114,7 @@ public:
 
 
   MoveBaseClient ac;
-  actionlib::SimpleClientGoalState move_base_state;
+  actionlib::SimpleClientGoalState move_base_state_;
 
   // Methods ----------------------------------------------------------------------------------------------------------------------------
   SmHauler(); // Constructor
@@ -139,6 +140,8 @@ public:
   void excavationStatusCallback(const ros::MessageEvent<state_machine::ExcavationStatus const>& event);
 
   // Methods
+  void CancelMoveBaseGoal();
+  void SetMoveBaseGoal();
   void setPoseGoal(move_base_msgs::MoveBaseGoal& poseGoal, double x, double y, double yaw); // m, m, rad
   void ClearCostmaps();
   void Lights(double intensity);

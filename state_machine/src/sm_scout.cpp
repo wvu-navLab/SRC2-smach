@@ -2,7 +2,7 @@
 
 SmScout::SmScout() :
 ac("move_base", true),
-move_base_state(actionlib::SimpleClientGoalState::PREEMPTED)
+move_base_state_(actionlib::SimpleClientGoalState::PREEMPTED)
 {
   // Initialize ROS, Subs, and Pubs *******************************************
   // Publishers
@@ -156,9 +156,11 @@ void SmScout::stateInitialize()
     ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Waiting for TruePose service");
   }
 
+  double progress = 0;
+
   Lights(20);
 
-  Stop(2.0);
+  Stop(0.1);
 
   Brake(100.0);
 
@@ -172,7 +174,7 @@ void SmScout::stateInitialize()
 
   Brake(0.0);
 
-  double progress = 1.0;
+  progress = 1.0;
   state_machine::RobotStatus status_msg;
   status_msg.progress.data = progress;
   status_msg.state.data = (int) _initialize;
@@ -183,47 +185,39 @@ void SmScout::statePlanning()
 {
   ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Planning!\n");
 
-  ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Canceling MoveBase goal.");
-  ac.waitForServer();
-  ac.cancelGoal();
-  ac.waitForResult(ros::Duration(0.25));
+  double progress = 0.0;
+
+  CancelMoveBaseGoal();
 
   Plan();
 
-  goal_yaw_ = atan2(goal_pose_.position.y - current_pose_.position.y, goal_pose_.position.x - current_pose_.position.x);
-
-  Brake (0.0);
-
-  RotateToHeading(goal_yaw_);
-
-  BrakeRamp(100, 3.0, 0);
-
-  CheckWaypoint(3);
-
-  ClearCostmaps();
-
-  BrakeRamp(100, 2, 0);
-
-  Brake(0.0);
-
-  if (!no_objective)
+  if (!no_objective) 
   {
-    move_base_msgs::MoveBaseGoal move_base_goal;
-    ac.waitForServer();
-    setPoseGoal(move_base_goal, goal_pose_.position.x, goal_pose_.position.y, goal_yaw_);
-    ROS_INFO_STREAM("[" << robot_name_ << "] "
-                        << "Sending goal to MoveBase: " << move_base_goal);
-    waypoint_timer = ros::Time::now();
-    ac.sendGoal(move_base_goal, boost::bind(&SmScout::doneCallback, this, _1, _2), boost::bind(&SmScout::activeCallback, this), boost::bind(&SmScout::feedbackCallback, this, _1));
-    ac.waitForResult(ros::Duration(0.25));
+    ROS_WARN_STREAM("[" << robot_name_ << "] " <<"New objective.");
+    goal_yaw_ = atan2(goal_pose_.position.y - current_pose_.position.y, goal_pose_.position.x - current_pose_.position.x);
+
+    Brake (0.0);
+
+    RotateToHeading(goal_yaw_);
+
+    BrakeRamp(100, 1, 0);
+
+    Brake(0.0);
+
+    // CheckWaypoint(3); // TODO: Check if they needed
+
+    ClearCostmaps();
+
+    SetMoveBaseGoal();
+
+    progress = 1.0;
   }
   else
   {
-    ROS_WARN_STREAM("[" << robot_name_ << "] "
-                        << "No objective\n");
+    ros::Duration(2).sleep();
+    ROS_WARN_STREAM("[" << robot_name_ << "] " <<"No objective. Will ask again in 20s.");
   }
 
-  double progress = 1.0;
   state_machine::RobotStatus status_msg;
   status_msg.progress.data = progress;
   status_msg.state.data = (int)_planning;
@@ -233,6 +227,7 @@ void SmScout::statePlanning()
 void SmScout::stateTraverse()
 {
   ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Traverse State\n");
+  move_base_state_ = ac.getState();
 
   double distance_to_goal = std::hypot(goal_pose_.position.y - current_pose_.position.y, goal_pose_.position.x - current_pose_.position.x);
   if (distance_to_goal < 2.0)
@@ -240,72 +235,49 @@ void SmScout::stateTraverse()
     ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Close to goal, getting new waypoint.");
     flag_arrived_at_waypoint = true;
   }
+  else
+  {
+    if(move_base_state_ == actionlib::SimpleClientGoalState::ABORTED || move_base_state_ == actionlib::SimpleClientGoalState::LOST)
+    {   
+      ROS_WARN_STREAM_THROTTLE(5,"[" << robot_name_ << "] " <<"MoveBase status: "<< move_base_state_.text_);
+      ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"MoveBase has failed to make itself useful.");
 
-  ros::Duration timeOutWPCheck(3.0);
-  if (ros::Time::now() - wp_checker_timer > timeOutWPCheck) {
-    bool is_colliding = false;
-    waypoint_checker::CheckCollision srv_wp_check;
-    if (clt_waypoint_checker.call(srv_wp_check)) {
-      ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Called service Waypoint Checker");
-      is_colliding = srv_wp_check.response.collision;
-      if (is_colliding) {
-        ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Waypoint Unreachable. Sending to Planning");
-        flag_arrived_at_waypoint = true;
-        flag_recovering_localization = false;
-        flag_localizing_volatile = false;
-      }
+      flag_arrived_at_waypoint = true;
+      flag_recovering_localization = false;
+      flag_localizing_volatile = false;
+
+      // ClearCostmaps(); // TODO: Check if they needed
+
+      Stop (0.1);
+
+      BrakeRamp(100, 1, 0);
+
+      Brake(0.0);
+
     }
-    wp_checker_timer = ros::Time::now();
+      
+    // ros::Duration timeoutWaypointCheck(3.0);
+    // if (ros::Time::now() - wp_checker_timer > timeoutWaypointCheck) 
+    // {
+    //   CheckWaypoint(3);
+    //   wp_checker_timer = ros::Time::now();
+    // }
+
+    // ros::Duration timeoutMap(90.0);
+    // if (ros::Time::now() - map_timer > timeoutMap)
+    // {
+    //   ClearCostmaps();
+    //   map_timer =ros::Time::now();
+    // }
+
+    // ros::Duration timeoutWaypoint(120);
+    // if (ros::Time::now() - waypoint_timer > timeoutWaypoint )
+    // {
+    //   ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Waypoint reached timeout.");
+    //   ClearCostmaps();
+    // }
   }
 
-  move_base_state = ac.getState();
-  int mb_state =(int) move_base_state.state_;
-  ROS_WARN_STREAM_THROTTLE(5,"[" << robot_name_ << "] " <<"MoveBase status: "<< mb_state);
-
-  if(mb_state==5 || mb_state==7)
-  {
-    ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"MoveBase has failed to make itself useful.");
-    flag_arrived_at_waypoint = true;
-    flag_recovering_localization = false;
-    flag_localizing_volatile = false;
-
-    Stop (1.0);
-
-    //ClearCostmaps(); //TODO Check if they needed
-    BrakeRamp(100, 2, 0);
-    Brake(0.0);
-
-  }
-
-  ros::Duration timeoutMap(90.0);
-
-  if (ros::Time::now() - map_timer > timeoutMap)
-  {
-    // std_srvs::Empty emptymsg;
-    // ros::service::call("move_base/clear_costmaps",emptymsg);
-    map_timer =ros::Time::now();
-    // BrakeRamp(100, 2, 0); // Give more time
-    // Brake(0.0);
-
-    ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Rover is stopped to clear the Map");
-    ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Move Base State: "<< mb_state);
-    ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Map Cleared");
-  }
-
-  // ros::Duration timeoutWaypoint(120);
-  // if (ros::Time::now() - waypoint_timer > timeoutWaypoint )
-  // {
-  //   ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Waypoint Unreachable");
-  //   flag_waypoint_unreachable= true;
-  //   Stop (1.0);
-  //   ClearCostmaps();
-  //   BrakeRamp(100, 2, 0);
-  //   Brake(0.0);
-  // }
-  // else
-  // {
-  //   ROS_ERROR_STREAM_THROTTLE(1,"Remaining Time for Waypoint" << timeoutWaypoint - (ros::Time::now() - waypoint_timer));
-  // }
 
   double progress = 0;
   progress = distance_to_goal;
@@ -320,10 +292,7 @@ void SmScout::stateVolatileHandler()
 {
   ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"VOLATILE HANDLING STATE!\n");
 
-  ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Canceling MoveBase goal.");
-  ac.waitForServer();
-  ac.cancelGoal();
-  ac.waitForResult(ros::Duration(0.25));
+  CancelMoveBaseGoal();
 
   ros::Duration timeoutVolatileHandling(120);
 
@@ -395,16 +364,13 @@ void SmScout::stateLost()
 
   double progress = 0.0;
 
-  ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Canceling MoveBase goal.");
-  ac.waitForServer();
-  ac.cancelGoal();
-  ac.waitForResult(ros::Duration(0.25));
+  CancelMoveBaseGoal();
 
-  Stop (2.0);
+  Stop (0.1);
 
   bool approachSuccess = ApproachChargingStation(3);
 
-  BrakeRamp(100, 3, 0);
+  BrakeRamp(100, 1, 0);
 
   if(approachSuccess)
   {
@@ -429,19 +395,19 @@ void SmScout::stateLost()
 
   DriveCmdVel(-0.5,0.0,0.0,5);
 
-  BrakeRamp(100, 3, 0);
+  BrakeRamp(100, 1, 0);
 
   Brake(0.0);
 
   RotateInPlace(0.2, 3);
 
-  BrakeRamp(100, 3, 0);
+  BrakeRamp(100, 1, 0);
 
   Brake(0.0);
 
   ClearCostmaps();
 
-  BrakeRamp(100, 2, 0);
+  BrakeRamp(100, 1, 0);
 
   Brake(0.0);
 
@@ -626,6 +592,28 @@ void SmScout::plannerInterruptCallback(const std_msgs::Bool::ConstPtr &msg)
 
 // Methods +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
+void SmScout::CancelMoveBaseGoal()
+{
+  if(ac.getState() != actionlib::SimpleClientGoalState::LOST)
+  {
+    ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Canceling MoveBase goal.");
+    ac.waitForServer();
+    ac.cancelGoal();
+    ac.waitForResult(ros::Duration(0.25));
+  }
+}
+
+void SmScout::SetMoveBaseGoal()
+{
+  move_base_msgs::MoveBaseGoal move_base_goal;
+  ac.waitForServer();
+  setPoseGoal(move_base_goal, goal_pose_.position.x, goal_pose_.position.y, goal_yaw_);
+  ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Sending goal to MoveBase: " << move_base_goal);
+  waypoint_timer = ros::Time::now();
+  ac.sendGoal(move_base_goal, boost::bind(&SmScout::doneCallback, this,_1,_2), boost::bind(&SmScout::activeCallback, this), boost::bind(&SmScout::feedbackCallback, this,_1));
+  ac.waitForResult(ros::Duration(0.25));
+}
+
 void SmScout::setPoseGoal(move_base_msgs::MoveBaseGoal &poseGoal, double x, double y, double yaw) // m, m, rad
 {
   const double pitch = 0.0;
@@ -709,14 +697,13 @@ void SmScout::RotateToHeading(double desired_yaw)
   {
     ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Recovery action initiated in yaw control.");
 
-     Stop(2.0);
+    Stop(0.1);
 
-     DriveCmdVel (-0.5, 0.0, 0.0, 4.0);
+    DriveCmdVel (-0.5, 0.0, 0.0, 4.0);
 
-     BrakeRamp(100, 3, 0);
+    BrakeRamp(100, 1, 0);
 
-     Brake(0.0);
-     // Stop(2.0);
+    Brake(0.0);
 
   //  immobilityRecovery(); //TODO: Use this instead of Stop and Drive at line 714 and 716
 
@@ -724,7 +711,7 @@ void SmScout::RotateToHeading(double desired_yaw)
   }
   else
   {
-    Stop(0.0);
+    Stop(0.1);
   }
 }
 
@@ -739,30 +726,30 @@ void SmScout::homingRecovery()
 
   Lights(20);
 
-  Stop(2.0);
+  Stop(0.1);
 
-  BrakeRamp(100, 3, 0);
+  BrakeRamp(100, 1, 0);
 
   Brake(0.0);
 
   // Drive(-0.3, 3.0);
   DriveCmdVel(-0.3,-0.6, 0.0, 5.0);
 
-  Stop(0.0);
+  Stop(0.1);
 
   DriveCmdVel(0.0,0.0,-0.25,4.0);
 
-  Stop(0.0);
+  Stop(0.1);
 
-  BrakeRamp(100, 3, 0);
+  BrakeRamp(100, 1, 0);
 
   Brake(0.0);
 
   DriveCmdVel(0.6,0.0,0.0,4.5);
 
-  Stop(0.0);
+  Stop(0.1);
 
-  BrakeRamp(100, 3, 0);
+  BrakeRamp(100, 1, 0);
 
   Brake(0.0);
 
@@ -771,13 +758,11 @@ void SmScout::homingRecovery()
 void SmScout::immobilityRecovery(int type)
 {
 
-  ac.waitForServer();
-  ac.cancelGoal();
-  ac.waitForResult(ros::Duration(0.25));
+  CancelMoveBaseGoal();
 
   ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Starting Recovery.");
 
-  Stop(2.0);
+  Stop(0.1);
 
   Brake(100.0);
 
@@ -785,15 +770,15 @@ void SmScout::immobilityRecovery(int type)
 
   DriveCmdVel(-0.5,0.0,0.0,3.0);
 
-  BrakeRamp(100, 3, 0);
+  BrakeRamp(100, 1, 0);
 
   Brake(0.0);
 
   DriveCmdVel(-0.3,-0.6, 0.0, 4.0);
 
-  // Stop(3.0); //TODO: CMDvelZero try
+  // Stop(0.1); //TODO: CMDvelZero try
 
-  BrakeRamp(100, 3, 0);
+  BrakeRamp(100, 1, 0);
 
   Brake(0.0);
 
@@ -805,18 +790,26 @@ void SmScout::immobilityRecovery(int type)
 }
 
 void SmScout::ClearCostmaps()
-{
+{  
+  ROS_ERROR_STREAM("[" << robot_name_ << "] " << "Braking rover to clear the Map");
+  BrakeRamp(100, 1, 0); // Give more time
+
+  ROS_WARN_STREAM("[" << robot_name_ << "] " << "Move Base State: " << move_base_state_.text_);
+  
   // Clear the costmap
   std_srvs::Empty emptymsg;
   ros::service::waitForService("move_base/clear_costmaps",ros::Duration(3.0));
   if (ros::service::call("move_base/clear_costmaps",emptymsg))
   {
-     ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Called service to clear costmap layers.");
+    ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Called service to clear costmap layers.");
+    ROS_WARN_STREAM("[" << robot_name_ << "] " << "Map Cleared");
   }
   else
   {
-     ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Failed calling clear_costmaps service.");
+    ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Failed calling clear_costmaps service.");
   }
+  
+  Brake(0.0);
 }
 
 void SmScout::GetTruePose()
@@ -1050,12 +1043,9 @@ void SmScout::CheckWaypoint(int max_count)
       is_colliding = srv_wp_check.response.collision;
       if(is_colliding)
       {
-        ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Canceling MoveBase goal.");
-        ac.waitForServer();
-        ac.cancelGoal();
-        ac.waitForResult(ros::Duration(0.25));
+        CancelMoveBaseGoal();
 
-        BrakeRamp(100, 3.0, 0);
+        BrakeRamp(100, 1.0, 0);
 
         Brake (0.0);
 

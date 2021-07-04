@@ -163,7 +163,7 @@ public:
   ros::ServiceClient clt_task_planning;
 
   MoveBaseClient ac;
-  actionlib::SimpleClientGoalState move_base_state;
+  actionlib::SimpleClientGoalState move_base_state_;
 
   // Methods ----------------------------------------------------------------------------------------------------------------------------
   SmExcavator(); // Constructor
