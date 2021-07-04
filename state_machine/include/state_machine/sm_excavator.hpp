@@ -89,7 +89,7 @@ public:
   const unsigned int num_states = 5;
   enum STATE_T {_initialize=0, _planning=1, _traverse=2, _volatile_handler=3, _lost=4};
  // State-machine mode
-  int excavation_state = HOME_MODE;
+  int excavation_state_ = HOME_MODE;
 
   // State transition flag declarations
   bool flag_interrupt_plan = false;
@@ -134,8 +134,7 @@ public:
   ros::Subscriber goal_volatile_sub;
   ros::Subscriber manipulation_cmd_sub;
   ros::Subscriber planner_interrupt_sub;
-  ros::Subscriber hauler1_odom_sub;
-  ros::Subscriber hauler2_odom_sub;
+  std::vector<ros::Subscriber> hauler_odom_subs;
 
   // Services
   ros::ServiceClient clt_sf_true_pose;
@@ -190,9 +189,7 @@ public:
   void doneCallback(const actionlib::SimpleClientGoalState& state, const move_base_msgs::MoveBaseResultConstPtr& result);
   void activeCallback();
   void plannerInterruptCallback(const std_msgs::Bool::ConstPtr &msg);
-
-  void hauler1OdomCallback(const nav_msgs::Odometry::ConstPtr &msg);
-  void hauler2OdomCallback(const nav_msgs::Odometry::ConstPtr &msg);
+  void haulerOdomCallback(const ros::MessageEvent<nav_msgs::Odometry const>& event);
 
   // Methods
   void CancelMoveBaseGoal();
@@ -235,13 +232,13 @@ public:
   std::string node_name_;
   std::string robot_name_;
   int robot_id_;
+  int num_haulers_;
 
   double waypoint_type = 0;
   int driving_mode = 0;
 
   // Bucket Info Init
-  bool volatile_in_bucket = false;
-  bool regolith_in_bucket = false;
+
   bool no_objective = false;
 
   // End-effector Pose Init
@@ -264,13 +261,6 @@ public:
   geometry_msgs::TransformStamped camera_link_to_arm_mount;
   geometry_msgs::TransformStamped arm_mount_to_camera_link;
 
-  nav_msgs::Odometry small_hauler_1_odom_;
-  nav_msgs::Odometry small_hauler_2_odom_;
-
-  double volatile_heading_ = 0;
-
-  double relative_heading_ = 0;
-  double relative_range_ = 1.0;
 
   double goal_yaw_;
 
@@ -292,5 +282,19 @@ public:
   // Planning  
   task_planning::PlanInfo prev_srv_plan; 
 
-  int counter_excavation_ = 0;
+  // Excavation  
+  std::vector<nav_msgs::Odometry> small_haulers_odom_;
+
+  int partner_hauler_id_ = 0;
+  geometry_msgs::Point partner_hauler_pos_;
+
+  const int MAX_EXCAVATION_COUNTER = 5;
+  int excavation_counter_ = 0;
+
+  bool volatile_in_bucket = false;
+  bool regolith_in_bucket = false;
+
+  double volatile_heading_ = 0;
+  double relative_heading_ = 0;
+  double relative_range_ = 1.0;
 };

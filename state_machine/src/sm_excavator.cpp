@@ -5,6 +5,27 @@ ac("move_base", true),
 tf2_listener(tf_buffer),
 move_base_state(actionlib::SimpleClientGoalState::PREEMPTED)
 {
+  // Load Parameters
+  node_name_ = "state_machine";
+  if (ros::param::get("robot_name", robot_name_) == false)
+  {
+    ROS_FATAL("No parameter 'robot_name' specified");
+    ros::shutdown();
+    exit(1);
+  }
+  if (ros::param::get("robot_id", robot_id_) == false)
+  {
+    ROS_FATAL("No parameter 'robot_id' specified");
+    ros::shutdown();
+    exit(1);
+  }
+  if (ros::param::get("/num_haulers", num_haulers_) == false)
+  {
+    ROS_FATAL("No parameter 'num_haulers' specified");
+    ros::shutdown();
+    exit(1);
+  }
+
   // Initialize ROS, Subs, and Pubs *******************************************
   // Publishers
   sm_status_pub = nh.advertise<state_machine::RobotStatus>("state_machine/status", 1);
@@ -22,10 +43,13 @@ move_base_state(actionlib::SimpleClientGoalState::PREEMPTED)
   goal_volatile_sub = nh.subscribe("manipulation/volatile_pose", 1, &SmExcavator::goalVolatileCallback, this);
   manipulation_cmd_sub = nh.subscribe("manipulation/cmd", 1, &SmExcavator::manipulationCmdCallback, this);
   planner_interrupt_sub = nh.subscribe("/planner_interrupt", 1, &SmExcavator::plannerInterruptCallback, this);
-
-  hauler1_odom_sub = nh.subscribe("/small_hauler_1/localization/odometry/sensor_fusion", 1, &SmExcavator::hauler1OdomCallback, this);
-  hauler2_odom_sub = nh.subscribe("/small_hauler_2/localization/odometry/sensor_fusion", 1, &SmExcavator::hauler2OdomCallback, this);
-
+  for (int i=0; i<num_haulers_; i++)
+  {
+    std::string hauler_odom_topic;
+    hauler_odom_topic = "/small_hauler_" + std::to_string(i+1) + "/localization/odometry/sensor_fusion";
+    hauler_odom_subs.push_back(nh.subscribe(hauler_odom_topic, 1, &SmExcavator::haulerOdomCallback, this));
+  }
+  
   // Clients
   clt_stop = nh.serviceClient<driving_tools::Stop>("driving/stop");
   clt_rip = nh.serviceClient<driving_tools::RotateInPlace>("driving/rotate_in_place");
@@ -57,18 +81,10 @@ move_base_state(actionlib::SimpleClientGoalState::PREEMPTED)
 
   manipulation_timer = ros::Time::now();
 
-  node_name_ = "state_machine";
-  if (ros::param::get("robot_name", robot_name_) == false)
+  nav_msgs::Odometry temp_small_hauler_odom;
+  for (int i=0; i<num_haulers_; i++)
   {
-    ROS_FATAL("No parameter 'robot_name' specified");
-    ros::shutdown();
-    exit(1);
-  }
-  if (ros::param::get("robot_id", robot_id_) == false)
-  {
-    ROS_FATAL("No parameter 'robot_id' specified");
-    ros::shutdown();
-    exit(1);
+      small_haulers_odom_.push_back(temp_small_hauler_odom);
   }
 }
 
@@ -576,7 +592,7 @@ void SmExcavator::jointStateCallback(const sensor_msgs::JointState::ConstPtr &ms
 void SmExcavator::bucketCallback(const srcp2_msgs::ExcavatorScoopMsg::ConstPtr &msg)
 {
   flag_bucket_full = msg->volatile_clod_mass || msg->regolith_clod_mass;
-  if (counter_excavation_== 0)
+  if (excavation_counter_== 0)
   {
     flag_found_volatile  = msg->volatile_clod_mass;
   }
@@ -600,7 +616,7 @@ void SmExcavator::manipulationCmdCallback(const std_msgs::Int64::ConstPtr &msg)
     {
       ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"ExcavationCMD: Enable interrupt.");
       ExecuteHomeArm(2,0);
-      counter_excavation_ = 0;
+      excavation_counter_ = 0;
 
       flag_found_hauler = false;
       flag_found_volatile = false;
@@ -738,16 +754,22 @@ void SmExcavator::plannerInterruptCallback(const std_msgs::Bool::ConstPtr &msg)
   }
 }
 
-void SmExcavator::hauler1OdomCallback(const nav_msgs::Odometry::ConstPtr &msg)
+void SmExcavator::haulerOdomCallback(const ros::MessageEvent<nav_msgs::Odometry const>& event)
 {
-  small_hauler_1_odom_ = *msg;
-  // ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Got small_hauler_1 odometry.");
-}
+  const ros::M_string& header = event.getConnectionHeader();
+  std::string topic = header.at("topic");
+  const nav_msgs::OdometryConstPtr& msg = event.getMessage();
 
-void SmExcavator::hauler2OdomCallback(const nav_msgs::Odometry::ConstPtr &msg)
-{
-  small_hauler_2_odom_ = *msg;
-  // ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Got small_hauler_2 odometry.");
+  char msg_hauler_ind = topic.c_str()[14];
+  int msg_hauler_id = std::atoi(&msg_hauler_ind);
+
+  small_haulers_odom_[msg_hauler_id-1] = *msg;
+
+  if (partner_hauler_id_ == msg_hauler_id)
+  {
+    partner_hauler_pos_ = msg->pose.pose.position;
+  } 
+  // ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Got small_hauler_1 odometry.");
 }
 
 void SmExcavator::CancelMoveBaseGoal()
@@ -1534,7 +1556,7 @@ bool SmExcavator::HomingUpdate(bool init_landmark)
 
 void SmExcavator::ExcavationStateMachine()
 {
-  switch (excavation_state)
+  switch (excavation_state_)
   {
     case HOME_MODE:
     {
@@ -1548,7 +1570,7 @@ void SmExcavator::ExcavationStateMachine()
       if(flag_bucket_full)
       {        
         ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Excavation: Going to Extend.");
-        excavation_state = EXTEND_MODE;
+        excavation_state_ = EXTEND_MODE;
       }
       else
       {
@@ -1556,12 +1578,12 @@ void SmExcavator::ExcavationStateMachine()
         {
           ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Excavation: Going to Scoop.");
           ExecuteLowerArm(5,0);
-          excavation_state = SCOOP_MODE;
+          excavation_state_ = SCOOP_MODE;
         }
         else
         {
           ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Excavation: Going to Search.");
-          excavation_state = SEARCH_MODE;
+          excavation_state_ = SEARCH_MODE;
         } 
       }
     }
@@ -1577,14 +1599,14 @@ void SmExcavator::ExcavationStateMachine()
         // it will cancel excavation
         CancelExcavation(false);
       }
-      excavation_state = HOME_MODE;
+      excavation_state_ = HOME_MODE;
     }
     break;
     case LOWER_MODE:
     {
       ExecuteLowerArm(5,0); 
       ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Excavation: Lowering Arm.");
-      excavation_state = SEARCH_MODE;
+      excavation_state_ = SEARCH_MODE;
     }
     break;
     case SCOOP_MODE:
@@ -1600,7 +1622,7 @@ void SmExcavator::ExcavationStateMachine()
       {
         // If the hauler was found with the service, it will scoop material and go to Home
         ExecuteAfterScoop(5,2);
-        excavation_state = HOME_MODE;
+        excavation_state_ = HOME_MODE;
       }
       else
       {
@@ -1627,13 +1649,13 @@ void SmExcavator::ExcavationStateMachine()
 
       ExecuteExtendArm(10,1);
       
-      excavation_state = DROP_MODE;
+      excavation_state_ = DROP_MODE;
     }
     break;
     case DROP_MODE:
     {
       ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Excavation: Dropping Bucket Content.");
-      ExecuteDrop(5,1,1);
+      ExecuteDrop(5,0,1);
 
       // ExecuteGoToPose(5,2,bin_point_);
 
@@ -1646,15 +1668,15 @@ void SmExcavator::ExcavationStateMachine()
       // Put the Arm in a safe position before Home
       ExecuteGoToPose(5,1,safe_point); 
 
-      ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Excavation: Scoop counter: " << counter_excavation_);
+      ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Excavation: Scoop counter: " << excavation_counter_);
 
-      if (counter_excavation_++ > 5)
+      if (excavation_counter_++ > MAX_EXCAVATION_COUNTER)
       {
         // If the excavator digs five times 
         // it will cancel excavation
         CancelExcavation(true);
       }
-      excavation_state = HOME_MODE;
+      excavation_state_ = HOME_MODE;
     }
     break;
   }
@@ -1674,7 +1696,7 @@ void SmExcavator::CancelExcavation(bool success)
   flag_found_volatile = false;
 
   // Reset Exc Counter
-  counter_excavation_ = 0;
+  excavation_counter_ = 0;
 
   // Put arm in Home position
   ExecuteHomeArm(5,0);
@@ -1687,8 +1709,15 @@ void SmExcavator::CancelExcavation(bool success)
 void SmExcavator::PublishExcavationStatus()
 {
   state_machine::ExcavationStatus msg;
-  msg.state.data = (uint8_t) excavation_state;
-  msg.progress.data = 0.0;
+
+  msg.excavator_id.data = robot_id_;
+  msg.state.data = excavation_state_;  
+  msg.bucket_full.data = flag_bucket_full;
+  msg.found_volatile.data = flag_found_volatile;
+  msg.found_hauler.data = flag_found_hauler;
+  msg.counter.data = excavation_counter_;
+  msg.progress.data = excavation_counter_/MAX_EXCAVATION_COUNTER;
+
   ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Publishing Excavation State Machine Status.");
 }
 

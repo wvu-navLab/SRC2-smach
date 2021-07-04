@@ -6,6 +6,27 @@ ac("move_base", true),
 tf2_listener(tf_buffer),
 move_base_state(actionlib::SimpleClientGoalState::PREEMPTED)
 {
+  // Load Parameters
+  node_name_ = "state_machine";
+  if (ros::param::get("robot_name", robot_name_) == false)
+  {
+    ROS_FATAL("No parameter 'robot_name' specified");
+    ros::shutdown();
+    exit(1);
+  }
+  if (ros::param::get("robot_id", robot_id_) == false)
+  {
+    ROS_FATAL("No parameter 'robot_id' specified");
+    ros::shutdown();
+    exit(1);
+  }
+  if (ros::param::get("/num_excavators", num_excavators_) == false)
+  {
+    ROS_FATAL("No parameter 'robot_name' specified");
+    ros::shutdown();
+    exit(1);
+  }
+
   // Initialize ROS, Subs, and Pubs *******************************************
   // Publishers
   sm_status_pub = nh.advertise<state_machine::RobotStatus>("state_machine/status", 1);
@@ -18,10 +39,16 @@ move_base_state(actionlib::SimpleClientGoalState::PREEMPTED)
   localization_sub  = nh.subscribe("localization/odometry/sensor_fusion", 1, &SmHauler::localizationCallback, this);
   driving_mode_sub = nh.subscribe("driving/driving_mode",1, &SmHauler::drivingModeCallback, this);
   laser_scan_sub = nh.subscribe("laser/scan",1, &SmHauler::laserCallback, this);
-  excavation_status_sub = nh.subscribe("state_machine/excavation_status",1, &SmHauler::excavationStatusCallback, this);
   planner_interrupt_sub = nh.subscribe("/planner_interrupt", 1, &SmHauler::plannerInterruptCallback, this);
-  excavator1_odom_sub = nh.subscribe("/small_excavator_1/localization/odometry/sensor_fusion",1, &SmHauler::excavator1OdomCallback, this);
-  excavator2_odom_sub = nh.subscribe("/small_excavator_2/localization/odometry/sensor_fusion",1, &SmHauler::excavator2OdomCallback, this);
+  for (int i=0; i<num_excavators_; i++)
+  {
+    std::string excavator_odom_topic;
+    excavator_odom_topic = "/small_excavator_" + std::to_string(i+1) + "/localization/odometry/sensor_fusion";
+    excavator_odom_subs.push_back(nh.subscribe(excavator_odom_topic, 1, &SmHauler::excavatorOdomCallback, this));
+    std::string excavation_status_topic;
+    excavation_status_topic = "/small_excavator_" + std::to_string(i+1) + "/state_machine/excavation_status";
+    excavation_status_subs.push_back(nh.subscribe(excavation_status_topic, 1, &SmHauler::excavationStatusCallback, this));
+  }
 
   // Clients
   clt_stop = nh.serviceClient<driving_tools::Stop>("driving/stop");
@@ -51,20 +78,11 @@ move_base_state(actionlib::SimpleClientGoalState::PREEMPTED)
   proc_plant_bin_location_.y = 9.0;
   proc_plant_bin_location_.z = 0.0;
 
-  node_name_ = "state_machine";
-  if (ros::param::get("robot_name", robot_name_) == false)
+  nav_msgs::Odometry temp_small_excavator_odom;  
+  for (int i=0; i<num_excavators_; i++)
   {
-    ROS_FATAL("No parameter 'robot_name' specified");
-    ros::shutdown();
-    exit(1);
+      small_excavators_odom_.push_back(temp_small_excavator_odom);
   }
-  if (ros::param::get("robot_id", robot_id_) == false)
-  {
-    ROS_FATAL("No parameter 'robot_id' specified");
-    ros::shutdown();
-    exit(1);
-  }
-
 }
 
 void SmHauler::run()
@@ -434,7 +452,7 @@ void SmHauler::stateVolatileHandler()
       // Include new method: SmHauler::ParallelParking that calls the service
       waypoint_nav::GoToGoal srv_gotoGoal;
       srv_gotoGoal.request.start = true;
-      srv_gotoGoal.request.goal.position = excavator_location_;
+      srv_gotoGoal.request.goal.position = partner_excavator_pos_;
       srv_gotoGoal.request.thresh = 2.0;
       srv_gotoGoal.request.timeOut = 30;
 
@@ -683,21 +701,42 @@ void SmHauler::laserCallback(const sensor_msgs::LaserScan::ConstPtr& msg)
   }
 }
 
-void SmHauler::excavationStatusCallback(const state_machine::ExcavationStatus::ConstPtr& msg)
+void SmHauler::excavationStatusCallback(const ros::MessageEvent<state_machine::ExcavationStatus const>& event)
 {
-  excavation_status_ = *msg;
+  const state_machine::ExcavationStatusConstPtr& msg = event.getMessage();
+
+  if (partner_excavator_id_ == msg->excavator_id.data)
+  {
+    // Copy the whole message
+    excavation_status_ = *msg;
+
+    // Local copies
+    excavation_excavator_id_ = msg->excavator_id.data;
+    excavation_state_ = msg->state.data;
+    excavation_bucket_full_ = msg->bucket_full.data;
+    excavation_found_volatile_ = msg->found_volatile.data;
+    excavation_found_hauler_ = msg->found_hauler.data;
+    excavation_counter_ = msg->counter.data;
+    excavation_progress_ = msg->progress.data;
+  }
   // ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Got excavation status.");
 }
 
-void SmHauler::excavator1OdomCallback(const nav_msgs::Odometry::ConstPtr& msg)
+void SmHauler::excavatorOdomCallback(const ros::MessageEvent<nav_msgs::Odometry const>& event)
 {
-  small_excavator_1_odom_ = *msg;
-  // ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Got small_excavator_1 odometry.");
-}
+  const ros::M_string& header = event.getConnectionHeader();
+  std::string topic = header.at("topic");
+  const nav_msgs::OdometryConstPtr& msg = event.getMessage();
 
-void SmHauler::excavator2OdomCallback(const nav_msgs::Odometry::ConstPtr& msg)
-{
-  small_excavator_2_odom_ = *msg;
+  char msg_excavator_ind = topic.c_str()[14];
+  int msg_excavator_id = std::atoi(&msg_excavator_ind);
+
+  small_excavators_odom_[msg_excavator_id-1] = *msg;
+
+  if (partner_excavator_id_ == msg_excavator_id)
+  {
+    partner_excavator_pos_ = msg->pose.pose.position;
+  } 
   // ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Got small_excavator_2 odometry.");
 }
 
@@ -1270,8 +1309,8 @@ bool SmHauler::LocateExcavator()
     if(srv_location_of_excavator.response.success.data)
     {
       ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Location of excavator reliable");
-      excavator_location_ = srv_location_of_excavator.response.excavator_location;
-      ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Saving Excavator Location "<<excavator_location_.x << "," << excavator_location_.y);
+      partner_excavator_pos_ = srv_location_of_excavator.response.excavator_location;
+      ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Saving Excavator Location "<<partner_excavator_pos_.x << "," << partner_excavator_pos_.y);
 
       success = true;
     }
