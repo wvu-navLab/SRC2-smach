@@ -1646,7 +1646,10 @@ void SmExcavator::SetHaulerParkingLocation()
   }
 
   geometry_msgs::Pose pose = srv_where_hauler.response.pose;
-  std::string side = srv_where_hauler.response.side;
+
+  ROS_ERROR_STREAM("[" << robot_name_ << "] " << "Where to park hauler: " << pose);
+
+  int side = srv_where_hauler.response.side; // 1 is left and -1 is right
 }
 
 
