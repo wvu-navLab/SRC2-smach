@@ -13,7 +13,7 @@
     <include file="$(find src2_object_detection)/launch/object_detection_services.launch"/>
 
     <!-- move_excavator launch file -->
-    <!-- <include file="$(find move_excavator)/launch/move_excavator.launch"/> -->
+    <include file="$(find move_excavator)/launch/move_excavator.launch"/>
 
     <!-- motion_control launch file -->
     <include file="$(find motion_control)/launch/motion_control.launch"/>

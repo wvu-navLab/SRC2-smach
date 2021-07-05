@@ -54,8 +54,9 @@
     <include file="$(find waypoint_checker)/launch/waypoint_checker.launch"/>
 
     <include file="$(find waypoint_nav)/launch/hauler_waypoint_nav.launch"/>
+    
     <!-- state machine for hauler -->
-    <!-- <include file="$(find state_machine)/launch/hauler_state_machine.launch"/> -->
+    <include file="$(find state_machine)/launch/hauler_state_machine.launch"/>
   </group>
 
   <!-- <include file="$(find mobility_checker)/launch/scout_mobility_checker.launch"/> -->

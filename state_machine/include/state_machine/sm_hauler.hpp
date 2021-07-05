@@ -37,6 +37,9 @@
 #include <sensor_fusion/HomingUpdate.h>
 #include <actionlib/client/simple_action_client.h>
 #include <actionlib/client/simple_client_goal_state.h>
+#include <dynamic_reconfigure/DoubleParameter.h>
+#include <dynamic_reconfigure/Reconfigure.h>
+#include <dynamic_reconfigure/Config.h>
 #include <task_planning/PlanInfo.h>
 #include <task_planning/Types.hpp>
 #include <state_machine/RobotStatus.h>
@@ -142,8 +145,9 @@ public:
   // Methods
   void CancelMoveBaseGoal();
   void SetMoveBaseGoal();
+  void SetMoveBaseSpeed(double max_speed);
   void setPoseGoal(move_base_msgs::MoveBaseGoal& poseGoal, double x, double y, double yaw); // m, m, rad
-  void ClearCostmaps();
+  void ClearCostmaps(double wait_time);
   void Lights(double intensity);
   void GetTruePose();
   void Drive(double speed_ratio, double time);
@@ -198,6 +202,9 @@ public:
   const double LASER_THRESH = 0.3;
   const int LASER_SET_SIZE = 20;
   const int LASER_COUNTER_THRESH = 20;
+
+  double HAULER_MAX_SPEED = 0.80;
+  double curr_max_speed_= 0.80;
 
   // Planning
   task_planning::PlanInfo prev_srv_plan;

@@ -14,7 +14,7 @@
   <include file="$(find state_machine)/launch/sm_scout.launch"/>
 
   <!-- small_excavator_1 state_machine launch file -->
-  <!-- <include file="$(find state_machine)/launch/sm_excavator.launch"/> -->
+  <include file="$(find state_machine)/launch/sm_excavator.launch"/>
 
   <!-- small_hauler_1 state_machine launch file-->
   <include file="$(find state_machine)/launch/sm_hauler.launch"/>

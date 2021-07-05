@@ -148,8 +148,9 @@ public:
   // Methods
   void CancelMoveBaseGoal();
   void SetMoveBaseGoal();
+  void SetMoveBaseSpeed(double max_speed);
   void setPoseGoal(move_base_msgs::MoveBaseGoal& poseGoal, double x, double y, double yaw); // m, m, rad
-  void ClearCostmaps();
+  void ClearCostmaps(double wait_time);
   void Lights(double intensity);
   void GetTruePose();
   void Drive(double speed_ratio, double time);
@@ -194,6 +195,9 @@ public:
   const double LASER_THRESH = 0.3;
   const int LASER_SET_SIZE = 20;
   const int LASER_COUNTER_THRESH = 20;
+
+  double SCOUT_MAX_SPEED = 1.07;
+  double curr_max_speed_= 1.07;
 
   const double VOL_FOUND_THRESH = 0.3;
   int honing_direction_ = 1;

@@ -274,7 +274,7 @@ void SmHauler::stateInitialize()
     progress = 1.0;
   }
 
-  ClearCostmaps();
+  ClearCostmaps(3.0);
 
   Brake(0.0);
 
@@ -309,7 +309,7 @@ void SmHauler::statePlanning()
 
     // CheckWaypoint(3); // TODO: Check if they needed
 
-    ClearCostmaps();
+    ClearCostmaps(3.0);
 
     SetMoveBaseGoal();
 
@@ -344,14 +344,14 @@ void SmHauler::stateTraverse()
   {
     if(move_base_state_ == actionlib::SimpleClientGoalState::ABORTED || move_base_state_ == actionlib::SimpleClientGoalState::LOST)
     {
-      ROS_WARN_STREAM_THROTTLE(5,"[" << robot_name_ << "] " <<"MoveBase status: "<< move_base_state_.text_);
+      ROS_WARN_STREAM_THROTTLE(5,"[" << robot_name_ << "] " <<"MoveBase status: "<< move_base_state_.getText());
       ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"MoveBase has failed to make itself useful.");
 
       // flag_arrived_at_waypoint = true;
       // flag_recovering_localization = false;
       // flag_localizing_volatile = false;
 
-      // ClearCostmaps(); // TODO: Check if they needed
+      // ClearCostmaps(3.0); // TODO: Check if they needed
 
       Stop (0.1);
 
@@ -370,7 +370,7 @@ void SmHauler::stateTraverse()
     // ros::Duration timeoutMap(90.0);
     // if (ros::Time::now() - map_timer > timeoutMap)
     // {
-    //   ClearCostmaps();
+    //   ClearCostmaps(3.0);
     //   map_timer =ros::Time::now();
     // }
 
@@ -378,7 +378,7 @@ void SmHauler::stateTraverse()
     // if (ros::Time::now() - waypoint_timer > timeoutWaypoint )
     // {
     //   ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Waypoint reached timeout.");
-    //   ClearCostmaps();
+    //   ClearCostmaps(3.0);
     // }
   }
   
@@ -456,7 +456,7 @@ void SmHauler::stateVolatileHandler()
   // Node that checks the amount of material in the bin with the camera
 
   ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"FULL BIN");
-  flag_full_bin = true;
+  // flag_full_bin = true;
   Brake(0.0);
   if(flag_full_bin)
   {
@@ -528,7 +528,7 @@ void SmHauler::stateLost()
 
   Brake(0.0);
 
-  ClearCostmaps();
+  ClearCostmaps(3.0);
 
   BrakeRamp(100, 1, 0);
 
@@ -574,7 +574,7 @@ void SmHauler::stateDump()
 
       Brake(0.0);
 
-      ClearCostmaps();
+      ClearCostmaps(3.0);
 
       BrakeRamp(100, 1, 0);
 
@@ -627,6 +627,65 @@ void SmHauler::localizationCallback(const nav_msgs::Odometry::ConstPtr& msg)
 
   tf2::Matrix3x3(q).getRPY(roll_, pitch_, yaw_);
 
+  if (abs(pitch_ * 180 / M_PI) > 10) 
+  {
+    ROS_WARN_STREAM_THROTTLE(10, "Robot Climbing Up! Pitch: " << pitch_ * 180 / M_PI);
+    if (curr_max_speed_ != 0.2)
+    {
+      SetMoveBaseSpeed(0.2);
+      curr_max_speed_ = 0.2;
+    }
+
+    if (abs(pitch_ * 180 / M_PI) > 20) 
+    {
+      ROS_ERROR_STREAM("[" << robot_name_ << "] " << "Robot Cant Climb! Pitch: " << pitch_ * 180 / M_PI);
+      ROS_ERROR_STREAM("[" << robot_name_ << "] " << "Commanding IMMOBILITY.");
+      CancelMoveBaseGoal();
+      Stop(0.0);
+      BrakeRamp(100,1,0);
+      Brake(0.0);
+      DriveCmdVel(-1.0,0.0,0.0,3);
+      SetMoveBaseGoal();
+    }
+  }
+  else
+  {
+    if (curr_max_speed_ != HAULER_MAX_SPEED)
+    {
+      SetMoveBaseSpeed(HAULER_MAX_SPEED);
+      curr_max_speed_ = HAULER_MAX_SPEED;
+    }
+  }
+  
+  if (abs(roll_ * 180 / M_PI) > 10) 
+  {
+    ROS_WARN_STREAM_THROTTLE(10, "Robot is Sideways! Roll: " << roll_ * 180 / M_PI);
+    if (curr_max_speed_ != 0.2)
+    {
+      SetMoveBaseSpeed(0.2);
+      curr_max_speed_ = 0.2;
+    }
+
+    if (abs(roll_ * 180 / M_PI) > 20) 
+    {
+      ROS_ERROR_STREAM("[" << robot_name_ << "] " << "Robot Cant Climb! Roll: " << roll_ * 180 / M_PI);
+      ROS_ERROR_STREAM("[" << robot_name_ << "] " << "Commanding IMMOBILITY.");
+      CancelMoveBaseGoal();
+      Stop(0.0);
+      BrakeRamp(100,1,0);
+      Brake(0.0);
+      DriveCmdVel(-1.0,0.0,0.0,3);
+      SetMoveBaseGoal();
+    }
+  }
+  else
+  {
+    if (curr_max_speed_ != HAULER_MAX_SPEED)
+    {
+      SetMoveBaseSpeed(HAULER_MAX_SPEED);
+      curr_max_speed_ = HAULER_MAX_SPEED;
+    }
+  }
 }
 
 void SmHauler::laserCallback(const sensor_msgs::LaserScan::ConstPtr& msg)
@@ -639,7 +698,7 @@ void SmHauler::laserCallback(const sensor_msgs::LaserScan::ConstPtr& msg)
     min_range = min_range + ranges[i];
   }
   min_range = min_range/LASER_SET_SIZE;
-  ROS_INFO_STREAM_THROTTLE(2,"Minimum range average: " << min_range);
+  // ROS_INFO_STREAM_THROTTLE(2,"Minimum range average: " << min_range);
 
   if (min_range < LASER_THRESH)
   {
@@ -724,6 +783,26 @@ void SmHauler::SetMoveBaseGoal()
   waypoint_timer = ros::Time::now();
   ac.sendGoal(move_base_goal, boost::bind(&SmHauler::doneCallback, this,_1,_2), boost::bind(&SmHauler::activeCallback, this), boost::bind(&SmHauler::feedbackCallback, this,_1));
   ac.waitForResult(ros::Duration(0.25));
+}
+
+void SmHauler::SetMoveBaseSpeed(double max_speed)
+{
+  // Update move_base max speed
+  dynamic_reconfigure::ReconfigureRequest srv_req;
+  dynamic_reconfigure::ReconfigureResponse srv_resp;
+  dynamic_reconfigure::DoubleParameter double_param;
+  dynamic_reconfigure::Config conf;
+
+  double_param.name = "max_vel_x";
+  double_param.value = max_speed;
+  conf.doubles.push_back(double_param);
+
+  srv_req.config = conf;
+
+  if (ros::service::call("move_base/DWAPlannerROS_SRC/set_parameters", srv_req, srv_resp))
+  {
+    ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Called service to reconfigure MoveBase (decrease max speed).");
+  }
 }
 
 void SmHauler::setPoseGoal(move_base_msgs::MoveBaseGoal &poseGoal, double x, double y, double yaw) // m, m, rad
@@ -940,12 +1019,12 @@ void SmHauler::immobilityRecovery(int type)
 
 }
 
-void SmHauler::ClearCostmaps()
+void SmHauler::ClearCostmaps(double wait_time)
 {  
   ROS_ERROR_STREAM("[" << robot_name_ << "] " << "Braking rover to clear the Map");
   BrakeRamp(100, 1, 0); // Give more time
 
-  ROS_WARN_STREAM("[" << robot_name_ << "] " << "Move Base State: " << move_base_state_.text_);
+  ROS_WARN_STREAM("[" << robot_name_ << "] " << "Move Base State: " << move_base_state_.getText());
   
   // Clear the costmap
   std_srvs::Empty emptymsg;
@@ -954,6 +1033,7 @@ void SmHauler::ClearCostmaps()
   {
     ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Called service to clear costmap layers.");
     ROS_WARN_STREAM("[" << robot_name_ << "] " << "Map Cleared");
+    ros::Duration(wait_time).sleep();
   }
   else
   {

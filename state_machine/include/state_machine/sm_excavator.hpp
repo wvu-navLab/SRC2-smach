@@ -40,6 +40,9 @@
 #include <sensor_fusion/HomingUpdate.h>
 #include <actionlib/client/simple_action_client.h>
 #include <actionlib/client/simple_client_goal_state.h>
+#include <dynamic_reconfigure/DoubleParameter.h>
+#include <dynamic_reconfigure/Reconfigure.h>
+#include <dynamic_reconfigure/Config.h>
 #include <motion_control/ArmGroup.h>
 #include <move_excavator/HomeArm.h>
 #include <move_excavator/LowerArm.h>
@@ -194,8 +197,9 @@ public:
   // Methods
   void CancelMoveBaseGoal();
   void SetMoveBaseGoal();
+  void SetMoveBaseSpeed(double max_speed);
   void setPoseGoal(move_base_msgs::MoveBaseGoal& poseGoal, double x, double y, double yaw); // m, m, rad
-  void ClearCostmaps();
+  void ClearCostmaps(double wait_time);
   void Lights(double intensity);
   void GetTruePose();
   void Drive(double speed_ratio, double time);
@@ -271,7 +275,11 @@ public:
   int counter_laser_collision_ = 0;
   const double LASER_THRESH = 0.3;
   const int LASER_SET_SIZE = 20;
-  const int LASER_COUNTER_THRESH = 20;
+  const int LASER_COUNTER_THRESH = 20;  
+  
+  const double EXCAVATOR_MAX_SPEED = 0.53;
+  double curr_max_speed_= 0.53;
+
 
   // Joint Positions Init
   double q1_pos_ = 0.0;
