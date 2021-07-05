@@ -29,6 +29,7 @@
 #include <srcp2_msgs/BrakeRoverSrv.h>
 #include <srcp2_msgs/VolSensorMsg.h>
 #include <srcp2_msgs/ExcavatorScoopMsg.h>
+#include <srcp2_msgs/SystemMonitorMsg.h>
 #include <move_base_msgs/MoveBaseAction.h>
 #include <waypoint_gen/GenerateWaypoint.h>
 #include <waypoint_gen/StartWaypoint.h>
@@ -98,7 +99,7 @@ public:
   ros::Subscriber driving_mode_sub;
   ros::Subscriber laser_scan_sub;
   ros::Subscriber planner_interrupt_sub;
-
+  ros::Subscriber system_monitor_sub;
   // Services
   ros::ServiceClient clt_sf_true_pose;
   ros::ServiceClient clt_vh_report;
@@ -138,6 +139,7 @@ public:
   void drivingModeCallback(const std_msgs::Int64::ConstPtr& msg);
   void volatileCmdCallback(const std_msgs::Int64::ConstPtr& msg);
   void volatileSensorCallback(const srcp2_msgs::VolSensorMsg::ConstPtr& msg);
+  void systemMonitorCallback(const srcp2_msgs::SystemMonitorMsg::ConstPtr& msg);
   void laserCallback(const sensor_msgs::LaserScan::ConstPtr& msg);
   void doneCallback(const actionlib::SimpleClientGoalState& state, const move_base_msgs::MoveBaseResultConstPtr& result);
   void feedbackCallback(const move_base_msgs::MoveBaseFeedbackConstPtr& feedback);
@@ -180,6 +182,9 @@ public:
   double vol_detected_dist_ = -1.0;
   double min_vol_detected_dist_ = 30.0;
   double prev_vol_detected_dist_ = -1.0;
+  double power_rate_;
+  double power_level_;
+
 
   bool no_objective =false;
   int timer_counter = 0;
@@ -196,5 +201,5 @@ public:
   int honing_direction_ = 1;
 
   // Planning
-  task_planning::PlanInfo prev_srv_plan; 
+  task_planning::PlanInfo prev_srv_plan;
 };
