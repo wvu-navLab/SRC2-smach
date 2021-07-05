@@ -18,6 +18,7 @@ move_base_state_(actionlib::SimpleClientGoalState::PREEMPTED)
   driving_mode_sub =nh.subscribe("driving/driving_mode_",1, &SmScout::drivingModeCallback, this);
   laser_scan_sub =nh.subscribe("laser/scan",1, &SmScout::laserCallback, this);
   planner_interrupt_sub = nh.subscribe("/planner_interrupt", 1, &SmScout::plannerInterruptCallback, this);
+  system_monitor_sub =nh.subscribe("system_monitor",1, &SmScout::systemMonitorCallback, this);
 
   // Clients
   clt_stop = nh.serviceClient<driving_tools::Stop>("driving/stop");
@@ -416,6 +417,27 @@ void SmScout::localizedBaseCallback(const std_msgs::Int64::ConstPtr& msg)
   {
     ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Waiting for Initial Localization  = " << (int) flag_localized_base);
   }
+}
+
+void SmScout::systemMonitorCallback(const srcp2_msgs::SystemMonitorMsg::ConstPtr& msg)
+{
+
+  power_level_ = msg->power_level;
+  power_rate_ = msg->power_rate;
+
+  if (power_level_< 20) {
+    ROS_WARN_STREAM("[" << robot_name_ << "] " << "Power Level Warning: " << power_level_);
+    if (power_level_< 10) {
+      ROS_ERROR_STREAM("[" << robot_name_ << "] " << "Rover Mulfunction! Critical Power: " << power_level_);
+
+      // BrakeRamp(100, 3, 0);
+      // Brake(0.0);
+      // RotateInPlace(0.2, 3);
+
+    }
+  }
+  // ROS_INFO_STREAM("[" << robot_name_ << "] " << "Power Rate: " << power_rate_);
+
 }
 
 void SmScout::volatileSensorCallback(const srcp2_msgs::VolSensorMsg::ConstPtr& msg)
