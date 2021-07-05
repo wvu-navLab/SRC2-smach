@@ -331,6 +331,7 @@ void SmHauler::stateTraverse()
 {
   ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Traverse State\n");
   move_base_state_ = ac.getState();
+  ROS_WARN_STREAM("[" << robot_name_ << "] " <<"MoveBase status: "<< move_base_state_.toString());
 
   double progress = 0;
 
@@ -344,7 +345,7 @@ void SmHauler::stateTraverse()
   {
     if(move_base_state_ == actionlib::SimpleClientGoalState::ABORTED || move_base_state_ == actionlib::SimpleClientGoalState::LOST)
     {
-      ROS_WARN_STREAM_THROTTLE(5,"[" << robot_name_ << "] " <<"MoveBase status: "<< move_base_state_.getText());
+      ROS_WARN_STREAM_THROTTLE(5,"[" << robot_name_ << "] " <<"MoveBase status: "<< move_base_state_.toString());
       ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"MoveBase has failed to make itself useful.");
 
       // flag_arrived_at_waypoint = true;
@@ -801,7 +802,11 @@ void SmHauler::SetMoveBaseSpeed(double max_speed)
 
   if (ros::service::call("move_base/DWAPlannerROS_SRC/set_parameters", srv_req, srv_resp))
   {
-    ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Called service to reconfigure MoveBase (decrease max speed).");
+    ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Failed to call service to reconfigure MoveBase (max speed).");
+  }
+  else
+  {    
+    ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Failed to call service to reconfigure MoveBase (max speed).");
   }
 }
 
@@ -1024,7 +1029,7 @@ void SmHauler::ClearCostmaps(double wait_time)
   ROS_ERROR_STREAM("[" << robot_name_ << "] " << "Braking rover to clear the Map");
   BrakeRamp(100, 1, 0); // Give more time
 
-  ROS_WARN_STREAM("[" << robot_name_ << "] " << "Move Base State: " << move_base_state_.getText());
+  ROS_WARN_STREAM("[" << robot_name_ << "] " << "Move Base State: " << move_base_state_.toString());
   
   // Clear the costmap
   std_srvs::Empty emptymsg;

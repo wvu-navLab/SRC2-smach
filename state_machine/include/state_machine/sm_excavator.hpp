@@ -58,6 +58,7 @@
 #include <task_planning/Types.hpp>
 #include <state_machine/RobotStatus.h>
 #include <state_machine/ExcavationStatus.h>
+#include <src2_object_detection/WhereToParkHauler.h>
 
 
 #define PI 3.141592653589793
@@ -111,7 +112,6 @@ public:
   bool flag_bucket_full = false;
   bool flag_found_hauler = false;
   bool flag_found_volatile = false;
-  bool flag_volatile_dug=true;
 
   ros::Time wp_checker_timer, laser_collision_timer, map_timer, waypoint_timer;
   ros::Time manipulation_timer;
@@ -162,6 +162,7 @@ public:
   ros::ServiceClient clt_drop_volatile;
   ros::ServiceClient clt_forward_kin;
   ros::ServiceClient clt_go_to_pose;
+  ros::ServiceClient clt_where_hauler;
   ros::ServiceClient clt_find_hauler;
   ros::ServiceClient clt_task_planning;
 
@@ -228,6 +229,7 @@ public:
   void GetForwardKinematics(double timeout);
   void ExcavationStateMachine();
   void PublishExcavationStatus();
+  void SetHaulerParkingLocation();
   void CancelExcavation(bool success);
   bool HomingUpdate(bool init_landmark);
   void Plan();
