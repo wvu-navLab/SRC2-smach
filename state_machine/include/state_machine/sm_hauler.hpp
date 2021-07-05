@@ -36,6 +36,7 @@
 #include <sensor_fusion/GetTruePose.h>
 #include <sensor_fusion/HomingUpdate.h>
 #include <actionlib/client/simple_action_client.h>
+#include <actionlib/client/simple_client_goal_state.h>
 #include <task_planning/PlanInfo.h>
 #include <task_planning/Types.hpp>
 #include <state_machine/RobotStatus.h>
@@ -88,9 +89,8 @@ public:
   ros::Subscriber driving_mode_sub;
   ros::Subscriber laser_scan_sub;
   ros::Subscriber planner_interrupt_sub;
-  ros::Subscriber excavator1_odom_sub;
-  ros::Subscriber excavator2_odom_sub;
-  ros::Subscriber excavation_status_sub;
+  std::vector<ros::Subscriber> excavator_odom_subs;
+  std::vector<ros::Subscriber> excavation_status_subs;
 
   ros::ServiceClient clt_sf_true_pose;
   ros::ServiceClient clt_vh_report;
@@ -114,7 +114,7 @@ public:
 
 
   MoveBaseClient ac;
-  actionlib::SimpleClientGoalState move_base_state;
+  actionlib::SimpleClientGoalState move_base_state_;
 
   // Methods ----------------------------------------------------------------------------------------------------------------------------
   SmHauler(); // Constructor
@@ -136,11 +136,12 @@ public:
   void feedbackCallback(const move_base_msgs::MoveBaseFeedbackConstPtr& feedback);
   void activeCallback();
   void plannerInterruptCallback(const std_msgs::Bool::ConstPtr &msg);
-  void excavationStatusCallback(const state_machine::ExcavationStatus::ConstPtr& msg);
-  void excavator1OdomCallback(const nav_msgs::Odometry::ConstPtr& msg);
-  void excavator2OdomCallback(const nav_msgs::Odometry::ConstPtr& msg);
+  void excavatorOdomCallback(const ros::MessageEvent<nav_msgs::Odometry const>& event);
+  void excavationStatusCallback(const ros::MessageEvent<state_machine::ExcavationStatus const>& event);
 
   // Methods
+  void CancelMoveBaseGoal();
+  void SetMoveBaseGoal();
   void setPoseGoal(move_base_msgs::MoveBaseGoal& poseGoal, double x, double y, double yaw); // m, m, rad
   void ClearCostmaps();
   void Lights(double intensity);
@@ -168,19 +169,15 @@ public:
   std::string node_name_;
   std::string robot_name_;
   int robot_id_;
+  int num_excavators_;
 
   double waypoint_type = 0;
   int driving_mode = 0;
 
   geometry_msgs::Pose current_pose_, goal_pose_;
   geometry_msgs::Point base_location_;
-  geometry_msgs::Point excavator_location_;
   geometry_msgs::Point proc_plant_bin_location_;
 
-  nav_msgs::Odometry small_excavator_1_odom_;
-  nav_msgs::Odometry small_excavator_2_odom_;
-
-  state_machine::ExcavationStatus excavation_status_;
 
   // Transforms
   tf2_ros::Buffer tf_buffer;
@@ -204,4 +201,19 @@ public:
 
   // Planning
   task_planning::PlanInfo prev_srv_plan;
+
+  // Excavation
+  std::vector<nav_msgs::Odometry> small_excavators_odom_;
+
+  int partner_excavator_id_ = 0;
+  geometry_msgs::Point partner_excavator_pos_;
+
+  state_machine::ExcavationStatus excavation_status_;
+  int excavation_excavator_id_;
+  int excavation_state_;
+  bool excavation_bucket_full_;
+  bool excavation_found_volatile_;
+  bool excavation_found_hauler_;
+  int excavation_counter_;
+  double excavation_progress_;
 };
