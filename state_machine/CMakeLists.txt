@@ -80,6 +80,7 @@ add_message_files(
   FILES
   RobotStatus.msg
   ExcavationStatus.msg
+  HaulerStatus.msg
 )
 
 # Generate services in the 'srv' folder

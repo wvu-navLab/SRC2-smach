@@ -32,6 +32,8 @@ move_base_state_(actionlib::SimpleClientGoalState::PREEMPTED)
   cmd_vel_pub = nh.advertise<geometry_msgs::Twist>("driving/cmd_vel", 1);
   driving_mode_pub = nh.advertise<std_msgs::Int64>("driving/driving_mode", 1);
   excavation_status_pub = nh.advertise<state_machine::ExcavationStatus>("state_machine/excavation_status",1);
+  parking_pose_pub = nh.advertise<geometry_msgs::Pose>("manipulation/hauler_parking_pose",1);
+  sensor_yaw_pub = nh.advertise<std_msgs::Float64>("sensor/yaw/command/position", 1);
 
   // Subscribers
   localized_base_sub = nh.subscribe("state_machine/localized_base", 1, &SmExcavator::localizedBaseCallback, this);
@@ -48,6 +50,10 @@ move_base_state_(actionlib::SimpleClientGoalState::PREEMPTED)
     std::string hauler_odom_topic;
     hauler_odom_topic = "/small_hauler_" + std::to_string(i+1) + "/localization/odometry/sensor_fusion";
     hauler_odom_subs.push_back(nh.subscribe(hauler_odom_topic, 1, &SmExcavator::haulerOdomCallback, this));
+
+    std::string hauler_status_topic;
+    hauler_status_topic = "/small_hauler_" + std::to_string(i+1) + "/manipulation/hauler_status";
+    hauler_status_subs.push_back(nh.subscribe(hauler_status_topic, 1, &SmExcavator::haulerStatusCallback, this));
   }
   
   // Clients
@@ -83,9 +89,11 @@ move_base_state_(actionlib::SimpleClientGoalState::PREEMPTED)
   manipulation_timer = ros::Time::now();
 
   nav_msgs::Odometry temp_small_hauler_odom;
+  state_machine::HaulerStatus temp_small_hauler_status;
   for (int i=0; i<num_haulers_; i++)
   {
-      small_haulers_odom_.push_back(temp_small_hauler_odom);
+    small_haulers_odom_.push_back(temp_small_hauler_odom);
+    small_haulers_status_.push_back(temp_small_hauler_status);
   }
 }
 
@@ -198,6 +206,11 @@ void SmExcavator::stateInitialize()
   while (!clt_sf_true_pose.waitForExistence())
   {
     ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Waiting for TruePose service");
+  }
+
+  while (!clt_where_hauler.waitForExistence())
+  {
+    ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Waiting for WhereToParkHauler service");
   }
 
   Lights(20);
@@ -642,10 +655,7 @@ void SmExcavator::jointStateCallback(const sensor_msgs::JointState::ConstPtr &ms
 void SmExcavator::bucketCallback(const srcp2_msgs::ExcavatorScoopMsg::ConstPtr &msg)
 {
   flag_bucket_full = msg->volatile_clod_mass || msg->regolith_clod_mass;
-  if (excavation_counter_== 0)
-  {
-    flag_found_volatile  = msg->volatile_clod_mass;
-  }
+  flag_has_volatile = msg->volatile_clod_mass;
 }
 
 void SmExcavator::goalVolatileCallback(const geometry_msgs::PoseStamped::ConstPtr &msg)
@@ -818,6 +828,25 @@ void SmExcavator::haulerOdomCallback(const ros::MessageEvent<nav_msgs::Odometry 
   if (partner_hauler_id_ == msg_hauler_id)
   {
     partner_hauler_pos_ = msg->pose.pose.position;
+  } 
+  // ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Got small_hauler_1 odometry.");
+}
+
+
+void SmExcavator::haulerStatusCallback(const ros::MessageEvent<state_machine::HaulerStatus const>& event)
+{
+  const ros::M_string& header = event.getConnectionHeader();
+  std::string topic = header.at("topic");
+  const state_machine::HaulerStatusConstPtr& msg = event.getMessage();
+
+  char msg_hauler_ind = topic.c_str()[14];
+  int msg_hauler_id = std::atoi(&msg_hauler_ind);
+
+  small_haulers_status_[msg_hauler_id-1] = *msg;
+
+  if (partner_hauler_id_ == msg_hauler_id)
+  {
+    flag_hauler_ready = msg->hauler_ready.data;
   } 
   // ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Got small_hauler_1 odometry.");
 }
@@ -1426,7 +1455,7 @@ bool SmExcavator::ExecuteSearch()
       ExecuteScoop(5,3, q1s[i]);
       ros::spinOnce();
 
-      if (flag_found_volatile)
+      if (flag_has_volatile)
       {
         ROS_ERROR_STREAM("[" << robot_name_ << "] " << "Excavation: Found volatile!");
 
@@ -1476,6 +1505,7 @@ bool SmExcavator::FindHauler(double timeout)
   move_excavator::FindHauler srv_find;
 
   srv_find.request.timeLimit = timeout;
+  srv_find.request.side = relative_side_;
   if (clt_find_hauler.call(srv_find))
   {
     ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Called service FindHauler.");
@@ -1645,11 +1675,13 @@ void SmExcavator::SetHaulerParkingLocation()
     ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Failed to call service WhereToParkHauler.");
   }
 
-  geometry_msgs::Pose pose = srv_where_hauler.response.pose;
+  hauler_parking_pose_ = srv_where_hauler.response.pose;
 
-  ROS_ERROR_STREAM("[" << robot_name_ << "] " << "Where to park hauler: " << pose);
+  parking_pose_pub.publish(hauler_parking_pose_);
 
-  int side = srv_where_hauler.response.side; // 1 is left and -1 is right
+  ROS_ERROR_STREAM("[" << robot_name_ << "] " << "Where to park hauler: " << hauler_parking_pose_);
+
+  relative_side_ = srv_where_hauler.response.side; // 1 is left and -1 is right
 }
 
 
@@ -1696,10 +1728,18 @@ void SmExcavator::ExcavationStateMachine()
       
       if(flag_found_volatile)
       {
-        // Waiting for hauler
+        PublishExcavationStatus();
+        
+        // Wait until hauler gets ready 
+        while(!flag_hauler_ready && (ros::Time::now() - manipulation_timer) < ros::Duration(840))
+        {
+          ros::Duration(1.0).sleep();
+          ros::spinOnce();
+        }
       }
       else
       {
+        PublishExcavationStatus();
         // If the excavator does not find volatiles after Searching,
         // it will cancel excavation
         CancelExcavation(false);
@@ -1726,6 +1766,13 @@ void SmExcavator::ExcavationStateMachine()
       {
         flag_found_hauler = FindHauler(120);
       }
+      
+      PublishExcavationStatus();
+
+      // Look forward before starting to move again
+      std_msgs::Float64 sensor_yaw;
+      sensor_yaw.data = 0.0;
+      sensor_yaw_pub.publish(sensor_yaw);
 
       if (flag_found_hauler)
       {
@@ -1738,8 +1785,13 @@ void SmExcavator::ExcavationStateMachine()
         // If not it will drop the material below the terrain and ask Hauler to approach
         ExecuteDrop(5,0,0);
         ROS_ERROR_STREAM("[" << robot_name_ << "] " << "Excavation: Waiting for Hauler");
-        ros::Duration(60).sleep();
-        // TODO: Include communication with hauler
+
+        // Wait until hauler gets ready 
+        while(!flag_hauler_ready && (ros::Time::now() - manipulation_timer) < ros::Duration(840))
+        {
+          ros::Duration(1.0).sleep();
+          ros::spinOnce();
+        }
       }
     }
     break;
@@ -1804,9 +1856,7 @@ void SmExcavator::CancelExcavation(bool success)
   flag_manipulation_enabled = false;
   flag_localizing_volatile = false;
 
-  //TODO: Set camera yaw angle to zero deg
   //TODO: Turn off power saving
-
 }
 
 void SmExcavator::PublishExcavationStatus()

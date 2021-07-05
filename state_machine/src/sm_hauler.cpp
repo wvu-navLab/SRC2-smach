@@ -336,7 +336,7 @@ void SmHauler::stateTraverse()
   double progress = 0;
 
   double distance_to_goal = std::hypot(goal_pose_.position.y - current_pose_.position.y, goal_pose_.position.x - current_pose_.position.x);
-  if (distance_to_goal < 2.0) // CHANGE TO 6.0
+  if (distance_to_goal < 2.0)
   {
     flag_arrived_at_waypoint = true;
     ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Close to goal, getting new waypoint.");
@@ -399,6 +399,16 @@ void SmHauler::stateVolatileHandler()
   double progress = 0;
 
   CancelMoveBaseGoal();
+
+  // if(flag_approach_side)
+  // {
+  //   double distance_to_goal = std::hypot(goal_pose_.position.y - current_pose_.position.y, goal_pose_.position.x - current_pose_.position.x);
+  //   if (distance_to_goal < 2.0)
+  //   {
+  //     flag_arrived_at_waypoint = true;
+  //     ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Close to goal, getting new waypoint.");
+  //   }
+  // }
 
   flag_full_bin = false;
   flag_approach_excavator = true;

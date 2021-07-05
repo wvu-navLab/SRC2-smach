@@ -12,6 +12,9 @@
     <!-- object_detection launch file -->
     <include file="$(find src2_object_detection)/launch/object_detection_services.launch"/>
 
+    <!-- object_detection launch file -->
+    <include file="$(find src2_object_detection)/launch/object_detection_where_to_park.launch"/>
+
     <!-- move_excavator launch file -->
     <include file="$(find move_excavator)/launch/move_excavator.launch"/>
 

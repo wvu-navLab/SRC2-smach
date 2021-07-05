@@ -58,6 +58,7 @@
 #include <task_planning/Types.hpp>
 #include <state_machine/RobotStatus.h>
 #include <state_machine/ExcavationStatus.h>
+#include <state_machine/HaulerStatus.h>
 #include <src2_object_detection/WhereToParkHauler.h>
 
 
@@ -111,7 +112,9 @@ public:
   bool flag_manipulation_interrupt = false;
   bool flag_bucket_full = false;
   bool flag_found_hauler = false;
+  bool flag_has_volatile = false;
   bool flag_found_volatile = false;
+  bool flag_hauler_ready = false;
 
   ros::Time wp_checker_timer, laser_collision_timer, map_timer, waypoint_timer;
   ros::Time manipulation_timer;
@@ -126,6 +129,8 @@ public:
   ros::Publisher cmd_vel_pub;
   ros::Publisher driving_mode_pub;
   ros::Publisher excavation_status_pub;
+  ros::Publisher parking_pose_pub;
+  ros::Publisher sensor_yaw_pub;
 
   // Subscribers
   ros::Subscriber localized_base_sub;
@@ -138,6 +143,7 @@ public:
   ros::Subscriber manipulation_cmd_sub;
   ros::Subscriber planner_interrupt_sub;
   std::vector<ros::Subscriber> hauler_odom_subs;
+  std::vector<ros::Subscriber> hauler_status_subs;
 
   // Services
   ros::ServiceClient clt_sf_true_pose;
@@ -194,6 +200,7 @@ public:
   void activeCallback();
   void plannerInterruptCallback(const std_msgs::Bool::ConstPtr &msg);
   void haulerOdomCallback(const ros::MessageEvent<nav_msgs::Odometry const>& event);
+  void haulerStatusCallback(const ros::MessageEvent<state_machine::HaulerStatus const>& event);
 
   // Methods
   void CancelMoveBaseGoal();
@@ -294,6 +301,7 @@ public:
 
   // Excavation  
   std::vector<nav_msgs::Odometry> small_haulers_odom_;
+  std::vector<state_machine::HaulerStatus> small_haulers_status_;
 
   int partner_hauler_id_ = 0;
   geometry_msgs::Point partner_hauler_pos_;
@@ -305,6 +313,8 @@ public:
   bool regolith_in_bucket = false;
 
   double volatile_heading_ = 0;
+  geometry_msgs::Pose hauler_parking_pose_;
+  int relative_side_ = 1;
   double relative_heading_ = 0;
   double relative_range_ = 1.0;
 };
