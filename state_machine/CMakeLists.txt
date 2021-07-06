@@ -289,11 +289,17 @@ target_link_libraries(state_machine_excavator_node
 
 ## Mark libraries for installation
 ## See http://docs.ros.org/melodic/api/catkin/html/howto/format1/building_libraries.html
-# install(TARGETS ${PROJECT_NAME}
-#   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-#   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-#   RUNTIME DESTINATION ${CATKIN_GLOBAL_BIN_DESTINATION}
-# )
+ install(TARGETS sm_scout sm_utils sm_hauler sm_excavator
+   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+   RUNTIME DESTINATION ${CATKIN_GLOBAL_BIN_DESTINATION}
+ )
+install(TARGETS state_machine_scout_node state_machine_hauler_node state_machine_excavator_node utils_test_node
+   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+ )
+install(DIRECTORY launch/
+   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/launch
+   PATTERN ".svn" EXCLUDE)
 
 ## Mark cpp header files for installation
 install(DIRECTORY include/${PROJECT_NAME}/

@@ -229,12 +229,21 @@ add_dependencies(test_forward_search task_planning_generate_messages_cpp ${catki
 
 ## Mark libraries for installation
 ## See http://docs.ros.org/melodic/api/catkin/html/howto/format1/building_libraries.html
-# install(TARGETS ${PROJECT_NAME}
-#   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-#   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-#   RUNTIME DESTINATION ${CATKIN_GLOBAL_BIN_DESTINATION}
-# )
+ install(TARGETS CostFunctionLib ForwardSearchLib TaskPlannerLib
+   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+   RUNTIME DESTINATION ${CATKIN_GLOBAL_BIN_DESTINATION}
+ )
+ install(TARGETS scouting_task_node excavation_task_node test_forward_search test_cartesian_product
+    RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+  )
+ install(DIRECTORY launch/
+    DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/launch
+    PATTERN ".svn" EXCLUDE)
 
+    install(DIRECTORY config/
+        DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/config
+        PATTERN ".svn" EXCLUDE)
 ## Mark cpp header files for installation
 install(DIRECTORY include/${PROJECT_NAME}/
   DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
