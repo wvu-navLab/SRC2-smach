@@ -108,7 +108,7 @@ find_package(catkin REQUIRED roscpp rospy roslib
 catkin_package(
  INCLUDE_DIRS include
 #  LIBRARIES task_planning
-#  CATKIN_DEPENDS other_catkin_pkg
+ CATKIN_DEPENDS message_runtime message_generation std_msgs volatile_map geometry_msgs
 #  DEPENDS system_lib
 )
 
@@ -120,6 +120,7 @@ catkin_package(
 ## Your package locations should be listed before other locations
 include_directories(
  include
+ ~/ros_workspace/install/include
  ${catkin_INCLUDE_DIRS}
 )
 
@@ -133,13 +134,14 @@ target_link_libraries(CostFunctionLib
   #/usr/local/lib
   ${catkin_LIBRARIES}
 )
+add_dependencies(CostFunctionLib task_planning_generate_messages_cpp ${catkin_EXPORTED_TARGETS})
 
 add_library(TaskPlannerLib src/TaskPlanner.cpp)
 target_link_libraries(TaskPlannerLib
   #/usr/local/lib
   ${catkin_LIBRARIES}
 )
-# add_dependencies(TaskPlannerLib TaskPlannerLib_gencpp)
+add_dependencies(TaskPlannerLib task_planning_generate_messages_cpp ${catkin_EXPORTED_TARGETS})
 
 add_library(ForwardSearchLib src/ForwardSearch.cpp)
 target_link_libraries(ForwardSearchLib
@@ -148,6 +150,7 @@ target_link_libraries(ForwardSearchLib
   TaskPlannerLib
   ${catkin_LIBRARIES}
 )
+add_dependencies(ForwardSearchLib task_planning_generate_messages_cpp ${catkin_EXPORTED_TARGETS})
 
 ## Add cmake target dependencies of the library
 ## as an example, code may need to be generated before libraries
@@ -164,6 +167,7 @@ target_link_libraries(scouting_task_node
     CostFunctionLib
     ${catkin_LIBRARIES}
 )
+add_dependencies(scouting_task_node task_planning_generate_messages_cpp ${catkin_EXPORTED_TARGETS})
 
 add_executable(excavation_task_node src/excavation_task_node.cpp)
 target_link_libraries(excavation_task_node
@@ -171,11 +175,13 @@ target_link_libraries(excavation_task_node
     CostFunctionLib
     ${catkin_LIBRARIES}
 )
+add_dependencies(excavation_task_node task_planning_generate_messages_cpp ${catkin_EXPORTED_TARGETS})
 
 add_executable(test_cartesian_product test/test_cartesian_product.cpp)
 target_link_libraries(test_cartesian_product
     ${catkin_LIBRARIES}
 )
+add_dependencies(test_cartesian_product task_planning_generate_messages_cpp ${catkin_EXPORTED_TARGETS})
 
 add_executable(test_forward_search test/test_forward_search.cpp)
 target_link_libraries(test_forward_search
@@ -184,6 +190,7 @@ target_link_libraries(test_forward_search
     ForwardSearchLib
     ${catkin_LIBRARIES}
 )
+add_dependencies(test_forward_search task_planning_generate_messages_cpp ${catkin_EXPORTED_TARGETS})
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the

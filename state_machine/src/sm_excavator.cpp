@@ -1910,7 +1910,7 @@ void SmExcavator::PublishExcavationStatus()
   msg.state.data = excavation_state_;  
   msg.bucket_full.data = flag_bucket_full;
   msg.found_parking_site.data = flag_found_parking_site;
-  msg.parking_pose.data = hauler_parking_pose_;
+  msg.parking_pose = hauler_parking_pose_;
   msg.found_volatile.data = flag_found_volatile;
   msg.found_hauler.data = flag_found_hauler;
   msg.counter.data = excavation_counter_;

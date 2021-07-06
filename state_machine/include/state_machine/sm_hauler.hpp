@@ -71,6 +71,7 @@ public:
   bool flag_need_init_landmark = false;
   bool flag_localized_base = false;
   bool flag_full_bin = true;
+  bool flag_approached_side = false;
   bool flag_approached_excavator = false;
   bool flag_located_excavator = false;
   bool flag_parked_hauler = false;
@@ -168,7 +169,7 @@ public:
   void homingRecovery();
   void immobilityRecovery(int type);
   void CheckWaypoint(int max_count);
-  void GoToWaypoint();
+  bool GoToWaypoint();
   bool ApproachChargingStation(int max_count);
   bool ApproachExcavator(int max_count);
   bool ApproachBin(int max_count);

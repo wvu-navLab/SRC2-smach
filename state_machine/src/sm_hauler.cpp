@@ -353,7 +353,7 @@ void SmHauler::stateVolatileHandler()
   // Include callback to ExcavationStatus
   // According with ExcavationStatus we approach and park
 
-  if(!flag_full_bin && excavation_found_volatile_)
+  if(!flag_full_bin && flag_approached_side)
   {
     if(!flag_approached_excavator)
     {
@@ -362,7 +362,7 @@ void SmHauler::stateVolatileHandler()
       flag_approached_excavator = ApproachExcavator(3);
     }
 
-    if (!flag_parked_hauler)
+    if (!flag_parked_hauler && flag_approached_excavator)
     {
       ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"APPROACH SERVICE SUCCESS -- ESTIMATING EXCAV LOCATION ");
       flag_located_excavator = LocateExcavator();
@@ -689,9 +689,9 @@ void SmHauler::excavationStatusCallback(const ros::MessageEvent<state_machine::E
   }
   // ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Got excavation status.");
 
-  if (excavation_status_.found_parking_location && !flag_approached_side)
+  if (excavation_status_.found_parking_site.data && !flag_approached_side)
   {
-    goal_pose_.position = excavation_status_.parking_pose.pose.position;
+    goal_pose_.position = excavation_status_.parking_pose.position;
     SetMoveBaseGoal();
     flag_arrived_at_waypoint = false;
     flag_localizing_volatile = true;
