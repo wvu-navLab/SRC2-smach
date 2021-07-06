@@ -204,6 +204,7 @@ public:
   const int LASER_SET_SIZE = 20;
   const int LASER_COUNTER_THRESH = 20;
 
+  double CRATER_RADIUS = 85.0;
   double SCOUT_MAX_SPEED = 1.07;
   double curr_max_speed_= 1.07;
 

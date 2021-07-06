@@ -294,9 +294,9 @@ public:
   const int LASER_SET_SIZE = 20;
   const int LASER_COUNTER_THRESH = 20;  
   
+  double CRATER_RADIUS = 85.0;
   const double EXCAVATOR_MAX_SPEED = 0.53;
   double curr_max_speed_= 0.53;
-
 
   // Joint Positions Init
   double q1_pos_ = 0.0;

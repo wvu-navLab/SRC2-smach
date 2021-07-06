@@ -611,6 +611,13 @@ void SmHauler::localizationCallback(const nav_msgs::Odometry::ConstPtr& msg)
                       msg->pose.pose.orientation.w);
 
   tf2::Matrix3x3(q).getRPY(roll_, pitch_, yaw_);
+  
+  double radius = hypot(current_pose_.position.x, current_pose_.position.y);
+
+  if(radius > CRATER_RADIUS)
+  { 
+    flag_interrupt_plan = true;
+  }
 
   if (abs(pitch_ * 180 / M_PI) > 10) 
   {
@@ -627,9 +634,9 @@ void SmHauler::localizationCallback(const nav_msgs::Odometry::ConstPtr& msg)
       ROS_ERROR_STREAM("[" << robot_name_ << "] " << "Commanding IMMOBILITY.");
       CancelMoveBaseGoal();
       Stop(0.1);
-      BrakeRamp(100,1,0);
+      Brake(100.0);
       Brake(0.0);
-      DriveCmdVel(-1.0,0.0,0.0,3);
+      DriveCmdVel(-0.5,0.0,0.0,3);
       Stop(0.1);
       SetMoveBaseGoal();
     }
@@ -658,9 +665,9 @@ void SmHauler::localizationCallback(const nav_msgs::Odometry::ConstPtr& msg)
       ROS_ERROR_STREAM("[" << robot_name_ << "] " << "Commanding IMMOBILITY.");
       CancelMoveBaseGoal();
       Stop(0.1);
-      BrakeRamp(100,1,0);
+      Brake(100.0);
       Brake(0.0);
-      DriveCmdVel(-1.0,0.0,0.0,3);
+      DriveCmdVel(-0.5,0.0,0.0,3);
       Stop(0.1);
       SetMoveBaseGoal();
     }
@@ -946,7 +953,8 @@ void SmHauler::RotateToHeading(double desired_yaw)
 
     Brake(0.0);
 
-    flag_heading_fail=false;
+    flag_heading_fail = false;
+    flag_interrupt_plan = true;
   }
   else
   {
