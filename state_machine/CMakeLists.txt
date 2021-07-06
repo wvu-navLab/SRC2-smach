@@ -167,6 +167,7 @@ catkin_package(
 include_directories(
  include
  ~/ros_workspace/install/include
+ ~/cmp_workspace/src/SRC2-smach/task_planning/include
  ${catkin_INCLUDE_DIRS}
 )
 
