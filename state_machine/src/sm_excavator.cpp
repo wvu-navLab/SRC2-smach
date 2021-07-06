@@ -227,7 +227,7 @@ void SmExcavator::stateInitialize()
 
   RoverStatic(false);
 
-  ClearCostmaps(3.0);
+  ClearCostmaps(5.0);
 
   Brake(0.0);
 
@@ -266,7 +266,7 @@ void SmExcavator::statePlanning()
 
     // CheckWaypoint(3); // TODO: Check if they needed
 
-    ClearCostmaps(3.0);
+    ClearCostmaps(5.0);
 
     SetMoveBaseGoal();
 
@@ -310,7 +310,7 @@ void SmExcavator::stateTraverse()
       // flag_recovering_localization = false;
       // flag_localizing_volatile = false;
 
-      // ClearCostmaps(3.0);  // TODO: Check if they needed
+      // ClearCostmaps(5.0);  // TODO: Check if they needed
 
       Stop (0.1);
 
@@ -329,7 +329,7 @@ void SmExcavator::stateTraverse()
     // ros::Duration timeoutMap(90.0);
     // if (ros::Time::now() - map_timer > timeoutMap)
     // {
-    //   ClearCostmaps(3.0);
+    //   ClearCostmaps(5.0);
     //   map_timer =ros::Time::now();
     // }
 
@@ -337,7 +337,7 @@ void SmExcavator::stateTraverse()
     // if (ros::Time::now() - waypoint_timer > timeoutWaypoint )
     // {
     //   ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Waypoint reached timeout.");
-    //   ClearCostmaps(3.0);
+    //   ClearCostmaps(5.0);
     // }
   }
 
@@ -434,17 +434,21 @@ void SmExcavator::stateLost()
 
   DriveCmdVel(-0.5,0.0,0.0,5);
 
+  Stop(0.1);
+
   BrakeRamp(100, 1, 0);
 
   Brake(0.0);
 
   RotateInPlace(0.2, 3);
 
+  Stop(0.1);
+
   BrakeRamp(100, 1, 0);
 
   Brake(0.0);
 
-  ClearCostmaps(3.0);
+  ClearCostmaps(5.0);
 
   BrakeRamp(100, 1, 0);
 
@@ -491,21 +495,22 @@ void SmExcavator::localizationCallback(const nav_msgs::Odometry::ConstPtr& msg)
   if (abs(pitch_ * 180 / M_PI) > 10) 
   {
     ROS_WARN_STREAM_THROTTLE(10, "Robot Climbing Up! Pitch: " << pitch_ * 180 / M_PI);
-    if (curr_max_speed_ != 0.2)
+    if (curr_max_speed_ != EXCAVATOR_MAX_SPEED)
     {
-      SetMoveBaseSpeed(0.2);
-      curr_max_speed_ = 0.2;
+      SetMoveBaseSpeed(EXCAVATOR_MAX_SPEED);
+      curr_max_speed_ = EXCAVATOR_MAX_SPEED;
     }
 
-    if (abs(pitch_ * 180 / M_PI) > 20) 
+    if (abs(pitch_ * 180 / M_PI) > 27) 
     {
       ROS_ERROR_STREAM("[" << robot_name_ << "] " << "Robot Cant Climb! Pitch: " << pitch_ * 180 / M_PI);
       ROS_ERROR_STREAM("[" << robot_name_ << "] " << "Commanding IMMOBILITY.");
       CancelMoveBaseGoal();
-      Stop(0.0);
+      Stop(0.1);
       BrakeRamp(100,1,0);
       Brake(0.0);
       DriveCmdVel(-1.0,0.0,0.0,3);
+      Stop(0.1);
       SetMoveBaseGoal();
     }
   }
@@ -521,21 +526,22 @@ void SmExcavator::localizationCallback(const nav_msgs::Odometry::ConstPtr& msg)
   if (abs(roll_ * 180 / M_PI) > 10) 
   {
     ROS_WARN_STREAM_THROTTLE(10, "Robot is Sideways! Roll: " << roll_ * 180 / M_PI);
-    if (curr_max_speed_ != 0.2)
+    if (curr_max_speed_ != EXCAVATOR_MAX_SPEED)
     {
-      SetMoveBaseSpeed(0.2);
-      curr_max_speed_ = 0.2;
+      SetMoveBaseSpeed(EXCAVATOR_MAX_SPEED);
+      curr_max_speed_ = EXCAVATOR_MAX_SPEED;
     }
 
-    if (abs(roll_ * 180 / M_PI) > 20) 
+    if (abs(roll_ * 180 / M_PI) > 27) 
     {
       ROS_ERROR_STREAM("[" << robot_name_ << "] " << "Robot Cant Climb! Roll: " << roll_ * 180 / M_PI);
       ROS_ERROR_STREAM("[" << robot_name_ << "] " << "Commanding IMMOBILITY.");
       CancelMoveBaseGoal();
-      Stop(0.0);
+      Stop(0.1);
       BrakeRamp(100,1,0);
       Brake(0.0);
       DriveCmdVel(-1.0,0.0,0.0,3);
+      Stop(0.1);
       SetMoveBaseGoal();
     }
   }
@@ -890,7 +896,7 @@ void SmExcavator::SetMoveBaseSpeed(double max_speed)
 
   if (ros::service::call("move_base/DWAPlannerROS_SRC/set_parameters", srv_req, srv_resp))
   {
-    ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Failed to call service to reconfigure MoveBase (max speed).");
+    ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Called service to reconfigure MoveBase max speed to: "<< max_speed);
   }
   else
   {    
@@ -964,12 +970,11 @@ void SmExcavator::RotateToHeading(double desired_yaw)
 
     DriveCmdVel (-0.5, 0.0, 0.0, 4.0);
 
+    Stop(0.1);
+
     BrakeRamp(100, 1, 0);
 
     Brake(0.0);
-    // Stop(0.1);
-
-    // immobilityRecovery(); //TODO: Use this instead of Stop and Drive at line 714 and 716
 
     flag_heading_fail=false;
   }
@@ -996,11 +1001,11 @@ void SmExcavator::homingRecovery()
 
   DriveCmdVel(-0.3,-0.6, 0.0, 5.0);
 
-  Stop(0.0);
+  Stop(0.1);
 
   DriveCmdVel(0.0,0.0,-0.25,4.0);
 
-  Stop(0.0);
+  Stop(0.1);
 
   BrakeRamp(100, 1, 0);
 
@@ -1008,7 +1013,7 @@ void SmExcavator::homingRecovery()
 
   DriveCmdVel(0.6,0.0,0.0,4.5);
 
-  Stop(0.0);
+  Stop(0.1);
 
   BrakeRamp(100, 1, 0);
 
@@ -1031,21 +1036,19 @@ void SmExcavator::immobilityRecovery(int type)
 
   DriveCmdVel(-0.5,0.0,0.0,3.0);
 
+  Stop(0.1);
+
   BrakeRamp(100, 1, 0);
 
   Brake(0.0);
 
   DriveCmdVel(-0.3,-0.6, 0.0, 4.0);
 
+  Stop(0.1);
+
   BrakeRamp(100, 1, 0);
 
   Brake(0.0);
-
-  // flag_mobility=true;
-
-  // flag_waypoint_unreachable=true;
-
-
 }
 
 void SmExcavator::ClearCostmaps(double wait_time)
