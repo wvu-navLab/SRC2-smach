@@ -19,6 +19,8 @@
 #include <sensor_msgs/LaserScan.h>
 #include <srcp2_msgs/SpotLightSrv.h>
 #include <srcp2_msgs/BrakeRoverSrv.h>
+#include <srcp2_msgs/SystemPowerSaveSrv.h>
+#include <srcp2_msgs/SystemMonitorMsg.h>
 #include <move_base_msgs/MoveBaseAction.h>
 #include <waypoint_gen/GenerateWaypoint.h>
 #include <waypoint_gen/StartWaypoint.h>
@@ -102,6 +104,7 @@ public:
   ros::ServiceClient clt_drive;
   ros::ServiceClient clt_brake;
   ros::ServiceClient clt_lights;
+  ros::ServiceClient clt_power;
   ros::ServiceClient clt_homing;
   ros::ServiceClient clt_approach_base;
   ros::ServiceClient clt_approach_bin;
@@ -132,6 +135,7 @@ public:
 
   /// Subscriber callbacks
   void localizedBaseCallback(const std_msgs::Int64::ConstPtr& msg);
+  void systemMonitorCallback(const srcp2_msgs::SystemMonitorMsg::ConstPtr& msg);
   void localizationCallback(const nav_msgs::Odometry::ConstPtr& msg);
   void drivingModeCallback(const std_msgs::Int64::ConstPtr& msg);
   void laserCallback(const sensor_msgs::LaserScan::ConstPtr& msg);
@@ -146,7 +150,8 @@ public:
   void CancelMoveBaseGoal();
   void SetMoveBaseGoal();
   void SetMoveBaseSpeed(double max_speed);
-  void setPoseGoal(move_base_msgs::MoveBaseGoal& poseGoal, double x, double y, double yaw); // m, m, rad
+  void SetPoseGoal(move_base_msgs::MoveBaseGoal& poseGoal, double x, double y, double yaw); // m, m, rad
+  void SetPowerMode(bool power_save);
   void ClearCostmaps(double wait_time);
   void Lights(double intensity);
   void GetTruePose();
@@ -182,6 +187,8 @@ public:
   geometry_msgs::Point base_location_;
   geometry_msgs::Point proc_plant_bin_location_;
 
+  double power_rate_ = 0.0;
+  double power_level_ = 100.0;
 
   // Transforms
   tf2_ros::Buffer tf_buffer;

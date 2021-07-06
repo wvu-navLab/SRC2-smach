@@ -63,6 +63,7 @@ move_base_state_(actionlib::SimpleClientGoalState::PREEMPTED)
   clt_turn_wheels_side = nh.serviceClient<driving_tools::TurnWheelsSideways>("driving/turn_wheels_sideways");
   clt_drive = nh.serviceClient<driving_tools::MoveForward>("driving/move_forward");
   clt_lights = nh.serviceClient<srcp2_msgs::SpotLightSrv>("spot_light");
+  clt_power = nh.serviceClient<srcp2_msgs::SystemPowerSaveSrv>("system_monitor/power_save");
   clt_brake = nh.serviceClient<srcp2_msgs::BrakeRoverSrv>("brake_rover");
   clt_approach_base = nh.serviceClient<src2_approach_services::ApproachChargingStation>("approach_charging_station_service");
   clt_rover_static = nh.serviceClient<sensor_fusion::RoverStatic>("sensor_fusion/toggle_rover_static");
@@ -468,11 +469,26 @@ void SmExcavator::localizedBaseCallback(const std_msgs::Int64::ConstPtr& msg)
   if (flag_localized_base) 
   {
     ROS_WARN_STREAM_ONCE("Initial Localization Successful = " << (int)flag_localized_base);
-
   }
   else 
   {
     ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Waiting for Initial Localization  = " << (int)flag_localized_base);
+  }
+}
+
+void SmExcavator::systemMonitorCallback(const srcp2_msgs::SystemMonitorMsg::ConstPtr& msg)
+{
+  power_level_ = msg->power_level;
+  power_rate_ = msg->power_rate;
+
+  if (power_level_< 30) 
+  {
+    ROS_WARN_STREAM("[" << robot_name_ << "] " << "Power Level Warning: " << power_level_);
+
+    Plan();
+
+    RotateToHeading(M_PI_2);
+    ros::Duration(120).sleep();
   }
 }
 
@@ -592,26 +608,6 @@ void SmExcavator::laserCallback(const sensor_msgs::LaserScan::ConstPtr& msg)
   }
 }
 
-void SmExcavator::setPoseGoal(move_base_msgs::MoveBaseGoal &poseGoal, double x, double y, double yaw) // m, m, rad
-{
-  const double pitch = 0.0;
-  const double roll = 0.0;
-  double cy = cos(yaw * 0.5);
-  double sy = sin(yaw * 0.5);
-  double cr = cos(roll * 0.5);
-  double sr = sin(roll * 0.5);
-  double cp = cos(pitch * 0.5);
-  double sp = sin(pitch * 0.5);
-
-  poseGoal.target_pose.header.frame_id = robot_name_+"_odom";
-  poseGoal.target_pose.pose.position.x = x;
-  poseGoal.target_pose.pose.position.y = y;
-  poseGoal.target_pose.pose.position.z = 0.0;
-  poseGoal.target_pose.pose.orientation.w = cy * cr * cp + sy * sr * sp;
-  poseGoal.target_pose.pose.orientation.x = cy * sr * cp - sy * cr * sp;
-  poseGoal.target_pose.pose.orientation.y = cy * cr * sp + sy * sr * cp;
-  poseGoal.target_pose.pose.orientation.z = sy * cr * cp - cy * sr * sp;
-}
 
 void SmExcavator::doneCallback(const actionlib::SimpleClientGoalState& state, const move_base_msgs::MoveBaseResult::ConstPtr& result)
 {
@@ -872,13 +868,12 @@ void SmExcavator::SetMoveBaseGoal()
 {
   move_base_msgs::MoveBaseGoal move_base_goal;
   ac.waitForServer();
-  setPoseGoal(move_base_goal, goal_pose_.position.x, goal_pose_.position.y, goal_yaw_);
+  SetPoseGoal(move_base_goal, goal_pose_.position.x, goal_pose_.position.y, goal_yaw_);
   ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Sending goal to MoveBase: " << move_base_goal);
   waypoint_timer = ros::Time::now();
   ac.sendGoal(move_base_goal, boost::bind(&SmExcavator::doneCallback, this,_1,_2), boost::bind(&SmExcavator::activeCallback, this), boost::bind(&SmExcavator::feedbackCallback, this,_1));
   ac.waitForResult(ros::Duration(0.25));
 }
-
 
 void SmExcavator::SetMoveBaseSpeed(double max_speed)
 {
@@ -901,6 +896,41 @@ void SmExcavator::SetMoveBaseSpeed(double max_speed)
   else
   {    
     ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Failed to call service to reconfigure MoveBase (max speed).");
+  }
+}
+
+void SmExcavator::SetPoseGoal(move_base_msgs::MoveBaseGoal &poseGoal, double x, double y, double yaw) // m, m, rad
+{
+  const double pitch = 0.0;
+  const double roll = 0.0;
+  double cy = cos(yaw * 0.5);
+  double sy = sin(yaw * 0.5);
+  double cr = cos(roll * 0.5);
+  double sr = sin(roll * 0.5);
+  double cp = cos(pitch * 0.5);
+  double sp = sin(pitch * 0.5);
+
+  poseGoal.target_pose.header.frame_id = robot_name_+"_odom";
+  poseGoal.target_pose.pose.position.x = x;
+  poseGoal.target_pose.pose.position.y = y;
+  poseGoal.target_pose.pose.position.z = 0.0;
+  poseGoal.target_pose.pose.orientation.w = cy * cr * cp + sy * sr * sp;
+  poseGoal.target_pose.pose.orientation.x = cy * sr * cp - sy * cr * sp;
+  poseGoal.target_pose.pose.orientation.y = cy * cr * sp + sy * sr * cp;
+  poseGoal.target_pose.pose.orientation.z = sy * cr * cp - cy * sr * sp;
+}
+
+void SmExcavator::SetPowerMode(bool power_save)
+{
+  srcp2_msgs::SystemPowerSaveSrv srv_power;
+  srv_power.request.power_save = power_save;
+  if (clt_lights.call(srv_power))
+  {
+    ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Called service PowerSaver");
+  }
+  else
+  {
+    ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Failed  to call service PowerSaver");
   }
 }
 

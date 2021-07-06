@@ -27,6 +27,7 @@
 #include <sensor_msgs/JointState.h>
 #include <srcp2_msgs/SpotLightSrv.h>
 #include <srcp2_msgs/BrakeRoverSrv.h>
+#include <srcp2_msgs/SystemPowerSaveSrv.h>
 #include <srcp2_msgs/VolSensorMsg.h>
 #include <srcp2_msgs/ExcavatorScoopMsg.h>
 #include <srcp2_msgs/SystemMonitorMsg.h>
@@ -111,6 +112,7 @@ public:
   ros::ServiceClient clt_drive;
   ros::ServiceClient clt_brake;
   ros::ServiceClient clt_lights;
+  ros::ServiceClient clt_power;
   ros::ServiceClient clt_homing;
   ros::ServiceClient clt_approach_base;
   ros::ServiceClient clt_rover_static;
@@ -136,11 +138,11 @@ public:
 
   /// Subscriber callbacks
   void localizedBaseCallback(const std_msgs::Int64::ConstPtr& msg);
+  void systemMonitorCallback(const srcp2_msgs::SystemMonitorMsg::ConstPtr& msg);
   void localizationCallback(const nav_msgs::Odometry::ConstPtr& msg);
   void drivingModeCallback(const std_msgs::Int64::ConstPtr& msg);
   void volatileCmdCallback(const std_msgs::Int64::ConstPtr& msg);
   void volatileSensorCallback(const srcp2_msgs::VolSensorMsg::ConstPtr& msg);
-  void systemMonitorCallback(const srcp2_msgs::SystemMonitorMsg::ConstPtr& msg);
   void laserCallback(const sensor_msgs::LaserScan::ConstPtr& msg);
   void doneCallback(const actionlib::SimpleClientGoalState& state, const move_base_msgs::MoveBaseResultConstPtr& result);
   void feedbackCallback(const move_base_msgs::MoveBaseFeedbackConstPtr& feedback);
@@ -151,7 +153,8 @@ public:
   void CancelMoveBaseGoal();
   void SetMoveBaseGoal();
   void SetMoveBaseSpeed(double max_speed);
-  void setPoseGoal(move_base_msgs::MoveBaseGoal& poseGoal, double x, double y, double yaw); // m, m, rad
+  void SetPoseGoal(move_base_msgs::MoveBaseGoal& poseGoal, double x, double y, double yaw); // m, m, rad
+  void SetPowerMode(bool power_save);
   void ClearCostmaps(double wait_time);
   void Lights(double intensity);
   void GetTruePose();
@@ -186,9 +189,9 @@ public:
   double vol_detected_dist_ = -1.0;
   double min_vol_detected_dist_ = 30.0;
   double prev_vol_detected_dist_ = -1.0;
-  double power_rate_;
-  double power_level_;
 
+  double power_rate_ = 0.0;
+  double power_level_ = 100.0;
 
   bool no_objective =false;
   int timer_counter = 0;

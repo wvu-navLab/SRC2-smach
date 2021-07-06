@@ -27,6 +27,7 @@ move_base_state_(actionlib::SimpleClientGoalState::PREEMPTED)
   clt_turn_wheels_side = nh.serviceClient<driving_tools::TurnWheelsSideways>("driving/turn_wheels_sideways");
   clt_drive = nh.serviceClient<driving_tools::MoveForward>("driving/move_forward");
   clt_lights = nh.serviceClient<srcp2_msgs::SpotLightSrv>("spot_light");
+  clt_power = nh.serviceClient<srcp2_msgs::SystemPowerSaveSrv>("system_monitor/power_save");
   clt_brake = nh.serviceClient<srcp2_msgs::BrakeRoverSrv>("brake_rover");
   clt_approach_base = nh.serviceClient<src2_approach_services::ApproachChargingStation>("approach_charging_station_service");
   clt_rover_static = nh.serviceClient<sensor_fusion::RoverStatic>("sensor_fusion/toggle_rover_static");
@@ -429,15 +430,15 @@ void SmScout::systemMonitorCallback(const srcp2_msgs::SystemMonitorMsg::ConstPtr
   power_level_ = msg->power_level;
   power_rate_ = msg->power_rate;
 
-  if (power_level_< 20) 
+  if (power_level_< 30) 
   {
     ROS_WARN_STREAM("[" << robot_name_ << "] " << "Power Level Warning: " << power_level_);
-    if (power_level_< 10) 
-    {
-      ROS_ERROR_STREAM("[" << robot_name_ << "] " << "Rover Mulfunction! Critical Power: " << power_level_);
-    }
+
+    Plan();
+
+    RotateToHeading(M_PI_2);
+    ros::Duration(120).sleep();
   }
-  // ROS_INFO_STREAM("[" << robot_name_ << "] " << "Power Rate: " << power_rate_);
 }
 
 void SmScout::volatileSensorCallback(const srcp2_msgs::VolSensorMsg::ConstPtr& msg)
@@ -660,13 +661,12 @@ void SmScout::SetMoveBaseGoal()
 {
   move_base_msgs::MoveBaseGoal move_base_goal;
   ac.waitForServer();
-  setPoseGoal(move_base_goal, goal_pose_.position.x, goal_pose_.position.y, goal_yaw_);
+  SetPoseGoal(move_base_goal, goal_pose_.position.x, goal_pose_.position.y, goal_yaw_);
   ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Sending goal to MoveBase: " << move_base_goal);
   waypoint_timer = ros::Time::now();
   ac.sendGoal(move_base_goal, boost::bind(&SmScout::doneCallback, this,_1,_2), boost::bind(&SmScout::activeCallback, this), boost::bind(&SmScout::feedbackCallback, this,_1));
   ac.waitForResult(ros::Duration(0.25));
 }
-
 
 void SmScout::SetMoveBaseSpeed(double max_speed)
 {
@@ -692,7 +692,7 @@ void SmScout::SetMoveBaseSpeed(double max_speed)
   }
 }
 
-void SmScout::setPoseGoal(move_base_msgs::MoveBaseGoal &poseGoal, double x, double y, double yaw) // m, m, rad
+void SmScout::SetPoseGoal(move_base_msgs::MoveBaseGoal &poseGoal, double x, double y, double yaw) // m, m, rad
 {
   const double pitch = 0.0;
   const double roll = 0.0;
@@ -711,6 +711,20 @@ void SmScout::setPoseGoal(move_base_msgs::MoveBaseGoal &poseGoal, double x, doub
   poseGoal.target_pose.pose.orientation.x = cy * sr * cp - sy * cr * sp;
   poseGoal.target_pose.pose.orientation.y = cy * cr * sp + sy * sr * cp;
   poseGoal.target_pose.pose.orientation.z = sy * cr * cp - cy * sr * sp;
+}
+
+void SmScout::SetPowerMode(bool power_save)
+{
+  srcp2_msgs::SystemPowerSaveSrv srv_power;
+  srv_power.request.power_save = power_save;
+  if (clt_lights.call(srv_power))
+  {
+    ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Called service PowerSaver");
+  }
+  else
+  {
+    ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Failed  to call service PowerSaver");
+  }
 }
 
 void SmScout::RotateToHeading(double desired_yaw)
