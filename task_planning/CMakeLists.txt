@@ -130,19 +130,20 @@ include_directories(
 
 add_library(CostFunctionLib src/CostFunction.cpp)
 target_link_libraries(CostFunctionLib
-	#/usr/local/lib
+  #/usr/local/lib
   ${catkin_LIBRARIES}
 )
 
 add_library(TaskPlannerLib src/TaskPlanner.cpp)
 target_link_libraries(TaskPlannerLib
-	#/usr/local/lib
+  #/usr/local/lib
   ${catkin_LIBRARIES}
 )
+# add_dependencies(TaskPlannerLib TaskPlannerLib_gencpp)
 
 add_library(ForwardSearchLib src/ForwardSearch.cpp)
 target_link_libraries(ForwardSearchLib
-	#/usr/local/lib
+  #/usr/local/lib
   CostFunctionLib
   TaskPlannerLib
   ${catkin_LIBRARIES}
@@ -161,19 +162,19 @@ add_executable(scouting_task_node src/scouting_task_node.cpp)
 target_link_libraries(scouting_task_node
     TaskPlannerLib
     CostFunctionLib
-		${catkin_LIBRARIES}
+    ${catkin_LIBRARIES}
 )
 
 add_executable(excavation_task_node src/excavation_task_node.cpp)
 target_link_libraries(excavation_task_node
     TaskPlannerLib
     CostFunctionLib
-		${catkin_LIBRARIES}
+    ${catkin_LIBRARIES}
 )
 
 add_executable(test_cartesian_product test/test_cartesian_product.cpp)
 target_link_libraries(test_cartesian_product
-		${catkin_LIBRARIES}
+    ${catkin_LIBRARIES}
 )
 
 add_executable(test_forward_search test/test_forward_search.cpp)
@@ -181,7 +182,7 @@ target_link_libraries(test_forward_search
     TaskPlannerLib
     CostFunctionLib
     ForwardSearchLib
-		${catkin_LIBRARIES}
+    ${catkin_LIBRARIES}
 )
 
 ## Rename C++ executable without prefix
