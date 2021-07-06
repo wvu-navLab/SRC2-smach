@@ -349,64 +349,43 @@ void SmHauler::stateVolatileHandler()
 
   CancelMoveBaseGoal();
 
-  // if(flag_approach_side)
-  // {
-  //   double distance_to_goal = std::hypot(goal_pose_.position.y - current_pose_.position.y, goal_pose_.position.x - current_pose_.position.x);
-  //   if (distance_to_goal < 2.0)
-  //   {
-  //     flag_arrived_at_waypoint = true;
-  //     ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Close to goal, getting new waypoint.");
-  //   }
-  // }
-
-  flag_full_bin = false;
-  flag_approach_excavator = true;
-
   // TODO: Get feedback from Excavator before approaching
   // Include callback to ExcavationStatus
   // According with ExcavationStatus we approach and park
 
-  if(flag_approach_excavator)
+  if(!flag_full_bin && excavation_found_volatile_)
   {
-    ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"STARTING APPROACH EXCAVATOR");
+    if(!flag_approached_excavator)
+    {
+      ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"STARTING APPROACH EXCAVATOR");
 
-    bool approachSuccess = ApproachExcavator(3);
-    bool gotogoalsuccess;
+      flag_approached_excavator = ApproachExcavator(3);
+    }
 
-    if (approachSuccess)
+    if (!flag_parked_hauler)
     {
       ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"APPROACH SERVICE SUCCESS -- ESTIMATING EXCAV LOCATION ");
-      LocateExcavator();
+      flag_located_excavator = LocateExcavator();
 
       // TODO: This is where we are gonna call the parallel parking
       // Include new method: SmHauler::ParallelParking that calls the service
-      waypoint_nav::GoToGoal srv_gotoGoal;
-      srv_gotoGoal.request.start = true;
-      srv_gotoGoal.request.goal.position = partner_excavator_pos_;
-      srv_gotoGoal.request.thresh = 2.0;
-      srv_gotoGoal.request.timeOut = 30;
-
-      if(clt_go_to_goal.call(srv_gotoGoal)){
-          gotogoalsuccess = srv_gotoGoal.response.success;
-          if (gotogoalsuccess){
-               ROS_INFO_STREAM("[" << robot_name_ << "] " <<"PARKED NEAR EXCAVATOR");
-          }
-      }
-      else
-      {
-        ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Failed to park near excavator");
-      }
-
-      progress = 1.0;
-      flag_approach_excavator = false;
-      flag_full_bin = true;
+      flag_parked_hauler = GoToWaypoint();
     }
-    else
-    {
-      // TODO: What do we do if approach fails?
-      // Maybe send a new waypoint?
-      progress = -1.0;
-    }
+
+  }
+  
+  if(flag_full_bin)
+  {
+    ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"FULL BIN");
+    
+    flag_interrupt_plan = false;
+    flag_recovering_localization = false;
+    flag_localizing_volatile = false;
+    flag_arrived_at_waypoint = false;
+    flag_dumping = true;
+
+    goal_pose_.position = proc_plant_bin_location_;
+    SetMoveBaseGoal();
   }
 
   // TODO: choose when to transition to dumping
@@ -415,26 +394,7 @@ void SmHauler::stateVolatileHandler()
   // Node that checks the srcp2_score
   // Node that checks the amount of material in the bin with the camera
 
-  ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"FULL BIN");
   // flag_full_bin = true;
-  Brake(0.0);
-  if(flag_full_bin)
-  {
-    flag_interrupt_plan = false;
-    flag_recovering_localization = false;
-    flag_localizing_volatile = false;
-    flag_arrived_at_waypoint = false;
-    flag_dumping = true;
-
-    goal_pose_.position = proc_plant_bin_location_;
-    move_base_msgs::MoveBaseGoal move_base_goal;
-    ac.waitForServer();
-    SetPoseGoal(move_base_goal, goal_pose_.position.x, goal_pose_.position.y, goal_yaw_);
-    ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Sending goal to MoveBase: " << move_base_goal);
-    waypoint_timer = ros::Time::now();
-    ac.sendGoal(move_base_goal, boost::bind(&SmHauler::doneCallback, this,_1,_2), boost::bind(&SmHauler::activeCallback, this), boost::bind(&SmHauler::feedbackCallback, this,_1));
-    ac.waitForResult(ros::Duration(0.25));
-  }
 
   state_machine::RobotStatus status_msg;
   status_msg.progress.data = progress;
@@ -726,17 +686,18 @@ void SmHauler::excavationStatusCallback(const ros::MessageEvent<state_machine::E
   {
     // Copy the whole message
     excavation_status_ = *msg;
-
-    // Local copies
-    excavation_excavator_id_ = msg->excavator_id.data;
-    excavation_state_ = msg->state.data;
-    excavation_bucket_full_ = msg->bucket_full.data;
-    excavation_found_volatile_ = msg->found_volatile.data;
-    excavation_found_hauler_ = msg->found_hauler.data;
-    excavation_counter_ = msg->counter.data;
-    excavation_progress_ = msg->progress.data;
   }
   // ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Got excavation status.");
+
+  if (excavation_status_.found_parking_location && !flag_approached_side)
+  {
+    goal_pose_.position = excavation_status_.parking_pose.pose.position;
+    SetMoveBaseGoal();
+    flag_arrived_at_waypoint = false;
+    flag_localizing_volatile = true;
+  }
+  
+
 }
 
 void SmHauler::excavatorOdomCallback(const ros::MessageEvent<nav_msgs::Odometry const>& event)
@@ -1271,6 +1232,29 @@ void SmHauler::CheckWaypoint(int max_count)
     ros::spinOnce();
     counter=counter+1;
   }
+}
+
+bool SmHauler::GoToWaypoint()
+{
+  waypoint_nav::GoToGoal srv_gotoGoal;
+  srv_gotoGoal.request.start = true;
+  srv_gotoGoal.request.goal.position = partner_excavator_pos_;
+  srv_gotoGoal.request.thresh = 2.0;
+  srv_gotoGoal.request.timeOut = 30;
+
+  if(clt_go_to_goal.call(srv_gotoGoal))
+  {
+    if (srv_gotoGoal.response.success)
+    {
+      ROS_INFO_STREAM("[" << robot_name_ << "] " <<"PARKED NEAR EXCAVATOR");
+      return true;
+    }
+  }
+  else
+  {
+    ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Failed to park near excavator");
+  }
+  return false;
 }
 
 bool SmHauler::ApproachChargingStation(int max_count)

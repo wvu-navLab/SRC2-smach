@@ -70,8 +70,10 @@ public:
   // Secondary flag declarations
   bool flag_need_init_landmark = false;
   bool flag_localized_base = false;
-  bool flag_approach_excavator = true;
   bool flag_full_bin = true;
+  bool flag_approached_excavator = false;
+  bool flag_located_excavator = false;
+  bool flag_parked_hauler = false;
 
   ros::Time wp_checker_timer,laser_collision_timer, map_timer, waypoint_timer;
 
@@ -166,6 +168,7 @@ public:
   void homingRecovery();
   void immobilityRecovery(int type);
   void CheckWaypoint(int max_count);
+  void GoToWaypoint();
   bool ApproachChargingStation(int max_count);
   bool ApproachExcavator(int max_count);
   bool ApproachBin(int max_count);
@@ -224,11 +227,4 @@ public:
   geometry_msgs::Point partner_excavator_pos_;
 
   state_machine::ExcavationStatus excavation_status_;
-  int excavation_excavator_id_;
-  int excavation_state_;
-  bool excavation_bucket_full_;
-  bool excavation_found_volatile_;
-  bool excavation_found_hauler_;
-  int excavation_counter_;
-  double excavation_progress_;
 };

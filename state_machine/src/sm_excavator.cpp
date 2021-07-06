@@ -32,7 +32,6 @@ move_base_state_(actionlib::SimpleClientGoalState::PREEMPTED)
   cmd_vel_pub = nh.advertise<geometry_msgs::Twist>("driving/cmd_vel", 1);
   driving_mode_pub = nh.advertise<std_msgs::Int64>("driving/driving_mode", 1);
   excavation_status_pub = nh.advertise<state_machine::ExcavationStatus>("state_machine/excavation_status",1);
-  parking_pose_pub = nh.advertise<geometry_msgs::Pose>("manipulation/hauler_parking_pose",1);
   sensor_yaw_pub = nh.advertise<std_msgs::Float64>("sensor/yaw/command/position", 1);
 
   // Subscribers
@@ -1716,19 +1715,16 @@ void SmExcavator::SetHaulerParkingLocation()
   if (clt_where_hauler.call(srv_where_hauler))
   {
     ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Called service WhereToParkHauler.");
+
+    relative_side_ = srv_where_hauler.response.side; // 1 is left and -1 is right
+    hauler_parking_pose_ = srv_where_hauler.response.pose;
+    ROS_ERROR_STREAM("[" << robot_name_ << "] " << "Where to park hauler: " << hauler_parking_pose_);
+    PublishExcavationStatus();
   }
   else
   {
     ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Failed to call service WhereToParkHauler.");
   }
-
-  hauler_parking_pose_ = srv_where_hauler.response.pose;
-
-  parking_pose_pub.publish(hauler_parking_pose_);
-
-  ROS_ERROR_STREAM("[" << robot_name_ << "] " << "Where to park hauler: " << hauler_parking_pose_);
-
-  relative_side_ = srv_where_hauler.response.side; // 1 is left and -1 is right
 }
 
 
@@ -1913,6 +1909,8 @@ void SmExcavator::PublishExcavationStatus()
   msg.excavator_id.data = robot_id_;
   msg.state.data = excavation_state_;  
   msg.bucket_full.data = flag_bucket_full;
+  msg.found_parking_site.data = flag_found_parking_site;
+  msg.parking_pose.data = hauler_parking_pose_;
   msg.found_volatile.data = flag_found_volatile;
   msg.found_hauler.data = flag_found_hauler;
   msg.counter.data = excavation_counter_;

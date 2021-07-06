@@ -113,6 +113,7 @@ public:
   bool flag_manipulation_enabled = false;
   bool flag_manipulation_interrupt = false;
   bool flag_bucket_full = false;
+  bool flag_found_parking_site = false;
   bool flag_found_hauler = false;
   bool flag_has_volatile = false;
   bool flag_found_volatile = false;
@@ -130,8 +131,7 @@ public:
   ros::Publisher sm_status_pub;
   ros::Publisher cmd_vel_pub;
   ros::Publisher driving_mode_pub;
-  ros::Publisher excavation_status_pub;
-  ros::Publisher parking_pose_pub;
+  ros::Publisher excavation_status_pub;  
   ros::Publisher sensor_yaw_pub;
 
   // Subscribers
