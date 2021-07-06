@@ -211,77 +211,21 @@ void SmHauler::stateInitialize()
 
   Lights(20);
 
-  if(robot_id_==1)
-  {
-    flag_need_init_landmark = true;
+  Stop(0.1);
 
-    bool approachSuccess = ApproachChargingStation(3);
+  Brake(100.0);
 
-    BrakeRamp(100, 1, 0);
+  RoverStatic(true);
 
-    RoverStatic(true);
+  GetTruePose();
 
-    GetTruePose();
-
-    RoverStatic(false);
-
-    if(approachSuccess)
-    {
-      bool homingSuccess = HomingUpdate(flag_need_init_landmark);
-      if (homingSuccess)
-      {
-        progress = 1.0;
-      }
-      else
-      {
-        progress = -1.0;
-      }
-    }
-    else
-    {
-      progress = -1.0;
-      // TODO: SOMETHING
-    }
-
-    //Similar to initial homing, keep the localization good after homing.
-    Brake(0.0);
-
-    DriveCmdVel(-0.5,0.0,0.0,5);
-
-    Stop(0.1);
-
-    BrakeRamp(100, 1, 0);
-
-    Brake(0.0);
-
-    RotateInPlace(0.2, 3);
-
-    Stop(0.1);
-
-    BrakeRamp(100, 1, 0);
-
-    Brake(0.0);
-
-  }
-
-  if(robot_id_ == 2)
-  {
-    Stop(0.1);
-
-    Brake(100.0);
-
-    RoverStatic(true);
-
-    GetTruePose();
-
-    RoverStatic(false);
-
-    progress = 1.0;
-  }
+  RoverStatic(false);
 
   ClearCostmaps(5.0);
 
   Brake(0.0);
+
+  progress = 1.0;
 
   state_machine::RobotStatus status_msg;
   status_msg.progress.data = progress;

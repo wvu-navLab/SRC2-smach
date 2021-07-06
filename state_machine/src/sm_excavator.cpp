@@ -267,7 +267,12 @@ void SmExcavator::statePlanning()
 
     // CheckWaypoint(3); // TODO: Check if they needed
 
-    ClearCostmaps(5.0);
+    ClearCostmaps(5.0);    
+    
+    if(flag_localizing_volatile)
+    {
+      ros::Duration(30).sleep();
+    }
 
     SetMoveBaseGoal();
 
