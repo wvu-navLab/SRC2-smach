@@ -513,6 +513,14 @@ void SmExcavator::localizationCallback(const nav_msgs::Odometry::ConstPtr& msg)
 
   tf2::Matrix3x3(q).getRPY(roll_, pitch_, yaw_);
   
+  double radius = hypot(current_pose_.position.x, current_pose_.position.y);
+
+  if(radius > CRATER_RADIUS)
+  { 
+    flag_interrupt_plan = true;
+  }
+
+
   if (abs(pitch_ * 180 / M_PI) > 10) 
   {
     ROS_WARN_STREAM_THROTTLE(10, "Robot Climbing Up! Pitch: " << pitch_ * 180 / M_PI);
@@ -528,9 +536,9 @@ void SmExcavator::localizationCallback(const nav_msgs::Odometry::ConstPtr& msg)
       ROS_ERROR_STREAM("[" << robot_name_ << "] " << "Commanding IMMOBILITY.");
       CancelMoveBaseGoal();
       Stop(0.1);
-      BrakeRamp(100,1,0);
+      Brake(100.0);
       Brake(0.0);
-      DriveCmdVel(-1.0,0.0,0.0,3);
+      DriveCmdVel(-0.5,0.0,0.0,3);
       Stop(0.1);
       SetMoveBaseGoal();
     }
@@ -559,9 +567,9 @@ void SmExcavator::localizationCallback(const nav_msgs::Odometry::ConstPtr& msg)
       ROS_ERROR_STREAM("[" << robot_name_ << "] " << "Commanding IMMOBILITY.");
       CancelMoveBaseGoal();
       Stop(0.1);
-      BrakeRamp(100,1,0);
+      Brake(100.0);
       Brake(0.0);
-      DriveCmdVel(-1.0,0.0,0.0,3);
+      DriveCmdVel(-0.5,0.0,0.0,3);
       Stop(0.1);
       SetMoveBaseGoal();
     }
@@ -992,6 +1000,7 @@ void SmExcavator::RotateToHeading(double desired_yaw)
     if (ros::Time::now() - rotate_timer > timeoutHeading)
     {
       ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Yaw Control Failed. Possibly stuck. Break control.");
+      flag_interrupt_plan = true;
       flag_heading_fail = true;
       break;
     }
