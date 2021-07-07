@@ -262,7 +262,13 @@ void SmHauler::statePlanning()
 
     // CheckWaypoint(3); // TODO: Check if they needed
 
-    ClearCostmaps(5.0);
+    ClearCostmaps(5.0);    
+    
+    if(flag_localizing_volatile)
+    {
+      ros::Duration(30).sleep();
+    }
+
 
     SetMoveBaseGoal();
 
@@ -364,6 +370,7 @@ void SmHauler::stateVolatileHandler()
       ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"STARTING APPROACH EXCAVATOR");
 
       flag_approached_excavator = ApproachExcavator(3);
+      PublishHaulerStatus();
     }
 
     if (!flag_parked_hauler && flag_approached_excavator)
@@ -707,6 +714,11 @@ void SmHauler::excavationStatusCallback(const ros::MessageEvent<state_machine::E
     SetMoveBaseGoal();
     flag_arrived_at_waypoint = false;
     flag_localizing_volatile = true;
+  }
+
+  if(partner_excavation_status_.counter.data > 4)
+  {
+    flag_full_bin = true;
   }
 
 }
@@ -1459,6 +1471,15 @@ bool SmHauler::HomingUpdate(bool init_landmark)
     ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Failed to call Homing Service.");
   }
   return success;
+}
+
+void SmHauler::PublishHaulerStatus()
+{
+  state_machine::HaulerStatus msg;
+  msg.bin_full.data = flag_full_bin;
+  msg.hauler_id.data = robot_id_;
+  msg.hauler_ready.data = flag_parked_hauler;
+  hauler_status_pub.publish(msg);
 }
 
 void SmHauler::Plan()

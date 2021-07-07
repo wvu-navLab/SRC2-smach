@@ -270,7 +270,7 @@ void SmExcavator::statePlanning()
     
     if(flag_localizing_volatile)
     {
-      ros::Duration(30).sleep();
+      ros::Duration(15).sleep();
     }
 
     SetMoveBaseGoal();

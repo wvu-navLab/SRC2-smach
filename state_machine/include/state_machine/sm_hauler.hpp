@@ -71,7 +71,7 @@ public:
   // Secondary flag declarations
   bool flag_need_init_landmark = false;
   bool flag_localized_base = false;
-  bool flag_full_bin = true;
+  bool flag_full_bin = false;
   bool flag_approached_side = false;
   bool flag_approached_excavator = false;
   bool flag_located_excavator = false;
@@ -177,6 +177,7 @@ public:
   bool HomingUpdate(bool init_landmark);
   bool LocateBin();
   bool LocateExcavator();
+  void PublishHaulerStatus();
   void Plan();
 
   const int SCOUT_STR_LOC = 13; //index ~SHOULD BE~ at 14th position
