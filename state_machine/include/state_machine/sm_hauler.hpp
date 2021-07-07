@@ -45,6 +45,7 @@
 #include <task_planning/PlanInfo.h>
 #include <task_planning/Types.hpp>
 #include <state_machine/RobotStatus.h>
+#include <state_machine/HaulerStatus.h>
 #include <state_machine/ExcavationStatus.h>
 #include <waypoint_nav/GoToGoal.h>
 
@@ -87,9 +88,9 @@ public:
   // Publishers
   ros::Publisher sm_status_pub;
   ros::Publisher cmd_vel_pub;
-
   ros::Publisher driving_mode_pub;
   ros::Publisher cmd_dump_pub;
+  ros::Publisher hauler_status_pub;
 
   // Subscribers
   ros::Subscriber localized_base_sub;
@@ -178,6 +179,10 @@ public:
   bool LocateExcavator();
   void Plan();
 
+  const int SCOUT_STR_LOC = 13; //index ~SHOULD BE~ at 14th position
+  const int EXCAVATOR_STR_LOC = 17; //index ~SHOULD BE~ at 18th position
+  const int HAULER_STR_LOC = 14; //index ~SHOULD BE~ at 15th position
+
   // Parameters
   std::string node_name_;
   std::string robot_name_;
@@ -223,9 +228,9 @@ public:
 
   // Excavation
   std::vector<nav_msgs::Odometry> small_excavators_odom_;
+  std::vector<state_machine::ExcavationStatus> small_excavators_status_;
 
   int partner_excavator_id_ = 0;
-  geometry_msgs::Point partner_excavator_pos_;
-
-  state_machine::ExcavationStatus excavation_status_;
+  geometry_msgs::Point partner_excavator_location_;
+  state_machine::ExcavationStatus partner_excavation_status_;
 };

@@ -174,6 +174,11 @@ public:
   bool ApproachChargingStation(int max_count);
   bool HomingUpdate(bool init_landmark);
   void Plan();
+  
+  const int SCOUT_STR_LOC = 13; //index ~SHOULD BE~ at 14th position
+  const int EXCAVATOR_STR_LOC = 17; //index ~SHOULD BE~ at 18th position
+  const int HAULER_STR_LOC = 14; //index ~SHOULD BE~ at 15th position
+
 
   // Parameters
   std::string node_name_;

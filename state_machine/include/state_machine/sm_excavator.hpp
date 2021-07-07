@@ -59,8 +59,8 @@
 #include <task_planning/PlanInfo.h>
 #include <task_planning/Types.hpp>
 #include <state_machine/RobotStatus.h>
-#include <state_machine/ExcavationStatus.h>
 #include <state_machine/HaulerStatus.h>
+#include <state_machine/ExcavationStatus.h>
 #include <src2_object_detection/WhereToParkHauler.h>
 
 
@@ -246,6 +246,10 @@ public:
   bool HomingUpdate(bool init_landmark);
   void Plan();
   
+  const int SCOUT_STR_LOC = 13; //index ~SHOULD BE~ at 14th position
+  const int EXCAVATOR_STR_LOC = 17; //index ~SHOULD BE~ at 18th position
+  const int HAULER_STR_LOC = 14; //index ~SHOULD BE~ at 15th position
+
   // Parameters
   std::string node_name_;
   std::string robot_name_;
@@ -298,31 +302,33 @@ public:
   const double EXCAVATOR_MAX_SPEED = 0.53;
   double curr_max_speed_= 0.53;
 
-  // Joint Positions Init
+
+
+  // Planning  
+  task_planning::PlanInfo prev_srv_plan; 
+
+  // Excavation 
+  std::vector<nav_msgs::Odometry> small_haulers_odom_;
+  std::vector<state_machine::HaulerStatus> small_haulers_status_;
+
+  int partner_hauler_id_ = 0;
+  geometry_msgs::Point partner_hauler_location_;
+  state_machine::HaulerStatus partner_hauler_status_;
+  geometry_msgs::Pose hauler_parking_pose_;
+
+  int relative_side_ = 1;
+  double relative_heading_ = 0;
+  double relative_range_ = 1.0;
+
   double q1_pos_ = 0.0;
   double q2_pos_ = 0.0;
   double q3_pos_ = 0.0;
   double q4_pos_ = 0.0;
 
-  // Planning  
-  task_planning::PlanInfo prev_srv_plan; 
-
-  // Excavation  
-  std::vector<nav_msgs::Odometry> small_haulers_odom_;
-  std::vector<state_machine::HaulerStatus> small_haulers_status_;
-
-  int partner_hauler_id_ = 0;
-  geometry_msgs::Point partner_hauler_pos_;
-
   const int MAX_EXCAVATION_COUNTER = 5;
   int excavation_counter_ = 0;
 
-  bool volatile_in_bucket = false;
-  bool regolith_in_bucket = false;
-
   double volatile_heading_ = 0;
-  geometry_msgs::Pose hauler_parking_pose_;
-  int relative_side_ = 1;
-  double relative_heading_ = 0;
-  double relative_range_ = 1.0;
+
+
 };

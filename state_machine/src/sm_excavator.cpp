@@ -834,14 +834,14 @@ void SmExcavator::haulerOdomCallback(const ros::MessageEvent<nav_msgs::Odometry 
   std::string topic = header.at("topic");
   const nav_msgs::OdometryConstPtr& msg = event.getMessage();
 
-  char msg_hauler_ind = topic.c_str()[14];
+  char msg_hauler_ind = topic.c_str()[HAULER_STR_LOC];
   int msg_hauler_id = std::atoi(&msg_hauler_ind);
 
   small_haulers_odom_[msg_hauler_id-1] = *msg;
 
   if (partner_hauler_id_ == msg_hauler_id)
   {
-    partner_hauler_pos_ = msg->pose.pose.position;
+    partner_hauler_location_ = msg->pose.pose.position;
   } 
   // ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Got small_hauler_1 odometry.");
 }
@@ -853,13 +853,14 @@ void SmExcavator::haulerStatusCallback(const ros::MessageEvent<state_machine::Ha
   std::string topic = header.at("topic");
   const state_machine::HaulerStatusConstPtr& msg = event.getMessage();
 
-  char msg_hauler_ind = topic.c_str()[14];
+  char msg_hauler_ind = topic.c_str()[HAULER_STR_LOC];
   int msg_hauler_id = std::atoi(&msg_hauler_ind);
 
   small_haulers_status_[msg_hauler_id-1] = *msg;
 
   if (partner_hauler_id_ == msg_hauler_id)
   {
+    partner_hauler_status_ = *msg;
     flag_hauler_ready = msg->hauler_ready.data;
   } 
   // ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Got small_hauler_1 odometry.");
@@ -936,7 +937,7 @@ void SmExcavator::SetPowerMode(bool power_save)
 {
   srcp2_msgs::SystemPowerSaveSrv srv_power;
   srv_power.request.power_save = power_save;
-  if (clt_lights.call(srv_power))
+  if (clt_power.call(srv_power))
   {
     ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Called service PowerSaver");
   }

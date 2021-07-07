@@ -724,7 +724,7 @@ void SmScout::SetPowerMode(bool power_save)
 {
   srcp2_msgs::SystemPowerSaveSrv srv_power;
   srv_power.request.power_save = power_save;
-  if (clt_lights.call(srv_power))
+  if (clt_power.call(srv_power))
   {
     ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Called service PowerSaver");
   }
