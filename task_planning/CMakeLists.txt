@@ -168,6 +168,9 @@ target_link_libraries(scouting_task_node
     ${catkin_LIBRARIES}
 )
 add_dependencies(scouting_task_node task_planning_generate_messages_cpp ${catkin_EXPORTED_TARGETS})
+install(TARGETS scouting_task_node
+  RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
 
 add_executable(excavation_task_node src/excavation_task_node.cpp)
 target_link_libraries(excavation_task_node
@@ -176,12 +179,19 @@ target_link_libraries(excavation_task_node
     ${catkin_LIBRARIES}
 )
 add_dependencies(excavation_task_node task_planning_generate_messages_cpp ${catkin_EXPORTED_TARGETS})
+install(TARGETS excavation_task_node
+  RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
 
 add_executable(test_cartesian_product test/test_cartesian_product.cpp)
 target_link_libraries(test_cartesian_product
     ${catkin_LIBRARIES}
 )
 add_dependencies(test_cartesian_product task_planning_generate_messages_cpp ${catkin_EXPORTED_TARGETS})
+install(TARGETS test_cartesian_product
+  RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
+
 
 add_executable(test_forward_search test/test_forward_search.cpp)
 target_link_libraries(test_forward_search
@@ -191,6 +201,9 @@ target_link_libraries(test_forward_search
     ${catkin_LIBRARIES}
 )
 add_dependencies(test_forward_search task_planning_generate_messages_cpp ${catkin_EXPORTED_TARGETS})
+install(TARGETS test_forward_search
+  RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
@@ -229,21 +242,12 @@ add_dependencies(test_forward_search task_planning_generate_messages_cpp ${catki
 
 ## Mark libraries for installation
 ## See http://docs.ros.org/melodic/api/catkin/html/howto/format1/building_libraries.html
- install(TARGETS CostFunctionLib ForwardSearchLib TaskPlannerLib
-   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-   RUNTIME DESTINATION ${CATKIN_GLOBAL_BIN_DESTINATION}
- )
- install(TARGETS scouting_task_node excavation_task_node test_forward_search test_cartesian_product
-    RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
-  )
- install(DIRECTORY launch/
-    DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/launch
-    PATTERN ".svn" EXCLUDE)
+# install(TARGETS ${PROJECT_NAME}
+#   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+#   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+#   RUNTIME DESTINATION ${CATKIN_GLOBAL_BIN_DESTINATION}
+# )
 
-    install(DIRECTORY config/
-        DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/config
-        PATTERN ".svn" EXCLUDE)
 ## Mark cpp header files for installation
 install(DIRECTORY include/${PROJECT_NAME}/
   DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}

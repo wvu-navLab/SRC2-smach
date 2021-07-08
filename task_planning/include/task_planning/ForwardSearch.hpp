@@ -11,6 +11,7 @@
 #include <string>
 #include <vector>
 #include <numeric>
+#include <algorithm>
 
 #include <ros/ros.h>
 #include <std_msgs/String.h>
@@ -90,14 +91,24 @@ namespace mac
                   const PlanningParams planning_params);
 
     /** \brief  Run the forward search, which considers all possible actions
-   * sequences given a specified horizon (i.e., maximum depth of the tree)
-  */
+     * sequences given a specified horizon (i.e., maximum depth of the tree)
+     */
     std::vector<Action> plan(const State &s);
 
     //debugging
     std::vector<std::vector<Action>> get_sequence_of_joint_actions(int depth, int layer_index);
     std::vector<std::vector<std::vector<Action>>> get_all_sequences_of_joint_actions();
     std::vector<std::vector<Action>> get_best_sequence_of_joint_actions();
+
+    /** \brief  */
+    //TODO: move to private after moving test propagate funtion to ForwardSearch
+    State propagate(const State &s,
+                    const std::vector<Action> &joint_action);
+
+    /** \brief Return all possible actions for the system given the state where
+     * the actions are the combinations of possible actions for the robots.
+     */
+    std::vector<std::vector<Action>> get_actions_all_robots(const State &s);
 
     /** \brief  */
     // bool reinit();
@@ -117,10 +128,6 @@ namespace mac
       std::vector<int> children;
     };
 
-    /** \brief Return all possible actions for the system given the state where
-   * the actions are the combinations of possible actions for the robots.*/
-    std::vector<std::vector<Action>> get_actions_all_robots(const State &s);
-
     /** \brief  Return all possible actions for a robot given the state. */
     std::vector<Action> get_actions_robot(int robot_index, const State &s);
 
@@ -135,10 +142,6 @@ namespace mac
 
     /** \brief  */
     std::vector<Action> get_policy();
-
-    /** \brief  */
-    State propagate(const State &s,
-                    const std::vector<Action> &joint_action);
 
     /** \brief  */
     // void get_state(State s);

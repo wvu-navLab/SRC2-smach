@@ -51,6 +51,7 @@ namespace mac
 
     //construct tree
     int depth = 0;
+    //ros::Rate rate(0.5);
     while (depth < planning_params_.max_depth - 1)
     {
       std::cout << "plan: constructing layer " << depth + 1 << std::endl;
@@ -59,12 +60,25 @@ namespace mac
       {
         std::cout << "plan: getting actions all robots..." << std::endl;
         std::vector<std::vector<Action>> joint_actions = get_actions_all_robots(leaf.state);
-        //std::cout << "plan:" << joint_actions.size() << " joint actions returned" << std::endl;
+        std::cout << "plan:" << joint_actions.size() << " joint actions returned" << std::endl;
+        //rate.sleep();
         for (auto &joint_action : joint_actions)
         {
-          std::cout << "plan: creating vertex " << layer.size()  << " at layer " << tree_.size() << std::endl;
+          std::cout << "plan: creating vertex " << layer.size() << " at layer " << tree_.size() << std::endl;
+          if (tree_.size() == 4)
+          {
+            for (auto & layer: tree_)
+              std::cout << layer.size() << std::endl;
+            exit(1);
+          }
+          if ( depth > 0 && tree_[depth - 1].size() > 5000)
+            exit(1);
           Vertex v_new;
           v_new.state = propagate(leaf.state, joint_action);
+          std::cout << "TIME REMAINING NEW STATE" << std::endl;
+          for (auto &robot : v_new.state.robots)
+            std::cout << robot.time_remaining << " | ";
+          std::cout << std::endl;
           v_new.joint_action = joint_action;
           v_new.cost = cost_function_.compute_cost(leaf.state, joint_action, v_new.state);
           v_new.total_cost = leaf.total_cost + v_new.cost;
@@ -104,14 +118,17 @@ namespace mac
     std::cout << "PROPAGATE" << std::endl;
 
     State s_copy = s;
-    std::cout << "propagate: state" << std::endl;
+    //std::cout << "propagate: state" << std::endl;
     //foreach action
+    std::cout << "TIME REMAINING BEFORE" << std::endl;
+    for (auto &robot : s_copy.robots)
+      std::cout << robot.time_remaining << " | ";
+    std::cout << std::endl;
     for (auto &a : joint_action)
     {
       int robot_ind = get_robot_index(s_copy, a.robot_type, a.id); //NOTE what if there are multiple
-      std::cout << "propagate: robot index received: " << robot_ind+1 << " of " << s_copy.robots.size() << std::endl;
+                                                                   //std::cout << "propagate: robot index received: " << robot_ind+1 << " of " << s_copy.robots.size() << std::endl;
 
-      s_copy.robots[robot_ind].time_remaining = 0;
       s_copy.robots[robot_ind].current_task = a.code;
       s_copy.robots[robot_ind].plan.clear();
       geometry_msgs::PointStamped temp_msg;
@@ -120,21 +137,32 @@ namespace mac
       s_copy.robots[robot_ind].plan.push_back(temp_msg);
       s_copy.robots[robot_ind].toggle_sleep = a.toggle_sleep;
       s_copy.robots[robot_ind].volatile_index = a.volatile_index;
-      std::cout << "propagate: action a" << std::endl;
+      s_copy.robots[robot_ind].time_remaining = action_to_time(s_copy, a);
 
+      //std::cout << "propagate: action a" << std::endl;
     }
+    std::cout << "propagate: actions added" << std::endl;
+    std::vector<double> time_remaining;
+    for (auto &robot : s_copy.robots)
+      time_remaining.push_back(robot.time_remaining);
 
     // Find time remaining for each robot's task
-    std::vector<double> time_remaining = actions_to_time(s_copy, joint_action);
+    // = actions_to_time(s_copy, joint_action);
     std::cout << "propagate: sorting action timesteps" << std::endl;
 
     // Find min time remaining
     int min_time_idx = std::min_element(time_remaining.begin(), time_remaining.end()) - time_remaining.begin();
+    //std::cout << "propagate: time remaining size" << time_remaining.size() << std::endl;
     double min_time = time_remaining[min_time_idx];
+    std::cout << "TIME REMAINING AFTER" << std::endl;
+    for (auto &t : time_remaining)
+      std::cout << t << " | ";
+    std::cout << std::endl;
+
     // Update volatile completion if necessary
     int temp_vol_ind = s_copy.robots[min_time_idx].volatile_index;
 
-    std::cout << "propagate: propagating time step" << std::endl;
+    //std::cout << "propagate: propagating time step" << std::endl;
 
     // Need to come back and change this to hauler dumping... For now we are only handling "Excavation"
 
@@ -144,6 +172,11 @@ namespace mac
       s_copy.volatile_map.vol[temp_vol_ind].collected = true;
       s_copy.robots[min_time_idx].volatile_index = -1;
     }
+    for (auto &robot : s_copy.robots)
+    {
+      simulate_time_step(robot, min_time);
+    }
+
     //handles volatile collected hauler
     for (auto &robot : s_copy.robots)
     {
@@ -160,13 +193,13 @@ namespace mac
       s_copy.robots[min_time_idx].bucket_contents = 0;
     }
 
-    if (s_copy.robots[temp_vol_ind].volatile_index)
-      // propagate completion for each robot
-      for (auto &robot : s_copy.robots)
-      {
-        simulate_time_step(robot, min_time);
-      }
+    //if (s_copy.robots[temp_vol_ind].volatile_index)
+    // propagate completion for each robot
 
+    std::cout << "TIME REMAINING AFTER AFTER" << std::endl;
+    for (auto &robot : s_copy.robots)
+      std::cout << robot.time_remaining << " | ";
+    std::cout << std::endl;
     return s_copy;
   }
 
@@ -183,7 +216,7 @@ namespace mac
     {
       //all possible actions for robot i
       std::vector<Action> robot_actions = get_actions_robot(i, s);
-      if(robot_actions.empty()) 
+      if (robot_actions.empty())
       {
         continue;
       }
@@ -195,7 +228,7 @@ namespace mac
       all_robots_actions_indices.push_back(robot_actions_indices);
     }
     int combinations = 1;
-    for (auto &a:all_robots_actions)
+    for (auto &a : all_robots_actions)
     {
       combinations *= a.size();
     }
@@ -221,7 +254,64 @@ namespace mac
     }
     std::cout << "get_actions_all_robots: number of joint actions (action type) " << all_joint_actions.size() << std::endl;
 
-    return all_joint_actions;
+    // delete bad actions (e.g., excavators going to same volatiles)
+    std::vector<std::vector<Action>> all_joint_actions_clean;
+    std::cout << "aja.size() = " << all_joint_actions.size() << std::endl;
+
+    for (const auto &ja : all_joint_actions)
+    {
+      std::vector<int> exc_vols;
+      exc_vols.clear();
+      std::vector<int> hau_vols;
+      hau_vols.clear();
+      bool is_bad_action = false;
+      for (const auto &a:ja)
+      {
+        if(a.volatile_index == -1)
+        {
+          continue;
+        }
+
+        if (a.robot_type == mac::EXCAVATOR)
+        {
+          if (exc_vols.empty())
+          {
+            exc_vols.push_back(a.volatile_index);
+            continue;
+          }
+          if (std::find(exc_vols.begin(), exc_vols.end(), a.volatile_index) != exc_vols.end()) //checks if a.volatile_index is in exc_vols
+          {
+            is_bad_action = true;
+            break;
+          }
+          else
+          {
+            exc_vols.push_back(a.volatile_index);
+          }
+        }
+        else if (a.robot_type == mac::HAULER)
+        {
+          if (hau_vols.empty())
+          {
+            hau_vols.push_back(a.volatile_index);
+            continue;
+          }
+          if (std::find(hau_vols.begin(), hau_vols.end(), a.volatile_index) != hau_vols.end()) //checks if a.volatile_index is in hau_vols
+          {
+            is_bad_action = true;
+            break;
+          }
+          else
+          {
+            hau_vols.push_back(a.volatile_index);
+          }
+        }
+      }
+      if (!is_bad_action)
+        all_joint_actions_clean.push_back(ja);
+    }
+    std::cout << "sizey boi: " << all_joint_actions_clean.size() << std::endl;
+    return all_joint_actions_clean;
   }
 
   std::vector<Action> ForwardSearch::get_actions_robot(int robot_index, const State &s)
@@ -255,13 +345,13 @@ namespace mac
     }
 
     //add actions for toggle_sleep = true
-    std::vector<Action> copy_actions = actions;
-    for (const auto &action : copy_actions)
-    {
-      Action copy_action = action;
-      copy_action.toggle_sleep = true;
-      actions.push_back(copy_action);
-    }
+    // std::vector<Action> copy_actions = actions;
+    // for (const auto &action : copy_actions)
+    // {
+    //   Action copy_action = action;
+    //   copy_action.toggle_sleep = true;
+    //   actions.push_back(copy_action);
+    // }
     std::cout << "get_actions_robot: " << actions.size() << " action size" << std::endl;
 
     return actions;
@@ -269,13 +359,13 @@ namespace mac
 
   std::vector<Action> ForwardSearch::get_actions_scout(int robot_index, const State &s)
   {
-    std::cout << "GET ACTIONS SCOUTS " << robot_index << std::endl;
+    std::cout << "GET ACTIONS SCOUTS, ROBOT " << robot_index << std::endl;
 
     std::vector<Action> actions;
     Robot robot = s.robots[robot_index];
 
     //if task is in progress, do not return any actions
-    if (robot.time_remaining < 1e-6)
+    if (robot.time_remaining > 1e-6)
     {
       actions.clear();
       return actions;
@@ -288,15 +378,15 @@ namespace mac
 
   std::vector<Action> ForwardSearch::get_actions_excavator(int robot_index, const State &s)
   {
-    std::cout << "GET ACTIONS EXCAVATOR " << robot_index << std::endl;
+    std::cout << "GET ACTIONS EXCAVATOR, ROBOT " << robot_index << std::endl;
 
     std::vector<Action> actions;
     Robot robot = s.robots[robot_index];
 
     //if task is in progress, do not return any actions
-    if (robot.time_remaining < 1e-6)
+    if (robot.time_remaining > 1e-6)
     {
-      std::cout << "get_actions_excavator: no time remaining" << std::endl;
+      //std::cout << "get_actions_excavator: time remaining" << std::endl;
       actions.clear();
       return actions;
     }
@@ -313,7 +403,7 @@ namespace mac
         }
       }
     }
-    std::cout << "get_actions_excavator: " << vol_blacklist.size() << " out of " << s.volatile_map.vol.size() << " blacklisted" << std::endl;
+    //std::cout << "get_actions_excavator: " << vol_blacklist.size() << " out of " << s.volatile_map.vol.size() << " blacklisted" << std::endl;
 
     //actions VOLATILES
     int volatile_index = 0;
@@ -344,8 +434,11 @@ namespace mac
         a.code = (int)ACTION_EXCAVATOR_T::_volatile_handler;
         a.volatile_index = volatile_index;
         a.toggle_sleep = false;
+        //a.action_time = dist({a.objective.first, a.objective.second},
+        //                     {s.volatile_map.vol[volatile_index].position.point.x, s.volatile_map.vol[volatile_index].position.point.y}) /
+        //                     planning_params_.max_v_excavator; //TODO: update later to appropriate time
         actions.push_back(a);
-        std::cout << "get_actions_excavator: volatile " << volatile_index << " action added" << std::endl;
+        //std::cout << "get_actions_excavator: volatile " << volatile_index << " action added" << std::endl;
       }
       volatile_index++;
     }
@@ -359,8 +452,9 @@ namespace mac
       a.code = (int)ACTION_EXCAVATOR_T::_lost;
       a.volatile_index = -1;
       a.toggle_sleep = false;
+      //a.action_time = 240; //TODO: update later to appropriate time
       actions.push_back(a);
-      std::cout << "get_actions_excavator: lost action added " << std::endl;
+      //std::cout << "get_actions_excavator: lost action added " << std::endl;
     }
 
     //action PLANNING (i.e., wait action)
@@ -373,8 +467,9 @@ namespace mac
       a.code = (int)ACTION_EXCAVATOR_T::_planning;
       a.volatile_index = -1;
       a.toggle_sleep = false;
+      //a.action_time = 30;
       actions.push_back(a);
-      std::cout << "get_actions_excavator: planning action added " << std::endl;
+      //std::cout << "get_actions_excavator: planning action added " << std::endl;
     }
 
     return actions;
@@ -382,15 +477,15 @@ namespace mac
 
   std::vector<Action> ForwardSearch::get_actions_hauler(int robot_index, const State &s)
   {
-    std::cout << "GET ACTIONS HAULER " << robot_index << std::endl;
+    std::cout << "GET ACTIONS HAULER, ROBOT " << robot_index << std::endl;
 
     std::vector<Action> actions;
     Robot robot = s.robots[robot_index];
 
     //if task is in progress, do not return any actions
-    if (robot.time_remaining < 1e-6)
+    if (robot.time_remaining > 1e-6)
     {
-      std::cout << "get_actions_excavator: no time remaining" << std::endl;
+      //std::cout << "get_actions_hauler: time remaining" << std::endl;
 
       actions.clear();
       return actions;
@@ -412,7 +507,7 @@ namespace mac
         }
       }
     }
-    std::cout << "get_actions_hauler: " << vol_indices.size() << " vol indices size" << std::endl;
+    //std::cout << "get_actions_hauler: " << vol_indices.size() << " vol indices size" << std::endl;
 
     //actions VOLATILES
     for (const auto &vol_index : vol_indices)
@@ -425,8 +520,11 @@ namespace mac
       a.code = (int)ACTION_HAULER_T::_volatile_handler;
       a.volatile_index = vol_index;
       a.toggle_sleep = false;
+      //a.action_time = dist({a.objective.first, a.objective.second},
+      //                       {s.volatile_map.vol[volatile_index].position.point.x, s.volatile_map.vol[volatile_index].position.point.y})/
+      //                        planning_params_.max_v_hauler;
       actions.push_back(a);
-      std::cout << "get_actions_hauler: volatile " << vol_index << " action added" << std::endl;
+      //std::cout << "get_actions_hauler: volatile " << vol_index << " action added" << std::endl;
     }
 
     //action LOST
@@ -439,9 +537,11 @@ namespace mac
       a.code = (int)ACTION_HAULER_T::_lost;
       a.volatile_index = -1;
       a.toggle_sleep = false;
+      //a.action_time = 240;
       actions.push_back(a);
-      std::cout << "get_actions_hauler: lost action added " << std::endl;
+      //std::cout << "get_actions_hauler: lost action added " << std::endl;
     }
+
     //action PLANNING (i.e., wait action)
     //maybe add if here
     {
@@ -453,9 +553,11 @@ namespace mac
       a.code = (int)ACTION_HAULER_T::_planning;
       a.volatile_index = -1;
       a.toggle_sleep = false;
+      //a.action_time = 30;
       actions.push_back(a);
-      std::cout << "get_actions_hauler: planning action added " << std::endl;
+      //std::cout << "get_actions_hauler: planning action added " << std::endl;
     }
+
     //action DUMP
     if (robot.bucket_contents > 1e-6)
     {
@@ -467,8 +569,8 @@ namespace mac
       a.volatile_index = -1;
       a.toggle_sleep = false;
       actions.push_back(a);
-      std::cout << "get_actions_hauler: hauler conents are " << robot.bucket_contents << " of 1" << std::endl;
-      std::cout << "get_actions_hauler: dumping action added " << std::endl;
+      //std::cout << "get_actions_hauler: hauler conents are " << robot.bucket_contents << " of 1" << std::endl;
+      //std::cout << "get_actions_hauler: dumping action added " << std::endl;
     }
     return actions;
   }
@@ -524,7 +626,7 @@ namespace mac
   std::vector<double> ForwardSearch::actions_to_time(const State &s,
                                                      const std::vector<Action> &joint_action)
   {
-    std::cout << "ACTIONS TO TIME" << std::endl;
+    //std::cout << "ACTIONS TO TIME" << std::endl;
 
     std::vector<double> time;
     for (auto &a : joint_action)
@@ -537,11 +639,11 @@ namespace mac
   double ForwardSearch::action_to_time(const State &s,
                                        const Action &a)
   {
-    std::cout << "ACTION TO TIME" << std::endl;
+    //std::cout << "ACTION TO TIME" << std::endl;
 
     //get robot
-    Robot robot = s.robots[a.id];
-
+    int robot_ind = get_robot_index(s, a.robot_type, a.id);
+    Robot robot = s.robots[robot_ind];
     double traverse_time, handling_time, homing_time, dumping_time;
 
     if (robot.type == SCOUT)
@@ -549,7 +651,7 @@ namespace mac
       switch (a.code)
       {
       case (int)ACTION_SCOUT_T::_planning:
-        return planning_params_.wait_time;
+        return planning_params_.wait_time; // add RNG
         break;
       case (int)ACTION_SCOUT_T::_volatile_handler:
         traverse_time = get_traverse_time(robot);
@@ -572,15 +674,25 @@ namespace mac
       switch (a.code)
       {
       case (int)ACTION_EXCAVATOR_T::_planning:
+        //std::cout << "action_to_time: exc plan" << std::endl;
+
         return planning_params_.wait_time;
         break;
       case (int)ACTION_EXCAVATOR_T::_volatile_handler:
+        //std::cout << "action_to_time: exc vol: trav" << std::endl;
+
         traverse_time = get_traverse_time(robot);
+        //  std::cout << "action_to_time: handle" << std::endl;
+
         handling_time = get_handling_time(robot);
         return traverse_time + handling_time;
         break;
       case (int)ACTION_EXCAVATOR_T::_lost:
+        // std::cout << "action_to_time: exc lost: trav" << std::endl;
+
         traverse_time = get_traverse_time(robot);
+        //   std::cout << "action_to_time: home" << std::endl;
+
         homing_time = get_homing_time(robot);
         return traverse_time + homing_time;
         break;
@@ -623,7 +735,7 @@ namespace mac
 
   double ForwardSearch::get_traverse_time(Robot &robot)
   {
-    std::cout << "GET TRAVERSE TIME" << std::endl;
+    //std::cout << "GET TRAVERSE TIME" << std::endl;
     double v;
     switch (robot.type)
     {
@@ -645,8 +757,10 @@ namespace mac
       v *= 0.75;
 
     std::vector<double> p1, p2;
+    //ROS_INFO_STREAM(robot.odom.pose.pose);
     p1.push_back(robot.odom.pose.pose.position.x);
     p1.push_back(robot.odom.pose.pose.position.y);
+    //ROS_INFO_STREAM(robot.plan[0]);
     p2.push_back(robot.plan[0].point.x);
     p2.push_back(robot.plan[0].point.y);
 
@@ -655,7 +769,7 @@ namespace mac
 
   double ForwardSearch::get_handling_time(Robot &robot)
   {
-    std::cout << "GET HANDLING TIME" << std::endl;
+    //std::cout << "GET HANDLING TIME" << std::endl;
 
     switch (robot.type)
     {
@@ -674,7 +788,7 @@ namespace mac
 
   double ForwardSearch::get_homing_time(Robot &robot)
   {
-    std::cout << "GET HOMING TIME" << std::endl;
+    //std::cout << "GET HOMING TIME" << std::endl;
 
     switch (robot.type)
     {
@@ -693,7 +807,7 @@ namespace mac
 
   double ForwardSearch::get_dumping_time(Robot &robot)
   {
-    std::cout << "GET DUMPING TIME" << std::endl;
+    //std::cout << "GET DUMPING TIME" << std::endl;
 
     return planning_params_.dumping_time;
   }
@@ -703,10 +817,10 @@ namespace mac
   void ForwardSearch::simulate_time_step(Robot &robot,
                                          double time)
   {
-    std::cout << "SIMULATE TIME STEP" << std::endl;
+    //std::cout << "SIMULATE TIME STEP" << std::endl;
 
     // simulate time change
-    robot.time_remaining -= time;
+    robot.time_remaining = robot.time_remaining - time;
     // simulate power
     // this->time_to_power(robot, time);
     // // simulate position and uncertainty
@@ -790,7 +904,7 @@ namespace mac
   double ForwardSearch::time_to_motion(Robot &robot,
                                        double time)
   {
-    std::cout << "TIME TO MOTION" << std::endl;
+    //std::cout << "TIME TO MOTION" << std::endl;
 
     // if position differs from target increment in direction, else do nothing
     double v;
@@ -935,7 +1049,7 @@ namespace mac
   std::vector<std::vector<int>> ForwardSearch::cartesian_product(const std::vector<std::vector<int>> &v)
   {
     std::cout << "input to cartesian_product:" << std::endl;
-    for(int j = 0; j < v.size(); j++)
+    for (int j = 0; j < v.size(); j++)
     {
       std::cout << "v[" << j << "]:";
       for (int i = 0; i < v[j].size(); i++)

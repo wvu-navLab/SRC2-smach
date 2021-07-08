@@ -130,6 +130,7 @@ class TaskPlanner {
 
     //may need a callback for prior map (eg coverage in search planning)
 
+
   private:
     const int SCOUT_STR_LOC = 13; //index ~SHOULD BE~ at 14th position
     const int EXCAVATOR_STR_LOC = 17; //index ~SHOULD BE~ at 18th position
