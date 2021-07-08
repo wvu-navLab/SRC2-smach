@@ -51,7 +51,7 @@ move_base_state_(actionlib::SimpleClientGoalState::PREEMPTED)
     hauler_odom_subs.push_back(nh.subscribe(hauler_odom_topic, 1, &SmExcavator::haulerOdomCallback, this));
 
     std::string hauler_status_topic;
-    hauler_status_topic = "/small_hauler_" + std::to_string(i+1) + "/manipulation/hauler_status";
+    hauler_status_topic = "/small_hauler_" + std::to_string(i+1) + "/state_machine/hauler_status";
     hauler_status_subs.push_back(nh.subscribe(hauler_status_topic, 1, &SmExcavator::haulerStatusCallback, this));
   }
   
@@ -232,6 +232,7 @@ void SmExcavator::stateInitialize()
   Brake(0.0);
 
   // flag_manipulation_interrupt = true; // TODO: Remove this later
+  PublishExcavationStatus();
 
   // make sure we dont latch to a vol we skipped while homing
   progress = 1.0;
@@ -301,6 +302,7 @@ void SmExcavator::stateTraverse()
   double distance_to_goal = std::hypot(goal_pose_.position.y - current_pose_.position.y, goal_pose_.position.x - current_pose_.position.x);
   if (distance_to_goal < 2.0)
   {
+    CancelMoveBaseGoal();
     ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Close to goal, getting new waypoint.");
     flag_arrived_at_waypoint = true;
   }
@@ -1509,6 +1511,7 @@ bool SmExcavator::ExecuteSearch()
         volatile_heading_ = q1s[i];
 
         ExecuteDrop(2,3,0);
+        ExecuteHomeArm(2,0);
         ros::spinOnce();
 
         return true;
@@ -1719,6 +1722,7 @@ void SmExcavator::SetHaulerParkingLocation()
 
     relative_side_ = srv_where_hauler.response.side; // 1 is left and -1 is right
     hauler_parking_pose_ = srv_where_hauler.response.pose;
+    flag_found_parking_site = true;
     ROS_ERROR_STREAM("[" << robot_name_ << "] " << "Where to park hauler: " << hauler_parking_pose_);
     PublishExcavationStatus();
   }
@@ -1889,6 +1893,7 @@ void SmExcavator::CancelExcavation(bool success)
   // Reset Exc Smach flags
   flag_found_hauler = false;
   flag_found_volatile = false;
+  flag_found_parking_site = false;
 
   // Reset Exc Counter
   excavation_counter_ = 0;
@@ -1916,6 +1921,10 @@ void SmExcavator::PublishExcavationStatus()
   msg.found_hauler.data = flag_found_hauler;
   msg.counter.data = excavation_counter_;
   msg.progress.data = excavation_counter_/MAX_EXCAVATION_COUNTER;
+
+  ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Publishing Excavation State Machine Status." << msg);
+
+  excavation_status_pub.publish(msg);
 
   ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Publishing Excavation State Machine Status.");
 }
@@ -1949,7 +1958,7 @@ void SmExcavator::Plan()
     goal_pose_.position = srv_plan.response.objective.point;
     geometry_msgs::Quaternion quat;
     goal_pose_.orientation = quat;
-    partner_hauler_id_ = srv_plan.response.id.data;
+    partner_hauler_id_ = 1; //TODO: Tell Jareds we need partner ID
     no_objective = false;
   }
   else

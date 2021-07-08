@@ -311,7 +311,7 @@ public:
   std::vector<nav_msgs::Odometry> small_haulers_odom_;
   std::vector<state_machine::HaulerStatus> small_haulers_status_;
 
-  int partner_hauler_id_ = 0;
+  int partner_hauler_id_ = 1;
   geometry_msgs::Point partner_hauler_location_;
   state_machine::HaulerStatus partner_hauler_status_;
   geometry_msgs::Pose hauler_parking_pose_;

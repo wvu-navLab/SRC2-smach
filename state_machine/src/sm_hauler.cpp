@@ -211,6 +211,11 @@ void SmHauler::stateInitialize()
     ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Waiting for ApproachExacavator service");
   }
 
+  while (!clt_location_of_excavator.waitForExistence())
+  {
+    ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Waiting for LocateExcavator service");
+  }
+
   double progress = 0;
 
   Lights(20);
@@ -298,6 +303,8 @@ void SmHauler::stateTraverse()
   if (distance_to_goal < 2.0)
   {
 
+    CancelMoveBaseGoal();
+
     if(flag_approaching_side == true)
     {
       flag_approached_side = true;
@@ -383,7 +390,7 @@ void SmHauler::stateVolatileHandler()
 
   if(!flag_full_bin && flag_approached_side)
   {
-    if(!flag_approached_excavator)
+    if(!flag_approached_excavator && partner_excavation_status_.found_volatile.data)
     {
       ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"STARTING APPROACH EXCAVATOR");
 
@@ -406,6 +413,11 @@ void SmHauler::stateVolatileHandler()
   if(flag_full_bin)
   {
     ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"FULL BIN");
+
+    DriveCmdVel(-0.5,0,0,3);
+    Stop (0.1);
+    BrakeRamp(100, 1, 0); 
+    Brake(0.0);
     
     flag_interrupt_plan = false;
     flag_recovering_localization = false;
@@ -721,6 +733,7 @@ void SmHauler::excavationStatusCallback(const ros::MessageEvent<state_machine::E
 
   if (partner_excavator_id_ == msg->excavator_id.data)
   {
+    ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Got new excavation status.");
     // Copy the whole message
     partner_excavation_status_ = *msg;
   }
@@ -1281,7 +1294,7 @@ bool SmHauler::GoToWaypoint()
   waypoint_nav::GoToGoal srv_gotoGoal;
   srv_gotoGoal.request.start = true;
   srv_gotoGoal.request.goal.position = partner_excavator_location_;
-  srv_gotoGoal.request.thresh = 2.0;
+  srv_gotoGoal.request.thresh = 1.7;
   srv_gotoGoal.request.timeOut = 30;
 
   if(clt_go_to_goal.call(srv_gotoGoal))
@@ -1498,6 +1511,7 @@ void SmHauler::PublishHaulerStatus()
   msg.bin_full.data = flag_full_bin;
   msg.hauler_id.data = robot_id_;
   msg.hauler_ready.data = flag_parked_hauler;
+  
   hauler_status_pub.publish(msg);
 }
 
@@ -1530,7 +1544,7 @@ void SmHauler::Plan()
     goal_pose_.position = srv_plan.response.objective.point;
     geometry_msgs::Quaternion quat;
     goal_pose_.orientation = quat;
-    partner_excavator_id_ = srv_plan.response.id.data;
+    partner_excavator_id_ = 1; //TODO: Tell Jared's we need partner ID
     no_objective = false;
   }
   else

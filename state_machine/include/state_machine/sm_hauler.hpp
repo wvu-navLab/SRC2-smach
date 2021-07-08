@@ -232,7 +232,7 @@ public:
   std::vector<nav_msgs::Odometry> small_excavators_odom_;
   std::vector<state_machine::ExcavationStatus> small_excavators_status_;
 
-  int partner_excavator_id_ = 0;
+  int partner_excavator_id_ = 1;
   geometry_msgs::Point partner_excavator_location_;
   state_machine::ExcavationStatus partner_excavation_status_;
 };
