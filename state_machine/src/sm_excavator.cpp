@@ -1568,7 +1568,7 @@ bool SmExcavator::FindHauler(double timeout)
   if (srv_find.response.success)
   {
     geometry_msgs::PointStamped bin_point = srv_find.response.target;
-    bin_point.point.x += 0.1;
+    // bin_point.point.x += 0.1;
 
     camera_link_to_arm_mount = tf_buffer.lookupTransform(robot_name_+"_arm_mount", robot_name_+"_left_camera_optical", ros::Time(0), ros::Duration(1.0));
     tf2::doTransform(bin_point, bin_point_, camera_link_to_arm_mount);
@@ -1834,6 +1834,8 @@ void SmExcavator::ExcavationStateMachine()
         ExecuteDrop(5,0,0);
         ROS_ERROR_STREAM("[" << robot_name_ << "] " << "Excavation: Waiting for Hauler");
 
+        flag_hauler_ready = false;
+        
         // Wait until hauler gets ready 
         while(!flag_hauler_ready && (ros::Time::now() - manipulation_timer) < ros::Duration(840))
         {

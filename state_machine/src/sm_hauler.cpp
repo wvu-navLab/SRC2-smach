@@ -739,20 +739,37 @@ void SmHauler::excavationStatusCallback(const ros::MessageEvent<state_machine::E
   }
   // ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Got excavation status.");
 
-  if (partner_excavator_id_!= 0 && partner_excavation_status_.found_parking_site.data && !flag_approached_side)
+  if(partner_excavator_id_ != 0)
   {
-    goal_pose_.position = partner_excavation_status_.parking_pose.position;
-    SetMoveBaseGoal();
-    flag_approaching_side = true;
-    flag_arrived_at_waypoint = false;
-    flag_localizing_volatile = true;
-  }
+    if(partner_excavation_status_.found_parking_site.data && !flag_approached_side)
+    {
+      goal_pose_.position = partner_excavation_status_.parking_pose.position;
 
-  if(partner_excavation_status_.counter.data == 5)
-  {
-    flag_full_bin = true;
-  }
+      SetMoveBaseGoal();
+      flag_approaching_side = true;
+      flag_arrived_at_waypoint = false;
+      flag_localizing_volatile = true;
+    }
 
+    if(flag_parked_hauler && partner_excavation_status_.found_volatile.data && !partner_excavation_status_.found_hauler.data)
+    {
+      flag_approached_side = false;
+      flag_approached_excavator = false;
+      flag_parked_hauler == false;
+
+      goal_pose_.position = partner_excavation_status_.parking_pose.position;
+
+      SetMoveBaseGoal();
+      flag_approaching_side = true;
+      flag_arrived_at_waypoint = false;
+      flag_localizing_volatile = true;
+    }
+
+    if(partner_excavation_status_.counter.data == 5)
+    {
+      flag_full_bin = true;
+    }
+  }
 }
 
 void SmHauler::excavatorOdomCallback(const ros::MessageEvent<nav_msgs::Odometry const>& event)
