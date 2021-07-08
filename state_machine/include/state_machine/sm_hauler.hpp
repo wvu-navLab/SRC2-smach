@@ -72,6 +72,7 @@ public:
   bool flag_need_init_landmark = false;
   bool flag_localized_base = false;
   bool flag_full_bin = false;
+  bool flag_approaching_side = false;
   bool flag_approached_side = false;
   bool flag_approached_excavator = false;
   bool flag_located_excavator = false;

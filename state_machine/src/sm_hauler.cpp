@@ -297,6 +297,24 @@ void SmHauler::stateTraverse()
   double distance_to_goal = std::hypot(goal_pose_.position.y - current_pose_.position.y, goal_pose_.position.x - current_pose_.position.x);
   if (distance_to_goal < 2.0)
   {
+
+    if(flag_approaching_side == true)
+    {
+      flag_approached_side = true;
+      flag_approaching_side == false;
+
+      tf2::Quaternion q(partner_excavation_status_.parking_pose.orientation.x,
+                      partner_excavation_status_.parking_pose.orientation.y,
+                      partner_excavation_status_.parking_pose.orientation.z,
+                      partner_excavation_status_.parking_pose.orientation.w);
+
+      double roll, pitch, yaw;
+
+      tf2::Matrix3x3(q).getRPY(roll, pitch, yaw);
+      
+      RotateToHeading(yaw);
+    }
+
     flag_arrived_at_waypoint = true;
     ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Close to goal, getting new waypoint.");
   }
@@ -370,7 +388,6 @@ void SmHauler::stateVolatileHandler()
       ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"STARTING APPROACH EXCAVATOR");
 
       flag_approached_excavator = ApproachExcavator(3);
-      PublishHaulerStatus();
     }
 
     if (!flag_parked_hauler && flag_approached_excavator)
@@ -381,6 +398,7 @@ void SmHauler::stateVolatileHandler()
       // TODO: This is where we are gonna call the parallel parking
       // Include new method: SmHauler::ParallelParking that calls the service
       flag_parked_hauler = GoToWaypoint();
+      PublishHaulerStatus();
     }
 
   }
@@ -712,11 +730,12 @@ void SmHauler::excavationStatusCallback(const ros::MessageEvent<state_machine::E
   {
     goal_pose_.position = partner_excavation_status_.parking_pose.position;
     SetMoveBaseGoal();
+    flag_approaching_side = true;
     flag_arrived_at_waypoint = false;
     flag_localizing_volatile = true;
   }
 
-  if(partner_excavation_status_.counter.data > 4)
+  if(partner_excavation_status_.counter.data == 5)
   {
     flag_full_bin = true;
   }
