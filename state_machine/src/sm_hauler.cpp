@@ -395,6 +395,8 @@ void SmHauler::stateVolatileHandler()
       ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"STARTING APPROACH EXCAVATOR");
 
       flag_approached_excavator = ApproachExcavator(3);
+      flag_located_excavator = false;
+      flag_parked_hauler = false;
     }
 
     if (!flag_parked_hauler && flag_approached_excavator)
@@ -775,7 +777,7 @@ void SmHauler::excavationStatusCallback(const ros::MessageEvent<state_machine::E
       flag_localizing_volatile = true;
     }
 
-    if(partner_excavation_status_.counter.data == 5)
+    if(partner_excavation_status_.counter.data == -1)
     {
       flag_full_bin = true;
     }
@@ -833,7 +835,8 @@ void SmHauler::plannerInterruptCallback(const std_msgs::Bool::ConstPtr &msg)
 
   if(!(prev_srv_plan.response.objective.point.x == srv_plan.response.objective.point.x &&
   prev_srv_plan.response.objective.point.y == srv_plan.response.objective.point.y &&
-  prev_srv_plan.response.code == srv_plan.response.code))
+  prev_srv_plan.response.code == srv_plan.response.code) && 
+  (!flag_dumping) && (!flag_localizing_volatile))
   {
     flag_interrupt_plan = true;
   }

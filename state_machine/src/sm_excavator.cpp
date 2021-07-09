@@ -1829,12 +1829,28 @@ void SmExcavator::ExcavationStateMachine()
       //TODO: Turn on power saving
 
       ExecuteScoop(5,0,volatile_heading_);
+      
+      ros::spinOnce();
+      
+      if (!flag_has_volatile)
+      {
+        // If the excavator digs five times 
+        // it will cancel excavation    
+        excavation_counter_ = -1;
+        PublishExcavationStatus(); 
+        excavation_state_ = HOME_MODE;
+        CancelExcavation(true);
+        break;
+      }
+
       if(!flag_found_hauler)
       {
         flag_found_hauler = FindHauler(120);
       }
       
       PublishExcavationStatus();
+
+      // flag_still_has_volatile = flag_has_volatile;
 
       // Look forward before starting to move again
       std_msgs::Float64 sensor_yaw;
@@ -1851,6 +1867,7 @@ void SmExcavator::ExcavationStateMachine()
       {
         // If not it will drop the material below the terrain and ask Hauler to approach
         ExecuteDrop(5,0,0);
+        ExecuteHomeArm(2,0);
         ROS_ERROR_STREAM("[" << robot_name_ << "] " << "Excavation: Waiting for Hauler");
 
         flag_hauler_ready = false;
@@ -1877,7 +1894,11 @@ void SmExcavator::ExcavationStateMachine()
     {
       ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Excavation: Dropping Bucket Content.");
 
-      ExecuteDrop(5,0,1);
+      ExecuteDrop(5,0,1);      
+      
+      excavation_counter_++;
+
+      PublishExcavationStatus();
 
       geometry_msgs::PointStamped safe_point;
       safe_point.header = bin_point_.header;
@@ -1890,13 +1911,18 @@ void SmExcavator::ExcavationStateMachine()
 
       ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Excavation: Scoop counter: " << excavation_counter_);
 
-      if (excavation_counter_++ > MAX_EXCAVATION_COUNTER)
+      excavation_state_ = HOME_MODE;
+
+      if (excavation_counter_ > 5)
       {
         // If the excavator digs five times 
         // it will cancel excavation
+        excavation_counter_ = -1;
+        PublishExcavationStatus(); 
+        excavation_state_ = HOME_MODE;
         CancelExcavation(true);
+        break;
       }
-      excavation_state_ = HOME_MODE;
     }
     break;
   }
@@ -1941,7 +1967,7 @@ void SmExcavator::PublishExcavationStatus()
   msg.parking_pose = hauler_parking_pose_;
   msg.found_volatile.data = flag_found_volatile;
   msg.found_hauler.data = flag_found_hauler;
-  msg.counter.data = excavation_counter_-1;
+  msg.counter.data = excavation_counter_;
   msg.progress.data = excavation_counter_/MAX_EXCAVATION_COUNTER;
 
   ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Publishing Excavation State Machine Status." << msg);

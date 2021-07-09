@@ -169,8 +169,11 @@ namespace mac
       }
       if (vol_pose[0] != 0 || vol_pose[1] != 0)
       {
-        temp.point.x = vol_pose[0] - 5; // TODO: OFFSET FOR HAULER
-        temp.point.y = vol_pose[1] - 5;
+        double dx = vol_pose[0]  - current_pose[0];
+        double dy = vol_pose[1]  - current_pose[1];
+        double D = hypot(dx,dy);
+        temp.point.x = vol_pose[0]  - dx/D * 5.0; // TODO: OFFSET FOR HAULER
+        temp.point.y = vol_pose[1]  - dy/D * 5.0;
         robots_[nearest_ind].volatile_index = i;
         robots_[nearest_ind].plan.push_back(temp);
       }
