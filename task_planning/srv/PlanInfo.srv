@@ -5,4 +5,5 @@ std_msgs/UInt8 id
 geometry_msgs/PointStamped objective
 std_msgs/UInt8 id
 std_msgs/UInt8 code  ## -1 failed (wait), 0-5 corresponding states
+std_msgs/UInt8 volatile_index
 std_msgs/Bool toggle_sleep 
