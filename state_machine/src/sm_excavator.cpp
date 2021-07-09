@@ -81,6 +81,7 @@ move_base_state_(actionlib::SimpleClientGoalState::PREEMPTED)
   clt_find_hauler = nh.serviceClient<move_excavator::FindHauler>("manipulation/find_hauler");
   clt_where_hauler = nh.serviceClient<src2_object_detection::WhereToParkHauler>("/where_to_park_hauler");
   clt_task_planning = nh.serviceClient<task_planning::PlanInfo>("/task_planner_exc_haul");
+  clt_vol_mark = nh.serviceClient<volatile_map::MarkCollected>("/volatile_map_mark_collected");
 
   map_timer = ros::Time::now();
   wp_checker_timer = ros::Time::now();
@@ -1732,6 +1733,24 @@ void SmExcavator::SetHaulerParkingLocation()
   }
 }
 
+void SmExcavator::MarkCollectedVolatile(bool success)
+{
+  volatile_map::MarkCollected srv_vol_mark;
+
+  srv_vol_mark.request.collected = success;
+  srv_vol_mark.request.attempted = true;
+  srv_vol_mark.request.vol_index = goal_vol_index_;
+
+  if (clt_vol_mark.call(srv_vol_mark))
+  {
+    ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Called service MarkCollected.");
+  }
+  else
+  {
+    ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Failed to call service MarkCollected.");
+  }
+}
+
 
 void SmExcavator::ExcavationStateMachine()
 {
@@ -1908,6 +1927,7 @@ void SmExcavator::CancelExcavation(bool success)
   flag_localizing_volatile = false;
 
   //TODO: Turn off power saving
+  MarkCollectedVolatile(success);
 }
 
 void SmExcavator::PublishExcavationStatus()
@@ -1961,6 +1981,7 @@ void SmExcavator::Plan()
     geometry_msgs::Quaternion quat;
     goal_pose_.orientation = quat;
     partner_hauler_id_ = 1; //TODO: Tell Jareds we need partner ID
+    goal_vol_index_ = srv_plan.response.volatile_index.data;
     no_objective = false;
   }
   else

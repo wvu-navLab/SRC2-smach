@@ -62,6 +62,7 @@
 #include <state_machine/HaulerStatus.h>
 #include <state_machine/ExcavationStatus.h>
 #include <src2_object_detection/WhereToParkHauler.h>
+#include <volatile_map/MarkCollected.h>
 
 
 #define PI 3.141592653589793
@@ -174,6 +175,7 @@ public:
   ros::ServiceClient clt_where_hauler;
   ros::ServiceClient clt_find_hauler;
   ros::ServiceClient clt_task_planning;
+  ros::ServiceClient clt_vol_mark;
 
   MoveBaseClient ac;
   actionlib::SimpleClientGoalState move_base_state_;
@@ -245,6 +247,7 @@ public:
   void CancelExcavation(bool success);
   bool HomingUpdate(bool init_landmark);
   void Plan();
+  void MarkCollectedVolatile(bool success);
   
   const int SCOUT_STR_LOC = 13; //index ~SHOULD BE~ at 14th position
   const int EXCAVATOR_STR_LOC = 17; //index ~SHOULD BE~ at 18th position
@@ -319,6 +322,7 @@ public:
   int relative_side_ = 1;
   double relative_heading_ = 0;
   double relative_range_ = 1.0;
+  int goal_vol_index_ = 0;
 
   double q1_pos_ = 0.0;
   double q2_pos_ = 0.0;

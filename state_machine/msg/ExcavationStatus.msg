@@ -7,4 +7,4 @@ geometry_msgs/Pose parking_pose
 std_msgs/Bool found_volatile
 std_msgs/Bool found_hauler
 std_msgs/Int8 counter
-std_msgs/Float64 progress 
+std_msgs/Float64 progress

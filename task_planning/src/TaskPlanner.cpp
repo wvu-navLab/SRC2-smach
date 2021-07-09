@@ -86,6 +86,10 @@ namespace mac
       pose_min = default_pose;
       vol_pose[0] = volatile_map_.vol[i].position.point.x;
       vol_pose[1] = volatile_map_.vol[i].position.point.y;
+      if(volatile_map_.vol[i].collected)
+      {
+        continue;
+      }
       ROS_ERROR_STREAM("[TASK PLANNER] [" << plan_call_counter << "] Volatile pose " << vol_pose[0] << "," << vol_pose[1]);
       // std::cout << "robots_.size() = " << robots_.size() << std::endl;
       for (int j = 0; j < robots_.size(); ++j)
@@ -331,7 +335,7 @@ namespace mac
           if (robot.type == mac::SCOUT)
           {
             res.code.data = robot.plan[0].point.z;
-            res.volatile_index = robot.volatile_index;
+            res.volatile_index.data = robot.volatile_index;
           }
           else
           {
@@ -340,7 +344,7 @@ namespace mac
           ROS_WARN_STREAM("[TASK PLANNER] [" << plan_call_counter << "] Objective sent " << robot.plan[0]);
           res.objective = robot.plan[0];
           res.objective.point.z = 0;
-          res.volatile_index = robot.volatile_index;
+          res.volatile_index.data = robot.volatile_index;
         }
         else
         {

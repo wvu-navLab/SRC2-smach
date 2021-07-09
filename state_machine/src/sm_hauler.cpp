@@ -418,7 +418,11 @@ void SmHauler::stateVolatileHandler()
     Stop (0.1);
     BrakeRamp(100, 1, 0); 
     Brake(0.0);
-    
+
+    flag_approached_side = false;
+    flag_approached_excavator = false;
+    flag_parked_hauler = false;
+
     flag_interrupt_plan = false;
     flag_recovering_localization = false;
     flag_localizing_volatile = false;
@@ -522,8 +526,14 @@ void SmHauler::stateDump()
     if (locateBinSuccess)
     {
       progress = 1.0;
+
+      flag_full_bin = false;
+
+      flag_interrupt_plan = false;
+      flag_arrived_at_waypoint = true;
       flag_localizing_volatile = false;
       flag_dumping = false;
+      flag_recovering_localization = true;
 
       Brake(0.0);
 
@@ -1311,7 +1321,7 @@ bool SmHauler::GoToWaypoint()
   waypoint_nav::GoToGoal srv_gotoGoal;
   srv_gotoGoal.request.start = true;
   srv_gotoGoal.request.goal.position = partner_excavator_location_;
-  srv_gotoGoal.request.thresh = 1.7;
+  srv_gotoGoal.request.thresh = 1.5;
   srv_gotoGoal.request.timeOut = 30;
 
   if(clt_go_to_goal.call(srv_gotoGoal))
