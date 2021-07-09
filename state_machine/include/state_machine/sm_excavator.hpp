@@ -121,7 +121,7 @@ public:
   bool flag_hauler_ready = false;
 
   ros::Time wp_checker_timer, laser_collision_timer, map_timer, waypoint_timer;
-  ros::Time manipulation_timer;
+  ros::Time manipulation_timer, waiting_hauler;
 
   // State vector
   std::vector<int> state_to_exec; // Only one should be true at a time, if multiple are true then a default state should be executed

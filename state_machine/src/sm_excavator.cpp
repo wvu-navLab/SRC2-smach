@@ -88,6 +88,7 @@ move_base_state_(actionlib::SimpleClientGoalState::PREEMPTED)
   laser_collision_timer = ros::Time::now();
 
   manipulation_timer = ros::Time::now();
+  waiting_hauler = ros::Time::now();
 
   nav_msgs::Odometry temp_small_hauler_odom;
   state_machine::HaulerStatus temp_small_hauler_status;
@@ -1798,7 +1799,8 @@ void SmExcavator::ExcavationStateMachine()
         PublishExcavationStatus();
         
         // Wait until hauler gets ready 
-        while(!flag_hauler_ready && (ros::Time::now() - manipulation_timer) < ros::Duration(840))
+        waiting_hauler = ros::Time::now();
+        while(!flag_hauler_ready && (ros::Time::now() - waiting_hauler) < ros::Duration(240))
         {
           ros::Duration(1.0).sleep();
           ros::spinOnce();
@@ -1873,7 +1875,8 @@ void SmExcavator::ExcavationStateMachine()
         flag_hauler_ready = false;
         
         // Wait until hauler gets ready 
-        while(!flag_hauler_ready && (ros::Time::now() - manipulation_timer) < ros::Duration(840))
+        waiting_hauler = ros::Time::now();
+        while(!flag_hauler_ready && (ros::Time::now() - waiting_hauler) < ros::Duration(240))
         {
           ros::Duration(1.0).sleep();
           ros::spinOnce();
