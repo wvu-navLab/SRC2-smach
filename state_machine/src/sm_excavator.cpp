@@ -1941,7 +1941,7 @@ void SmExcavator::PublishExcavationStatus()
   msg.parking_pose = hauler_parking_pose_;
   msg.found_volatile.data = flag_found_volatile;
   msg.found_hauler.data = flag_found_hauler;
-  msg.counter.data = excavation_counter_;
+  msg.counter.data = excavation_counter_-1;
   msg.progress.data = excavation_counter_/MAX_EXCAVATION_COUNTER;
 
   ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Publishing Excavation State Machine Status." << msg);
