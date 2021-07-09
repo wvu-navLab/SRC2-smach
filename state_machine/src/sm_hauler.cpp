@@ -1430,6 +1430,7 @@ bool SmHauler::LocateExcavator()
 {
   range_to_base::LocationOfExcavator srv_location_of_excavator;
   srv_location_of_excavator.request.location_of_excavator.data=true;
+  srv_location_of_excavator.request.angle = 0.05;
 
   bool success = false;
 
