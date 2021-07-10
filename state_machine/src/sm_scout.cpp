@@ -193,7 +193,7 @@ void SmScout::statePlanning()
 
   Plan();
 
-  if (!no_objective) 
+  if (!no_objective)
   {
     ROS_WARN_STREAM("[" << robot_name_ << "] " <<"New objective.");
     goal_yaw_ = atan2(goal_pose_.position.y - current_pose_.position.y, goal_pose_.position.x - current_pose_.position.x);
@@ -242,7 +242,7 @@ void SmScout::stateTraverse()
   else
   {
     if(move_base_state_ == actionlib::SimpleClientGoalState::ABORTED || move_base_state_ == actionlib::SimpleClientGoalState::LOST)
-    {   
+    {
       ROS_WARN_STREAM_THROTTLE(5,"[" << robot_name_ << "] " <<"MoveBase status: "<< move_base_state_.toString());
       ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"MoveBase has failed to make itself useful.");
 
@@ -258,9 +258,9 @@ void SmScout::stateTraverse()
 
       Brake(0.0);
     }
-      
+
     // ros::Duration timeoutWaypointCheck(3.0);
-    // if (ros::Time::now() - wp_checker_timer > timeoutWaypointCheck) 
+    // if (ros::Time::now() - wp_checker_timer > timeoutWaypointCheck)
     // {
     //   CheckWaypoint(3);
     //   wp_checker_timer = ros::Time::now();
@@ -431,7 +431,7 @@ void SmScout::systemMonitorCallback(const srcp2_msgs::SystemMonitorMsg::ConstPtr
   power_level_ = msg->power_level;
   power_rate_ = msg->power_rate;
 
-  if (power_level_< 30) 
+  if (power_level_< 30)
   {
     ROS_WARN_STREAM("[" << robot_name_ << "] " << "Power Level Warning: " << power_level_);
 
@@ -502,15 +502,15 @@ void SmScout::localizationCallback(const nav_msgs::Odometry::ConstPtr& msg)
                       msg->pose.pose.orientation.w);
 
   tf2::Matrix3x3(q).getRPY(roll_, pitch_, yaw_);
-  
+
   double radius = hypot(current_pose_.position.x, current_pose_.position.y);
 
   if(radius > CRATER_RADIUS)
-  { 
-    flag_interrupt_plan = true;
+  {
+    // flag_interrupt_plan = true;
   }
 
-  if (abs(pitch_ * 180 / M_PI) > 10) 
+  if (abs(pitch_ * 180 / M_PI) > 10)
   {
     ROS_WARN_STREAM_THROTTLE(10, "Robot Climbing Up! Pitch: " << pitch_ * 180 / M_PI);
     if (curr_max_speed_ != SCOUT_MAX_SPEED/2)
@@ -519,7 +519,7 @@ void SmScout::localizationCallback(const nav_msgs::Odometry::ConstPtr& msg)
       curr_max_speed_ = SCOUT_MAX_SPEED/2;
     }
 
-    if (abs(pitch_ * 180 / M_PI) > 27) 
+    if (abs(pitch_ * 180 / M_PI) > 27)
     {
       ROS_ERROR_STREAM("[" << robot_name_ << "] " << "Robot Cant Climb! Pitch: " << pitch_ * 180 / M_PI);
       ROS_ERROR_STREAM("[" << robot_name_ << "] " << "Commanding IMMOBILITY.");
@@ -540,8 +540,8 @@ void SmScout::localizationCallback(const nav_msgs::Odometry::ConstPtr& msg)
       curr_max_speed_ = SCOUT_MAX_SPEED;
     }
   }
-  
-  if (abs(roll_ * 180 / M_PI) > 10) 
+
+  if (abs(roll_ * 180 / M_PI) > 10)
   {
     ROS_WARN_STREAM_THROTTLE(10, "Robot is Sideways! Roll: " << roll_ * 180 / M_PI);
     if (curr_max_speed_ != SCOUT_MAX_SPEED/2)
@@ -550,7 +550,7 @@ void SmScout::localizationCallback(const nav_msgs::Odometry::ConstPtr& msg)
       curr_max_speed_ = SCOUT_MAX_SPEED/2;
     }
 
-    if (abs(roll_ * 180 / M_PI) > 27) 
+    if (abs(roll_ * 180 / M_PI) > 27)
     {
       ROS_ERROR_STREAM("[" << robot_name_ << "] " << "Robot Cant Climb! Roll: " << roll_ * 180 / M_PI);
       ROS_ERROR_STREAM("[" << robot_name_ << "] " << "Commanding IMMOBILITY.");
@@ -695,7 +695,7 @@ void SmScout::SetMoveBaseSpeed(double max_speed)
     ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Called service to reconfigure MoveBase max speed to: "<< max_speed);
   }
   else
-  {    
+  {
     ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Failed to call service to reconfigure MoveBase (max speed).");
   }
 }
@@ -878,16 +878,16 @@ void SmScout::immobilityRecovery(int type)
   BrakeRamp(100, 1, 0);
 
   Brake(0.0);
-  
+
 }
 
 void SmScout::ClearCostmaps(double wait_time)
-{  
+{
   ROS_ERROR_STREAM("[" << robot_name_ << "] " << "Braking rover to clear the Map");
   BrakeRamp(100, 1, 0); // Give more time
 
   ROS_WARN_STREAM("[" << robot_name_ << "] " << "Move Base State: " << move_base_state_.toString());
-  
+
   // Clear the costmap
   std_srvs::Empty emptymsg;
   ros::service::waitForService("move_base/clear_costmaps",ros::Duration(3.0));
@@ -901,7 +901,7 @@ void SmScout::ClearCostmaps(double wait_time)
   {
     ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Failed calling clear_costmaps service.");
   }
-  
+
   Brake(0.0);
 }
 
