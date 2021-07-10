@@ -60,12 +60,13 @@ class SmScout
 {
 public:
   // Members -------------------------------------------------------------------------------------------------------------------------
-  const unsigned int num_states = 5;
-  enum STATE_T {_initialize=0, _planning=1, _traverse=2, _volatile_handler=3, _lost=4};
+  const unsigned int num_states = 6;
+  enum STATE_T {_initialize=0, _planning=1, _traverse=2, _volatile_handler=3, _lost=4, _emergency=5};
 
   // State transition flag declarations
   bool flag_interrupt_plan = false;
   bool flag_have_true_pose = false;
+  bool flag_emergency = false;
   bool flag_arrived_at_waypoint = true;
   bool flag_localizing_volatile = false;
   bool flag_recovering_localization = false;
@@ -135,6 +136,7 @@ public:
   void stateTraverse();
   void stateVolatileHandler();
   void stateLost();
+  void stateEmergency();
 
   /// Subscriber callbacks
   void localizedBaseCallback(const std_msgs::Int64::ConstPtr& msg);

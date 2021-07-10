@@ -55,12 +55,13 @@ class SmHauler
 {
 public:
   // Members -------------------------------------------------------------------------------------------------------------------------
-  const unsigned int num_states = 6;
-  enum STATE_T {_initialize=0, _planning=1, _traverse=2, _volatile_handler=3, _lost=4, _hauler_dumping=5};
+  const unsigned int num_states = 7;
+  enum STATE_T {_initialize=0, _planning=1, _traverse=2, _volatile_handler=3, _lost=4, _emergency=5, _hauler_dumping=6};
 
   // State transition flag declarations
   bool flag_interrupt_plan = false;
   bool flag_have_true_pose = false;
+  bool flag_emergency = false;
   bool flag_arrived_at_waypoint = true;
   bool flag_localizing_volatile = false;
   bool flag_recovering_localization = false;
@@ -77,6 +78,7 @@ public:
   bool flag_approached_excavator = false;
   bool flag_located_excavator = false;
   bool flag_parked_hauler = false;
+  bool flag_dumped = false;
 
   ros::Time wp_checker_timer,laser_collision_timer, map_timer, waypoint_timer;
 
@@ -136,6 +138,7 @@ public:
   void stateTraverse();
   void stateVolatileHandler();
   void stateLost();
+  void stateEmergency();
   void stateDump();
 
   /// Subscriber callbacks

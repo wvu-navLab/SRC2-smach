@@ -113,6 +113,10 @@ void SmHauler::run()
     {
       state_to_exec.at(_initialize) = 1;
     }
+    else if(flag_emergency_charging)
+    {
+      state_to_exec.at(_emergency) = 1;
+    }
     else if(flag_interrupt_plan || (flag_arrived_at_waypoint && !flag_recovering_localization && !flag_localizing_volatile && !flag_dumping && !flag_brake_engaged))
     {
       state_to_exec.at(_planning) = 1;
@@ -169,6 +173,10 @@ void SmHauler::run()
     {
       stateDump();
     }
+    else if(state_to_exec.at(_emergency))
+    {
+      stateEmergency();
+    }
     else
     {
       ROS_FATAL_STREAM("[" << robot_name_ << "] " << "No state to execute");
@@ -221,13 +229,10 @@ void SmHauler::stateInitialize()
   Lights(20);
 
   Stop(0.1);
-
   Brake(100.0);
 
   RoverStatic(true);
-
   GetTruePose();
-
   RoverStatic(false);
 
   ClearCostmaps(5.0);
@@ -258,11 +263,8 @@ void SmHauler::statePlanning()
     goal_yaw_ = atan2(goal_pose_.position.y - current_pose_.position.y, goal_pose_.position.x - current_pose_.position.x);
 
     Brake (0.0);
-
     RotateToHeading(goal_yaw_);
-
     BrakeRamp(100, 1, 0);
-
     Brake(0.0);
 
     // CheckWaypoint(3); // TODO: Check if they needed
@@ -273,7 +275,6 @@ void SmHauler::statePlanning()
     {
       ros::Duration(30).sleep();
     }
-
 
     SetMoveBaseGoal();
 
@@ -339,9 +340,7 @@ void SmHauler::stateTraverse()
       // ClearCostmaps(5.0); // TODO: Check if they needed
 
       Stop (0.1);
-
       BrakeRamp(100, 1, 0); 
-
       Brake(0.0);
     }
 
@@ -409,7 +408,7 @@ void SmHauler::stateVolatileHandler()
       flag_parked_hauler = GoToWaypoint();
       PublishHaulerStatus();
     }
-
+    
   }
   
   if(flag_full_bin)
@@ -448,6 +447,7 @@ void SmHauler::stateVolatileHandler()
   status_msg.state.data = (uint8_t) _volatile_handler;
   sm_status_pub.publish(status_msg);
 }
+
 void SmHauler::stateLost()
 {
   ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"LOST STATE!\n");
@@ -484,30 +484,43 @@ void SmHauler::stateLost()
   Brake(0.0);
 
   DriveCmdVel(-0.5,0.0,0.0,5);
-
   Stop(0.1);
-
   BrakeRamp(100, 1, 0);
-
   Brake(0.0);
 
   RotateInPlace(0.2, 3);
-
   Stop(0.1);
-
   BrakeRamp(100, 1, 0);
-
   Brake(0.0);
 
   ClearCostmaps(5.0);
-
   BrakeRamp(100, 1, 0);
-
   Brake(0.0);
 
   state_machine::RobotStatus status_msg;
   status_msg.progress.data = progress;
   status_msg.state.data = (uint8_t) _lost;
+  sm_status_pub.publish(status_msg);
+}
+
+void SmHauler::stateEmergency()
+{
+  ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Emergency Charging State!\n");
+  
+  CancelMoveBaseGoal();
+
+  double progress = 0;
+
+  progress = power_level_/50;
+
+  if(power_level_ > 50)
+  {
+    flag_emergency = false;
+  }
+
+  state_machine::RobotStatus status_msg;
+  status_msg.progress.data = progress;
+  status_msg.state.data = (uint8_t) _emergency;
   sm_status_pub.publish(status_msg);
 }
 
@@ -519,49 +532,42 @@ void SmHauler::stateDump()
 
   double progress = 0.0;
 
-  bool approachSuccess = ApproachBin(3);
+  flag_dumped = ApproachBin(3);
 
   // localize bin after approaching bin
-  if (approachSuccess)
+  if (flag_dumped)
   {
-    bool locateBinSuccess = LocateBin();
-    if (locateBinSuccess)
+    bool success = LocateBin();
+    if (success)
     {
-      progress = 1.0;
-
-      flag_full_bin = false;
-
-      flag_interrupt_plan = false;
-      flag_arrived_at_waypoint = true;
-      flag_localizing_volatile = false;
-      flag_dumping = false;
-      flag_recovering_localization = true;
-
-      Brake(0.0);
-
-      DriveCmdVel(-0.5,0.0,0.0,5);
-
-      Stop(0.1);
-
-      BrakeRamp(100, 1, 0);
-
-      Brake(0.0);
-
-      RotateInPlace(0.2, 3);
-
-      Stop(0.1);
-
-      BrakeRamp(100, 1, 0);
-
-      Brake(0.0);
-
-      ClearCostmaps(5.0);
-
-      BrakeRamp(100, 1, 0);
-
-      Brake(0.0);
-
+      //TODO: REFRESH LOCALIZATION?
     }
+
+    Brake(0.0);
+
+    DriveCmdVel(-0.5,0.0,0.0,5);
+    Stop(0.1);
+    BrakeRamp(100, 1, 0);
+    Brake(0.0);
+
+    RotateToHeading(4.0);
+    Stop(0.1);
+    BrakeRamp(100, 1, 0);
+    Brake(0.0);
+
+    ClearCostmaps(5.0);
+    BrakeRamp(100, 1, 0);
+    Brake(0.0);
+
+    flag_full_bin = false;
+
+    flag_interrupt_plan = false;
+    flag_arrived_at_waypoint = true;
+    flag_localizing_volatile = false;
+    flag_dumping = false;
+    flag_recovering_localization = true;
+
+    progress = 1.0;
 
   }
   else
@@ -600,10 +606,7 @@ void SmHauler::systemMonitorCallback(const srcp2_msgs::SystemMonitorMsg::ConstPt
   {
     ROS_WARN_STREAM("[" << robot_name_ << "] " << "Power Level Warning: " << power_level_);
 
-    Plan();
-
-    RotateToHeading(M_PI_2);
-    ros::Duration(120).sleep();
+    flag_emergency = true;
   }
 }
 
@@ -645,12 +648,17 @@ void SmHauler::localizationCallback(const nav_msgs::Odometry::ConstPtr& msg)
     {
       ROS_ERROR_STREAM("[" << robot_name_ << "] " << "Robot Cant Climb! Pitch: " << pitch_ * 180 / M_PI);
       ROS_ERROR_STREAM("[" << robot_name_ << "] " << "Commanding IMMOBILITY.");
+
       CancelMoveBaseGoal();
       Stop(0.1);
       Brake(100.0);
       Brake(0.0);
+
       DriveCmdVel(-0.5,0.0,0.0,3);
       Stop(0.1);
+      Brake(100.0);
+      Brake(0.0);
+
       SetMoveBaseGoal();
     }
   }
@@ -676,12 +684,17 @@ void SmHauler::localizationCallback(const nav_msgs::Odometry::ConstPtr& msg)
     {
       ROS_ERROR_STREAM("[" << robot_name_ << "] " << "Robot Cant Climb! Roll: " << roll_ * 180 / M_PI);
       ROS_ERROR_STREAM("[" << robot_name_ << "] " << "Commanding IMMOBILITY.");
+
       CancelMoveBaseGoal();
       Stop(0.1);
       Brake(100.0);
       Brake(0.0);
+
       DriveCmdVel(-0.5,0.0,0.0,3);
       Stop(0.1);
+      Brake(100.0);
+      Brake(0.0);
+
       SetMoveBaseGoal();
     }
   }
@@ -753,7 +766,10 @@ void SmHauler::excavationStatusCallback(const ros::MessageEvent<state_machine::E
 
   if(partner_excavator_id_ != 0)
   {
-    if(partner_excavation_status_.found_parking_site.data && !flag_approached_side)
+    // If the hauler is moving
+    if(!flag_recovering_localization && !flag_dumping &&
+    partner_excavation_status_.found_parking_site.data && 
+    (!flag_approached_side || flag_approached_excavator || flag_parked_hauler))
     {
       goal_pose_.position = partner_excavation_status_.parking_pose.position;
 
@@ -952,7 +968,7 @@ void SmHauler::RotateToHeading(double desired_yaw)
 
   bool flag_heading_fail = false;
   ros::Time rotate_timer = ros::Time::now();
-  ros::Duration timeoutHeading(30.0); // Timeout of 20 seconds
+  ros::Duration timeoutHeading(45.0); // Timeout of 20 seconds
 
   while(fabs(yaw_error) > yaw_thres)
   {
@@ -992,15 +1008,11 @@ void SmHauler::RotateToHeading(double desired_yaw)
     Stop(0.1);
 
     DriveCmdVel (-0.5, 0.0, 0.0, 4.0);
-
     Stop(0.1);
-
     BrakeRamp(100, 1, 0);
-
     Brake(0.0);
 
     flag_heading_fail = false;
-    flag_interrupt_plan = true;
   }
   else
   {
@@ -1012,36 +1024,26 @@ void SmHauler::homingRecovery()
 {
   ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Starting Homing Recovery.");
 
-  CancelMoveBaseGoal();
-
   Lights(20);
 
+  CancelMoveBaseGoal();
   Stop(0.1);
-
   BrakeRamp(100, 1, 0);
-
   Brake(0.0);
 
   DriveCmdVel(-0.3,-0.6, 0.0, 5.0);
-
   Stop(0.1);
 
   DriveCmdVel(0.0,0.0,-0.25,4.0);
-
   Stop(0.1);
 
   BrakeRamp(100, 1, 0);
-
   Brake(0.0);
 
   DriveCmdVel(0.6,0.0,0.0,4.5);
-
   Stop(0.1);
-
   BrakeRamp(100, 1, 0);
-
   Brake(0.0);
-
 }
 
 void SmHauler::immobilityRecovery(int type)
@@ -1049,29 +1051,19 @@ void SmHauler::immobilityRecovery(int type)
   ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Starting Immobility Recovery.");
 
   CancelMoveBaseGoal();
-
   Stop(0.1);
-
   Brake(100.0);
-
   Brake(0.0);
 
   DriveCmdVel(-0.5,0.0,0.0,3.0);
-
   Stop(0.1);
-
   BrakeRamp(100, 1, 0);
-
   Brake(0.0);
 
   DriveCmdVel(-0.3,-0.6, 0.0, 4.0);
-
   Stop(0.1);
-
   BrakeRamp(100, 1, 0);
-
   Brake(0.0);
-      
 }
 
 void SmHauler::ClearCostmaps(double wait_time)
@@ -1596,6 +1588,7 @@ void SmHauler::Plan()
     case _planning:
       ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Task Planner: Planning");
       flag_interrupt_plan = true;
+      flag_emergency = false;
       flag_arrived_at_waypoint = true;
       flag_recovering_localization = false;
       flag_localizing_volatile = false;
@@ -1604,6 +1597,7 @@ void SmHauler::Plan()
     case _traverse:
       ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Task Planner: Traverse");
       flag_interrupt_plan = false;
+      flag_emergency = false;
       flag_arrived_at_waypoint = false;
       flag_recovering_localization = false;
       flag_localizing_volatile = false;
@@ -1613,6 +1607,7 @@ void SmHauler::Plan()
     case _volatile_handler:
       ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Task Planner: Vol Handler");
       flag_interrupt_plan = false;
+      flag_emergency = false;
       flag_arrived_at_waypoint = false;
       flag_recovering_localization = false;
       flag_localizing_volatile = true;
@@ -1622,6 +1617,17 @@ void SmHauler::Plan()
     case _lost:
       ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Task Planner: Homing");
       flag_interrupt_plan = false;
+      flag_emergency = false;
+      flag_arrived_at_waypoint = false;
+      flag_recovering_localization = true;
+      flag_localizing_volatile = false;
+      flag_dumping = false;
+      break;
+
+    case _emergency:
+      ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Task Planner: Homing");
+      flag_interrupt_plan = false;
+      flag_emergency = true;
       flag_arrived_at_waypoint = false;
       flag_recovering_localization = true;
       flag_localizing_volatile = false;
@@ -1631,6 +1637,7 @@ void SmHauler::Plan()
     case _hauler_dumping:
       ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Task Planner: Dumping");
       flag_interrupt_plan = false;
+      flag_emergency = false;
       flag_arrived_at_waypoint = false;
       flag_recovering_localization = false;
       flag_localizing_volatile = false;
@@ -1640,6 +1647,7 @@ void SmHauler::Plan()
     default:
       ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Task Planner: No idea what Im doing");
       flag_interrupt_plan = true;
+      flag_emergency = false;
       flag_arrived_at_waypoint = true;
       flag_recovering_localization = false;
       flag_localizing_volatile = false;

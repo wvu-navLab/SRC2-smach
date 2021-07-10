@@ -77,6 +77,10 @@ void SmScout::run()
     {
       state_to_exec.at(_initialize) = 1;
     }
+    else if(flag_emergency_charging)
+    {
+      state_to_exec.at(_emergency) = 1;
+    }
     else if(flag_interrupt_plan || (flag_arrived_at_waypoint && !flag_recovering_localization && !flag_localizing_volatile && !flag_brake_engaged))
     {
       state_to_exec.at(_planning) = 1;
@@ -126,6 +130,10 @@ void SmScout::run()
     {
       stateLost();
     }
+    else if(state_to_exec.at(_emergency))
+    {
+      stateEmergency();
+    }
     else
     {
       ROS_FATAL("No state to execute");
@@ -163,13 +171,10 @@ void SmScout::stateInitialize()
   Lights(20);
 
   Stop(0.1);
-
   Brake(100.0);
 
   RoverStatic(true);
-
   GetTruePose();
-
   RoverStatic(false);
 
   ClearCostmaps(5.0);
@@ -201,9 +206,7 @@ void SmScout::statePlanning()
     Brake (0.0);
 
     RotateToHeading(goal_yaw_);
-
     BrakeRamp(100, 1, 0);
-
     Brake(0.0);
 
     // CheckWaypoint(3); // TODO: Check if they needed
@@ -253,9 +256,7 @@ void SmScout::stateTraverse()
       // ClearCostmaps(5.0); // TODO: Check if they needed
 
       Stop (0.1);
-
       BrakeRamp(100, 1, 0);
-
       Brake(0.0);
     }
 
@@ -302,9 +303,7 @@ void SmScout::stateVolatileHandler()
   if (!flag_volatile_honed)
   {
     Stop(0.1);
-
     BrakeRamp(100, 0.1, 0);
-
     Brake(0.0);
 
     ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Turning wheels sideways.");
@@ -326,11 +325,8 @@ void SmScout::stateVolatileHandler()
     Stop(0.1);
 
     DriveCmdVel(1, 0, 0, 3);
-
     Stop(0.1);
-
     BrakeRamp(100, 1.0, 0);
-
     Brake(0.0);
 
     SetMoveBaseSpeed(SCOUT_MAX_SPEED);
@@ -383,25 +379,17 @@ void SmScout::stateLost()
   Brake(0.0);
 
   DriveCmdVel(-0.5,0.0,0.0,5);
-
   Stop(0.1);
-
   BrakeRamp(100, 1, 0);
-
   Brake(0.0);
 
   RotateInPlace(0.2, 3);
-
   Stop(0.1);
-
   BrakeRamp(100, 1, 0);
-
   Brake(0.0);
 
   ClearCostmaps(5.0);
-
   BrakeRamp(100, 1, 0);
-
   Brake(0.0);
 
   state_machine::RobotStatus status_msg;
@@ -410,6 +398,27 @@ void SmScout::stateLost()
   sm_status_pub.publish(status_msg);
 }
 
+void SmScout::stateEmergency()
+{
+  ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Emergency Charging State!\n"); 
+  
+  CancelMoveBaseGoal();
+
+  double progress = 0;
+
+  progress = power_level_/50;
+
+  if(power_level_ > 50)
+  {
+    flag_emergency = false;
+  }
+
+
+  state_machine::RobotStatus status_msg;
+  status_msg.progress.data = progress;
+  status_msg.state.data = (uint8_t) _emergency;
+  sm_status_pub.publish(status_msg);
+}
 //------------------------------------------------------------------------------------------------------------------------
 
 // Callbacks +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -431,14 +440,11 @@ void SmScout::systemMonitorCallback(const srcp2_msgs::SystemMonitorMsg::ConstPtr
   power_level_ = msg->power_level;
   power_rate_ = msg->power_rate;
 
-  if (power_level_< 30)
+  if (power_level_< 30) 
   {
     ROS_WARN_STREAM("[" << robot_name_ << "] " << "Power Level Warning: " << power_level_);
 
-    Plan();
-
-    RotateToHeading(M_PI_2);
-    ros::Duration(120).sleep();
+    flag_emergency = true;
   }
 }
 
@@ -523,12 +529,17 @@ void SmScout::localizationCallback(const nav_msgs::Odometry::ConstPtr& msg)
     {
       ROS_ERROR_STREAM("[" << robot_name_ << "] " << "Robot Cant Climb! Pitch: " << pitch_ * 180 / M_PI);
       ROS_ERROR_STREAM("[" << robot_name_ << "] " << "Commanding IMMOBILITY.");
+      
       CancelMoveBaseGoal();
       Stop(0.0);
       Brake(100.0);
       Brake(0.0);
+
       DriveCmdVel(-0.5,0.0,0.0,3);
       Stop(0.1);
+      Brake(100.0);
+      Brake(0.0);
+
       SetMoveBaseGoal();
     }
   }
@@ -554,12 +565,17 @@ void SmScout::localizationCallback(const nav_msgs::Odometry::ConstPtr& msg)
     {
       ROS_ERROR_STREAM("[" << robot_name_ << "] " << "Robot Cant Climb! Roll: " << roll_ * 180 / M_PI);
       ROS_ERROR_STREAM("[" << robot_name_ << "] " << "Commanding IMMOBILITY.");
+      
       CancelMoveBaseGoal();
-      Stop(0.0);
+      Stop(0.1);
       Brake(100.0);
       Brake(0.0);
+
       DriveCmdVel(-0.5,0.0,0.0,3);
       Stop(0.1);
+      Brake(100.0);
+      Brake(0.0);
+
       SetMoveBaseGoal();
     }
   }
@@ -760,7 +776,7 @@ void SmScout::RotateToHeading(double desired_yaw)
 
   bool flag_heading_fail = false;
   ros::Time rotate_timer = ros::Time::now();
-  ros::Duration timeoutHeading(30.0); // Timeout of 20 seconds
+  ros::Duration timeoutHeading(45.0); // Timeout of 20 seconds
 
   while(fabs(yaw_error) > yaw_thres)
   {
@@ -800,15 +816,11 @@ void SmScout::RotateToHeading(double desired_yaw)
     Stop(0.1);
 
     DriveCmdVel (-0.5, 0.0, 0.0, 4.0);
-
     Stop(0.1);
-
     BrakeRamp(100, 1, 0);
-
     Brake(0.0);
 
     flag_heading_fail = false;
-    flag_interrupt_plan = true;
   }
   else
   {
@@ -820,34 +832,25 @@ void SmScout::homingRecovery()
 {
   ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Starting Homing Recovery.");
 
-  CancelMoveBaseGoal();
-
   Lights(20);
 
+  CancelMoveBaseGoal();
   Stop(0.1);
-
   BrakeRamp(100, 1, 0);
-
   Brake(0.0);
 
   DriveCmdVel(-0.3,-0.6, 0.0, 5.0);
-
   Stop(0.1);
 
   DriveCmdVel(0.0,0.0,-0.25,4.0);
-
   Stop(0.1);
 
   BrakeRamp(100, 1, 0);
-
   Brake(0.0);
 
   DriveCmdVel(0.6,0.0,0.0,4.5);
-
   Stop(0.1);
-
   BrakeRamp(100, 1, 0);
-
   Brake(0.0);
 }
 
@@ -856,29 +859,19 @@ void SmScout::immobilityRecovery(int type)
   ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Starting Immobility Recovery.");
 
   CancelMoveBaseGoal();
-
   Stop(0.1);
-
   Brake(100.0);
-
   Brake(0.0);
 
   DriveCmdVel(-0.5,0.0,0.0,3.0);
-
   Stop(0.1);
-
   BrakeRamp(100, 1, 0);
-
   Brake(0.0);
 
   DriveCmdVel(-0.3,-0.6, 0.0, 4.0);
-
   Stop(0.1);
-
   BrakeRamp(100, 1, 0);
-
   Brake(0.0);
-
 }
 
 void SmScout::ClearCostmaps(double wait_time)
@@ -1271,6 +1264,7 @@ void SmScout::Plan()
     case _planning:
       ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Task Planner: Planning");
       flag_interrupt_plan = true;
+      flag_emergency = false;
       flag_arrived_at_waypoint = true;
       flag_recovering_localization = false;
       flag_localizing_volatile = false;
@@ -1279,6 +1273,7 @@ void SmScout::Plan()
     case _traverse:
       ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Task Planner: Traverse");
       flag_interrupt_plan = false;
+      flag_emergency = false;
       flag_arrived_at_waypoint = false;
       flag_recovering_localization = false;
       flag_localizing_volatile = false;
@@ -1287,6 +1282,7 @@ void SmScout::Plan()
     case _volatile_handler:
       ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Task Planner: Vol Handler");
       flag_interrupt_plan = false;
+      flag_emergency = false;
       flag_arrived_at_waypoint = false;
       flag_recovering_localization = false;
       flag_localizing_volatile = true;
@@ -1295,6 +1291,16 @@ void SmScout::Plan()
     case _lost:
       ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Task Planner: Homing");
       flag_interrupt_plan = false;
+      flag_emergency = false;
+      flag_arrived_at_waypoint = false;
+      flag_recovering_localization = true;
+      flag_localizing_volatile = false;
+      break;
+
+    case _emergency:
+      ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Task Planner: Homing");
+      flag_interrupt_plan = false;
+      flag_emergency = true;
       flag_arrived_at_waypoint = false;
       flag_recovering_localization = true;
       flag_localizing_volatile = false;
@@ -1303,6 +1309,7 @@ void SmScout::Plan()
     default:
       ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Task Planner: No idea what Im doing");
       flag_interrupt_plan = true;
+      flag_emergency = false;
       flag_arrived_at_waypoint = true;
       flag_recovering_localization = false;
       flag_localizing_volatile = false;
