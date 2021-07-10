@@ -535,12 +535,19 @@ void SmScout::localizationCallback(const nav_msgs::Odometry::ConstPtr& msg)
       Brake(100.0);
       Brake(0.0);
 
-      DriveCmdVel(-0.5,0.0,0.0,3);
+      DriveCmdVel(-0.4,0.0,0.0,3);
       Stop(0.1);
       Brake(100.0);
       Brake(0.0);
 
+      RotateInPlace(0.2, 6);
+      Stop(0.1);
+      Brake(100.0);
+      Brake(0.0);
+      
       SetMoveBaseGoal();
+      // ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Canceling goal, getting new waypoint.");
+      // flag_arrived_at_waypoint = true;
     }
   }
   else
@@ -571,12 +578,20 @@ void SmScout::localizationCallback(const nav_msgs::Odometry::ConstPtr& msg)
       Brake(100.0);
       Brake(0.0);
 
-      DriveCmdVel(-0.5,0.0,0.0,3);
+      DriveCmdVel(-0.4,0.0,0.0,3);
       Stop(0.1);
       Brake(100.0);
       Brake(0.0);
 
+      RotateInPlace(0.2, 6);
+      Stop(0.1);
+      Brake(100.0);
+      Brake(0.0);
+      
       SetMoveBaseGoal();
+      // CancelMoveBaseGoal();
+    //   ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Canceling goal, getting new waypoint.");
+    //   flag_arrived_at_waypoint = true;
     }
   }
   else

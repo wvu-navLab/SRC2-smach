@@ -632,7 +632,7 @@ void SmHauler::localizationCallback(const nav_msgs::Odometry::ConstPtr& msg)
 
   if(radius > CRATER_RADIUS)
   { 
-    flag_interrupt_plan = true;
+    // flag_interrupt_plan = true;
   }
 
   if (abs(pitch_ * 180 / M_PI) > 10) 
@@ -654,7 +654,12 @@ void SmHauler::localizationCallback(const nav_msgs::Odometry::ConstPtr& msg)
       Brake(100.0);
       Brake(0.0);
 
-      DriveCmdVel(-0.5,0.0,0.0,3);
+      DriveCmdVel(-0.4,0.0,0.0,3);
+      Stop(0.1);
+      Brake(100.0);
+      Brake(0.0);
+
+      RotateInPlace(0.2, 6);
       Stop(0.1);
       Brake(100.0);
       Brake(0.0);
@@ -690,7 +695,12 @@ void SmHauler::localizationCallback(const nav_msgs::Odometry::ConstPtr& msg)
       Brake(100.0);
       Brake(0.0);
 
-      DriveCmdVel(-0.5,0.0,0.0,3);
+      DriveCmdVel(-0.4,0.0,0.0,3);
+      Stop(0.1);
+      Brake(100.0);
+      Brake(0.0);
+
+      RotateInPlace(0.2, 6);
       Stop(0.1);
       Brake(100.0);
       Brake(0.0);
