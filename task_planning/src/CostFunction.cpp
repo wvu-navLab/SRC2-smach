@@ -48,6 +48,7 @@ namespace mac
       ROS_ERROR("CostFunction::compute_cost: cost_type invalid!");
       break;
     }
+
     return 0.0;
   }
 
@@ -121,11 +122,20 @@ namespace mac
     {
       if (s_prime.volatile_map.vol[i].collected && !s.volatile_map.vol[i].collected)
       {
+        //std::cout << "got vol collected " << get_vol_value(s_prime.volatile_map.vol[i].type) << std::endl;
+        cost += get_vol_value(s_prime.volatile_map.vol[i].type);
+      }
+    }
+    for (int i = 0; i < s.volatile_map.vol.size(); ++i)
+    {
+      if (s_prime.volatile_map.vol[i].dumped && !s.volatile_map.vol[i].dumped)
+      {
+        //std::cout << "got vol dumped " << get_vol_value(s_prime.volatile_map.vol[i].type) << std::endl;
         cost += get_vol_value(s_prime.volatile_map.vol[i].type);
       }
     }
 
-    return 0;
+    return params_.vol_weight*cost;
   }
 
   double CostFunction::cost_time_passed(const State s,
@@ -133,18 +143,23 @@ namespace mac
                                         const State s_prime) const
   {
     //maybe this doesn't work if changed task, so probably want to do checking... may check that it isn't zero
-    return params_.time_weight * (s.robots[0].time_remaining - s_prime.robots[0].time_remaining);
+
+    return params_.time_weight * (s_prime.time_elapsed - s.time_elapsed);
   }
 
   double CostFunction::cost_time_vol_collected(const State s,
                                                const std::vector<Action> joint_action,
                                                const State s_prime) const
   {
+    std::cout << "COST FUNCTION" << std::endl;
     double time_cost = cost_time_passed(s, joint_action, s_prime);
+    std::cout << "time_cost: " << time_cost << std::endl;
     double vol_cost = cost_vol_collected(s, joint_action, s_prime);
-    return params_.time_vol_weights[0] * time_cost + params_.time_vol_weights[1] * vol_cost;
+    std::cout << "vol_cost: " << vol_cost << std::endl;
+    double tot_cost = params_.time_vol_weights[0] * time_cost + params_.time_vol_weights[1] * vol_cost;
+    std::cout << "tot_cost: " << tot_cost << std::endl;
+    return tot_cost;
   }
-
   double CostFunction::dist(const std::vector<double> p1, const std::vector<double> p2)
   {
     if (p1.size() != p2.size())
@@ -166,35 +181,35 @@ namespace mac
   {
     if (vol.compare("ice"))
     {
-      return 1; //points /kg
+      return -19.833; //points /kg
     }
     else if (vol.compare("ethane"))
     {
-      return 20;
+      return -20;
     }
     else if (vol.compare("methane"))
     {
-      return 14;
+      return -20;
     }
     else if (vol.compare("methanol"))
     {
-      return 16;
+      return -20;
     }
     else if (vol.compare("carbon_dioxide"))
     {
-      return 3;
+      return -18.5;
     }
     else if (vol.compare("ammonia"))
     {
-      return 2;
+      return -18.667;
     }
     else if (vol.compare("hydrogen_sulfite"))
     {
-      return 1;
+      return -19.1667;
     }
     else if (vol.compare("sulfur_dioxide"))
     {
-      return 1;
+      return -19.667;
     }
     else if (vol.compare("regolith"))
     {
@@ -203,7 +218,7 @@ namespace mac
     else
     {
       ROS_ERROR("Invalid volatile type: get_vol_value");
-      return -1;
+      return 0;
     }
   }
 }

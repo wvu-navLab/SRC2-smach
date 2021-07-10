@@ -99,6 +99,7 @@ namespace mac
     std::vector<Robot> robots;
     volatile_map::VolatileMap volatile_map;
     ros::Time time;
+    double time_elapsed = 0;
   };
 
   struct Action

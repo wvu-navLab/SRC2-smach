@@ -11,6 +11,7 @@
 #include <string>
 #include <vector>
 #include <numeric>
+#include <random>
 #include <algorithm>
 
 #include <ros/ros.h>
@@ -82,6 +83,12 @@ namespace mac
 
     */
 
+   const bool disable_planning_action_ = true;
+   const bool disable_lost_action_ = true;
+
+    std::mt19937_64 rng_;
+    std::uniform_real_distribution<double> unif_;
+
   public:
     /** \brief  */
     //ForwardSearch();
@@ -113,7 +120,16 @@ namespace mac
     /** \brief  */
     // bool reinit();
 
+    //print commands
+    void print_joint_action(std::vector<Action> joint_action);
+    void print_sequence_of_joint_actions(std::vector<std::vector<Action>> joint_actions);
+    void print_volatile_map(volatile_map::VolatileMap volatile_map);
+    void print_robot(int robot_index, std::vector<Robot> robots);
+    void print_robots(std::vector<Robot> robots);
+    void print_state(State s);
+
   protected:
+
     /** \brief  Tree vertex used in the forward search */
     struct Vertex
     {

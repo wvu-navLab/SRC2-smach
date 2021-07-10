@@ -4,6 +4,7 @@
 #include <task_planning/Types.hpp>
 #include <volatile_map/VolatileMap.h>
 #include <volatile_map/Volatile.h>
+#include <geometry_msgs/PointStamped.h>
 
 volatile_map::VolatileMap create_volatile_map()
 {
@@ -14,7 +15,7 @@ volatile_map::VolatileMap create_volatile_map()
 
   volatile_map::VolatileMap VolatileMap;
 
-  for (int i = 0; i < 3; i++)
+  for (int i = 0; i < 10; i++)
   {
     volatile_map::Volatile vol;
 
@@ -31,17 +32,19 @@ volatile_map::VolatileMap create_volatile_map()
     position.point.y = ymin + randy * (ymax - ymin);
     position.point.z = 0;
     vol.position = position;
+    vol.collected = false;
+    vol.dumped = false;
 
     //volatile type
-    if (i % 1 == 1)
+    if (i % 1 == 0)
       vol.type = "ice";
-    if (i % 2 == 1)
+    if (i % 2 == 0)
       vol.type = "ethane";
-    if (i % 3 == 1)
+    if (i % 3 == 0)
       vol.type = "methanol";
-    if (i % 4 == 1)
+    if (i % 4 == 0)
       vol.type = "ammonia";
-    if (i % 5 == 1)
+    if (i % 5 == 0)
       vol.type = "sulfur_dioxide";
 
     //add to map
@@ -75,6 +78,10 @@ std::vector<mac::Robot> create_robots()
     robot.current_task = -1;
     robot.odom.pose.pose.position.x = 0; //xmin + randx * (xmax - xmin);
     robot.odom.pose.pose.position.y = 0; //ymin + randy * (ymax - ymin);
+    geometry_msgs::PointStamped temp_plan;
+    temp_plan.point.x = robot.odom.pose.pose.position.x;
+    temp_plan.point.y = robot.odom.pose.pose.position.y;
+    robot.plan.push_back(temp_plan);
     robot.toggle_sleep = false;
 
     robots.push_back(robot);
@@ -90,6 +97,10 @@ std::vector<mac::Robot> create_robots()
     robot.bucket_contents = 0;
     robot.odom.pose.pose.position.x = 0; //xmin + randx * (xmax - xmin);
     robot.odom.pose.pose.position.y = 0; //ymin + randy * (ymax - ymin);
+    geometry_msgs::PointStamped temp_plan;
+    temp_plan.point.x = robot.odom.pose.pose.position.x;
+    temp_plan.point.y = robot.odom.pose.pose.position.y;
+    robot.plan.push_back(temp_plan);
     robot.toggle_sleep = false;
 
     robots.push_back(robot);
@@ -199,7 +210,7 @@ void print_sequence_of_joint_actions(std::vector<std::vector<mac::Action>> joint
   int counter = 0;
   for (auto &joint_action : joint_actions)
   {
-    std::cout << "STEP[" << counter << "]" << std::endl;
+    std::cout << "JOINT ACTION[" << counter << "]" << std::endl;
     print_joint_action(joint_action);
     ++counter;
   }
@@ -330,7 +341,7 @@ int main(int argc, char **argv)
   std::cout << "main:: Initializing CostFunction..." << std::endl;
   const mac::CostFunction cf(mac::TIME_VOL_COLLECTED);
   mac::PlanningParams pp;
-  pp.max_time = 5;  // seconds
+  pp.max_time = 8;  // seconds
   pp.max_depth = 5; //max depth to construct tree
   pp.timeout = 30;
   pp.wait_time = 30;      //seconds
@@ -338,8 +349,8 @@ int main(int argc, char **argv)
   pp.max_v_excavator = 5; // m/s
   pp.max_v_hauler = 5;    // m/s
   pp.vol_handling_time_scout = 5;
-  pp.vol_handling_time_excavator = 5;
-  pp.vol_handling_time_hauler = 5;
+  pp.vol_handling_time_excavator = 145;
+  pp.vol_handling_time_hauler = 150;
   pp.homing_time_scout = 5;
   pp.homing_time_excavator = 5;
   pp.homing_time_hauler = 5;
@@ -375,6 +386,9 @@ int main(int argc, char **argv)
   std::vector<mac::Action> joint_action;
   joint_action = fs.plan(s);
 
+  print_joint_action(joint_action);
+  //print_volatile_map(s.volatile_map);
+
   // std::cout << "main: printing joint action." << std::endl;
   // print_joint_action(joint_action);
 
@@ -385,8 +399,9 @@ int main(int argc, char **argv)
 
   //-> we need to check if the propagate outputs make sense
   //-> then, make sure get_policy works properly
-  //-> test with depth of 1, to see what greedy actions are chosen
-  //-> add RNG to wait time so they don't all sync up.
+  //-> in get_actions_all_robots(const State &s), if only a single volatile is being pursued by excavator, then the only joint action is both haulers go to help, need to allow for either of the haulers to go
+  //-> check possibility that if excavator collects before hauler is sent, that the hauler should still be sent.
+  //-> 
 
   // forget about toggle. we're not doing it. we're just not. 
 

@@ -19,9 +19,9 @@ namespace mac
 
   struct CFParams
     {
-      double time_weight = -1;
+      double time_weight = 1;
       double vol_weight = 1;
-      std::vector<double> time_vol_weights{1,2};
+      std::vector<double> time_vol_weights{5,10};
     };
 
   const int DISTANCE = 0;
