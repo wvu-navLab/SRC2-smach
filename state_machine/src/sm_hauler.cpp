@@ -343,14 +343,18 @@ void SmHauler::stateTraverse()
       Stop (0.1);
       BrakeRamp(100, 1, 0);
       Brake(0.0);
-      ros::Duration timeoutMap(10.0);
-      if (ros::Time::now() - map_timer > timeoutMap)
+
+
+      if(move_base_fail_counter > 5)
       {
         ClearCostmaps(5.0);
-        map_timer =ros::Time::now();
-        // SetMoveBaseGoal();
+        move_base_fail_counter = 0;
       }
     }
+      else
+      {
+      move_base_fail_counter = 0;
+      }
 
     // ros::Duration timeoutWaypointCheck(3.0);
     // if (ros::Time::now() - wp_checker_timer > timeoutWaypointCheck)
