@@ -509,6 +509,13 @@ void SmHauler::stateEmergency()
 
   CancelMoveBaseGoal();
 
+  //call low power mode {rosservice call /small_scout_1/system_monitor/power_saver "power_save: true"}
+  //turn between 3Pi/4 - Pi/4 or 5Pi/4 - 7Pi/4
+  //Check if {solar_ok: True}
+  //Charge until 50 (or 40)
+  //call low power mode false
+  //SetMoveBaseGoal
+
   double progress = 0;
 
   progress = power_level_/50;
