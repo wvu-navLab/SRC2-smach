@@ -327,6 +327,14 @@ void SmExcavator::stateTraverse()
       Stop (0.1);
       BrakeRamp(100, 1, 0);
       Brake(0.0);
+      ros::Duration timeoutMap(5.0);
+      if (ros::Time::now() - map_timer > timeoutMap)
+      {
+        ClearCostmaps(5.0);
+        map_timer =ros::Time::now();
+        SetMoveBaseGoal();
+      }
+
     }
 
     // ros::Duration timeoutWaypointCheck(3.0);

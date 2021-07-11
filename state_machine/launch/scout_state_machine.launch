@@ -1,5 +1,5 @@
 <?xml version="1.0"?>
 <launch>
-  <node name="state_machine" pkg="state_machine" type="state_machine_scout_node" output="screen">
+  <node name="state_machine" pkg="state_machine" type="state_machine_scout_node" output="screen" launch-prefix="xterm -e">
   </node>
 </launch>

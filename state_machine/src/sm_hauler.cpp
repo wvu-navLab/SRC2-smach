@@ -342,6 +342,13 @@ void SmHauler::stateTraverse()
       Stop (0.1);
       BrakeRamp(100, 1, 0);
       Brake(0.0);
+      ros::Duration timeoutMap(10.0);
+      if (ros::Time::now() - map_timer > timeoutMap)
+      {
+        ClearCostmaps(5.0);
+        map_timer =ros::Time::now();
+        SetMoveBaseGoal();
+      }
     }
 
     // ros::Duration timeoutWaypointCheck(3.0);
@@ -415,8 +422,13 @@ void SmHauler::stateVolatileHandler()
   {
     ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"FULL BIN");
 
-    DriveCmdVel(-0.5,0,0,3);
+    DriveCmdVel(-0.5,0,0,6);
     Stop (0.1);
+    BrakeRamp(100, 1, 0);
+    Brake(0.0);
+
+    RotateInPlace(0.2, 3);
+    Stop(0.1);
     BrakeRamp(100, 1, 0);
     Brake(0.0);
 
