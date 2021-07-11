@@ -348,7 +348,7 @@ void SmHauler::stateTraverse()
       {
         ClearCostmaps(5.0);
         map_timer =ros::Time::now();
-        SetMoveBaseGoal();
+        // SetMoveBaseGoal();
       }
     }
 
