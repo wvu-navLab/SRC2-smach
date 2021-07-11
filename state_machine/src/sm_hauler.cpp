@@ -339,6 +339,7 @@ void SmHauler::stateTraverse()
 
       // ClearCostmaps(5.0); // TODO: Check if they needed
 
+      move_base_fail_counter++;
       Stop (0.1);
       BrakeRamp(100, 1, 0);
       Brake(0.0);

@@ -228,6 +228,8 @@ public:
   double HAULER_MAX_SPEED = 0.80;
   double curr_max_speed_= 0.80;
 
+  int move_base_fail_counter = 0;
+
   // Planning
   task_planning::PlanInfo prev_srv_plan;
 
