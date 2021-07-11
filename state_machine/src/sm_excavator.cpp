@@ -324,9 +324,20 @@ void SmExcavator::stateTraverse()
 
       // ClearCostmaps(5.0);  // TODO: Check if they needed
 
+      move_base_fail_counter++;
       Stop (0.1);
       BrakeRamp(100, 1, 0);
       Brake(0.0);
+
+      if(move_base_fail_counter > 5)
+      {
+        ClearCostmaps(5.0);
+        move_base_fail_counter = 0;
+      }
+    }
+    else
+    {
+      move_base_fail_counter = 0;
     }
 
     // ros::Duration timeoutWaypointCheck(3.0);

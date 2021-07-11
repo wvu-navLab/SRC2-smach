@@ -307,6 +307,7 @@ public:
   const double EXCAVATOR_MAX_SPEED = 0.53;
   double curr_max_speed_= 0.53;
 
+  int move_base_fail_counter = 0;
 
 
   // Planning  
