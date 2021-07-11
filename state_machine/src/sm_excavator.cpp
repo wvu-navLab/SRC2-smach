@@ -79,7 +79,7 @@ move_base_state_(actionlib::SimpleClientGoalState::PREEMPTED)
   clt_forward_kin = nh.serviceClient<move_excavator::ExcavatorFK>("manipulation/excavator_fk");
   clt_go_to_pose = nh.serviceClient<move_excavator::GoToPose>("manipulation/go_to_pose");
   clt_find_hauler = nh.serviceClient<move_excavator::FindHauler>("manipulation/find_hauler");
-  clt_where_hauler = nh.serviceClient<src2_object_detection::WhereToParkHauler>("/where_to_park_hauler");
+  clt_where_hauler = nh.serviceClient<src2_object_detection::WhereToParkHauler>("where_to_park_hauler");
   clt_task_planning = nh.serviceClient<task_planning::PlanInfo>("/task_planner_exc_haul");
   clt_vol_mark = nh.serviceClient<volatile_map::MarkCollected>("/volatile_map_mark_collected");
 
