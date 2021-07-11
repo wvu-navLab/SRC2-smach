@@ -77,7 +77,7 @@ void SmScout::run()
     {
       state_to_exec.at(_initialize) = 1;
     }
-    else if(flag_emergency_charging)
+    else if(flag_emergency)
     {
       state_to_exec.at(_emergency) = 1;
     }
@@ -400,8 +400,8 @@ void SmScout::stateLost()
 
 void SmScout::stateEmergency()
 {
-  ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Emergency Charging State!\n"); 
-  
+  ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Emergency Charging State!\n");
+
   CancelMoveBaseGoal();
 
   double progress = 0;
@@ -440,7 +440,7 @@ void SmScout::systemMonitorCallback(const srcp2_msgs::SystemMonitorMsg::ConstPtr
   power_level_ = msg->power_level;
   power_rate_ = msg->power_rate;
 
-  if (power_level_< 30) 
+  if (power_level_< 30)
   {
     ROS_WARN_STREAM("[" << robot_name_ << "] " << "Power Level Warning: " << power_level_);
 
@@ -529,7 +529,7 @@ void SmScout::localizationCallback(const nav_msgs::Odometry::ConstPtr& msg)
     {
       ROS_ERROR_STREAM("[" << robot_name_ << "] " << "Robot Cant Climb! Pitch: " << pitch_ * 180 / M_PI);
       ROS_ERROR_STREAM("[" << robot_name_ << "] " << "Commanding IMMOBILITY.");
-      
+
       CancelMoveBaseGoal();
       Stop(0.0);
       Brake(100.0);
@@ -544,7 +544,7 @@ void SmScout::localizationCallback(const nav_msgs::Odometry::ConstPtr& msg)
       Stop(0.1);
       Brake(100.0);
       Brake(0.0);
-      
+
       SetMoveBaseGoal();
       // ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Canceling goal, getting new waypoint.");
       // flag_arrived_at_waypoint = true;
@@ -572,7 +572,7 @@ void SmScout::localizationCallback(const nav_msgs::Odometry::ConstPtr& msg)
     {
       ROS_ERROR_STREAM("[" << robot_name_ << "] " << "Robot Cant Climb! Roll: " << roll_ * 180 / M_PI);
       ROS_ERROR_STREAM("[" << robot_name_ << "] " << "Commanding IMMOBILITY.");
-      
+
       CancelMoveBaseGoal();
       Stop(0.1);
       Brake(100.0);
@@ -587,7 +587,7 @@ void SmScout::localizationCallback(const nav_msgs::Odometry::ConstPtr& msg)
       Stop(0.1);
       Brake(100.0);
       Brake(0.0);
-      
+
       SetMoveBaseGoal();
       // CancelMoveBaseGoal();
     //   ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Canceling goal, getting new waypoint.");

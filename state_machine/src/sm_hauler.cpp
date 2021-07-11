@@ -46,7 +46,7 @@ move_base_state_(actionlib::SimpleClientGoalState::PREEMPTED)
     std::string excavator_odom_topic;
     excavator_odom_topic = "/small_excavator_" + std::to_string(i+1) + "/localization/odometry/sensor_fusion";
     excavator_odom_subs.push_back(nh.subscribe(excavator_odom_topic, 1, &SmHauler::excavatorOdomCallback, this));
-    
+
     std::string excavation_status_topic;
     excavation_status_topic = "/small_excavator_" + std::to_string(i+1) + "/state_machine/excavation_status";
     excavation_status_subs.push_back(nh.subscribe(excavation_status_topic, 1, &SmHauler::excavationStatusCallback, this));
@@ -81,7 +81,7 @@ move_base_state_(actionlib::SimpleClientGoalState::PREEMPTED)
   proc_plant_bin_location_.y = 9.0;
   proc_plant_bin_location_.z = 0.0;
 
-  nav_msgs::Odometry temp_small_excavator_odom;    
+  nav_msgs::Odometry temp_small_excavator_odom;
   state_machine::ExcavationStatus temp_small_excavator_status;
   for (int i=0; i<num_excavators_; i++)
   {
@@ -113,7 +113,7 @@ void SmHauler::run()
     {
       state_to_exec.at(_initialize) = 1;
     }
-    else if(flag_emergency_charging)
+    else if(flag_emergency)
     {
       state_to_exec.at(_emergency) = 1;
     }
@@ -257,7 +257,7 @@ void SmHauler::statePlanning()
 
   Plan();
 
-  if (!no_objective) 
+  if (!no_objective)
   {
     ROS_WARN_STREAM("[" << robot_name_ << "] " <<"New objective.");
     goal_yaw_ = atan2(goal_pose_.position.y - current_pose_.position.y, goal_pose_.position.x - current_pose_.position.x);
@@ -269,8 +269,8 @@ void SmHauler::statePlanning()
 
     // CheckWaypoint(3); // TODO: Check if they needed
 
-    ClearCostmaps(5.0);    
-    
+    ClearCostmaps(5.0);
+
     if(flag_localizing_volatile)
     {
       ros::Duration(30).sleep();
@@ -319,7 +319,7 @@ void SmHauler::stateTraverse()
       double roll, pitch, yaw;
 
       tf2::Matrix3x3(q).getRPY(roll, pitch, yaw);
-      
+
       RotateToHeading(yaw);
     }
 
@@ -340,12 +340,12 @@ void SmHauler::stateTraverse()
       // ClearCostmaps(5.0); // TODO: Check if they needed
 
       Stop (0.1);
-      BrakeRamp(100, 1, 0); 
+      BrakeRamp(100, 1, 0);
       Brake(0.0);
     }
 
     // ros::Duration timeoutWaypointCheck(3.0);
-    // if (ros::Time::now() - wp_checker_timer > timeoutWaypointCheck) 
+    // if (ros::Time::now() - wp_checker_timer > timeoutWaypointCheck)
     // {
     //   CheckWaypoint(3);
     //   wp_checker_timer = ros::Time::now();
@@ -365,7 +365,7 @@ void SmHauler::stateTraverse()
     //   ClearCostmaps(5.0);
     // }
   }
-  
+
   progress = distance_to_goal;
 
   state_machine::RobotStatus status_msg;
@@ -408,16 +408,16 @@ void SmHauler::stateVolatileHandler()
       flag_parked_hauler = GoToWaypoint();
       PublishHaulerStatus();
     }
-    
+
   }
-  
+
   if(flag_full_bin)
   {
     ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"FULL BIN");
 
     DriveCmdVel(-0.5,0,0,3);
     Stop (0.1);
-    BrakeRamp(100, 1, 0); 
+    BrakeRamp(100, 1, 0);
     Brake(0.0);
 
     flag_approached_side = false;
@@ -506,7 +506,7 @@ void SmHauler::stateLost()
 void SmHauler::stateEmergency()
 {
   ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Emergency Charging State!\n");
-  
+
   CancelMoveBaseGoal();
 
   double progress = 0;
@@ -602,7 +602,7 @@ void SmHauler::systemMonitorCallback(const srcp2_msgs::SystemMonitorMsg::ConstPt
   power_level_ = msg->power_level;
   power_rate_ = msg->power_rate;
 
-  if (power_level_< 30) 
+  if (power_level_< 30)
   {
     ROS_WARN_STREAM("[" << robot_name_ << "] " << "Power Level Warning: " << power_level_);
 
@@ -627,15 +627,15 @@ void SmHauler::localizationCallback(const nav_msgs::Odometry::ConstPtr& msg)
                       msg->pose.pose.orientation.w);
 
   tf2::Matrix3x3(q).getRPY(roll_, pitch_, yaw_);
-  
+
   double radius = hypot(current_pose_.position.x, current_pose_.position.y);
 
   if(radius > CRATER_RADIUS)
-  { 
+  {
     // flag_interrupt_plan = true;
   }
 
-  if (abs(pitch_ * 180 / M_PI) > 10) 
+  if (abs(pitch_ * 180 / M_PI) > 10)
   {
     ROS_WARN_STREAM_THROTTLE(10, "Robot Climbing Up! Pitch: " << pitch_ * 180 / M_PI);
     if (curr_max_speed_ != HAULER_MAX_SPEED*3/4)
@@ -644,7 +644,7 @@ void SmHauler::localizationCallback(const nav_msgs::Odometry::ConstPtr& msg)
       curr_max_speed_ = HAULER_MAX_SPEED*3/4;
     }
 
-    if (abs(pitch_ * 180 / M_PI) > 27) 
+    if (abs(pitch_ * 180 / M_PI) > 27)
     {
       ROS_ERROR_STREAM("[" << robot_name_ << "] " << "Robot Cant Climb! Pitch: " << pitch_ * 180 / M_PI);
       ROS_ERROR_STREAM("[" << robot_name_ << "] " << "Commanding IMMOBILITY.");
@@ -675,8 +675,8 @@ void SmHauler::localizationCallback(const nav_msgs::Odometry::ConstPtr& msg)
       curr_max_speed_ = HAULER_MAX_SPEED;
     }
   }
-  
-  if (abs(roll_ * 180 / M_PI) > 10) 
+
+  if (abs(roll_ * 180 / M_PI) > 10)
   {
     ROS_WARN_STREAM_THROTTLE(10, "Robot is Sideways! Roll: " << roll_ * 180 / M_PI);
     if (curr_max_speed_ != HAULER_MAX_SPEED*3/4)
@@ -685,7 +685,7 @@ void SmHauler::localizationCallback(const nav_msgs::Odometry::ConstPtr& msg)
       curr_max_speed_ = HAULER_MAX_SPEED*3/4;
     }
 
-    if (abs(roll_ * 180 / M_PI) > 27) 
+    if (abs(roll_ * 180 / M_PI) > 27)
     {
       ROS_ERROR_STREAM("[" << robot_name_ << "] " << "Robot Cant Climb! Roll: " << roll_ * 180 / M_PI);
       ROS_ERROR_STREAM("[" << robot_name_ << "] " << "Commanding IMMOBILITY.");
@@ -778,7 +778,7 @@ void SmHauler::excavationStatusCallback(const ros::MessageEvent<state_machine::E
   {
     // If the hauler is moving
     if(!flag_recovering_localization && !flag_dumping &&
-    partner_excavation_status_.found_parking_site.data && 
+    partner_excavation_status_.found_parking_site.data &&
     (!flag_approached_side || flag_approached_excavator || flag_parked_hauler))
     {
       goal_pose_.position = partner_excavation_status_.parking_pose.position;
@@ -824,7 +824,7 @@ void SmHauler::excavatorOdomCallback(const ros::MessageEvent<nav_msgs::Odometry 
   if (partner_excavator_id_ == msg_excavator_id)
   {
     partner_excavator_location_ = msg->pose.pose.position;
-  } 
+  }
   // ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Got small_excavator_2 odometry.");
 }
 
@@ -861,7 +861,7 @@ void SmHauler::plannerInterruptCallback(const std_msgs::Bool::ConstPtr &msg)
 
   if(!(prev_srv_plan.response.objective.point.x == srv_plan.response.objective.point.x &&
   prev_srv_plan.response.objective.point.y == srv_plan.response.objective.point.y &&
-  prev_srv_plan.response.code == srv_plan.response.code) && 
+  prev_srv_plan.response.code == srv_plan.response.code) &&
   (!flag_dumping) && (!flag_localizing_volatile))
   {
     flag_interrupt_plan = true;
@@ -913,7 +913,7 @@ void SmHauler::SetMoveBaseSpeed(double max_speed)
     ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Called service to reconfigure MoveBase max speed to: "<< max_speed);
   }
   else
-  {    
+  {
     ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Failed to call service to reconfigure MoveBase (max speed).");
   }
 }
@@ -1077,12 +1077,12 @@ void SmHauler::immobilityRecovery(int type)
 }
 
 void SmHauler::ClearCostmaps(double wait_time)
-{  
+{
   ROS_ERROR_STREAM("[" << robot_name_ << "] " << "Braking rover to clear the Map");
   BrakeRamp(100, 1, 0); // Give more time
 
   ROS_WARN_STREAM("[" << robot_name_ << "] " << "Move Base State: " << move_base_state_.toString());
-  
+
   // Clear the costmap
   std_srvs::Empty emptymsg;
   ros::service::waitForService("move_base/clear_costmaps",ros::Duration(3.0));
@@ -1096,7 +1096,7 @@ void SmHauler::ClearCostmaps(double wait_time)
   {
     ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Failed calling clear_costmaps service.");
   }
-  
+
   Brake(0.0);
 }
 
@@ -1544,7 +1544,7 @@ void SmHauler::PublishHaulerStatus()
   msg.bin_full.data = flag_full_bin;
   msg.hauler_id.data = robot_id_;
   msg.hauler_ready.data = flag_parked_hauler;
-  
+
   hauler_status_pub.publish(msg);
 }
 
