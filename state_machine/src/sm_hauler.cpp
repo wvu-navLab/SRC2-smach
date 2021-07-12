@@ -328,20 +328,24 @@ void SmHauler::stateTraverse()
 
       // ClearCostmaps(5.0); // TODO: Check if they needed
 
-      move_base_fail_counter++;
-      Stop (0.1);
-      BrakeRamp(100, 1, 0);
-      Brake(0.0);
+      // move_base_fail_counter++;
+      // Stop (0.1);
+      // BrakeRamp(100, 1, 0);
+      // Brake(0.0);
 
-      if(move_base_fail_counter > 5)
+      // if(move_base_fail_counter > 5)
+      // {
+      //   ClearCostmaps(5.0);
+      //   move_base_fail_counter = 0;
+      // }
+            
+      ros::Duration timeoutMap(5.0);
+      if (ros::Time::now() - map_timer > timeoutMap)
       {
         ClearCostmaps(5.0);
-        move_base_fail_counter = 0;
+        map_timer =ros::Time::now();
+        SetMoveBaseGoal();
       }
-    }
-    else
-    {
-      move_base_fail_counter = 0;
     }
 
     // ros::Duration timeoutWaypointCheck(3.0);
@@ -390,6 +394,8 @@ void SmHauler::stateVolatileHandler()
   {
     goal_pose_.position = partner_excavation_status_.parking_pose.position;
 
+    ClearCostmaps(5.0);
+    
     SetMoveBaseGoal();
 
     flag_approaching_side = true;
@@ -432,7 +438,7 @@ void SmHauler::stateVolatileHandler()
       Brake(100.0);
       while(!flag_full_bin)
       {
-        ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"FULL BIN");
+        ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"NOT FULL BIN");
         ros::spinOnce();
         ros::Duration(1.0).sleep();
       }
