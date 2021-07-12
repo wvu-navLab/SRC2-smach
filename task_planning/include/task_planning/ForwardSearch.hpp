@@ -94,8 +94,20 @@ namespace mac
     //ForwardSearch();
 
     /** \brief  */
-    ForwardSearch(const CostFunction cost_function,
-                  const PlanningParams planning_params);
+    ForwardSearch(){};
+    /** \brief  */
+    ForwardSearch(CostFunction cost_function,
+                  PlanningParams planning_params);
+
+    void set_cost_function(CostFunction cost_function)
+    {
+      cost_function_ = cost_function;
+    };
+
+    void set_planning_params(PlanningParams planning_params)
+    {
+      planning_params_ = planning_params;
+    };
 
     /** \brief  Run the forward search, which considers all possible actions
      * sequences given a specified horizon (i.e., maximum depth of the tree)
@@ -163,10 +175,10 @@ namespace mac
     // void get_state(State s);
 
     /** \brief  */
-    const CostFunction cost_function_;
+    CostFunction cost_function_;
 
     /** \brief  */
-    const PlanningParams planning_params_;
+    PlanningParams planning_params_;
 
     //TODO(Jared): do we want to represent the tree as a vector instead of a vector of vectors
     //             to be consistent with the toolbox?

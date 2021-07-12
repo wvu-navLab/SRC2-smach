@@ -151,13 +151,13 @@ namespace mac
                                                const std::vector<Action> joint_action,
                                                const State s_prime) const
   {
-    std::cout << "COST FUNCTION" << std::endl;
+    //std::cout << "COST FUNCTION" << std::endl;
     double time_cost = cost_time_passed(s, joint_action, s_prime);
-    std::cout << "time_cost: " << time_cost << std::endl;
+    //std::cout << "time_cost: " << time_cost << std::endl;
     double vol_cost = cost_vol_collected(s, joint_action, s_prime);
-    std::cout << "vol_cost: " << vol_cost << std::endl;
+    //std::cout << "vol_cost: " << vol_cost << std::endl;
     double tot_cost = params_.time_vol_weights[0] * time_cost + params_.time_vol_weights[1] * vol_cost;
-    std::cout << "tot_cost: " << tot_cost << std::endl;
+    //std::cout << "tot_cost: " << tot_cost << std::endl;
     return tot_cost;
   }
   double CostFunction::dist(const std::vector<double> p1, const std::vector<double> p2)

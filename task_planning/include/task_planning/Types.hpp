@@ -27,16 +27,6 @@ namespace mac
     _in_progress = 6
   };
 
-  const char *ACTION_HAULER_T_STRINGS[] =
-      {
-          "_initialize",
-          "_planning",
-          "_traverse",
-          "_volatile_handler",
-          "_lost",
-          "_hauler_dumping",
-          "_in_progress"};
-
   enum class ACTION_EXCAVATOR_T
   {
     _initialize = 0,
@@ -47,15 +37,6 @@ namespace mac
     _in_progress = 5
   };
 
-  const char *ACTION_EXCAVATOR_T_STRINGS[] =
-      {
-          "_initialize",
-          "_planning",
-          "_traverse",
-          "_volatile_handler",
-          "_lost",
-          "_in_progress"};
-
   enum class ACTION_SCOUT_T
   {
     _initialize = 0,
@@ -65,15 +46,6 @@ namespace mac
     _lost = 4,
     _in_progress = 5
   };
-
-  const char *ACTION_SCOUT_T_STRINGS[] =
-      {
-          "_initialize",
-          "_planning",
-          "_traverse",
-          "_volatile_handler",
-          "_lost",
-          "_in_progress"};
 
   const int SCOUT = 0;
   const int EXCAVATOR = 1;
@@ -142,6 +114,9 @@ namespace mac
     std::vector<double> planning_hauler_power_weights;
     std::vector<double> vol_handle_hauler_power_weights;
     std::vector<double> lost_hauler_power_weights;
+
+    double max_unc = 50;
+    double min_power = 40;
 
     //  std::vector<double> lost_hauler_power_weights;
 

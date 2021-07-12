@@ -22,7 +22,7 @@
 #include <task_planning/CostFunction.hpp>
 // #include <state_machine/RobotStatus.h>
 #include <task_planning/PlanInfo.h>
-//#include <task_planning/ForwardSearch.h>
+#include <task_planning/ForwardSearch.hpp>
 #include <volatile_map/VolatileMap.h>
 #include <geometry_msgs/PointStamped.h>
 
@@ -107,7 +107,7 @@ class TaskPlanner {
     ros::ServiceServer server_task_planner;
 
     /** \brief  */
-    //ForwardSearch forward_search_;
+    ForwardSearch forward_search_;
 
     /** \brief  */
     void timeCallback(const rosgraph_msgs::Clock::ConstPtr &msg);

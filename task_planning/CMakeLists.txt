@@ -136,21 +136,29 @@ target_link_libraries(CostFunctionLib
 )
 add_dependencies(CostFunctionLib task_planning_generate_messages_cpp ${catkin_EXPORTED_TARGETS})
 
+add_library(ForwardSearchLib 
+  src/ForwardSearch_act.cpp
+  src/ForwardSearch_alg.cpp
+  src/ForwardSearch_sim.cpp
+  src/ForwardSearch_util.cpp
+
+)
+target_link_libraries(ForwardSearchLib
+  #/usr/local/lib
+  CostFunctionLib
+  # TaskPlannerLib
+  ${catkin_LIBRARIES}
+)
+add_dependencies(ForwardSearchLib task_planning_generate_messages_cpp ${catkin_EXPORTED_TARGETS})
+
+
 add_library(TaskPlannerLib src/TaskPlanner.cpp)
 target_link_libraries(TaskPlannerLib
   #/usr/local/lib
   ${catkin_LIBRARIES}
+  ForwardSearchLib
 )
 add_dependencies(TaskPlannerLib task_planning_generate_messages_cpp ${catkin_EXPORTED_TARGETS})
-
-add_library(ForwardSearchLib src/ForwardSearch.cpp)
-target_link_libraries(ForwardSearchLib
-  #/usr/local/lib
-  CostFunctionLib
-  TaskPlannerLib
-  ${catkin_LIBRARIES}
-)
-add_dependencies(ForwardSearchLib task_planning_generate_messages_cpp ${catkin_EXPORTED_TARGETS})
 
 ## Add cmake target dependencies of the library
 ## as an example, code may need to be generated before libraries

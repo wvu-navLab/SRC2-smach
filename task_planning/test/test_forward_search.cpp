@@ -109,209 +109,7 @@ std::vector<mac::Robot> create_robots()
   return robots;
 }
 
-void print_joint_action(std::vector<mac::Action> joint_action)
-{
-  int counter = 0;
-  for (const auto &action : joint_action)
-  {
-    std::cout << "ACTION[" << counter << "]" << std::endl;
 
-    std::cout << "    robot_type: ";
-    switch (action.robot_type)
-    {
-    case mac::SCOUT:
-      std::cout << "SCOUT" << action.id << std::endl;
-      break;
-    case mac::EXCAVATOR:
-      std::cout << "EXCAVATOR" << action.id << std::endl;
-      break;
-    case mac::HAULER:
-      std::cout << "HAULER" << action.id << std::endl;
-      break;
-    default:
-      std::cout << "Invalid robot type: print_joint_action" << std::endl;
-      break;
-    }
-
-    std::cout << "    objective: " << action.objective.first << ", " << action.objective.second << std::endl;
-    std::cout << "    id: " << action.id << std::endl;
-
-    if (action.robot_type == mac::EXCAVATOR)
-    {
-      switch (action.code)
-      {
-      case (int)mac::ACTION_EXCAVATOR_T::_initialize:
-        std::cout << "    TASK: EXCAVATOR INITIALIZE" << std::endl;
-        break;
-      case (int)mac::ACTION_EXCAVATOR_T::_planning:
-        std::cout << "    TASK: EXCAVATOR PLANNING" << std::endl;
-        break;
-      case (int)mac::ACTION_EXCAVATOR_T::_traverse:
-        std::cout << "    TASK: EXCAVATOR TRAVERSE" << std::endl;
-        break;
-      case (int)mac::ACTION_EXCAVATOR_T::_volatile_handler:
-        std::cout << "    TASK: EXCAVATOR VOL HANDLER" << std::endl;
-        break;
-      case (int)mac::ACTION_EXCAVATOR_T::_lost:
-        std::cout << "    TASK: EXCAVATOR LOST" << std::endl;
-        break;
-      case (int)mac::ACTION_EXCAVATOR_T::_in_progress:
-        std::cout << "    TASK: EXCAVATOR IN PROGRESS" << std::endl;
-        break;
-      }
-    }
-
-    if (action.robot_type == mac::HAULER)
-    {
-      switch (action.code)
-      {
-      case (int)mac::ACTION_HAULER_T::_initialize:
-        std::cout << "     TASK: HAULER INITIALIZE" << std::endl;
-        break;
-      case (int)mac::ACTION_HAULER_T::_planning:
-        std::cout << "     TASK: HAULER PLANNING" << std::endl;
-        break;
-      case (int)mac::ACTION_HAULER_T::_traverse:
-        std::cout << "     TASK: HAULER TRAVERSE" << std::endl;
-        break;
-      case (int)mac::ACTION_HAULER_T::_volatile_handler:
-        std::cout << "     TASK: HAULER VOL HANDLER" << std::endl;
-        break;
-      case (int)mac::ACTION_HAULER_T::_lost:
-        std::cout << "     TASK: HAULER LOST" << std::endl;
-        break;
-      case (int)mac::ACTION_HAULER_T::_hauler_dumping:
-        std::cout << "     TASK: HAULER DUMPING" << std::endl;
-        break;
-      case (int)mac::ACTION_HAULER_T::_in_progress:
-        std::cout << "     TASK: HAULER IN PROGRESS" << std::endl;
-        break;
-      default:
-        std::cout << "Invalid code: print_joint_action" << std::endl;
-        break;
-      }
-    }
-
-    std::cout << "    volatile_index: " << action.volatile_index << std::endl;
-    std::cout << "    toggle_sleep: " << action.toggle_sleep << std::endl;
-
-    counter++;
-  }
-}
-
-void print_sequence_of_joint_actions(std::vector<std::vector<mac::Action>> joint_actions)
-{
-  if (joint_actions.empty())
-  {
-    std::cout << "print_sequence_of_joint_actions:sequence of joint actions is empty." << std::endl;
-    return;
-  }
-
-  int counter = 0;
-  for (auto &joint_action : joint_actions)
-  {
-    std::cout << "JOINT ACTION[" << counter << "]" << std::endl;
-    print_joint_action(joint_action);
-    ++counter;
-  }
-}
-
-void print_volatile_map(volatile_map::VolatileMap volatile_map)
-{
-  std::cout << "volatile_map:" << std::endl;
-  int counter = 0;
-  for (auto &v : volatile_map.vol)
-  {  
-
-    std::cout << "  vol " << counter;
-    std::cout << ": type=" << v.type;
-    std::cout << ", x=" << v.position.point.x;
-    std::cout << ", y=" << v.position.point.y;
-    std::cout << ", collected=" << v.collected;
-    std::cout << std::endl;
-    ++counter;
-  }
-}
-
-void print_robot(int robot_index, std::vector<mac::Robot> robots)
-{
-  //robot
-  mac::Robot robot = robots[robot_index];
-
-  //map robot type and current task to strings for printing
-  std::string robot_type;
-  std::string current_task;
-  switch (robot.type)
-  {
-  case mac::SCOUT:
-    robot_type = "SCOUT";
-    if (robot.current_task != -1)
-    {
-      current_task = mac::ACTION_SCOUT_T_STRINGS[robot.current_task];
-    }
-    else
-    {
-      current_task = "none";
-    }
-    break;
-  case mac::EXCAVATOR:
-    robot_type = "EXCAVATOR";
-    if (robot.current_task != -1)
-    {
-      current_task = mac::ACTION_EXCAVATOR_T_STRINGS[robot.current_task];
-    }
-    else
-    {
-      current_task = "none";
-    }
-    break;
-  case mac::HAULER:
-    robot_type = "HAULER";
-    if (robot.current_task != -1)
-    {
-      current_task = mac::ACTION_HAULER_T_STRINGS[robot.current_task];
-    }
-    else
-    {
-      current_task = "none";
-    }
-    break;
-  default:
-    std::cout << "Invalid robot type in print_robot" << std::endl;
-    break;
-  }
-
-  std::cout << "  robot " << robot_index << ":" << std::endl;
-  std::cout << "      id=" << robot.id << std::endl;
-  std::cout << "      type=" << robot_type << std::endl;
-  std::cout << "      time_remaining=" << robot.time_remaining << std::endl;
-  std::cout << "      current_task=" << current_task << std::endl;
-  std::cout << "      x=" << robot.odom.pose.pose.position.x << std::endl;
-  std::cout << "      y=" << robot.odom.pose.pose.position.y << std::endl;
-  std::cout << "      toggle_sleep=" << robot.toggle_sleep << std::endl;
-}
-
-void print_robots(std::vector<mac::Robot> robots)
-{
-  for (int i = 0; i < robots.size(); i++)
-  {
-    print_robot(i, robots);
-  }
-}
-
-void print_state(mac::State s)
-{
-  std::cout << "///////////////////////////////" << std::endl;
-  print_robots(s.robots);
-
-  std::cout << "///////////////////////////////" << std::endl;
-  print_volatile_map(s.volatile_map);
-
-  std::cout << "///////////////////////////////" << std::endl;
-  std::cout << "Time:" << s.time << std::endl;
-
-  std::cout << "///////////////////////////////" << std::endl;
-}
 
 void test_propagate(mac::State s, std::vector<mac::Action> joint_action, mac::ForwardSearch fs)
 {
@@ -319,17 +117,17 @@ void test_propagate(mac::State s, std::vector<mac::Action> joint_action, mac::Fo
   std::cout << "****Testing Propagate********" << std::endl;
   std::cout << "*****************************" << std::endl;
   std::cout << "Current State:" << std::endl;
-  print_state(s);
+  fs.print_state(s);
 
   std::cout << "Joint Action:" << std::endl;
 
   std::cout << "Running propagate..." << std::endl;
-  print_joint_action(joint_action);
+  fs.print_joint_action(joint_action);
 
   mac::State sp = fs.propagate(s, joint_action);
 
   std::cout << "Next State:" << std::endl;
-  print_state(s);
+  fs.print_state(s);
 }
 
 int main(int argc, char **argv)
@@ -341,8 +139,8 @@ int main(int argc, char **argv)
   std::cout << "main:: Initializing CostFunction..." << std::endl;
   const mac::CostFunction cf(mac::TIME_VOL_COLLECTED);
   mac::PlanningParams pp;
-  pp.max_time = 8;  // seconds
-  pp.max_depth = 5; //max depth to construct tree
+  pp.max_time = 5;  // seconds
+  pp.max_depth = 50; //max depth to construct tree
   pp.timeout = 30;
   pp.wait_time = 30;      //seconds
   pp.max_v_scout = 5;     // m/s
@@ -386,7 +184,7 @@ int main(int argc, char **argv)
   std::vector<mac::Action> joint_action;
   joint_action = fs.plan(s);
 
-  print_joint_action(joint_action);
+  // fs.print_joint_action(joint_action);
   //print_volatile_map(s.volatile_map);
 
   // std::cout << "main: printing joint action." << std::endl;

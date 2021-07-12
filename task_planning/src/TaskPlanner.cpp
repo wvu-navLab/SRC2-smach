@@ -279,7 +279,7 @@ namespace mac
   bool TaskPlanner::taskPlanService(task_planning::PlanInfo::Request &req, task_planning::PlanInfo::Response &res)
   {
     ROS_ERROR_STREAM("[TASK PLANNER] [" << plan_call_counter << "] Planning started.");
-
+    State s;
     if (req.replan.data)
     {
       ROS_ERROR_STREAM("[TASK PLANNER] [" << plan_call_counter << "] Planning started.");
@@ -294,9 +294,13 @@ namespace mac
         ROS_WARN_STREAM("[TASK PLANNER] [" << plan_call_counter << "] EXC HAUL PLANNER");
         this->exc_haul_plan_default();
         break;
-      // case EXC_HAUL_FORWARD_SEARCH:
-      //   this->forward_search_.plan(robots_, volatile_map_, time_);
-      //   break;
+      case EXC_HAUL_FORWARD_SEARCH:
+        
+        s.robots = robots_;
+        s.volatile_map = volatile_map_;
+        s.time = time_;
+        this->forward_search_.plan(s);
+        break;
       default:
         ROS_ERROR_STREAM("[TASK PLANNER] [" << plan_call_counter << "] Task Planner type invalid!");
         break;
@@ -460,7 +464,8 @@ namespace mac
 
     this->populate_prior_plan();
 
-    //ForwardSearch forward_search_(cost_function_, planning_params_);
+    forward_search_.set_cost_function(cost_function);
+    forward_search_.set_planning_params(planning_params);
   }
 
   /////////////////////////////////////////////////////////////////////
