@@ -282,14 +282,16 @@ public:
   // Transforms
   tf2_ros::Buffer tf_buffer;
   tf2_ros::TransformListener tf2_listener;
-  geometry_msgs::TransformStamped odom_to_base_link;
-  geometry_msgs::TransformStamped base_link_to_odom;
-  geometry_msgs::TransformStamped base_link_to_arm_mount;
-  geometry_msgs::TransformStamped arm_mount_to_base_link;
+  geometry_msgs::TransformStamped odom_to_base_footprint;
+  geometry_msgs::TransformStamped base_footprint_to_odom;
+  geometry_msgs::TransformStamped base_footprint_to_arm_mount;
+  geometry_msgs::TransformStamped arm_mount_to_base_footprint;
   geometry_msgs::TransformStamped odom_to_arm_mount;
   geometry_msgs::TransformStamped arm_mount_to_odom;
   geometry_msgs::TransformStamped camera_link_to_arm_mount;
   geometry_msgs::TransformStamped arm_mount_to_camera_link;
+  geometry_msgs::TransformStamped camera_link_to_base_footprint;
+  geometry_msgs::TransformStamped base_footprint_to_camera_link;
 
 
   double goal_yaw_;

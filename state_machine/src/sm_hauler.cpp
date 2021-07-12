@@ -70,6 +70,7 @@ move_base_state_(actionlib::SimpleClientGoalState::PREEMPTED)
   clt_approach_bin = nh.serviceClient<src2_approach_services::ApproachBin>("approach_bin_service");
   clt_location_of_bin = nh.serviceClient<range_to_base::LocationOfBin>("location_of_bin_service");
   clt_location_of_excavator = nh.serviceClient<range_to_base::LocationOfExcavator>("location_of_excavator_service");
+  clt_find_excavator = nh.serviceClient<move_excavator::FindExcavator>("manipulation/find_excavator");
   clt_go_to_goal = nh.serviceClient<waypoint_nav::GoToGoal>("navigation/go_to_goal");
 
   map_timer = ros::Time::now();
@@ -403,6 +404,8 @@ void SmHauler::stateVolatileHandler()
     flag_localizing_volatile = true;
   }
 
+  PublishHaulerStatus();
+
   if(!flag_full_bin && flag_approached_side)
   {
     if(!flag_approached_excavator && partner_excavation_status_.found_volatile.data)
@@ -428,8 +431,13 @@ void SmHauler::stateVolatileHandler()
 
     if (!flag_parked_hauler && flag_approached_excavator)
     {
-      ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"APPROACH SERVICE SUCCESS -- ESTIMATING EXCAV LOCATION ");
-      flag_located_excavator = LocateExcavator();
+      flag_located_excavator = FindExcavator(30);
+      if(!flag_located_excavator)
+      {
+        ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"APPROACH SERVICE SUCCESS -- ESTIMATING EXCAV LOCATION ");
+        flag_located_excavator = LocateExcavator();
+      }
+      
       PublishHaulerStatus();
       
       flag_parked_hauler = GoToWaypoint();
@@ -451,10 +459,14 @@ void SmHauler::stateVolatileHandler()
 
       PublishHaulerStatus();
 
+      // RESET ALL VOL HANDLING FLAGS
+      flag_approaching_side = false;
       flag_approached_side = false;
       flag_approached_excavator = false;
+      flag_located_excavator = false;
       flag_parked_hauler = false;
 
+      // SET SMACH FLAGS TO DUMPING
       flag_interrupt_plan = false;
       flag_recovering_localization = false;
       flag_localizing_volatile = false;
@@ -590,13 +602,21 @@ void SmHauler::stateDump()
     BrakeRamp(100, 1, 0);
     Brake(0.0);
 
+    // RESET ALL VOL HANDLING FLAGS
+    flag_approaching_side = false;
+    flag_approached_side = false;
+    flag_approached_excavator = false;
+    flag_located_excavator = false;
+    flag_parked_hauler = false;
     flag_full_bin = false;
 
+    // SET SMACH FLAGS TO DUMPING
     flag_interrupt_plan = false;
-    flag_arrived_at_waypoint = true;
-    flag_localizing_volatile = false;
-    flag_dumping = false;
     flag_recovering_localization = true;
+    flag_localizing_volatile = false;
+    flag_arrived_at_waypoint = false;
+    flag_dumping = false;
+
 
     progress = 1.0;
 
@@ -1501,6 +1521,43 @@ bool SmHauler::LocateExcavator()
   return success;
 }
 
+bool SmHauler::FindExcavator(double timeout)
+{
+  move_excavator::FindExcavator srv_find;
+
+  srv_find.request.timeLimit = timeout;
+  srv_find.request.side = partner_excavation_status_.parking_side.data;
+
+  if (clt_find_excavator.call(srv_find))
+  {
+    ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Called service FindExcavator.");
+  }
+  else
+  {
+    ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Failed to call service FindExcavator.");
+  }
+
+  if (srv_find.response.success)
+  {
+    geometry_msgs::PointStamped bucket_point = srv_find.response.target;
+    bucket_point.point.z += 0.0;
+
+    camera_link_to_base_footprint = tf_buffer.lookupTransform(robot_name_+"_base_footprint", robot_name_+"_left_camera_optical", ros::Time(0), ros::Duration(1.0));
+    
+    tf2::doTransform(bucket_point, bucket_point_, camera_link_to_base_footprint);
+
+    partner_excavator_location_ = bucket_point_.point;
+
+    ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Got the position of the Excavator's bucket. Point:" << bucket_point_);
+    return true;
+  }
+  else
+  {
+    ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Havent found the Excavator's bucket.");
+    
+    return false;
+  }
+}
 
 bool SmHauler::LocateBin()
 {
@@ -1575,6 +1632,8 @@ void SmHauler::PublishHaulerStatus()
   msg.bin_full.data = flag_full_bin;
 
   hauler_status_pub.publish(msg);
+
+  ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Publishing Hauler Status." << msg);
 }
 
 void SmHauler::Plan()

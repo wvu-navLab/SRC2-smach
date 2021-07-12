@@ -30,6 +30,9 @@
     <!-- sensor_fusion launch file -->
     <include file="$(find sensor_fusion)/launch/sensor_fusion.launch"/>
 
+    <!-- find_excavator launch file -->
+    <include file="$(find move_excavator)/launch/find_excavator.launch"/>
+
     <!-- hauler_move_base launch files -->
     <include file="$(find src2_move_base)/launch/hauler_map_server.launch"/>
     <include file="$(find src2_move_base)/launch/hauler_move_base.launch"/>

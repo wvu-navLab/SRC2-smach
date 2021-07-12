@@ -377,6 +377,7 @@ void SmExcavator::stateVolatileHandler()
 
   CancelMoveBaseGoal();
 
+  Brake(100.0);
   // If not interrupted, this will cancel move-base goal and
   // manipulation will be enabled at first time
   if(!flag_manipulation_enabled && !flag_manipulation_interrupt)
@@ -411,6 +412,8 @@ void SmExcavator::stateVolatileHandler()
     CancelExcavation(false);
     ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Excavation State Machine disabled.");
   }
+
+  Brake(0.0);
 
   state_machine::RobotStatus status_msg;
   status_msg.progress.data = progress;
@@ -1511,16 +1514,16 @@ bool SmExcavator::ExecuteSearch()
 
     if (!wheelOrientations[j])
     {
+      Brake(0.0);
       Drive(v* directions[j], fabs(directions[j]) * t);
+      Brake(100.0);
     }
     else
     {
+      Brake(0.0);
       MoveSideways(v * directions[j], fabs(directions[j]) * t);
+      Brake(100.0);
     }
-
-    Stop(0.1);
-    BrakeRamp(100, 1, 0);
-    Brake(0.0);
 
     for (int i = 0; i < q1s.size(); i++) // Change the angle of arm to search
     {
@@ -1557,16 +1560,16 @@ bool SmExcavator::ExecuteSearch()
 
     if (!wheelOrientations[j])
     {
+      Brake(0.0);
       Drive(-v * directions[j], fabs(directions[j]) * t);
+      Brake(100.0);
     }
     else
     {
+      Brake(0.0);
       MoveSideways(-v * directions[j], fabs(directions[j]) * t);
+      Brake(100.0);
     }
-
-    Stop(0.1);
-    BrakeRamp(100, 1, 0);
-    Brake(0.0);
 
   }
 
@@ -1999,11 +2002,9 @@ void SmExcavator::PublishExcavationStatus()
   msg.counter.data = excavation_counter_;
   msg.progress.data = excavation_counter_/MAX_EXCAVATION_COUNTER;
 
-  ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Publishing Excavation State Machine Status." << msg);
-
   excavation_status_pub.publish(msg);
 
-  ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Publishing Excavation State Machine Status.");
+  ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Publishing Excavation State Machine Status." << msg);
 }
 
 void SmExcavator::Plan()

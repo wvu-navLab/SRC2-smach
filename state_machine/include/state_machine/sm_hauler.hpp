@@ -48,6 +48,7 @@
 #include <state_machine/HaulerStatus.h>
 #include <state_machine/ExcavationStatus.h>
 #include <waypoint_nav/GoToGoal.h>
+#include <move_excavator/FindExcavator.h>
 
 typedef actionlib::SimpleActionClient<move_base_msgs::MoveBaseAction> MoveBaseClient;
 
@@ -122,6 +123,7 @@ public:
   ros::ServiceClient clt_task_planning;
   ros::ServiceClient clt_location_of_bin;
   ros::ServiceClient clt_location_of_excavator;
+  ros::ServiceClient clt_find_excavator;
   ros::ServiceClient clt_set_goal;
   ros::ServiceClient clt_go_to_goal;
 
@@ -181,6 +183,7 @@ public:
   bool HomingUpdate(bool init_landmark);
   bool LocateBin();
   bool LocateExcavator();
+  bool FindExcavator(double timeout);
   void PublishHaulerStatus();
   void Plan();
 
@@ -207,6 +210,13 @@ public:
   // Transforms
   tf2_ros::Buffer tf_buffer;
   tf2_ros::TransformListener tf2_listener;
+  geometry_msgs::TransformStamped odom_to_base_footprint;
+  geometry_msgs::TransformStamped base_footprint_to_odom;
+  geometry_msgs::TransformStamped odom_to_arm_mount;
+  geometry_msgs::TransformStamped camera_link_to_base_footprint;
+  geometry_msgs::TransformStamped base_footprint_to_camera_link;
+
+  geometry_msgs::PointStamped bucket_point_;
 
   double volatile_detected_distance = -1.0;
   double min_volatile_detected_distance = 30.0;
