@@ -306,21 +306,10 @@ void SmHauler::stateTraverse()
 
     CancelMoveBaseGoal();
 
-    if(flag_approaching_side == true)
+    if(flag_approaching_side)
     {
       flag_approached_side = true;
-      flag_approaching_side == false;
-
-      tf2::Quaternion q(partner_excavation_status_.parking_pose.orientation.x,
-                      partner_excavation_status_.parking_pose.orientation.y,
-                      partner_excavation_status_.parking_pose.orientation.z,
-                      partner_excavation_status_.parking_pose.orientation.w);
-
-      double roll, pitch, yaw;
-
-      tf2::Matrix3x3(q).getRPY(roll, pitch, yaw);
-
-      RotateToHeading(yaw);
+      flag_approaching_side = false;
     }
 
     flag_arrived_at_waypoint = true;
@@ -344,17 +333,16 @@ void SmHauler::stateTraverse()
       BrakeRamp(100, 1, 0);
       Brake(0.0);
 
-
       if(move_base_fail_counter > 5)
       {
         ClearCostmaps(5.0);
         move_base_fail_counter = 0;
       }
     }
-      else
-      {
+    else
+    {
       move_base_fail_counter = 0;
-      }
+    }
 
     // ros::Duration timeoutWaypointCheck(3.0);
     // if (ros::Time::now() - wp_checker_timer > timeoutWaypointCheck)
@@ -398,66 +386,79 @@ void SmHauler::stateVolatileHandler()
   // TODO: Get feedback from Excavator before approaching
   // Include callback to ExcavationStatus
   // According with ExcavationStatus we approach and park
+  if(!flag_approached_side && partner_excavation_status_.found_parking_site.data)
+  {
+    goal_pose_.position = partner_excavation_status_.parking_pose.position;
+
+    SetMoveBaseGoal();
+
+    flag_approaching_side = true;
+    flag_arrived_at_waypoint = false;
+    flag_localizing_volatile = true;
+  }
 
   if(!flag_full_bin && flag_approached_side)
   {
     if(!flag_approached_excavator && partner_excavation_status_.found_volatile.data)
     {
+      tf2::Quaternion q(partner_excavation_status_.parking_pose.orientation.x,
+                  partner_excavation_status_.parking_pose.orientation.y,
+                  partner_excavation_status_.parking_pose.orientation.z,
+                  partner_excavation_status_.parking_pose.orientation.w);
+
+      double roll, pitch, yaw;
+
+      tf2::Matrix3x3(q).getRPY(roll, pitch, yaw);
+
+      RotateToHeading(yaw);
+
       ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"STARTING APPROACH EXCAVATOR");
 
       flag_approached_excavator = ApproachExcavator(3);
       flag_located_excavator = false;
       flag_parked_hauler = false;
+      PublishHaulerStatus();
     }
 
     if (!flag_parked_hauler && flag_approached_excavator)
     {
       ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"APPROACH SERVICE SUCCESS -- ESTIMATING EXCAV LOCATION ");
       flag_located_excavator = LocateExcavator();
-
-      // TODO: This is where we are gonna call the parallel parking
-      // Include new method: SmHauler::ParallelParking that calls the service
+      PublishHaulerStatus();
+      
       flag_parked_hauler = GoToWaypoint();
       PublishHaulerStatus();
+
+      Brake(100.0);
+      while(!flag_full_bin)
+      {
+        ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"FULL BIN");
+        ros::spinOnce();
+        ros::Duration(1.0).sleep();
+      }
+      Brake(0.0);
+
+      DriveCmdVel(-0.5,0,0,3);
+      Stop (0.1);
+      BrakeRamp(100, 1, 0);
+      Brake(0.0);
+
+      PublishHaulerStatus();
+
+      flag_approached_side = false;
+      flag_approached_excavator = false;
+      flag_parked_hauler = false;
+
+      flag_interrupt_plan = false;
+      flag_recovering_localization = false;
+      flag_localizing_volatile = false;
+      flag_arrived_at_waypoint = false;
+      flag_dumping = true;
+
+      goal_pose_.position = proc_plant_bin_location_;
+      SetMoveBaseGoal();
     }
-
   }
-
-  if(flag_full_bin)
-  {
-    ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"FULL BIN");
-
-    DriveCmdVel(-0.5,0,0,6);
-    Stop (0.1);
-    BrakeRamp(100, 1, 0);
-    Brake(0.0);
-
-    RotateInPlace(0.2, 3);
-    Stop(0.1);
-    BrakeRamp(100, 1, 0);
-    Brake(0.0);
-
-    flag_approached_side = false;
-    flag_approached_excavator = false;
-    flag_parked_hauler = false;
-
-    flag_interrupt_plan = false;
-    flag_recovering_localization = false;
-    flag_localizing_volatile = false;
-    flag_arrived_at_waypoint = false;
-    flag_dumping = true;
-
-    goal_pose_.position = proc_plant_bin_location_;
-    SetMoveBaseGoal();
-  }
-
-  // TODO: choose when to transition to dumping
-  // We need to check what is a good condition. Some possibilities:
-  // Five dumps?
-  // Node that checks the srcp2_score
-  // Node that checks the amount of material in the bin with the camera
-
-  // flag_full_bin = true;
 
   state_machine::RobotStatus status_msg;
   status_msg.progress.data = progress;
@@ -793,39 +794,34 @@ void SmHauler::excavationStatusCallback(const ros::MessageEvent<state_machine::E
   if (partner_excavator_id_ == msg->excavator_id.data)
   {
     ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Got new excavation status.");
-    // Copy the whole message
     partner_excavation_status_ = *msg;
-  }
-  // ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Got excavation status.");
 
-  if(partner_excavator_id_ != 0)
-  {
-    // If the hauler is moving
-    if(!flag_recovering_localization && !flag_dumping &&
-    partner_excavation_status_.found_parking_site.data &&
-    (!flag_approached_side || flag_approached_excavator || flag_parked_hauler))
-    {
-      goal_pose_.position = partner_excavation_status_.parking_pose.position;
+    // // If the hauler is moving
+    // if(!flag_recovering_localization && !flag_dumping &&
+    // partner_excavation_status_.found_parking_site.data &&
+    // (!flag_approached_side || flag_approached_excavator || flag_parked_hauler))
+    // {
+    //   goal_pose_.position = partner_excavation_status_.parking_pose.position;
 
-      SetMoveBaseGoal();
-      flag_approaching_side = true;
-      flag_arrived_at_waypoint = false;
-      flag_localizing_volatile = true;
-    }
+    //   SetMoveBaseGoal();
+    //   flag_approaching_side = true;
+    //   flag_arrived_at_waypoint = false;
+    //   flag_localizing_volatile = true;
+    // }
 
-    if(flag_parked_hauler && partner_excavation_status_.found_volatile.data && !partner_excavation_status_.found_hauler.data)
-    {
-      flag_approached_side = false;
-      flag_approached_excavator = false;
-      flag_parked_hauler == false;
+    // if(flag_parked_hauler && partner_excavation_status_.found_volatile.data && !partner_excavation_status_.found_hauler.data)
+    // {
+    //   flag_approached_side = false;
+    //   flag_approached_excavator = false;
+    //   flag_parked_hauler == false;
 
-      goal_pose_.position = partner_excavation_status_.parking_pose.position;
+    //   goal_pose_.position = partner_excavation_status_.parking_pose.position;
 
-      SetMoveBaseGoal();
-      flag_approaching_side = true;
-      flag_arrived_at_waypoint = false;
-      flag_localizing_volatile = true;
-    }
+    //   SetMoveBaseGoal();
+    //   flag_approaching_side = true;
+    //   flag_arrived_at_waypoint = false;
+    //   flag_localizing_volatile = true;
+    // }
 
     if(partner_excavation_status_.counter.data == -1)
     {
@@ -1565,9 +1561,11 @@ bool SmHauler::HomingUpdate(bool init_landmark)
 void SmHauler::PublishHaulerStatus()
 {
   state_machine::HaulerStatus msg;
-  msg.bin_full.data = flag_full_bin;
   msg.hauler_id.data = robot_id_;
+  msg.approached_excavator.data = flag_approached_excavator;
+  msg.located_excavator.data = flag_located_excavator;
   msg.hauler_ready.data = flag_parked_hauler;
+  msg.bin_full.data = flag_full_bin;
 
   hauler_status_pub.publish(msg);
 }
