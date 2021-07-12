@@ -339,7 +339,7 @@ void SmHauler::stateTraverse()
       //   ClearCostmaps(5.0);
       //   move_base_fail_counter = 0;
       // }
-            
+
       ros::Duration timeoutMap(5.0);
       if (ros::Time::now() - map_timer > timeoutMap)
       {
@@ -439,7 +439,7 @@ void SmHauler::stateVolatileHandler()
       }
       
       PublishHaulerStatus();
-      
+
       flag_parked_hauler = GoToWaypoint();
       PublishHaulerStatus();
 
@@ -1509,6 +1509,7 @@ bool SmHauler::LocateExcavator()
     else
     {
       ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Location of excavator not reliable");
+      partner_excavator_location_ = srv_location_of_excavator.response.excavator_location;
       success = false;
     }
   }
