@@ -301,7 +301,7 @@ void SmHauler::stateTraverse()
   double progress = 0;
 
   double distance_to_goal = std::hypot(goal_pose_.position.y - current_pose_.position.y, goal_pose_.position.x - current_pose_.position.x);
-  if (distance_to_goal < 2.0)
+  if (distance_to_goal < 1.0)
   {
 
     CancelMoveBaseGoal();
@@ -395,7 +395,7 @@ void SmHauler::stateVolatileHandler()
     goal_pose_.position = partner_excavation_status_.parking_pose.position;
 
     ClearCostmaps(5.0);
-    
+
     SetMoveBaseGoal();
 
     flag_approaching_side = true;
@@ -1352,6 +1352,7 @@ bool SmHauler::GoToWaypoint()
   waypoint_nav::GoToGoal srv_gotoGoal;
   srv_gotoGoal.request.start = true;
   srv_gotoGoal.request.goal.position = partner_excavator_location_;
+  srv_gotoGoal.request.side = partner_excavation_status_.parking_side.data;
   srv_gotoGoal.request.thresh = 1.5;
   srv_gotoGoal.request.timeOut = 30;
 

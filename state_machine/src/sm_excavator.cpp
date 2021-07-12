@@ -390,6 +390,7 @@ void SmExcavator::stateVolatileHandler()
 
     manipulation_timer = ros::Time::now();
     flag_manipulation_enabled = true;
+    excavation_counter_ = 0;
   }
 
   // Then  the manipulation state-machine keeps being called unless timeout is reached or it is finished
@@ -407,7 +408,7 @@ void SmExcavator::stateVolatileHandler()
   else
   {
     // If excavation gets disabled, it will cancel excavation
-    // CancelExcavation(false);
+    CancelExcavation(false);
     ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Excavation State Machine disabled.");
   }
 
@@ -1536,7 +1537,7 @@ bool SmExcavator::ExecuteSearch()
         volatile_heading_ = q1s[i];
 
         ExecuteDrop(2,3,0);
-        ExecuteHomeArm(2,0);
+        ExecuteHomeArm(5,0);
         ros::spinOnce();
 
         return true;
@@ -1786,15 +1787,15 @@ void SmExcavator::ExcavationStateMachine()
       ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Excavation: Bucket full? " << (int) flag_bucket_full);
       ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Excavation: Found volatile? " << (int) flag_found_volatile);
 
-      ExecuteHomeArm(5,2);
-
       if(flag_bucket_full)
       {
+        ExecuteHomeArm(3,0);
         ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Excavation: Going to Extend.");
         excavation_state_ = EXTEND_MODE;
       }
       else
       {
+        ExecuteHomeArm(3,0);
         if (flag_found_volatile)
         {
           ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Excavation: Going to Scoop.");
@@ -1830,9 +1831,6 @@ void SmExcavator::ExcavationStateMachine()
       }
       else
       {
-        PublishExcavationStatus();
-        // If the excavator does not find volatiles after Searching,
-        // it will cancel excavation
         CancelExcavation(false);
       }
       excavation_state_ = HOME_MODE;
@@ -1860,10 +1858,9 @@ void SmExcavator::ExcavationStateMachine()
       {
         // If the excavator digs five times
         // it will cancel excavation
-        excavation_counter_ = -1;
-        PublishExcavationStatus();
-        excavation_state_ = HOME_MODE;
         CancelExcavation(true);
+        excavation_state_ = HOME_MODE;
+        
         break;
       }
 
@@ -1884,7 +1881,7 @@ void SmExcavator::ExcavationStateMachine()
       if (flag_found_hauler)
       {
         // If the hauler was found with the service, it will scoop material and go to Home
-        ExecuteAfterScoop(5,2);
+        ExecuteAfterScoop(5,0);
         excavation_state_ = HOME_MODE;
       }
       else
@@ -1895,6 +1892,7 @@ void SmExcavator::ExcavationStateMachine()
         ROS_ERROR_STREAM("[" << robot_name_ << "] " << "Excavation: Waiting for Hauler");
 
         flag_hauler_ready = false;
+        //TODO: If it doesnt find hauler. What?
 
         // Wait until hauler gets ready
         waiting_hauler = ros::Time::now();
@@ -1968,7 +1966,10 @@ void SmExcavator::CancelExcavation(bool success)
   flag_found_parking_site = false;
 
   // Reset Exc Counter
-  excavation_counter_ = 0;
+  excavation_counter_ = -1;
+
+  // Put arm in Home position
+  ExecuteDrop(5,0,0);
 
   // Put arm in Home position
   ExecuteHomeArm(5,0);
@@ -1979,6 +1980,8 @@ void SmExcavator::CancelExcavation(bool success)
 
   //TODO: Turn off power saving
   MarkCollectedVolatile(success);
+
+  PublishExcavationStatus();
 }
 
 void SmExcavator::PublishExcavationStatus()
@@ -1990,6 +1993,7 @@ void SmExcavator::PublishExcavationStatus()
   msg.bucket_full.data = flag_bucket_full;
   msg.found_parking_site.data = flag_found_parking_site;
   msg.parking_pose = hauler_parking_pose_;
+  msg.parking_side.data = relative_side_;
   msg.found_volatile.data = flag_found_volatile;
   msg.found_hauler.data = flag_found_hauler;
   msg.counter.data = excavation_counter_;
