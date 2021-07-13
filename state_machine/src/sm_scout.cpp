@@ -404,12 +404,9 @@ void SmScout::stateEmergency()
 
   CancelMoveBaseGoal();
 
-  //call low power mode {rosservice call /small_scout_1/system_monitor/power_saver "power_save: true"}
-  //turn between 3Pi/4 - Pi/4 or 5Pi/4 - 7Pi/4
-  //Check if {solar_ok: True}
-  //Charge until 50 (or 40)
-  //call low power mode false
-  //SetMoveBaseGoal
+  RotateToHeading(M_PI_2);
+
+  SetPowerMode(true);
 
   double progress = 0;
 
@@ -418,8 +415,9 @@ void SmScout::stateEmergency()
   if(power_level_ > 50)
   {
     flag_emergency = false;
+    flag_arrived_at_waypoint = true;
+    SetPowerMode(false);
   }
-
 
   state_machine::RobotStatus status_msg;
   status_msg.progress.data = progress;

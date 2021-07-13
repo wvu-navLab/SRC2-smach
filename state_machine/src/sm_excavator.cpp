@@ -490,13 +490,6 @@ void SmExcavator::stateEmergency()
 
   SetPowerMode(true);
 
-  //call low power mode {rosservice call /small_scout_1/system_monitor/power_saver "power_save: true"}
-  //turn between 3Pi/4 - Pi/4 or 5Pi/4 - 7Pi/4
-  //Check if {solar_ok: True}
-  //Charge until 50 (or 40)
-  //call low power mode false
-  //SetMoveBaseGoal
-
   double progress = 0;
 
   progress = power_level_/50;
@@ -504,6 +497,7 @@ void SmExcavator::stateEmergency()
   if(power_level_ > 50)
   {
     flag_emergency = false;
+    flag_arrived_at_waypoint = true;
     SetPowerMode(false);
   }
 
@@ -1144,26 +1138,7 @@ void SmExcavator::ClearCostmaps(double wait_time)
   ROS_WARN_STREAM("[" << robot_name_ << "] " << "Move Base State: " << move_base_state_.toString());
 
   // Clear the costmap
-  std_srvs::Empty emptymsg;
-  ros::service::waitForService("move_base/clear_costmaps",ros::Duration(3.0));
-  if (ros::service::call("move_base/clear_costmaps",emptymsg))
-  {
-    ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Called service to clear costmap layers.");
-    ROS_WARN_STREAM("[" << robot_name_ << "] " << "Map Cleared");
-    ros::Duration(wait_time).sleep();
-  }
-  else
-  {
-    ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Failed calling clear_costmaps service.");
-  }
-
-  Brake(0.0);
-}
-
-void SmExcavator::GetTruePose()
-{
-  sensor_fusion::GetTruePose srv_sf_true_pose;
-  srv_sf_true_pose.request.start = true;
+  std_srvs::Empty emptymsg;falset = true;
   if (clt_sf_true_pose.call(srv_sf_true_pose))
   {
     ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Called service TruePose");
