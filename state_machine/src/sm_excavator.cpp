@@ -196,8 +196,6 @@ void SmExcavator::stateInitialize()
 {
   ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Initialization State!\n");
 
-  double progress = 0;
-
   while (!clt_lights.waitForExistence())
   {
       ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Waiting for Lights");
@@ -223,6 +221,10 @@ void SmExcavator::stateInitialize()
     ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Waiting for WhereToParkHauler service");
   }
 
+  double progress = 0;
+
+  SetPowerMode(true);
+
   Lights(20);
 
   ExecuteHomeArm(2,0);
@@ -241,6 +243,7 @@ void SmExcavator::stateInitialize()
   // flag_manipulation_interrupt = true; // TODO: Remove this later
   PublishExcavationStatus();
 
+
   // make sure we dont latch to a vol we skipped while homing
   progress = 1.0;
   state_machine::RobotStatus status_msg;
@@ -255,7 +258,9 @@ void SmExcavator::statePlanning()
 
   double progress = 0;
 
-  CancelMoveBaseGoal();
+  CancelMoveBaseGoal();  
+
+  SetPowerMode(true);
 
   Plan();
 
@@ -299,10 +304,13 @@ void SmExcavator::statePlanning()
 void SmExcavator::stateTraverse()
 {
   ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Traverse State\n");
-  move_base_state_ = ac.getState();
-  ROS_WARN_STREAM("[" << robot_name_ << "] " <<"MoveBase status: "<< (std::string) move_base_state_.toString());
 
   double progress = 0;
+
+  SetPowerMode(false);
+
+  move_base_state_ = ac.getState();
+  ROS_WARN_STREAM("[" << robot_name_ << "] " <<"MoveBase status: "<< (std::string) move_base_state_.toString());
 
   double distance_to_goal = std::hypot(goal_pose_.position.y - current_pose_.position.y, goal_pose_.position.x - current_pose_.position.x);
   if (distance_to_goal < 2.0)
@@ -377,6 +385,8 @@ void SmExcavator::stateVolatileHandler()
 
   CancelMoveBaseGoal();
 
+  SetPowerMode(true);
+
   // If not interrupted, this will cancel move-base goal and
   // manipulation will be enabled at first time
   if(!flag_manipulation_enabled && !flag_manipulation_interrupt)
@@ -429,9 +439,11 @@ void SmExcavator::stateLost()
 {
   ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"LOST STATE!\n");
 
+  double progress = 0.0;
+
   CancelMoveBaseGoal();
 
-  double progress = 0.0;
+  SetPowerMode(false);
 
   Stop (2.0);
 
@@ -484,13 +496,13 @@ void SmExcavator::stateEmergency()
 {
   ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Emergency Charging State!\n");
 
-  CancelMoveBaseGoal();
+  double progress = 0;
 
-  RotateToHeading(M_PI_2);
+  CancelMoveBaseGoal();
 
   SetPowerMode(true);
 
-  double progress = 0;
+  RotateToHeading(M_PI_2);
 
   progress = power_level_/50;
 
@@ -498,7 +510,6 @@ void SmExcavator::stateEmergency()
   {
     flag_emergency = false;
     flag_arrived_at_waypoint = true;
-    SetPowerMode(false);
   }
 
   state_machine::RobotStatus status_msg;
@@ -1543,7 +1554,6 @@ bool SmExcavator::ExecuteSearch()
         ExecuteHomeArm(5,0);
         ros::spinOnce();
 
-        MarkCollectedVolatile(true);
 
         return true;
       }
@@ -1580,9 +1590,6 @@ bool SmExcavator::ExecuteSearch()
 
   ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Excavation: Did not find volatile!");
   
-  // TODO: Maybe in the not so near future we can change that
-  MarkCollectedVolatile(true);
-
   return false;
 }
 
@@ -1996,6 +2003,8 @@ void SmExcavator::CancelExcavation(bool success)
 
   //TODO: Turn off power saving
   PublishExcavationStatus();
+
+  MarkCollectedVolatile(success);
 
   if(success)
   {

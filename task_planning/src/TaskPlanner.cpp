@@ -86,7 +86,7 @@ namespace mac
       pose_min = default_pose;
       vol_pose[0] = volatile_map_.vol[i].position.point.x;
       vol_pose[1] = volatile_map_.vol[i].position.point.y;
-      if(volatile_map_.vol[i].collected)
+      if(volatile_map_.vol[i].attempted)
       {
         continue;
       }
@@ -176,7 +176,7 @@ namespace mac
         temp.point.y = vol_pose[1]  - dy/D * 10.0;
         // temp.point.x = vol_pose[0];
         // temp.point.y = vol_pose[1];
-        robots_[nearest_ind].volatile_index = i;
+        robots_[nearest_ind].volatile_index = volatile_map_.vol[i].vol_index;
         robots_[nearest_ind].plan.push_back(temp);
         //robots_[nearest_ind].current_task = (int)mac::ACTION_HAULER_T::_volatile_handler;
       }
