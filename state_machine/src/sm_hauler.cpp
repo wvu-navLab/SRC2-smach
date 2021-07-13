@@ -449,7 +449,7 @@ void SmHauler::stateVolatileHandler()
       }
       if(flag_located_excavator)
       {
-        if(goal_from_bucket)
+        if(!goal_from_bucket)
         {
           flag_parked_hauler = GoToWaypoint(1.5, 1.0);
         }
