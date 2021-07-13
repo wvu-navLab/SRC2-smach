@@ -1138,7 +1138,26 @@ void SmExcavator::ClearCostmaps(double wait_time)
   ROS_WARN_STREAM("[" << robot_name_ << "] " << "Move Base State: " << move_base_state_.toString());
 
   // Clear the costmap
-  std_srvs::Empty emptymsg;falset = true;
+  std_srvs::Empty emptymsg;
+  ros::service::waitForService("move_base/clear_costmaps",ros::Duration(3.0));
+  if (ros::service::call("move_base/clear_costmaps",emptymsg))
+  {
+    ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Called service to clear costmap layers.");
+    ROS_WARN_STREAM("[" << robot_name_ << "] " << "Map Cleared");
+    ros::Duration(wait_time).sleep();
+  }
+  else
+  {
+    ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Failed calling clear_costmaps service.");
+  }
+
+  Brake(0.0);
+}
+
+void SmExcavator::GetTruePose()
+{
+  sensor_fusion::GetTruePose srv_sf_true_pose;
+  srv_sf_true_pose.request.start = true;
   if (clt_sf_true_pose.call(srv_sf_true_pose))
   {
     ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Called service TruePose");
