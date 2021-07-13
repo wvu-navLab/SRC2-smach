@@ -485,6 +485,11 @@ void SmExcavator::stateEmergency()
   ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Emergency Charging State!\n");
 
   CancelMoveBaseGoal();
+
+  RotateToHeading(M_PI_2);
+
+  SetPowerMode(true);
+
   //call low power mode {rosservice call /small_scout_1/system_monitor/power_saver "power_save: true"}
   //turn between 3Pi/4 - Pi/4 or 5Pi/4 - 7Pi/4
   //Check if {solar_ok: True}
@@ -499,6 +504,7 @@ void SmExcavator::stateEmergency()
   if(power_level_ > 50)
   {
     flag_emergency = false;
+    SetPowerMode(false);
   }
 
   state_machine::RobotStatus status_msg;
@@ -1881,7 +1887,7 @@ void SmExcavator::ExcavationStateMachine()
       PublishExcavationStatus();
 
       // flag_still_has_volatile = flag_has_volatile;
-      
+
       // Look forward before starting to move again
       std_msgs::Float64 sensor_yaw;
       sensor_yaw.data = 0.0;
