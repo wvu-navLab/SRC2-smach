@@ -1522,9 +1522,8 @@ bool SmHauler::LocateExcavator()
 {
   range_to_base::LocationOfExcavator srv_location_of_excavator;
   srv_location_of_excavator.request.location_of_excavator.data=true;
-  srv_location_of_excavator.request.center = pitch_;
-  srv_location_of_excavator.request.offset = 0.05;
-
+  srv_location_of_excavator.request.center = pitch_+.1;
+  srv_location_of_excavator.request.offset = 0.025;
 
   bool success = false;
 
@@ -1571,7 +1570,7 @@ bool SmHauler::FindExcavator(double timeout)
     ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Failed to call service FindExcavator.");
   }
 
-        
+
   // Look forward before starting to move again
   std_msgs::Float64 sensor_yaw;
   sensor_yaw.data = 0.0;
