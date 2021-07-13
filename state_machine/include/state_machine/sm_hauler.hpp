@@ -178,7 +178,7 @@ public:
   void CheckWaypoint(int max_count);
   bool GoToWaypoint();
   bool ApproachChargingStation(int max_count);
-  bool ApproachExcavator(int max_count);
+  bool ApproachExcavator(int max_count, double distance_threshold);
   bool ApproachBin(int max_count);
   bool HomingUpdate(bool init_landmark);
   bool LocateBin();
@@ -203,6 +203,7 @@ public:
   geometry_msgs::Pose current_pose_, goal_pose_;
   geometry_msgs::Point base_location_;
   geometry_msgs::Point proc_plant_bin_location_;
+  geometry_msgs::Point charging_station_location_;
 
   double power_rate_ = 0.0;
   double power_level_ = 100.0;

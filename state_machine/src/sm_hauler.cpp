@@ -78,9 +78,14 @@ move_base_state_(actionlib::SimpleClientGoalState::PREEMPTED)
   laser_collision_timer = ros::Time::now();
 
   // Local copy of the processing plant location
-  proc_plant_bin_location_.x = 13.5;
-  proc_plant_bin_location_.y = 9.0;
-  proc_plant_bin_location_.z = 0.0;
+  proc_plant_bin_location_.x = 13.50;
+  proc_plant_bin_location_.y = 9.00;
+  proc_plant_bin_location_.z = 1.65;
+
+    // Local copy of the charging station location
+  charging_station_location_.x = 1.25;
+  charging_station_location_.y = 9.00;
+  charging_station_location_.z = 1.65;
 
   nav_msgs::Odometry temp_small_excavator_odom;
   state_machine::ExcavationStatus temp_small_excavator_status;
@@ -423,7 +428,7 @@ void SmHauler::stateVolatileHandler()
 
       ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"STARTING APPROACH EXCAVATOR");
 
-      flag_approached_excavator = ApproachExcavator(3);
+      flag_approached_excavator = ApproachExcavator(3, 4.0);
       flag_located_excavator = false;
       flag_parked_hauler = false;
       PublishHaulerStatus();
@@ -431,18 +436,29 @@ void SmHauler::stateVolatileHandler()
 
     if (!flag_parked_hauler && flag_approached_excavator)
     {
+      // Trying with computer vision
       flag_located_excavator = FindExcavator(30);
       if(!flag_located_excavator)
       {
+        // Trying with laser
         ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"APPROACH SERVICE SUCCESS -- ESTIMATING EXCAV LOCATION ");
         flag_located_excavator = LocateExcavator();
       }
+      if(flag_located_excavator)
+      {
+        flag_parked_hauler = GoToWaypoint();
+        PublishHaulerStatus();
+      }
+
+      // Trying with object detection
+      if(!flag_located_excavator)
+      {
+        ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"APPROACH SERVICE SUCCESS -- ESTIMATING EXCAV LOCATION ");
+        flag_located_excavator = ApproachExcavator(3, 1.5);
+        flag_parked_hauler = true;
+        PublishHaulerStatus();
+      }
       
-      PublishHaulerStatus();
-
-      flag_parked_hauler = GoToWaypoint();
-      PublishHaulerStatus();
-
       Brake(100.0);
       while(!flag_full_bin)
       {
@@ -451,7 +467,7 @@ void SmHauler::stateVolatileHandler()
         ros::Duration(1.0).sleep();
       }
       Brake(0.0);
-
+      
       DriveCmdVel(-0.5,0,0,3);
       Stop (0.1);
       BrakeRamp(100, 1, 0);
@@ -475,6 +491,8 @@ void SmHauler::stateVolatileHandler()
 
       goal_pose_.position = proc_plant_bin_location_;
       SetMoveBaseGoal();
+
+      progress = 1.0;
     }
   }
 
@@ -593,7 +611,7 @@ void SmHauler::stateDump()
     BrakeRamp(100, 1, 0);
     Brake(0.0);
 
-    RotateToHeading(4.0);
+    RotateToHeading(4.2);
     Stop(0.1);
     BrakeRamp(100, 1, 0);
     Brake(0.0);
@@ -617,9 +635,10 @@ void SmHauler::stateDump()
     flag_arrived_at_waypoint = false;
     flag_dumping = false;
 
+    goal_pose_.position = charging_station_location_;
+    SetMoveBaseGoal();
 
     progress = 1.0;
-
   }
   else
   {
@@ -1425,10 +1444,11 @@ bool SmHauler::ApproachChargingStation(int max_count)
   return success;
 }
 
-bool SmHauler::ApproachExcavator(int max_count)
+bool SmHauler::ApproachExcavator(int max_count, double distance_threshold)
 {
   src2_approach_services::ApproachExcavator srv_approach_excavator;
   srv_approach_excavator.request.approach_excavator.data= true;
+  srv_approach_excavator.request.distance_threshold.data= distance_threshold;
   bool success = false;
   int count = 0;
   while(!success && count<max_count)

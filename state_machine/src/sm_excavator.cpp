@@ -1985,6 +1985,15 @@ void SmExcavator::CancelExcavation(bool success)
   MarkCollectedVolatile(success);
 
   PublishExcavationStatus();
+
+  if(success)
+  {
+    ros::Duration(30).sleep();
+  }
+  else
+  {
+    ros::Duration(5).sleep();
+  }
 }
 
 void SmExcavator::PublishExcavationStatus()
