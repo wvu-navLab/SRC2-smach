@@ -482,7 +482,7 @@ void SmHauler::stateVolatileHandler()
         ros::Duration(1.0).sleep();
       }
       Brake(0.0);
-      
+
       ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Bin is full! Starting to go back.");
       DriveCmdVel(-0.5,0,0,3);
       Stop (0.1);
@@ -1528,7 +1528,7 @@ bool SmHauler::LocateExcavator()
 {
   range_to_base::LocationOfExcavator srv_location_of_excavator;
   srv_location_of_excavator.request.location_of_excavator.data=true;
-  srv_location_of_excavator.request.center = pitch_+.1;
+  srv_location_of_excavator.request.center = -pitch_-.1;
   srv_location_of_excavator.request.offset = 0.025;
 
   bool success = false;
