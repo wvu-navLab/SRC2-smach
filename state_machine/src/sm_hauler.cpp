@@ -436,8 +436,10 @@ void SmHauler::stateVolatileHandler()
 
     if (!flag_parked_hauler && flag_approached_excavator)
     {
+      bool goal_from_bucket = false;
       // Trying with computer vision
       flag_located_excavator = FindExcavator(30);
+      goal_from_bucket = flag_located_excavator;
       if(!flag_located_excavator)
       {
         // Trying with laser
@@ -446,7 +448,14 @@ void SmHauler::stateVolatileHandler()
       }
       if(flag_located_excavator)
       {
-        flag_parked_hauler = GoToWaypoint();
+        if(goal_from_bucket)
+        {
+          flag_parked_hauler = GoToWaypoint(1.5, 1.0);
+        }
+        else
+        {
+          flag_parked_hauler = GoToWaypoint(1.2, 0.0);
+        }
         PublishHaulerStatus();
       }
 
@@ -1386,13 +1395,14 @@ void SmHauler::CheckWaypoint(int max_count)
   }
 }
 
-bool SmHauler::GoToWaypoint()
+bool SmHauler::GoToWaypoint(double distance_threshold, double y_offset_b)
 {
   waypoint_nav::GoToGoal srv_gotoGoal;
   srv_gotoGoal.request.start = true;
   srv_gotoGoal.request.goal.position = partner_excavator_location_;
   srv_gotoGoal.request.side = partner_excavation_status_.parking_side.data;
-  srv_gotoGoal.request.thresh = 1.5;
+  srv_gotoGoal.request.thresh = distance_threshold;
+  srv_gotoGoal.request.y_offset_b = y_offset_b;
   srv_gotoGoal.request.timeOut = 30;
 
   if(clt_go_to_goal.call(srv_gotoGoal))
@@ -1564,11 +1574,11 @@ bool SmHauler::FindExcavator(double timeout)
   if (srv_find.response.success)
   {
     geometry_msgs::PointStamped bucket_point = srv_find.response.target;
-    bucket_point.point.z += 0.0;
+    bucket_point.point.z -= 0.0;
 
-    camera_link_to_base_footprint = tf_buffer.lookupTransform(robot_name_+"_base_footprint", robot_name_+"_left_camera_optical", ros::Time(0), ros::Duration(1.0));
+    camera_link_to_odom = tf_buffer.lookupTransform(robot_name_+"_odom", robot_name_+"_left_camera_optical", ros::Time(0), ros::Duration(1.0));
 
-    tf2::doTransform(bucket_point, bucket_point_, camera_link_to_base_footprint);
+    tf2::doTransform(bucket_point, bucket_point_, camera_link_to_odom);
 
     partner_excavator_location_ = bucket_point_.point;
 

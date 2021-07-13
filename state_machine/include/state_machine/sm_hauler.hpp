@@ -176,7 +176,7 @@ public:
   void homingRecovery();
   void immobilityRecovery(int type);
   void CheckWaypoint(int max_count);
-  bool GoToWaypoint();
+  bool GoToWaypoint(double distance_threshold, double y_offset_b);
   bool ApproachChargingStation(int max_count);
   bool ApproachExcavator(int max_count, double distance_threshold);
   bool ApproachBin(int max_count);
@@ -216,6 +216,8 @@ public:
   geometry_msgs::TransformStamped odom_to_arm_mount;
   geometry_msgs::TransformStamped camera_link_to_base_footprint;
   geometry_msgs::TransformStamped base_footprint_to_camera_link;
+  geometry_msgs::TransformStamped camera_link_to_odom;
+  geometry_msgs::TransformStamped odom_to_camera_link;
 
   geometry_msgs::PointStamped bucket_point_;
 

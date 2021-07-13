@@ -167,16 +167,16 @@ namespace mac
           }
         }
       }
-      if (vol_pose[0] != 0 || vol_pose[1] != 0)
-      {
-        double dx = vol_pose[0]  - current_pose[0];
-        double dy = vol_pose[1]  - current_pose[1];
-        double D = hypot(dx,dy);
-        temp.point.x = vol_pose[0]  - dx/D * 10.0; // TODO: OFFSET FOR HAULER
-        temp.point.y = vol_pose[1]  - dy/D * 10.0;
-        robots_[nearest_ind].volatile_index = i;
-        robots_[nearest_ind].plan.push_back(temp);
-      }
+      // if (vol_pose[0] != 0 || vol_pose[1] != 0)
+      // {
+      //   double dx = vol_pose[0]  - current_pose[0];
+      //   double dy = vol_pose[1]  - current_pose[1];
+      //   double D = hypot(dx,dy);
+      //   temp.point.x = vol_pose[0]  - dx/D * 10.0; // TODO: OFFSET FOR HAULER
+      //   temp.point.y = vol_pose[1]  - dy/D * 10.0;
+      //   robots_[nearest_ind].volatile_index = i;
+      //   robots_[nearest_ind].plan.push_back(temp);
+      // }
     }
   }
 
@@ -348,6 +348,19 @@ namespace mac
           {
             res.code.data = 3;
           }
+          //--------------------------------------------
+          if (robot.type == mac::HAULER && robot.current_task == (int)ACTION_HAULER_T::_volatile_handler)
+          {
+            double dx = robot.plan[0].point.x  - robot.odom.pose.pose.position.x;
+            double dy = robot.plan[0].point.y  - robot.odom.pose.pose.position.y;
+            double D = hypot(dx,dy);
+            geometry_msgs::PointStamped temp;
+            temp.point.x = robot.plan[0].point.x  - dx/D * 10.0; // TODO: OFFSET FOR HAULER
+            temp.point.y = robot.plan[0].point.y  - dy/D * 10.0;
+            robot.plan[0].point.x = temp.point.x;
+            robot.plan[0].point.x = temp.point.y;
+          }
+          //--------------------------------------------
           ROS_WARN_STREAM("[TASK PLANNER] [" << plan_call_counter << "] Objective sent " << robot.plan[0]);
           res.objective = robot.plan[0];
           res.objective.point.z = 0;
