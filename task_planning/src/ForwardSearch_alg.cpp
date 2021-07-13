@@ -336,12 +336,27 @@ namespace mac
     // best_seq_of_joint_actions = this->get_best_sequence_of_joint_actions();
     // print_sequence_of_joint_actions(best_seq_of_joint_actions);
 
-    // std::vector<Action> new_joint_action = optimal_joint_action;
-    // for (auto & act: optimal_joint_action)
-    // {
-    //   //riv
-    // }
+    std::vector<Action> new_joint_action = optimal_joint_action;
+    for (auto & act: optimal_joint_action)
+    {
+      if (act.robot_type == EXCAVATOR)
+      {
+        for (auto & robot:tree_[0].state.robots)
+        {
+          if (robot.type == HAULER && robot.id == act.id)
+          {
+            if robot.current_task != ACTION_HAULER_T::_hauler_dumping)
+            {
+              Action temp_a;
+              temp_a = act;
+              temp_a.robot_type = HAULER;
+              new_joint_action.push_back(temp_a);
+            }
+          }
+        }
+      }    
+    }
 
-    // return optimal_joint_action;
+    return new_joint_action;
   }
 }
