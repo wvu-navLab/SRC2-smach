@@ -454,7 +454,7 @@ void SmHauler::stateVolatileHandler()
         }
         else
         {
-          flag_parked_hauler = GoToWaypoint(1.2, 0.0);
+          flag_parked_hauler = GoToWaypoint(1.2, -0.3);
         }
         PublishHaulerStatus();
       }
