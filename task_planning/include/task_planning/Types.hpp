@@ -23,8 +23,9 @@ namespace mac
     _traverse = 2,
     _volatile_handler = 3,
     _lost = 4,
-    _hauler_dumping = 5,
-    _in_progress = 6
+    _emergency = 5,
+    _hauler_dumping = 6,
+    _in_progress = 7
   };
 
   enum class ACTION_EXCAVATOR_T
@@ -34,7 +35,8 @@ namespace mac
     _traverse = 2,
     _volatile_handler = 3,
     _lost = 4,
-    _in_progress = 5
+    _emergency = 5,
+    _in_progress = 6
   };
 
   enum class ACTION_SCOUT_T
@@ -44,7 +46,8 @@ namespace mac
     _traverse = 2,
     _volatile_handler = 3,
     _lost = 4,
-    _in_progress = 5
+    _emergency = 5,
+    _in_progress = 6
   };
 
   const int SCOUT = 0;

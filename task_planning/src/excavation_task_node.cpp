@@ -47,6 +47,9 @@ int main(int argc, char** argv)
 		bool demo;
 		nh.getParam("/demo", demo);
 
+		int max_depth;
+		nh.getParam("/max_depth", max_depth);
+
 		std::vector<std::vector<double>> plan;
     std::vector<double> temp;
     nh.getParam("/waypoints/robot_type", temp);
@@ -83,8 +86,10 @@ int main(int argc, char** argv)
 		planning_params.max_time = max_time;
 		planning_params.timeout = timeout;
 		planning_params.demo = demo;
-		//planning_params.type = mac::EXC_HAUL_PLANNER_DEFAULT;
-		planning_params.type = mac::EXC_HAUL_FORWARD_SEARCH;
+		planning_params.max_depth = max_depth;
+
+		planning_params.type = mac::EXC_HAUL_PLANNER_DEFAULT;
+		//planning_params.type = mac::EXC_HAUL_FORWARD_SEARCH;
 		// planning_params.plan = plan;
 
 		mac::TaskPlanner tp(cf,robots, planning_params);

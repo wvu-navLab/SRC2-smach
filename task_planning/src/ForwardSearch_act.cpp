@@ -181,7 +181,7 @@ namespace mac
     //get actions for HAULER
     if (robot.type == HAULER)
     {
-      actions = get_actions_hauler(robot_index, s);
+      //actions = get_actions_hauler(robot_index, s);
     }
 
     //add actions for toggle_sleep = true
