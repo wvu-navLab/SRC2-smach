@@ -377,7 +377,6 @@ void SmExcavator::stateVolatileHandler()
 
   CancelMoveBaseGoal();
 
-  Brake(100.0);
   // If not interrupted, this will cancel move-base goal and
   // manipulation will be enabled at first time
   if(!flag_manipulation_enabled && !flag_manipulation_interrupt)
@@ -394,6 +393,8 @@ void SmExcavator::stateVolatileHandler()
     excavation_counter_ = 0;
   }
 
+  Brake(100.0);
+
   // Then  the manipulation state-machine keeps being called unless timeout is reached or it is finished
   if (flag_manipulation_enabled && (ros::Time::now() - manipulation_timer) < ros::Duration(840))
   {
@@ -403,6 +404,9 @@ void SmExcavator::stateVolatileHandler()
   else if (flag_manipulation_enabled && (ros::Time::now() - manipulation_timer) > ros::Duration(840))
   {
     // If time is over, it will cancel excavation
+    excavation_counter_ = -1;
+    PublishExcavationStatus();
+
     CancelExcavation(false);
     ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Excavation State Machine interrupted by timeout.");
   }
@@ -1310,17 +1314,10 @@ void SmExcavator::Drive(double speed_ratio, double time)
   }
   srv_drive.request.speed_ratio = speed_ratio;
 
-
   if (clt_drive.call(srv_drive))
   {
-    ros::Time start_time = ros::Time::now();
     ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Called service Drive");
-    while(ros::Time::now() - start_time < ros::Duration(time))
-    {
-      std_msgs::Int64 mode;
-      mode.data = 2;
-      driving_mode_pub.publish(mode);
-    }
+    ros::Duration(time).sleep();
   }
   else
   {
@@ -1515,13 +1512,16 @@ bool SmExcavator::ExecuteSearch()
     if (!wheelOrientations[j])
     {
       Brake(0.0);
-      Drive(v* directions[j], fabs(directions[j]) * t);
+      DriveCmdVel(v* directions[j], 0, 0, fabs(directions[j]) * t);
+      Stop(0.0);
       Brake(100.0);
     }
     else
     {
       Brake(0.0);
-      MoveSideways(v * directions[j], fabs(directions[j]) * t);
+      TurnWheelsSideways(true, 1);
+      MoveSideways(v * EXCAVATOR_MAX_SPEED * directions[j], fabs(directions[j]) * t);
+      Stop(0.0);
       Brake(100.0);
     }
 
@@ -1561,13 +1561,16 @@ bool SmExcavator::ExecuteSearch()
     if (!wheelOrientations[j])
     {
       Brake(0.0);
-      Drive(-v * directions[j], fabs(directions[j]) * t);
+      DriveCmdVel(-v * directions[j], 0, 0, fabs(directions[j]) * t);
+      Stop(0.0);
       Brake(100.0);
     }
     else
     {
       Brake(0.0);
-      MoveSideways(-v * directions[j], fabs(directions[j]) * t);
+      TurnWheelsSideways(true, 1);
+      MoveSideways(-v * EXCAVATOR_MAX_SPEED * directions[j], fabs(directions[j]) * t);
+      Stop(0.0);
       Brake(100.0);
     }
 
@@ -1861,6 +1864,9 @@ void SmExcavator::ExcavationStateMachine()
       {
         // If the excavator digs five times
         // it will cancel excavation
+        excavation_counter_ = -1;
+        PublishExcavationStatus();
+        
         CancelExcavation(true);
         excavation_state_ = HOME_MODE;
         
@@ -1945,6 +1951,7 @@ void SmExcavator::ExcavationStateMachine()
         // it will cancel excavation
         excavation_counter_ = -1;
         PublishExcavationStatus();
+
         excavation_state_ = HOME_MODE;
         CancelExcavation(true);
         break;
@@ -1969,7 +1976,7 @@ void SmExcavator::CancelExcavation(bool success)
   flag_found_parking_site = false;
 
   // Reset Exc Counter
-  excavation_counter_ = -1;
+  excavation_counter_ = 0;
 
   // Put arm in Home position
   ExecuteDrop(5,0,0);

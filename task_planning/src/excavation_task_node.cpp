@@ -83,7 +83,8 @@ int main(int argc, char** argv)
 		planning_params.max_time = max_time;
 		planning_params.timeout = timeout;
 		planning_params.demo = demo;
-		planning_params.type = mac::EXC_HAUL_PLANNER_DEFAULT;
+		//planning_params.type = mac::EXC_HAUL_PLANNER_DEFAULT;
+		planning_params.type = mac::EXC_HAUL_FORWARD_SEARCH;
 		// planning_params.plan = plan;
 
 		mac::TaskPlanner tp(cf,robots, planning_params);
