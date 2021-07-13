@@ -429,7 +429,7 @@ void SmHauler::stateVolatileHandler()
 
       ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"STARTING APPROACH EXCAVATOR");
 
-      flag_approached_excavator = ApproachExcavator(3, 4.0);
+      flag_approached_excavator = ApproachExcavator(3, 4.5);
       flag_located_excavator = false;
       flag_parked_hauler = false;
       PublishHaulerStatus();
