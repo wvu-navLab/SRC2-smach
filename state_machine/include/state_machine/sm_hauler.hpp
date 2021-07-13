@@ -95,6 +95,7 @@ public:
   ros::Publisher driving_mode_pub;
   ros::Publisher cmd_dump_pub;
   ros::Publisher hauler_status_pub;
+  ros::Publisher sensor_yaw_pub;
 
   // Subscribers
   ros::Subscriber localized_base_sub;

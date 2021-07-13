@@ -354,7 +354,7 @@ namespace mac
             }
           }
         }
-      }
+      }    
     }
 
     return new_joint_action;

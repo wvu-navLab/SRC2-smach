@@ -34,6 +34,7 @@ move_base_state_(actionlib::SimpleClientGoalState::PREEMPTED)
   driving_mode_pub = nh.advertise<std_msgs::Int64>("driving/driving_mode", 1);
   cmd_dump_pub = nh.advertise<std_msgs::Float64>("bin/command/position", 1);
   hauler_status_pub = nh.advertise<state_machine::HaulerStatus>("state_machine/hauler_status", 1);
+  sensor_yaw_pub = nh.advertise<std_msgs::Float64>("sensor/yaw/command/position", 1);
 
   // Subscribers
   localized_base_sub = nh.subscribe("state_machine/localized_base", 1, &SmHauler::localizedBaseCallback, this);
@@ -1570,6 +1571,12 @@ bool SmHauler::FindExcavator(double timeout)
   {
     ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Failed to call service FindExcavator.");
   }
+
+        
+  // Look forward before starting to move again
+  std_msgs::Float64 sensor_yaw;
+  sensor_yaw.data = 0.0;
+  sensor_yaw_pub.publish(sensor_yaw);
 
   if (srv_find.response.success)
   {

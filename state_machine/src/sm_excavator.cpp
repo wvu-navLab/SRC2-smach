@@ -1881,11 +1881,12 @@ void SmExcavator::ExcavationStateMachine()
       PublishExcavationStatus();
 
       // flag_still_has_volatile = flag_has_volatile;
-
+      
       // Look forward before starting to move again
       std_msgs::Float64 sensor_yaw;
       sensor_yaw.data = 0.0;
       sensor_yaw_pub.publish(sensor_yaw);
+
 
       if (flag_found_hauler)
       {

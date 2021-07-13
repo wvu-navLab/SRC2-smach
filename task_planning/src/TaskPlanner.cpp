@@ -174,8 +174,8 @@ namespace mac
         // double D = hypot(dx,dy);
         // temp.point.x = vol_pose[0]  - dx/D * 10.0; // TODO: OFFSET FOR HAULER
         // temp.point.y = vol_pose[1]  - dy/D * 10.0;
-        temp.point.x - vol_pose[0];
-        temp.point.y - vol_pose[1];
+        temp.point.x = vol_pose[0];
+        temp.point.y = vol_pose[1];
         robots_[nearest_ind].volatile_index = i;
         robots_[nearest_ind].plan.push_back(temp);
         robots_[nearest_ind].current_task = (int)mac::ACTION_HAULER_T::_volatile_handler;
@@ -361,7 +361,7 @@ namespace mac
             temp.point.x = robot.plan[0].point.x  - dx/D * 10.0; // TODO: OFFSET FOR HAULER
             temp.point.y = robot.plan[0].point.y  - dy/D * 10.0;
             robot.plan[0].point.x = temp.point.x;
-            robot.plan[0].point.x = temp.point.y;
+            robot.plan[0].point.y = temp.point.y;
           }
           //--------------------------------------------
           ROS_WARN_STREAM("[TASK PLANNER] [" << plan_call_counter << "] Objective sent " << robot.plan[0]);
