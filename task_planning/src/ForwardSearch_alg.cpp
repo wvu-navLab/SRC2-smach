@@ -341,11 +341,11 @@ namespace mac
     {
       if (act.robot_type == EXCAVATOR)
       {
-        for (auto & robot:tree_[0].state.robots)
+        for (auto & robot:tree_[0][0].state.robots)
         {
           if (robot.type == HAULER && robot.id == act.id)
           {
-            if robot.current_task != ACTION_HAULER_T::_hauler_dumping)
+            if (robot.current_task != (int)ACTION_HAULER_T::_hauler_dumping)
             {
               Action temp_a;
               temp_a = act;
@@ -354,7 +354,7 @@ namespace mac
             }
           }
         }
-      }    
+      }
     }
 
     return new_joint_action;

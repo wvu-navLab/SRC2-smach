@@ -1,10 +1,10 @@
 <launch>
     <rosparam command="load" file="$(find task_planning)/config/planning_params.yaml" subst_value="true" />
     <rosparam command="load" file="$(find task_planning)/config/env_params.yaml" subst_value="true" />
-    <rosparam command="load" file="$(find task_planning)/config/offline_plan.yaml" subst_value="true" />
+    <rosparam command="load" file="$(find task_planning)/config/offline_planBig.yaml" subst_value="true" />
 
     <node pkg="task_planning" type="scouting_task_node" name="scouting_task_node" respawn="true" output="screen"/>
 
     <node pkg="task_planning" type="excavation_task_node" name="excavation_task_node" respawn="true" output="screen"/>
-    
+
 </launch>

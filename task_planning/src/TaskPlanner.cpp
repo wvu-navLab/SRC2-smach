@@ -178,7 +178,7 @@ namespace mac
         temp.point.y - vol_pose[1];
         robots_[nearest_ind].volatile_index = i;
         robots_[nearest_ind].plan.push_back(temp);
-        robots_[nearest_ind].current_task = (int)mac::ACTION_HAULER_T::_volatile_handling;
+        robots_[nearest_ind].current_task = (int)mac::ACTION_HAULER_T::_volatile_handler;
       }
     }
   }
@@ -298,7 +298,7 @@ namespace mac
         this->exc_haul_plan_default();
         break;
       case EXC_HAUL_FORWARD_SEARCH:
-        
+
         s.robots = robots_;
         s.volatile_map = volatile_map_;
         s.time = time_;
