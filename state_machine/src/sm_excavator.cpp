@@ -1543,6 +1543,8 @@ bool SmExcavator::ExecuteSearch()
         ExecuteHomeArm(5,0);
         ros::spinOnce();
 
+        MarkCollectedVolatile(true);
+
         return true;
       }
       else // did not find volatile
@@ -1550,13 +1552,13 @@ bool SmExcavator::ExecuteSearch()
         ExecuteDrop(2,3,0);
         ros::spinOnce();
 
-        ExecuteAfterScoop(2,3); // This is to remove from the ground
-        ros::Duration(2.0).sleep();
+        ExecuteAfterScoop(2,7); // This is to remove from the ground
+        // ros::Duration(2.0).sleep();
         ros::spinOnce();
       }
     }
 
-    ExecuteHomeArm(2,0);
+    ExecuteHomeArm(2,2);
 
     if (!wheelOrientations[j])
     {
@@ -1577,6 +1579,9 @@ bool SmExcavator::ExecuteSearch()
   }
 
   ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Excavation: Did not find volatile!");
+  
+  // TODO: Maybe in the not so near future we can change that
+  MarkCollectedVolatile(true);
 
   return false;
 }
@@ -1990,8 +1995,6 @@ void SmExcavator::CancelExcavation(bool success)
   flag_localizing_volatile = false;
 
   //TODO: Turn off power saving
-  MarkCollectedVolatile(success);
-
   PublishExcavationStatus();
 
   if(success)

@@ -425,7 +425,9 @@ void SmHauler::stateVolatileHandler()
 
       tf2::Matrix3x3(q).getRPY(roll, pitch, yaw);
 
+      ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Rotating in the direction of the excavator. Goal yaw: " << yaw);
       RotateToHeading(yaw);
+      ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Rotated to yaw: " << yaw_);
 
       ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"STARTING APPROACH EXCAVATOR");
 
