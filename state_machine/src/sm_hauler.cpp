@@ -256,7 +256,7 @@ void SmHauler::stateInitialize()
 
 void SmHauler::statePlanning()
 {
-  ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Planning!\n");
+  ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Planning!\n");
 
   double progress = 0;
 
@@ -302,8 +302,9 @@ void SmHauler::statePlanning()
 void SmHauler::stateTraverse()
 {
   ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Traverse State\n");
+
   move_base_state_ = ac.getState();
-  ROS_WARN_STREAM("[" << robot_name_ << "] " <<"MoveBase status: "<< move_base_state_.toString());
+  ROS_INFO_STREAM("[" << robot_name_ << "] " <<"MoveBase status: "<< move_base_state_.toString());
 
   double progress = 0;
 
@@ -429,8 +430,7 @@ void SmHauler::stateVolatileHandler()
       RotateToHeading(yaw);
       ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Rotated to yaw: " << yaw_);
 
-      ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"STARTING APPROACH EXCAVATOR");
-
+      ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Starting to approach excavator");
       flag_approached_excavator = ApproachExcavator(3, 4.0);
       flag_located_excavator = false;
       flag_parked_hauler = false;
@@ -439,6 +439,8 @@ void SmHauler::stateVolatileHandler()
 
     if (!flag_parked_hauler && flag_approached_excavator)
     {
+      ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Approach service success");
+
       bool goal_from_bucket = false;
       // Trying with computer vision
       flag_located_excavator = FindExcavator(30);
@@ -446,17 +448,18 @@ void SmHauler::stateVolatileHandler()
       if(!flag_located_excavator)
       {
         // Trying with laser
-        ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"APPROACH SERVICE SUCCESS -- ESTIMATING EXCAV LOCATION ");
         flag_located_excavator = LocateExcavator();
       }
       if(flag_located_excavator)
       {
         if(!goal_from_bucket)
         {
+          ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Obtained goal from LaserScan");
           flag_parked_hauler = GoToWaypoint(1.5, 1.0);
         }
         else
         {
+          ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Obtained goal from Bucket detection");
           flag_parked_hauler = GoToWaypoint(1.2, -0.3);
         }
         PublishHaulerStatus();
@@ -465,7 +468,7 @@ void SmHauler::stateVolatileHandler()
       // Trying with object detection
       if(!flag_located_excavator)
       {
-        ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"APPROACH SERVICE SUCCESS -- ESTIMATING EXCAV LOCATION ");
+        ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Other methods failed, trying Approach again.");
         flag_located_excavator = ApproachExcavator(3, 1.5);
         flag_parked_hauler = true;
         PublishHaulerStatus();
@@ -474,12 +477,13 @@ void SmHauler::stateVolatileHandler()
       Brake(100.0);
       while(!flag_full_bin)
       {
-        ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"NOT FULL BIN");
+        ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Bin is not full yet.");
         ros::spinOnce();
         ros::Duration(1.0).sleep();
       }
       Brake(0.0);
-
+      
+      ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Bin is full! Starting to go back.");
       DriveCmdVel(-0.5,0,0,3);
       Stop (0.1);
       BrakeRamp(100, 1, 0);
@@ -516,7 +520,7 @@ void SmHauler::stateVolatileHandler()
 
 void SmHauler::stateLost()
 {
-  ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"LOST STATE!\n");
+  ROS_WARN_STREAM("[" << robot_name_ << "] " <<"LOST STATE!\n");
 
   double progress = 1.0;
 
@@ -571,7 +575,7 @@ void SmHauler::stateLost()
 
 void SmHauler::stateEmergency()
 {
-  ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Emergency Charging State!\n");
+  ROS_WARN_STREAM("[" << robot_name_ << "] " <<"EMERGENCY CHARGING STATE!\n");
 
   CancelMoveBaseGoal();
 
