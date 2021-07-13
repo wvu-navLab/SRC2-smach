@@ -336,6 +336,12 @@ namespace mac
     // best_seq_of_joint_actions = this->get_best_sequence_of_joint_actions();
     // print_sequence_of_joint_actions(best_seq_of_joint_actions);
 
+    std::vector<Action> new_joint_action = optima_joint_action;
+    for (auto & act: optimal_joint_action)
+    {
+
+    }
+
     return optimal_joint_action;
   }
 }
