@@ -458,7 +458,7 @@ void SmHauler::stateVolatileHandler()
         flag_parked_hauler = true;
         PublishHaulerStatus();
       }
-      
+
       Brake(100.0);
       while(!flag_full_bin)
       {
@@ -467,7 +467,7 @@ void SmHauler::stateVolatileHandler()
         ros::Duration(1.0).sleep();
       }
       Brake(0.0);
-      
+
       DriveCmdVel(-0.5,0,0,3);
       Stop (0.1);
       BrakeRamp(100, 1, 0);
@@ -1512,7 +1512,9 @@ bool SmHauler::LocateExcavator()
 {
   range_to_base::LocationOfExcavator srv_location_of_excavator;
   srv_location_of_excavator.request.location_of_excavator.data=true;
-  srv_location_of_excavator.request.angle = pitch_+0.05;
+  srv_location_of_excavator.request.center = pitch_;
+  srv_location_of_excavator.request.offset = 0.05;
+
 
   bool success = false;
 
@@ -1529,7 +1531,8 @@ bool SmHauler::LocateExcavator()
     else
     {
       ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Location of excavator not reliable");
-      partner_excavator_location_ = srv_location_of_excavator.response.excavator_location;
+    //  partner_excavator_location_ = srv_location_of_excavator.response.excavator_location;
+      ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Estimated Bad Excavator Location "<<srv_location_of_excavator.response.excavator_location.x << "," << srv_location_of_excavator.response.excavator_location.y);
       success = false;
     }
   }
@@ -1564,7 +1567,7 @@ bool SmHauler::FindExcavator(double timeout)
     bucket_point.point.z += 0.0;
 
     camera_link_to_base_footprint = tf_buffer.lookupTransform(robot_name_+"_base_footprint", robot_name_+"_left_camera_optical", ros::Time(0), ros::Duration(1.0));
-    
+
     tf2::doTransform(bucket_point, bucket_point_, camera_link_to_base_footprint);
 
     partner_excavator_location_ = bucket_point_.point;
@@ -1575,7 +1578,7 @@ bool SmHauler::FindExcavator(double timeout)
   else
   {
     ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Havent found the Excavator's bucket.");
-    
+
     return false;
   }
 }
