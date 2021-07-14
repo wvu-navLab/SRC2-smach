@@ -754,62 +754,58 @@ void SmExcavator::manipulationCmdCallback(const std_msgs::Int64::ConstPtr &msg)
   ROS_INFO_STREAM("[" << robot_name_ << "] " <<"ExcavationCMD: New command received:" << msg->data);
   switch (msg->data)
   {
-  case STOP:
-    {
-      ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"ExcavationCMD: Enable interrupt.");
-      ExecuteHomeArm(2,0);
-      excavation_counter_ = 0;
+    
+    case ENABLE:
+    {      
+      ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"ExcavationCMD: Enable!");
+      flag_interrupt_plan = false;
+      flag_arrived_at_waypoint = true;
+      flag_recovering_localization = false;
+      flag_localizing_volatile = true;
+      flag_emergency = false;
 
-      flag_found_hauler = false;
-      flag_found_volatile = false;
-      flag_manipulation_interrupt = true;
       flag_manipulation_enabled = false;
-      flag_localizing_volatile = false;
+      flag_manipulation_interrupt = false
     }
     break;
-  case HOME_MODE:
+
+    case INTERRUPT:
+    {     
+      ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"ExcavationCMD: Interrupt!");
+      flag_interrupt_plan = false;
+      flag_arrived_at_waypoint = true;
+      flag_recovering_localization = false;
+      flag_localizing_volatile = true;
+      flag_emergency = false;
+
+      flag_manipulation_enabled = false;
+      flag_manipulation_interrupt = true;
+    }
+    break;
+  
+    case HOME_MODE:
     {
       ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"ExcavationCMD: Homing Arm.");
       ExecuteHomeArm(2,0);
-      if(flag_bucket_full)
-      {
-        ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"ExcavationCMD: Go to Extend.");
-      }
-      else
-      {
-        if (flag_found_volatile)
-        {
-          ExecuteLowerArm(2,0);
-          ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"ExcavationCMD: Go to Scoop.");
-        }
-        else
-        {
-          ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"ExcavationCMD: Go to Search.");
-        }
-      }
     }
     break;
-  case SEARCH_MODE:
+
+    case SEARCH_MODE:
     {
       ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"ExcavationCMD: Searching.");
       ExecuteLowerArm(2,0);
       flag_found_volatile = ExecuteSearch();
-      if(!flag_found_volatile)
-      {
-        flag_manipulation_enabled = false;
-      }
-      ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"ExcavationCMD: Go to Home.");
     }
     break;
-  case LOWER_MODE:
+
+    case LOWER_MODE:
     {
       ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"ExcavationCMD: Lowering Arm.");
       ExecuteLowerArm(2,0);
-      ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"ExcavationCMD: Go to Search.");
-
     }
     break;
-  case SCOOP_MODE:
+
+    case SCOOP_MODE:
     {
       ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"ExcavationCMD: Scooping.");
       ExecuteScoop(2,0,volatile_heading_);
@@ -825,43 +821,57 @@ void SmExcavator::manipulationCmdCallback(const std_msgs::Int64::ConstPtr &msg)
       }
     }
     break;
-  case EXTEND_MODE:
+
+    case EXTEND_MODE:
     {
       ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"ExcavationCMD: Extending Arm.");
+      ExecuteExtendArm(10,1);
+    }
+    break;
 
-      ExecuteExtendArm(10,0);
-
+    case DROP_MODE:
+    {
+      ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"ExcavationCMD: Dropping.");
+      ExecuteDrop(2,0,1);
+      
       geometry_msgs::PointStamped safe_point;
       safe_point.header = bin_point_.header;
       safe_point.point.x = 1.4;
       safe_point.point.y = 0.0;
       safe_point.point.z = 1.8;
 
-      ExecuteGoToPose(5, 0, safe_point);
-
-      ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"ExcavationCMD: Go to Drop.");
+      // Put the Arm in a safe position before Home
+      ExecuteGoToPose(5,1,safe_point);
     }
     break;
-  case DROP_MODE:
-    {
-      ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"ExcavationCMD: Dropping.");
 
-      ExecuteDrop(2,0,1);
-
-      ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"ExcavationCMD: Go to Home.");
+    case CANCEL:
+    {      
+      ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"ExcavationCMD: Skip volatile!");
+      CancelExcavation(true);
     }
     break;
-  case START:
+
+    case DISABLE:
     {
-      flag_manipulation_enabled = false;
+      ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"ExcavationCMD: Disa.");
+      ExecuteHomeArm(2,0);
+
       flag_manipulation_interrupt = false;
+      flag_manipulation_enabled = false;
+
+      flag_failed_to_find_hauler = false;
+      flag_found_hauler = false;
+      flag_found_volatile = false;
+      flag_found_parking_site = false;
+
+      excavation_counter_ = 0;
 
       flag_interrupt_plan = false;
       flag_arrived_at_waypoint = true;
       flag_recovering_localization = false;
-      flag_localizing_volatile = true;
-
-      ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"ExcavationCMD: Disable interrupt!");
+      flag_localizing_volatile = false;
+      flag_emergency = false;
     }
     break;
   }
@@ -1805,6 +1815,8 @@ void SmExcavator::MarkCollectedVolatile(bool success)
   if (clt_vol_mark.call(srv_vol_mark))
   {
     ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Called service MarkCollected.");
+    ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Success? " << (int) success);
+    ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Which index? " << goal_vol_index_);
   }
   else
   {
@@ -1999,6 +2011,7 @@ void SmExcavator::CancelExcavation(bool success)
   relative_range_ = 1.7;
 
   // Reset Exc Smach flags
+  flag_failed_to_find_hauler = false;
   flag_found_hauler = false;
   flag_found_volatile = false;
   flag_found_parking_site = false;
@@ -2084,6 +2097,8 @@ void SmExcavator::Plan()
     partner_hauler_id_ = 1; //TODO: Tell Jareds we need partner ID
     goal_vol_index_ = srv_plan.response.volatile_index.data;
     no_objective = false;
+    ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Task Planner: Goal volatile pos: "<< srv_plan.response.objective.point);
+    ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Task Planner: Goal volatile index: "<< srv_plan.response.volatile_index.data);
   }
   else
   {

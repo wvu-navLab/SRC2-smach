@@ -76,14 +76,16 @@
 #define JOINT4_MAX 5*PI/4
 #define JOINT4_MIN 0
 
-#define STOP -1
+#define INTERRUPT -2
+#define ENABLE -1
 #define HOME_MODE 0
 #define SEARCH_MODE 1
 #define LOWER_MODE 2
 #define SCOOP_MODE 3
 #define EXTEND_MODE 4
 #define DROP_MODE 5
-#define START 9
+#define CANCEL 6
+#define DISABLE 9
 
 #define EXCAVATION_ENABLED 0
 #define EXCAVATION_READY_TO_DUMP 1

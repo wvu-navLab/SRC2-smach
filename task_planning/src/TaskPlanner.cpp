@@ -126,7 +126,7 @@ namespace mac
       {
         temp.point.x = vol_pose[0];
         temp.point.y = vol_pose[1];
-        robots_[nearest_ind].volatile_index = i;
+        robots_[nearest_ind].volatile_index = volatile_map_.vol[i].vol_index;
         robots_[nearest_ind].plan.push_back(temp);
       }
 
@@ -365,6 +365,7 @@ namespace mac
           // }
           //--------------------------------------------
           ROS_WARN_STREAM("[TASK PLANNER] [" << plan_call_counter << "] Objective sent " << robot.plan[0]);
+          ROS_WARN_STREAM("[TASK PLANNER] [" << plan_call_counter << "] Volatile index sent " << robot.volatile_index);
           res.objective = robot.plan[0];
           res.objective.point.z = 0;
           res.volatile_index.data = robot.volatile_index;
