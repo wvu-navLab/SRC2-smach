@@ -93,6 +93,9 @@ public:
   ros::Publisher sm_status_pub;
   ros::Publisher cmd_vel_pub;
   ros::Publisher driving_mode_pub;
+  ros::Publisher cmd_sensor_yaw_pub; 
+  ros::Publisher cmd_sensor_pitch_pub;
+
 
   // Subscribers
   ros::Subscriber localized_base_sub;
@@ -102,7 +105,8 @@ public:
   ros::Subscriber driving_mode_sub;
   ros::Subscriber laser_scan_sub;
   ros::Subscriber planner_interrupt_sub;
-  ros::Subscriber system_monitor_sub;
+  ros::Subscriber system_monitor_sub; 
+
   // Services
   ros::ServiceClient clt_sf_true_pose;
   ros::ServiceClient clt_vh_report;
@@ -162,6 +166,7 @@ public:
   void GetTruePose();
   void Drive(double speed_ratio, double time);
   void DriveCmdVel(double vx, double vy, double wz, double time);
+  void CommandCamera(double yaw, double pitch, double time);
   void RotateToHeading(double desired_yaw);
   void RotateInPlace(double speed_ratio, double time);
   void MoveSideways(double speed_ratio, double time);

@@ -9,6 +9,8 @@ move_base_state_(actionlib::SimpleClientGoalState::PREEMPTED)
   sm_status_pub = nh.advertise<state_machine::RobotStatus>("state_machine/status", 1);
   cmd_vel_pub = nh.advertise<geometry_msgs::Twist>("driving/cmd_vel", 1);
   driving_mode_pub = nh.advertise<std_msgs::Int64>("driving/driving_mode", 1);
+  cmd_sensor_yaw_pub = nh.advertise<std_msgs::Float64>("sensor/yaw/command/position", 1);
+  cmd_sensor_pitch_pub = nh.advertise<std_msgs::Float64>("sensor/pitch/command/position", 1);
 
   // Subscribers
   localized_base_sub = nh.subscribe("state_machine/localized_base", 1, &SmScout::localizedBaseCallback, this);
@@ -996,16 +998,16 @@ void SmScout::TurnWheelsSideways(bool start, double time)
 
 void SmScout::Stop(double time)
 {
-  driving_tools::Stop srv_stop;
-  srv_stop.request.enable  = true;
-  if (clt_stop.call(srv_stop))
+  geometry_msgs::Twist cmd_vel;
+  cmd_vel.linear.x = 0.0;
+  cmd_vel.linear.y = 0.0;
+  cmd_vel.angular.z = 0.0;
+  ros::Time start_time = ros::Time::now();
+  ros::Duration timeout(time); // Timeout of 20 seconds
+  ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Drive Cmd Vel publisher.");
+  while (ros::Time::now() - start_time < timeout)
   {
-    ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Called service Stop");
-    ros::Duration(time).sleep();
-  }
-  else
-  {
-    ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Failed  to call service Stop");
+    cmd_vel_pub.publish(cmd_vel);
   }
 }
 
@@ -1117,6 +1119,19 @@ void SmScout::DriveCmdVel(double vx, double vy, double wz, double time)
     cmd_vel_pub.publish(cmd_vel);
   }
 }
+
+void SmScout::CommandCamera(double yaw, double pitch, double time)
+{
+  std_msgs::Float64 cmd_yaw;
+  std_msgs::Float64 cmd_pitch;
+
+  cmd_yaw.data = yaw;
+  cmd_pitch.data = pitch;
+  cmd_sensor_yaw_pub.publish(cmd_yaw);
+  cmd_sensor_pitch_pub.publish(cmd_pitch);
+  ros::Duration.sleep(time);
+}
+
 
 void SmScout::RoverStatic(bool flag)
 {

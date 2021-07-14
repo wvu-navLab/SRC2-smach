@@ -32,7 +32,8 @@ move_base_state_(actionlib::SimpleClientGoalState::PREEMPTED)
   cmd_vel_pub = nh.advertise<geometry_msgs::Twist>("driving/cmd_vel", 1);
   driving_mode_pub = nh.advertise<std_msgs::Int64>("driving/driving_mode", 1);
   excavation_status_pub = nh.advertise<state_machine::ExcavationStatus>("state_machine/excavation_status",1);
-  sensor_yaw_pub = nh.advertise<std_msgs::Float64>("sensor/yaw/command/position", 1);
+  cmd_sensor_yaw_pub = nh.advertise<std_msgs::Float64>("sensor/yaw/command/position", 1);
+  cmd_sensor_pitch_pub = nh.advertise<std_msgs::Float64>("sensor/pitch/command/position", 1);
 
   // Subscribers
   localized_base_sub = nh.subscribe("state_machine/localized_base", 1, &SmExcavator::localizedBaseCallback, this);
@@ -1369,6 +1370,18 @@ void SmExcavator::DriveCmdVel(double vx, double vy, double wz, double time)
   }
 }
 
+void SmExcavator::CommandCamera(double yaw, double pitch, double time)
+{
+  std_msgs::Float64 cmd_yaw;
+  std_msgs::Float64 cmd_pitch;
+
+  cmd_yaw.data = yaw;
+  cmd_pitch.data = pitch;
+  cmd_sensor_yaw_pub.publish(cmd_yaw);
+  cmd_sensor_pitch_pub.publish(cmd_pitch);
+  ros::Duration.sleep(time);
+}
+
 void SmExcavator::RoverStatic(bool flag)
 {
   // Start attitude constraints for static rover
@@ -1642,11 +1655,7 @@ bool SmExcavator::FindHauler(double timeout)
 
     ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Excavation: Target bin updated. Point:" << bin_point_);
 
-
-    // Look forward before starting to move again
-    std_msgs::Float64 sensor_yaw;
-    sensor_yaw.data = 0.0;
-    sensor_yaw_pub.publish(sensor_yaw);
+    CommandCamera(0,0,2);
     return true;
   }
   else
@@ -1659,11 +1668,7 @@ bool SmExcavator::FindHauler(double timeout)
     relative_range_ = hypot(bin_point_.point.x-0.7, bin_point_.point.y);
     relative_heading_ = atan2(bin_point_.point.y, bin_point_.point.x-0.7);
 
-
-    // Look forward before starting to move again
-    std_msgs::Float64 sensor_yaw;
-    sensor_yaw.data = 0.0;
-    sensor_yaw_pub.publish(sensor_yaw);
+    CommandCamera(0,0,2);
     return false;
   }
 }
@@ -1873,11 +1878,12 @@ void SmExcavator::ExcavationStateMachine()
 
         // Wait until hauler gets ready
         waiting_hauler = ros::Time::now();
-        while(!flag_hauler_ready && (ros::Time::now() - waiting_hauler) < ros::Duration(240))
+        while(!flag_hauler_ready && (ros::Time::now() - waiting_hauler) < ros::Duration(480))
         {
           ros::Duration(1.0).sleep();
           ros::spinOnce();
         }
+        manipulation_timer += (ros::Time::now() - waiting_hauler);
       }
       else
       {
@@ -1951,6 +1957,7 @@ void SmExcavator::ExcavationStateMachine()
           ros::Duration(1.0).sleep();
           ros::spinOnce();
         }
+        manipulation_timer += (ros::Time::now() - waiting_hauler);
       }
     }
     break;

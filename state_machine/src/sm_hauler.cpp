@@ -32,9 +32,10 @@ move_base_state_(actionlib::SimpleClientGoalState::PREEMPTED)
   sm_status_pub = nh.advertise<state_machine::RobotStatus>("state_machine/status", 1);
   cmd_vel_pub = nh.advertise<geometry_msgs::Twist>("driving/cmd_vel", 1);
   driving_mode_pub = nh.advertise<std_msgs::Int64>("driving/driving_mode", 1);
-  cmd_dump_pub = nh.advertise<std_msgs::Float64>("bin/command/position", 1);
+  cmd_bin_pub = nh.advertise<std_msgs::Float64>("bin/command/position", 1);
   hauler_status_pub = nh.advertise<state_machine::HaulerStatus>("state_machine/hauler_status", 1);
-  sensor_yaw_pub = nh.advertise<std_msgs::Float64>("sensor/yaw/command/position", 1);
+  cmd_sensor_yaw_pub = nh.advertise<std_msgs::Float64>("sensor/yaw/command/position", 1);
+  cmd_sensor_pitch_pub = nh.advertise<std_msgs::Float64>("sensor/pitch/command/position", 1);
 
   // Subscribers
   localized_base_sub = nh.subscribe("state_machine/localized_base", 1, &SmHauler::localizedBaseCallback, this);
@@ -1231,16 +1232,16 @@ void SmHauler::RotateInPlace(double speed_ratio, double time)
 
 void SmHauler::Stop(double time)
 {
-  driving_tools::Stop srv_stop;
-  srv_stop.request.enable  = true;
-  if (clt_stop.call(srv_stop))
+  geometry_msgs::Twist cmd_vel;
+  cmd_vel.linear.x = 0.0;
+  cmd_vel.linear.y = 0.0;
+  cmd_vel.angular.z = 0.0;
+  ros::Time start_time = ros::Time::now();
+  ros::Duration timeout(time); // Timeout of 20 seconds
+  ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Drive Cmd Vel publisher.");
+  while (ros::Time::now() - start_time < timeout)
   {
-    ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Called service Stop");
-    ros::Duration(time).sleep();
-  }
-  else
-  {
-    ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Failed  to call service Stop");
+    cmd_vel_pub.publish(cmd_vel);
   }
 }
 
@@ -1351,6 +1352,36 @@ void SmHauler::DriveCmdVel(double vx, double vy, double wz, double time)
   while (ros::Time::now() - start_time < timeout)
   {
     cmd_vel_pub.publish(cmd_vel);
+  }
+}
+
+void SmHauler::CommandCamera(double yaw, double pitch, double time)
+{
+  std_msgs::Float64 cmd_yaw;
+  std_msgs::Float64 cmd_pitch;
+
+  cmd_yaw.data = yaw;
+  cmd_pitch.data = pitch;
+  cmd_sensor_yaw_pub.publish(cmd_yaw);
+  cmd_sensor_pitch_pub.publish(cmd_pitch);
+  ros::Duration.sleep(time);
+}
+
+void SmHauler::ExecuteShakeBin(double time)
+{
+  std_msgs::Float64 bin_pitch;
+
+  ros::Time start_time = ros::Time::now();
+  ros::Duration timeout(time); // Timeout of 20 seconds
+  ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Shaking the bin!");
+  while (ros::Time::now() - start_time < timeout)
+  {  
+    bin_pitch.data = 0.05;
+    ros::Duration(0.1);
+    cmd_bin_pub.publish(bin_pitch);
+    bin_pitch.data = 0.0;
+    ros::Duration(0.1);
+    cmd_bin_pub.publish(bin_pitch);
   }
 }
 
@@ -1593,10 +1624,7 @@ bool SmHauler::FindExcavator(double timeout)
 
     ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Got the position of the Excavator's bucket. Point:" << partner_excavator_location_);
     
-    // Look forward before starting to move again
-    std_msgs::Float64 sensor_yaw;
-    sensor_yaw.data = 0.0;
-    sensor_yaw_pub.publish(sensor_yaw);
+    CommandCamera(0,0,2);
 
     return true;
   }
@@ -1604,10 +1632,7 @@ bool SmHauler::FindExcavator(double timeout)
   {
     ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Havent found the Excavator's bucket.");  // Look forward before starting to move again
     
-    // Look forward before starting to move again
-    std_msgs::Float64 sensor_yaw;
-    sensor_yaw.data = 0.0;
-    sensor_yaw_pub.publish(sensor_yaw);
+    CommandCamera(0,0,2);
 
     return false;
   }
