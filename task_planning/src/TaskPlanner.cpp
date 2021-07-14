@@ -67,6 +67,7 @@ namespace mac
     for (auto &robot : robots_)
     {
       robot.plan.clear();
+      robot.volatile_indices.clear();
     }
 
     int nearest_ind, min_distance;
@@ -77,8 +78,13 @@ namespace mac
     for (int i = 0; i < volatile_map_.vol.size(); ++i)
     {
       ROS_ERROR_STREAM("[TASK PLANNER] [" << plan_call_counter << "] Started Checking Volatiles");
-      //EXCAVATOR
+      
+      if(volatile_map_.vol[i].attempted)
+      {
+        continue;
+      }
 
+      //EXCAVATOR
       vol_pose = default_pose;
       current_pose = default_pose;
       nearest_ind = -1;
@@ -86,10 +92,7 @@ namespace mac
       pose_min = default_pose;
       vol_pose[0] = volatile_map_.vol[i].position.point.x;
       vol_pose[1] = volatile_map_.vol[i].position.point.y;
-      if(volatile_map_.vol[i].attempted)
-      {
-        continue;
-      }
+
       ROS_ERROR_STREAM("[TASK PLANNER] [" << plan_call_counter << "] Volatile pose " << vol_pose[0] << "," << vol_pose[1]);
       // std::cout << "robots_.size() = " << robots_.size() << std::endl;
       for (int j = 0; j < robots_.size(); ++j)
@@ -126,7 +129,7 @@ namespace mac
       {
         temp.point.x = vol_pose[0];
         temp.point.y = vol_pose[1];
-        robots_[nearest_ind].volatile_index = volatile_map_.vol[i].vol_index;
+        robots_[nearest_ind].volatile_indices.push_back(volatile_map_.vol[i].vol_index);
         robots_[nearest_ind].plan.push_back(temp);
       }
 
@@ -176,7 +179,7 @@ namespace mac
         temp.point.y = vol_pose[1]  - dy/D * 10.0;
         // temp.point.x = vol_pose[0];
         // temp.point.y = vol_pose[1];
-        robots_[nearest_ind].volatile_index = volatile_map_.vol[i].vol_index;
+        robots_[nearest_ind].volatile_indices.push_back(volatile_map_.vol[i].vol_index);
         robots_[nearest_ind].plan.push_back(temp);
         //robots_[nearest_ind].current_task = (int)mac::ACTION_HAULER_T::_volatile_handler;
       }
@@ -345,7 +348,7 @@ namespace mac
           if (robot.type == mac::SCOUT)
           {
             res.code.data = robot.plan[0].point.z;
-            res.volatile_index.data = robot.volatile_index;
+            res.volatile_index.data = robot.volatile_indices[0];
           }
           else
           {
@@ -365,10 +368,10 @@ namespace mac
           // }
           //--------------------------------------------
           ROS_WARN_STREAM("[TASK PLANNER] [" << plan_call_counter << "] Objective sent " << robot.plan[0]);
-          ROS_WARN_STREAM("[TASK PLANNER] [" << plan_call_counter << "] Volatile index sent " << robot.volatile_index);
+          ROS_WARN_STREAM("[TASK PLANNER] [" << plan_call_counter << "] Volatile index sent " << robot.volatile_indices[0]);
           res.objective = robot.plan[0];
           res.objective.point.z = 0;
-          res.volatile_index.data = robot.volatile_index;
+          res.volatile_index.data = robot.volatile_indices[0];
         }
         else
         {

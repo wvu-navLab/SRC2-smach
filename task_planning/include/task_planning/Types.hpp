@@ -58,7 +58,7 @@ namespace mac
   {
     int id;
     int type;
-    int volatile_index;
+    std::vector<int> volatile_indices;
     double time_remaining; //0 = not start, 1 = full, -1 = failed
     int current_task = -1;
     double bucket_contents; //0 = empty, 1 = full

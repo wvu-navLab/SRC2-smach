@@ -156,10 +156,6 @@ void SmExcavator::run()
     {
       stateInitialize();
     }
-    // else
-    // {
-    //   stateVolatileHandler(); // temporary
-    // }
     else if(state_to_exec.at(_planning))
     {
       statePlanning();
@@ -854,7 +850,7 @@ void SmExcavator::manipulationCmdCallback(const std_msgs::Int64::ConstPtr &msg)
 
     case DISABLE:
     {
-      ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"ExcavationCMD: Disa.");
+      ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"ExcavationCMD: Disable.");
       ExecuteHomeArm(2,0);
 
       flag_manipulation_interrupt = false;
