@@ -499,6 +499,8 @@ void SmHauler::stateVolatileHandler()
         flag_approached_excavator = false;
         flag_located_excavator = false;
         flag_parked_hauler = false;
+        
+        PublishHaulerStatus();
       }
       else
       {
