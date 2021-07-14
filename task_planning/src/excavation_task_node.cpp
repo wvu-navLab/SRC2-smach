@@ -30,7 +30,7 @@ int main(int argc, char** argv)
 
 
 		double max_time, timeout;
-		nh.getParam("/clock_max_time_sec", max_time);
+		//nh.getParam("/clock_max_time_sec", max_time);
 
 		std::vector<double> cf_params;
 		nh.getParam("/cost_function/params", cf_params);
@@ -38,7 +38,7 @@ int main(int argc, char** argv)
 		int cost_type;
 		nh.getParam("/cost_function/type", cost_type);
 		nh.getParam("/planner/planning_type", planner_type);
-		nh.getParam("/planner/planning_timeout_sec", timeout);
+		nh.getParam("/planner/planning_timeout_sec", max_time);
 
 		int num_nodes, num_iterations;
 		nh.getParam("/planner/num_nodes", num_nodes);
@@ -89,7 +89,7 @@ int main(int argc, char** argv)
 		planning_params.max_depth = max_depth;
 
 		planning_params.type = mac::EXC_HAUL_PLANNER_DEFAULT;
-		// planning_params.type = mac::EXC_HAUL_FORWARD_SEARCH;
+		//planning_params.type = mac::EXC_HAUL_FORWARD_SEARCH;
 		// planning_params.plan = plan;
 
 		mac::TaskPlanner tp(cf,robots, planning_params);

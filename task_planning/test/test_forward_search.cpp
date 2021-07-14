@@ -139,7 +139,7 @@ int main(int argc, char **argv)
   std::cout << "main:: Initializing CostFunction..." << std::endl;
   const mac::CostFunction cf(mac::TIME_VOL_COLLECTED);
   mac::PlanningParams pp;
-  pp.max_time = 5;  // seconds
+  pp.max_time = 15;  // seconds
   pp.max_depth = 50; //max depth to construct tree
   pp.timeout = 30;
   pp.wait_time = 30;      //seconds
@@ -183,8 +183,9 @@ int main(int argc, char **argv)
   std::cout << "main: Running ForwardSearch::plan..." << std::endl;
   std::vector<mac::Action> joint_action;
   joint_action = fs.plan(s);
-
-  // fs.print_joint_action(joint_action);
+  std::cout << "check" << std::endl;
+   fs.print_joint_action(joint_action);
+   std::cout << "end" << std::endl;
   //print_volatile_map(s.volatile_map);
 
   // std::cout << "main: printing joint action." << std::endl;

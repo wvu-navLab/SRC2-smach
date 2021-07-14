@@ -60,8 +60,7 @@ namespace mac
           //std::cout << "plan: creating vertex " << layer.size() << " at layer " << tree_.size() << std::endl;
           // if (tree_.size() == 4)
           // {
-          // for (auto &layer : tree_)
-          //   std::cout << layer.size() << std::endl;
+          
           // exit(1);
           // }
           // if ( depth > 0 && tree_[depth - 1].size() > 5000)
@@ -81,6 +80,7 @@ namespace mac
           v_new.children.clear();
           layer.push_back(v_new);
         }
+        
         // std::cout << "plan: end layer push back" << std::endl;
       }
 
@@ -110,7 +110,10 @@ namespace mac
 
       layer.clear();
       ++depth;
+      for (auto &layer : tree_)
+            std::cout << layer.size() << std::endl;
     }
+    
 
     return get_policy();
   }
@@ -211,7 +214,7 @@ namespace mac
           }
         }
       }
-      if (is_there_hauler)
+      if (1)//is_there_hauler)
       {
         s_copy.volatile_map.vol[temp_vol_ind].collected = true;
         s_copy.robots[t_min_idx].volatile_index = -1;
@@ -312,8 +315,8 @@ namespace mac
 
     while (leaf.depth != 0)
     {
-      //std::cout << "///////// DEPTH: " << leaf.depth << " /////////" << std::endl;
-      // print_joint_action(leaf.joint_action);
+      std::cout << "///////// DEPTH: " << leaf.depth << " /////////" << std::endl;
+      print_joint_action(leaf.joint_action);
       optimal_joint_action = leaf.joint_action;
       is_action_valid = true;
       leaf = tree_[leaf.depth - 1][leaf.parent_layer_index];
@@ -328,9 +331,9 @@ namespace mac
     //   print_volatile_map(leaf.state.volatile_map);
     //   std::cout << "cost " << leaf.total_cost << std::endl;
     // }
-    //std::cout << "-----------BEST LEAF----------" << std::endl;
-    // print_volatile_map(tree_[min_depth][min_layer_index].state.volatile_map);
-    //std::cout << "cost " << tree_[min_depth][min_layer_index].total_cost << std::endl;
+    // std::cout << "-----------BEST LEAF----------" << std::endl;
+    print_volatile_map(tree_[min_depth][min_layer_index].state.volatile_map);
+    // std::cout << "cost " << tree_[min_depth][min_layer_index].total_cost << std::endl;
 
     // std::vector<std::vector<mac::Action>> best_seq_of_joint_actions;
     // best_seq_of_joint_actions = this->get_best_sequence_of_joint_actions();
@@ -350,6 +353,7 @@ namespace mac
               Action temp_a;
               temp_a = act;
               temp_a.robot_type = HAULER;
+              temp_a.code = (int)ACTION_HAULER_T::_volatile_handler;
               new_joint_action.push_back(temp_a);
             }
           }
