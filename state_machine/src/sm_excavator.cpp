@@ -765,7 +765,7 @@ void SmExcavator::manipulationCmdCallback(const std_msgs::Int64::ConstPtr &msg)
       flag_emergency = false;
 
       flag_manipulation_enabled = false;
-      flag_manipulation_interrupt = false
+      flag_manipulation_interrupt = false;
     }
     break;
 
@@ -2098,7 +2098,7 @@ void SmExcavator::Plan()
     goal_vol_index_ = srv_plan.response.volatile_index.data;
     no_objective = false;
     ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Task Planner: Goal volatile pos: "<< srv_plan.response.objective.point);
-    ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Task Planner: Goal volatile index: "<< srv_plan.response.volatile_index.data);
+    ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Task Planner: Goal volatile index: "<< srv_plan.response.volatile_index);
   }
   else
   {
