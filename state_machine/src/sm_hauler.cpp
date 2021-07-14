@@ -480,14 +480,14 @@ void SmHauler::stateVolatileHandler()
         ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Bin is not full yet.");
         ros::spinOnce();
         ros::Duration(1.0).sleep();
-        if(partner_excavation_status_.failed_to_find_hauler)
+        if(partner_excavation_status_.failed_to_find_hauler.data)
         {
           break;
         }
       }
       Brake(0.0);
 
-      if(partner_excavation_status_.failed_to_find_hauler)
+      if(partner_excavation_status_.failed_to_find_hauler.data)
       {
         //TODO: Test this recovery behavior
         DriveCmdVel(-0.5,0,0,3);
@@ -1510,6 +1510,8 @@ bool SmHauler::ApproachExcavator(int max_count, double distance_threshold)
     }
     count = count + 1;
   }
+  geometry_msgs::PointStamped excavator_location = srv_approach_excavator.response.point;
+  ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Excavator position estimated with Obj Detection. Point: " << excavator_location.point);
 
   return success;
 }
@@ -1561,7 +1563,7 @@ bool SmHauler::LocateExcavator()
     {
       ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Location of excavator reliable");
       partner_excavator_location_ = srv_location_of_excavator.response.excavator_location;
-      ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Saving Excavator Location "<<partner_excavator_location_.x << "," << partner_excavator_location_.y);
+      ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Saving Excavator Location: " << partner_excavator_location_);
 
       success = true;
     }
@@ -1569,7 +1571,7 @@ bool SmHauler::LocateExcavator()
     {
       ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Location of excavator not reliable");
     //  partner_excavator_location_ = srv_location_of_excavator.response.excavator_location;
-      ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Estimated Bad Excavator Location "<<srv_location_of_excavator.response.excavator_location.x << "," << srv_location_of_excavator.response.excavator_location.y);
+      ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Estimated Bad Excavator Location: "<< srv_location_of_excavator.response.excavator_location);
       success = false;
     }
   }
@@ -1609,7 +1611,7 @@ bool SmHauler::FindExcavator(double timeout)
 
     partner_excavator_location_ = bucket_point_.point;
 
-    ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Got the position of the Excavator's bucket. Point:" << bucket_point_);
+    ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Got the position of the Excavator's bucket. Point:" << partner_excavator_location_);
     
     // Look forward before starting to move again
     std_msgs::Float64 sensor_yaw;
