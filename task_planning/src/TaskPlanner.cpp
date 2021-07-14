@@ -348,11 +348,13 @@ namespace mac
           if (robot.type == mac::SCOUT)
           {
             res.code.data = robot.plan[0].point.z;
-            res.volatile_index.data = robot.volatile_indices[0];
+            res.volatile_index.data = 0;
           }
           else
           {
             res.code.data = 3;
+            res.volatile_index.data = robot.volatile_indices[0];
+            ROS_WARN_STREAM("[TASK PLANNER] [" << plan_call_counter << "] Volatile index sent " << robot.volatile_indices[0]);
           }
           //--------------------------------------------
           // if (robot.type == mac::HAULER && robot.current_task == (int)ACTION_HAULER_T::_volatile_handler)
@@ -368,10 +370,8 @@ namespace mac
           // }
           //--------------------------------------------
           ROS_WARN_STREAM("[TASK PLANNER] [" << plan_call_counter << "] Objective sent " << robot.plan[0]);
-          ROS_WARN_STREAM("[TASK PLANNER] [" << plan_call_counter << "] Volatile index sent " << robot.volatile_indices[0]);
           res.objective = robot.plan[0];
           res.objective.point.z = 0;
-          res.volatile_index.data = robot.volatile_indices[0];
         }
         else
         {
