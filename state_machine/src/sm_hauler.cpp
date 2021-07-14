@@ -513,7 +513,7 @@ void SmHauler::stateVolatileHandler()
       BrakeRamp(100, 1, 0);
       Brake(0.0);
 
-      if(!partner_excavation_status_.failed_to_find_hauler.data)
+      if(!partner_excavation_status_.failed_to_find_hauler.data || flag_full_bin)
       {
         ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Bin is full! Starting to go back.");
 
