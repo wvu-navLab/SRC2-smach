@@ -418,6 +418,9 @@ void SmExcavator::stateVolatileHandler()
   }
   else
   {
+    excavation_counter_ = -1;
+    PublishExcavationStatus();
+
     // If excavation gets disabled, it will cancel excavation
     CancelExcavation(false);
     ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Excavation State Machine disabled.");
@@ -449,6 +452,7 @@ void SmExcavator::stateLost()
 
   if(approachSuccess)
   {
+    ExecuteLowerArm(2,0);
     bool homingSuccess = HomingUpdate(flag_need_init_landmark);
     if (homingSuccess)
     {
@@ -465,6 +469,8 @@ void SmExcavator::stateLost()
     progress = -1.0;
     // TODO: SOMETHING
   }
+
+  ExecuteHomeArm(2,0);
 
   Brake(0.0);
 
@@ -750,21 +756,6 @@ void SmExcavator::manipulationCmdCallback(const std_msgs::Int64::ConstPtr &msg)
   ROS_INFO_STREAM("[" << robot_name_ << "] " <<"ExcavationCMD: New command received:" << msg->data);
   switch (msg->data)
   {
-    
-    case ENABLE:
-    {      
-      ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"ExcavationCMD: Enable!");
-      flag_interrupt_plan = false;
-      flag_arrived_at_waypoint = true;
-      flag_recovering_localization = false;
-      flag_localizing_volatile = true;
-      flag_emergency = false;
-
-      flag_manipulation_enabled = false;
-      flag_manipulation_interrupt = false;
-    }
-    break;
-
     case INTERRUPT:
     {     
       ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"ExcavationCMD: Interrupt!");
@@ -779,6 +770,20 @@ void SmExcavator::manipulationCmdCallback(const std_msgs::Int64::ConstPtr &msg)
     }
     break;
   
+    case ENABLE:
+    {      
+      ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"ExcavationCMD: Enable!");
+      flag_interrupt_plan = false;
+      flag_arrived_at_waypoint = true;
+      flag_recovering_localization = false;
+      flag_localizing_volatile = true;
+      flag_emergency = false;
+
+      flag_manipulation_enabled = false;
+      flag_manipulation_interrupt = false;
+    }
+    break;
+
     case HOME_MODE:
     {
       ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"ExcavationCMD: Homing Arm.");
@@ -1876,6 +1881,9 @@ void SmExcavator::ExcavationStateMachine()
       }
       else
       {
+        excavation_counter_ = -1;
+        PublishExcavationStatus();
+
         CancelExcavation(false);
       }
       excavation_state_ = HOME_MODE;
@@ -1892,8 +1900,6 @@ void SmExcavator::ExcavationStateMachine()
     case SCOOP_MODE:
     {
       ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Excavation: Scooping.");
-
-      //TODO: Turn on power saving
 
       ExecuteScoop(5,0,volatile_heading_);
 
@@ -1920,9 +1926,6 @@ void SmExcavator::ExcavationStateMachine()
 
       PublishExcavationStatus();
 
-      // flag_still_has_volatile = flag_has_volatile;
-
-
       if (flag_found_hauler)
       {
         // If the hauler was found with the service, it will scoop material and go to Home
@@ -1936,7 +1939,9 @@ void SmExcavator::ExcavationStateMachine()
         ExecuteHomeArm(2,0);
         ROS_ERROR_STREAM("[" << robot_name_ << "] " << "Excavation: Waiting for Hauler");
 
-        flag_hauler_ready = false;
+        flag_hauler_ready = false;        
+        flag_failed_to_find_hauler = false;
+        PublishExcavationStatus();
         //TODO: If it doesnt find hauler. What?
 
         // Wait until hauler gets ready

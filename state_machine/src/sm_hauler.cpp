@@ -400,6 +400,7 @@ void SmHauler::stateVolatileHandler()
   // According with ExcavationStatus we approach and park
   if(!flag_approached_side && partner_excavation_status_.found_parking_site.data)
   {
+
     goal_pose_.position = partner_excavation_status_.parking_pose.position;
 
     ClearCostmaps(5.0);
@@ -409,6 +410,8 @@ void SmHauler::stateVolatileHandler()
     flag_approaching_side = true;
     flag_arrived_at_waypoint = false;
     flag_localizing_volatile = true;
+
+    parking_recovery_counter_ = 0;
   }
 
   PublishHaulerStatus();
@@ -475,40 +478,44 @@ void SmHauler::stateVolatileHandler()
       }
 
       Brake(100.0);
+      ros::spinOnce();
       while(!flag_full_bin)
       {
         ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Bin is not full yet.");
+
         ros::spinOnce();
         ros::Duration(1.0).sleep();
+
+        if(parking_recovery_counter_ > 2)
+        {
+          PublishHaulerStatus();
+          
+          break;
+        }
+
         if(partner_excavation_status_.failed_to_find_hauler.data)
         {
+          flag_approached_side = true;
+          flag_approached_excavator = false;
+          flag_located_excavator = false;
+          flag_parked_hauler = false;
+          
+          PublishHaulerStatus();
+          
+          parking_recovery_counter_++;
           break;
         }
       }
       Brake(0.0);
 
+      DriveCmdVel(-0.5,0,0,3);
+      Stop (0.1);
+      BrakeRamp(100, 1, 0);
+      Brake(0.0);
+
       if(partner_excavation_status_.failed_to_find_hauler.data)
       {
-        //TODO: Test this recovery behavior
-        DriveCmdVel(-0.5,0,0,3);
-        Stop (0.1);
-        BrakeRamp(100, 1, 0);
-        Brake(0.0);
-
-        flag_approached_side = true;
-        flag_approached_excavator = false;
-        flag_located_excavator = false;
-        flag_parked_hauler = false;
-        
-        PublishHaulerStatus();
-      }
-      else
-      {
         ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Bin is full! Starting to go back.");
-        DriveCmdVel(-0.5,0,0,3);
-        Stop (0.1);
-        BrakeRamp(100, 1, 0);
-        Brake(0.0);
 
         PublishHaulerStatus();
 
@@ -878,33 +885,6 @@ void SmHauler::excavationStatusCallback(const ros::MessageEvent<state_machine::E
     ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Got new excavation status.");
     partner_excavation_status_ = *msg;
 
-    // // If the hauler is moving
-    // if(!flag_recovering_localization && !flag_dumping &&
-    // partner_excavation_status_.found_parking_site.data &&
-    // (!flag_approached_side || flag_approached_excavator || flag_parked_hauler))
-    // {
-    //   goal_pose_.position = partner_excavation_status_.parking_pose.position;
-
-    //   SetMoveBaseGoal();
-    //   flag_approaching_side = true;
-    //   flag_arrived_at_waypoint = false;
-    //   flag_localizing_volatile = true;
-    // }
-
-    // if(flag_parked_hauler && partner_excavation_status_.found_volatile.data && !partner_excavation_status_.found_hauler.data)
-    // {
-    //   flag_approached_side = false;
-    //   flag_approached_excavator = false;
-    //   flag_parked_hauler == false;
-
-    //   goal_pose_.position = partner_excavation_status_.parking_pose.position;
-
-    //   SetMoveBaseGoal();
-    //   flag_approaching_side = true;
-    //   flag_arrived_at_waypoint = false;
-    //   flag_localizing_volatile = true;
-    // }
-
     if(partner_excavation_status_.counter.data == -1)
     {
       flag_full_bin = true;
@@ -964,7 +944,7 @@ void SmHauler::plannerInterruptCallback(const std_msgs::Bool::ConstPtr &msg)
   if(!(prev_srv_plan.response.objective.point.x == srv_plan.response.objective.point.x &&
   prev_srv_plan.response.objective.point.y == srv_plan.response.objective.point.y &&
   prev_srv_plan.response.code == srv_plan.response.code) &&
-  (!flag_dumping) && (!flag_localizing_volatile))
+  (!flag_recovering_localization) && (!flag_dumping) && (!flag_localizing_volatile))
   {
     flag_interrupt_plan = true;
   }
@@ -1704,6 +1684,7 @@ void SmHauler::PublishHaulerStatus()
   msg.located_excavator.data = flag_located_excavator;
   msg.hauler_ready.data = flag_parked_hauler;
   msg.bin_full.data = flag_full_bin;
+  msg.parking_recovery_counter.data = parking_recovery_counter_;
 
   hauler_status_pub.publish(msg);
 

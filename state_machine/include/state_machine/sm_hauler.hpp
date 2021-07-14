@@ -244,6 +244,8 @@ public:
 
   int move_base_fail_counter = 0;
 
+  int parking_recovery_counter_ = 0;
+
   // Planning
   task_planning::PlanInfo prev_srv_plan;
 

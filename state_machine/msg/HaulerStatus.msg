@@ -4,3 +4,4 @@ std_msgs/Bool approached_excavator
 std_msgs/Bool located_excavator
 std_msgs/Bool hauler_ready
 std_msgs/Bool bin_full
+std_msgs/UInt8 parking_recovery_counter
