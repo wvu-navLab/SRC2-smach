@@ -255,7 +255,7 @@ void SmExcavator::statePlanning()
 
   double progress = 0;
 
-  CancelMoveBaseGoal();  
+  CancelMoveBaseGoal();
 
   SetPowerMode(true);
 
@@ -393,7 +393,9 @@ void SmExcavator::stateVolatileHandler()
     BrakeRamp(100, 1, 0);
     Brake(0.0);
 
+    SetPowerMode(false);
     SetHaulerParkingLocation();
+    SetPowerMode(true);
 
     manipulation_timer = ros::Time::now();
     flag_manipulation_enabled = true;
@@ -758,7 +760,7 @@ void SmExcavator::manipulationCmdCallback(const std_msgs::Int64::ConstPtr &msg)
   switch (msg->data)
   {
     case INTERRUPT:
-    {     
+    {
       ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"ExcavationCMD: Interrupt!");
       flag_interrupt_plan = false;
       flag_arrived_at_waypoint = true;
@@ -770,9 +772,9 @@ void SmExcavator::manipulationCmdCallback(const std_msgs::Int64::ConstPtr &msg)
       flag_manipulation_interrupt = true;
     }
     break;
-  
+
     case ENABLE:
-    {      
+    {
       ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"ExcavationCMD: Enable!");
       flag_interrupt_plan = false;
       flag_arrived_at_waypoint = true;
@@ -835,7 +837,7 @@ void SmExcavator::manipulationCmdCallback(const std_msgs::Int64::ConstPtr &msg)
     {
       ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"ExcavationCMD: Dropping.");
       ExecuteDrop(2,0,1);
-      
+
       geometry_msgs::PointStamped safe_point;
       safe_point.header = bin_point_.header;
       safe_point.point.x = 1.4;
@@ -848,7 +850,7 @@ void SmExcavator::manipulationCmdCallback(const std_msgs::Int64::ConstPtr &msg)
     break;
 
     case CANCEL:
-    {      
+    {
       ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"ExcavationCMD: Skip volatile!");
       CancelExcavation(true);
     }
@@ -1586,7 +1588,7 @@ bool SmExcavator::ExecuteSearch()
       }
       else // did not find volatile
       {
-        
+
         ExecuteDrop(2,3,0);
         ros::spinOnce();
 
@@ -1622,7 +1624,7 @@ bool SmExcavator::ExecuteSearch()
   }
 
   ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Excavation: Did not find volatile!");
-  
+
   return false;
 }
 
@@ -1919,17 +1921,19 @@ void SmExcavator::ExcavationStateMachine()
         // it will cancel excavation
         excavation_counter_ = -1;
         PublishExcavationStatus();
-        
+
         CancelExcavation(true);
         excavation_state_ = HOME_MODE;
-        
+
         break;
       }
 
       if(!flag_found_hauler)
       {
+        SetPowerMode(false);
         flag_found_hauler = FindHauler(120);
         flag_failed_to_find_hauler = !flag_found_hauler;
+        SetPowerMode(true);
       }
 
       PublishExcavationStatus();
@@ -1947,7 +1951,7 @@ void SmExcavator::ExcavationStateMachine()
         ExecuteHomeArm(2,0);
         ROS_ERROR_STREAM("[" << robot_name_ << "] " << "Excavation: Waiting for Hauler");
 
-        flag_hauler_ready = false;        
+        flag_hauler_ready = false;
         flag_failed_to_find_hauler = false;
         PublishExcavationStatus();
         //TODO: If it doesnt find hauler. What?
