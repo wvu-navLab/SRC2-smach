@@ -1381,7 +1381,7 @@ void SmExcavator::CommandCamera(double yaw, double pitch, double time)
   cmd_pitch.data = pitch;
   cmd_sensor_yaw_pub.publish(cmd_yaw);
   cmd_sensor_pitch_pub.publish(cmd_pitch);
-  ros::Duration.sleep(time);
+  ros::Duration(time).sleep();
 }
 
 void SmExcavator::RoverStatic(bool flag)

@@ -490,7 +490,7 @@ void SmHauler::stateVolatileHandler()
         if(parking_recovery_counter_ > 2)
         {
           PublishHaulerStatus();
-          
+
           break;
         }
 
@@ -500,9 +500,9 @@ void SmHauler::stateVolatileHandler()
           flag_approached_excavator = false;
           flag_located_excavator = false;
           flag_parked_hauler = false;
-          
+
           PublishHaulerStatus();
-          
+
           parking_recovery_counter_++;
           break;
         }
@@ -1364,7 +1364,7 @@ void SmHauler::CommandCamera(double yaw, double pitch, double time)
   cmd_pitch.data = pitch;
   cmd_sensor_yaw_pub.publish(cmd_yaw);
   cmd_sensor_pitch_pub.publish(cmd_pitch);
-  ros::Duration.sleep(time);
+  ros::Duration(time).sleep();
 }
 
 void SmHauler::ExecuteShakeBin(double time)
@@ -1375,7 +1375,7 @@ void SmHauler::ExecuteShakeBin(double time)
   ros::Duration timeout(time); // Timeout of 20 seconds
   ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Shaking the bin!");
   while (ros::Time::now() - start_time < timeout)
-  {  
+  {
     bin_pitch.data = 0.05;
     ros::Duration(0.1);
     cmd_bin_pub.publish(bin_pitch);
@@ -1623,7 +1623,7 @@ bool SmHauler::FindExcavator(double timeout)
     partner_excavator_location_ = bucket_point_.point;
 
     ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Got the position of the Excavator's bucket. Point:" << partner_excavator_location_);
-    
+
     CommandCamera(0,0,2);
 
     return true;
@@ -1631,7 +1631,7 @@ bool SmHauler::FindExcavator(double timeout)
   else
   {
     ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Havent found the Excavator's bucket.");  // Look forward before starting to move again
-    
+
     CommandCamera(0,0,2);
 
     return false;
