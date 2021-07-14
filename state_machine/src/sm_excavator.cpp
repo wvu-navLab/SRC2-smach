@@ -1253,16 +1253,16 @@ void SmExcavator::TurnWheelsSideways(bool start, double time)
 
 void SmExcavator::Stop(double time)
 {
-  driving_tools::Stop srv_stop;
-  srv_stop.request.enable  = true;
-  if (clt_stop.call(srv_stop))
+  geometry_msgs::Twist cmd_vel;
+  cmd_vel.linear.x = 0.0;
+  cmd_vel.linear.y = 0.0;
+  cmd_vel.angular.z = 0.0;
+  ros::Time start_time = ros::Time::now();
+  ros::Duration timeout(time); // Timeout of 20 seconds
+  ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Drive Cmd Vel publisher.");
+  while (ros::Time::now() - start_time < timeout)
   {
-    ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Called service Stop");
-    ros::Duration(time).sleep();
-  }
-  else
-  {
-    ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Failed  to call service Stop");
+    cmd_vel_pub.publish(cmd_vel);
   }
 }
 
@@ -1536,7 +1536,7 @@ bool SmExcavator::ExecuteSearch()
       SetPowerMode(false);
       DriveCmdVel(multiplier * EXCAVATOR_MAX_SPEED * directions[j], 0, 0, fabs(directions[j]) * t);
       SetPowerMode(true);
-      Stop(0.0);
+      Stop(0.1);
       Brake(100.0);
     }
     else
@@ -1546,7 +1546,7 @@ bool SmExcavator::ExecuteSearch()
       TurnWheelsSideways(true, 1);
       MoveSideways(multiplier * directions[j], fabs(directions[j]) * t);
       SetPowerMode(true);
-      Stop(0.0);
+      Stop(0.1);
       Brake(100.0);
     }
 
@@ -1573,16 +1573,18 @@ bool SmExcavator::ExecuteSearch()
       }
       else // did not find volatile
       {
+        
         ExecuteDrop(2,3,0);
         ros::spinOnce();
 
         ExecuteAfterScoop(2,7); // This is to remove from the ground
         // ros::Duration(2.0).sleep();
+        ExecuteHomeArm(2,2);
         ros::spinOnce();
       }
     }
 
-    ExecuteHomeArm(2,2);
+    //ExecuteHomeArm(2,2);
 
     if (!wheelOrientations[j])
     {
@@ -1590,7 +1592,7 @@ bool SmExcavator::ExecuteSearch()
       SetPowerMode(false);
       DriveCmdVel(-multiplier * EXCAVATOR_MAX_SPEED * directions[j], 0, 0, fabs(directions[j]) * t);
       SetPowerMode(true);
-      Stop(0.0);
+      Stop(0.1);
       Brake(100.0);
     }
     else
@@ -1600,7 +1602,7 @@ bool SmExcavator::ExecuteSearch()
       TurnWheelsSideways(true, 1);
       MoveSideways(-multiplier * directions[j], fabs(directions[j]) * t);
       SetPowerMode(true);
-      Stop(0.0);
+      Stop(0.1);
       Brake(100.0);
     }
 
