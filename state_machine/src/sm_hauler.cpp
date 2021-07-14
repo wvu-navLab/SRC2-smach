@@ -480,35 +480,55 @@ void SmHauler::stateVolatileHandler()
         ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Bin is not full yet.");
         ros::spinOnce();
         ros::Duration(1.0).sleep();
+        if(partner_excavation_status_.failed_to_find_hauler)
+        {
+          break;
+        }
       }
       Brake(0.0);
 
-      ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Bin is full! Starting to go back.");
-      DriveCmdVel(-0.5,0,0,3);
-      Stop (0.1);
-      BrakeRamp(100, 1, 0);
-      Brake(0.0);
+      if(partner_excavation_status_.failed_to_find_hauler)
+      {
+        //TODO: Test this recovery behavior
+        DriveCmdVel(-0.5,0,0,3);
+        Stop (0.1);
+        BrakeRamp(100, 1, 0);
+        Brake(0.0);
 
-      PublishHaulerStatus();
+        flag_approached_side = true;
+        flag_approached_excavator = false;
+        flag_located_excavator = false;
+        flag_parked_hauler = false;
+      }
+      else
+      {
+        ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Bin is full! Starting to go back.");
+        DriveCmdVel(-0.5,0,0,3);
+        Stop (0.1);
+        BrakeRamp(100, 1, 0);
+        Brake(0.0);
 
-      // RESET ALL VOL HANDLING FLAGS
-      flag_approaching_side = false;
-      flag_approached_side = false;
-      flag_approached_excavator = false;
-      flag_located_excavator = false;
-      flag_parked_hauler = false;
+        PublishHaulerStatus();
 
-      // SET SMACH FLAGS TO DUMPING
-      flag_interrupt_plan = false;
-      flag_recovering_localization = false;
-      flag_localizing_volatile = false;
-      flag_arrived_at_waypoint = false;
-      flag_dumping = true;
+        // RESET ALL VOL HANDLING FLAGS
+        flag_approaching_side = false;
+        flag_approached_side = false;
+        flag_approached_excavator = false;
+        flag_located_excavator = false;
+        flag_parked_hauler = false;
 
-      goal_pose_.position = proc_plant_bin_location_;
-      SetMoveBaseGoal();
+        // SET SMACH FLAGS TO DUMPING
+        flag_interrupt_plan = false;
+        flag_recovering_localization = false;
+        flag_localizing_volatile = false;
+        flag_arrived_at_waypoint = false;
+        flag_dumping = true;
 
-      progress = 1.0;
+        goal_pose_.position = proc_plant_bin_location_;
+        SetMoveBaseGoal();
+
+        progress = 1.0;
+      }
     }
   }
 
@@ -1576,12 +1596,6 @@ bool SmHauler::FindExcavator(double timeout)
     ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Failed to call service FindExcavator.");
   }
 
-
-  // Look forward before starting to move again
-  std_msgs::Float64 sensor_yaw;
-  sensor_yaw.data = 0.0;
-  sensor_yaw_pub.publish(sensor_yaw);
-
   if (srv_find.response.success)
   {
     geometry_msgs::PointStamped bucket_point = srv_find.response.target;
@@ -1594,11 +1608,22 @@ bool SmHauler::FindExcavator(double timeout)
     partner_excavator_location_ = bucket_point_.point;
 
     ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Got the position of the Excavator's bucket. Point:" << bucket_point_);
+    
+    // Look forward before starting to move again
+    std_msgs::Float64 sensor_yaw;
+    sensor_yaw.data = 0.0;
+    sensor_yaw_pub.publish(sensor_yaw);
+
     return true;
   }
   else
   {
-    ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Havent found the Excavator's bucket.");
+    ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Havent found the Excavator's bucket.");  // Look forward before starting to move again
+    
+    // Look forward before starting to move again
+    std_msgs::Float64 sensor_yaw;
+    sensor_yaw.data = 0.0;
+    sensor_yaw_pub.publish(sensor_yaw);
 
     return false;
   }

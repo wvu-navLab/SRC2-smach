@@ -116,6 +116,7 @@ public:
   bool flag_manipulation_interrupt = false;
   bool flag_bucket_full = false;
   bool flag_found_parking_site = false;
+  bool flag_failed_to_find_hauler = false;
   bool flag_found_hauler = false;
   bool flag_has_volatile = false;
   bool flag_found_volatile = false;

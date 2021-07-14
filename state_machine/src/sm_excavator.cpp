@@ -1509,8 +1509,8 @@ void SmExcavator::ExecuteGoToPose(double duration, double wait_time, const geome
 bool SmExcavator::ExecuteSearch()
 {
 
-  double v = 0.2; // motion speed
-  double t = 5;   // time of motion
+  double multiplier = 1.0; // motion speed
+  double t = 3;   // time of motion
 
   std::vector<double> q1s {0.0, M_PI/3,  -M_PI/3}; // Search angles
 
@@ -1523,15 +1523,19 @@ bool SmExcavator::ExecuteSearch()
     if (!wheelOrientations[j])
     {
       Brake(0.0);
-      DriveCmdVel(v* directions[j], 0, 0, fabs(directions[j]) * t);
+      SetPowerMode(false);
+      DriveCmdVel(multiplier * EXCAVATOR_MAX_SPEED * directions[j], 0, 0, fabs(directions[j]) * t);
+      SetPowerMode(true);
       Stop(0.0);
       Brake(100.0);
     }
     else
     {
       Brake(0.0);
+      SetPowerMode(false);
       TurnWheelsSideways(true, 1);
-      MoveSideways(v * EXCAVATOR_MAX_SPEED * directions[j], fabs(directions[j]) * t);
+      MoveSideways(multiplier * directions[j], fabs(directions[j]) * t);
+      SetPowerMode(true);
       Stop(0.0);
       Brake(100.0);
     }
@@ -1573,15 +1577,19 @@ bool SmExcavator::ExecuteSearch()
     if (!wheelOrientations[j])
     {
       Brake(0.0);
-      DriveCmdVel(-v * directions[j], 0, 0, fabs(directions[j]) * t);
+      SetPowerMode(false);
+      DriveCmdVel(-multiplier * EXCAVATOR_MAX_SPEED * directions[j], 0, 0, fabs(directions[j]) * t);
+      SetPowerMode(true);
       Stop(0.0);
       Brake(100.0);
     }
     else
     {
       Brake(0.0);
+      SetPowerMode(false);
       TurnWheelsSideways(true, 1);
-      MoveSideways(-v * EXCAVATOR_MAX_SPEED * directions[j], fabs(directions[j]) * t);
+      MoveSideways(-multiplier * directions[j], fabs(directions[j]) * t);
+      SetPowerMode(true);
       Stop(0.0);
       Brake(100.0);
     }
@@ -1623,6 +1631,12 @@ bool SmExcavator::FindHauler(double timeout)
     relative_heading_ = atan2(bin_point_.point.y, bin_point_.point.x-0.7);
 
     ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Excavation: Target bin updated. Point:" << bin_point_);
+
+
+    // Look forward before starting to move again
+    std_msgs::Float64 sensor_yaw;
+    sensor_yaw.data = 0.0;
+    sensor_yaw_pub.publish(sensor_yaw);
     return true;
   }
   else
@@ -1634,6 +1648,12 @@ bool SmExcavator::FindHauler(double timeout)
 
     relative_range_ = hypot(bin_point_.point.x-0.7, bin_point_.point.y);
     relative_heading_ = atan2(bin_point_.point.y, bin_point_.point.x-0.7);
+
+
+    // Look forward before starting to move again
+    std_msgs::Float64 sensor_yaw;
+    sensor_yaw.data = 0.0;
+    sensor_yaw_pub.publish(sensor_yaw);
     return false;
   }
 }
@@ -1888,16 +1908,12 @@ void SmExcavator::ExcavationStateMachine()
       if(!flag_found_hauler)
       {
         flag_found_hauler = FindHauler(120);
+        flag_failed_to_find_hauler = !flag_found_hauler;
       }
 
       PublishExcavationStatus();
 
       // flag_still_has_volatile = flag_has_volatile;
-
-      // Look forward before starting to move again
-      std_msgs::Float64 sensor_yaw;
-      sensor_yaw.data = 0.0;
-      sensor_yaw_pub.publish(sensor_yaw);
 
 
       if (flag_found_hauler)
@@ -2028,6 +2044,7 @@ void SmExcavator::PublishExcavationStatus()
   msg.parking_side.data = relative_side_;
   msg.found_volatile.data = flag_found_volatile;
   msg.found_hauler.data = flag_found_hauler;
+  msg.failed_to_find_hauler.data = flag_failed_to_find_hauler;
   msg.counter.data = excavation_counter_;
   msg.progress.data = excavation_counter_/MAX_EXCAVATION_COUNTER;
 
