@@ -166,7 +166,7 @@ public:
   void SetPowerMode(bool power_save);
   void ClearCostmaps(double wait_time);
   void Lights(double intensity);
-  void GetTruePose();
+  void GetTruePose(bool initialize_other_robot_attitude);
   void Drive(double speed_ratio, double time);
   void DriveCmdVel(double vx, double vy, double wz, double time);
   void CommandCamera(double yaw, double pitch, double time);
