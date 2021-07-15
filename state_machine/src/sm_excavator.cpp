@@ -76,6 +76,7 @@ move_base_state_(actionlib::SimpleClientGoalState::PREEMPTED)
   clt_lower_arm = nh.serviceClient<move_excavator::LowerArm>("manipulation/lower_arm");
   clt_scoop = nh.serviceClient<move_excavator::Scoop>("manipulation/scoop");
   clt_after_scoop = nh.serviceClient<move_excavator::AfterScoop>("manipulation/after_scoop");
+  clt_retract_arm = nh.serviceClient<move_excavator::RetractArm>("manipulation/retract_arm");
   clt_drop_volatile = nh.serviceClient<move_excavator::DropVolatile>("manipulation/drop_volatile");
   clt_forward_kin = nh.serviceClient<move_excavator::ExcavatorFK>("manipulation/excavator_fk");
   clt_go_to_pose = nh.serviceClient<move_excavator::GoToPose>("manipulation/go_to_pose");
@@ -229,6 +230,7 @@ void SmExcavator::stateInitialize()
   Lights(20);
 
   ExecuteHomeArm(2,0);
+  ExecuteRetractArm(2,0);
 
   Stop(0.1);
   Brake(100.0);
@@ -488,6 +490,7 @@ void SmExcavator::stateLost()
   }
 
   ExecuteHomeArm(2,0);
+  ExecuteRetractArm(2,0);
 
   Brake(0.0);
 
@@ -854,6 +857,13 @@ void SmExcavator::manipulationCmdCallback(const std_msgs::Int64::ConstPtr &msg)
 
       // Put the Arm in a safe position before Home
       ExecuteGoToPose(5,1,bucket_safe_point_);
+    }
+    break;
+
+    case RETRACT_MODE:
+    {
+      ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"ExcavationCMD: Retracting Arm.");
+      ExecuteRetractArm(5,2);
     }
     break;
 
@@ -1427,7 +1437,6 @@ void SmExcavator::ExecuteHomeArm(double duration, double wait_time)
   }
 
 }
-
 void SmExcavator::ExecuteLowerArm(double duration, double wait_time)
 {
   move_excavator::LowerArm srv;
@@ -1519,6 +1528,24 @@ void SmExcavator::ExecuteDrop(double duration, double wait_time, int type)
   else
   {
     ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Failed to call service Drop");
+  }
+}
+
+void SmExcavator::ExecuteRetractArm(double duration, double wait_time)
+{
+  move_excavator::RetractArm srv;
+
+  srv.request.heading = 0;
+  srv.request.timeLimit = duration;
+
+  if (clt_retract_arm.call(srv))
+  {
+    ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Called service RetractArm.");
+    ros::Duration(wait_time).sleep();
+  }
+  else
+  {
+    ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Failed to call service RetractArm");
   }
 }
 
@@ -2018,10 +2045,11 @@ void SmExcavator::CancelExcavation(bool success)
   PublishExcavationStatus();
 
   // Put arm in Home position
-  ExecuteDrop(5,0,0);
+  ExecuteDrop(2,0,0);
 
-  // Put arm in Home position
-  ExecuteHomeArm(5,0);
+  // Put arm in Retract position
+  ExecuteHomeArm(2,0);
+  ExecuteRetractArm(2,0);
 
   // Reset all important variables
   volatile_heading_ = 0.0;

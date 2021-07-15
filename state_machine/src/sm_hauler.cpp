@@ -468,7 +468,7 @@ void SmHauler::stateVolatileHandler()
         else
         {
           ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Obtained goal from Bucket detection");
-          flag_parked_hauler = GoToWaypoint(1.2, -0.3);
+          flag_parked_hauler = GoToWaypoint(1.0, -0.3);
         }
         PublishHaulerStatus();
       }
