@@ -396,11 +396,9 @@ void SmHauler::stateVolatileHandler()
 
   CancelMoveBaseGoal();
 
-  // TODO: Get feedback from Excavator before approaching
-  // Include callback to ExcavationStatus
-  // According with ExcavationStatus we approach and park
   if(!flag_approached_side && partner_excavation_status_.found_parking_site.data)
   {
+    ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Excavation. Approaching the Excavator side are!");
 
     goal_pose_.position = partner_excavation_status_.parking_pose.position;
 
@@ -420,7 +418,9 @@ void SmHauler::stateVolatileHandler()
   if(!flag_full_bin && flag_approached_side)
   {
     if(!flag_approached_excavator && partner_excavation_status_.found_volatile.data)
-    {
+    {    
+      ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Excavation. Approaching the Excavator!");
+
       tf2::Quaternion q(partner_excavation_status_.parking_pose.orientation.x,
                   partner_excavation_status_.parking_pose.orientation.y,
                   partner_excavation_status_.parking_pose.orientation.z,
@@ -430,11 +430,10 @@ void SmHauler::stateVolatileHandler()
 
       tf2::Matrix3x3(q).getRPY(roll, pitch, yaw);
 
-      ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Rotating in the direction of the excavator. Goal yaw: " << yaw);
+      ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Rotating in the direction of the excavator. Goal yaw: " << yaw);
       RotateToHeading(yaw);
-      ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Rotated to yaw: " << yaw_);
+      ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Rotated to yaw: " << yaw_);
 
-      ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Starting to approach excavator");
       flag_approached_excavator = ApproachExcavator(3, 4.0);
       flag_located_excavator = false;
       flag_parked_hauler = false;
@@ -443,7 +442,7 @@ void SmHauler::stateVolatileHandler()
 
     if (!flag_parked_hauler && flag_approached_excavator)
     {
-      ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Approach service success");
+      ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Excavation. Parking Hauler.");
 
       bool goal_from_bucket = false;
       // Trying with computer vision
@@ -458,12 +457,12 @@ void SmHauler::stateVolatileHandler()
       {
         if(!goal_from_bucket)
         {
-          ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Obtained goal from LaserScan");
+          ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Obtained goal from LaserScan");
           flag_parked_hauler = GoToWaypoint(1.5, 1.0);
         }
         else
         {
-          ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Obtained goal from Bucket detection");
+          ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Obtained goal from Bucket detection");
           flag_parked_hauler = GoToWaypoint(1.2, -0.3);
         }
         PublishHaulerStatus();
@@ -482,7 +481,7 @@ void SmHauler::stateVolatileHandler()
       ros::spinOnce();
       while(!flag_full_bin)
       {
-        ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Bin is not full yet.");
+        ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Excavation. Bin is not full yet.");
 
         ros::spinOnce();
         ros::Duration(1.0).sleep();
@@ -490,7 +489,6 @@ void SmHauler::stateVolatileHandler()
         if(parking_recovery_counter_ > 2)
         {
           PublishHaulerStatus();
-
           break;
         }
 
@@ -501,12 +499,13 @@ void SmHauler::stateVolatileHandler()
           flag_located_excavator = false;
           flag_parked_hauler = false;
 
-          PublishHaulerStatus();
-
           parking_recovery_counter_++;
+          PublishHaulerStatus();
           break;
         }
       }
+      
+      ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Excavation. Backing maneuver.");
       Brake(0.0);
 
       DriveCmdVel(-0.5,0,0,3);
@@ -516,8 +515,7 @@ void SmHauler::stateVolatileHandler()
 
       if(!partner_excavation_status_.failed_to_find_hauler.data || flag_full_bin)
       {
-        ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Bin is full! Starting to go back.");
-
+        ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Excavation. Full bin! Going to Dump State.");
         PublishHaulerStatus();
 
         // RESET ALL VOL HANDLING FLAGS
@@ -665,30 +663,32 @@ void SmHauler::stateDump()
     BrakeRamp(100, 1, 0);
     Brake(0.0);
 
-    // RESET ALL VOL HANDLING FLAGS
-    flag_approaching_side = false;
-    flag_approached_side = false;
-    flag_approached_excavator = false;
-    flag_located_excavator = false;
-    flag_parked_hauler = false;
-    flag_full_bin = false;
-
-    // SET SMACH FLAGS TO DUMPING
-    flag_interrupt_plan = false;
-    flag_recovering_localization = true;
-    flag_localizing_volatile = false;
-    flag_arrived_at_waypoint = false;
-    flag_dumping = false;
-
-    goal_pose_.position = charging_station_location_;
-    SetMoveBaseGoal();
-
     progress = 1.0;
   }
   else
-  {
+  {    
     progress = -1.0;
   }
+
+  PublishHaulerStatus();
+  
+  // RESET ALL VOL HANDLING FLAGS
+  flag_approaching_side = false;
+  flag_approached_side = false;
+  flag_approached_excavator = false;
+  flag_located_excavator = false;
+  flag_parked_hauler = false;
+  flag_full_bin = false;
+
+  // SET SMACH FLAGS TO LOST
+  flag_interrupt_plan = false;
+  flag_recovering_localization = true;
+  flag_localizing_volatile = false;
+  flag_arrived_at_waypoint = false;
+  flag_dumping = false;
+
+  goal_pose_.position = charging_station_location_;
+  SetMoveBaseGoal();
 
   state_machine::RobotStatus status_msg;
   status_msg.progress.data = progress;
@@ -1705,11 +1705,14 @@ void SmHauler::PublishHaulerStatus()
 {
   state_machine::HaulerStatus msg;
   msg.hauler_id.data = robot_id_;
+  msg.approaching_side.data = flag_approaching_side;
+  msg.approached_side.data = flag_approached_side;
   msg.approached_excavator.data = flag_approached_excavator;
   msg.located_excavator.data = flag_located_excavator;
-  msg.hauler_ready.data = flag_parked_hauler;
+  msg.parked_hauler.data = flag_parked_hauler;
   msg.bin_full.data = flag_full_bin;
   msg.parking_recovery_counter.data = parking_recovery_counter_;
+  msg.dumped.data = flag_dumped;
 
   hauler_status_pub.publish(msg);
 

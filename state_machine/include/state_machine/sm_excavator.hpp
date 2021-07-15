@@ -328,6 +328,7 @@ public:
   geometry_msgs::Point partner_hauler_location_;
   state_machine::HaulerStatus partner_hauler_status_;
   geometry_msgs::Pose hauler_parking_pose_;
+  geometry_msgs::PointStamped bucket_safe_point_;
 
   int relative_side_ = 1;
   double relative_heading_ = 0;
@@ -341,6 +342,7 @@ public:
 
   const int MAX_EXCAVATION_COUNTER = 5;
   int excavation_counter_ = 0;
+  int volatiles_attempted_ = 0;
 
   double volatile_heading_ = 0;
 
