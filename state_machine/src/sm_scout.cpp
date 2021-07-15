@@ -178,19 +178,21 @@ void SmScout::stateInitialize()
   // RoverStatic(true);
   // GetTruePose();
   // RoverStatic(false);
-  ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Waiting for initial attitude");
-  geometry_msgs::Quaternion att;
-  try
-  {
-    ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Got initial attitude");
-    att  = *(ros::topic::waitForMessage<geometry_msgs::Quaternion>("/initial_attitude",ros::Duration(30)));
-    flag_have_true_pose = true;
-  }
-  catch(...)
-  {
-    ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Failed to get initial attitude. Proceeding anyway.");
-    flag_have_true_pose = true;
-  }
+  // ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Waiting for initial attitude");
+  // geometry_msgs::Quaternion att;
+  // try
+  // {
+  //   ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Got initial attitude");
+  //   att  = *(ros::topic::waitForMessage<geometry_msgs::Quaternion>("/initial_attitude",ros::Duration(30)));
+  //   flag_have_true_pose = true;
+  // }
+  // catch(...)
+  // {
+  //   ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Failed to get initial attitude. Proceeding anyway.");
+  //   flag_have_true_pose = true;
+  // }
+
+  flag_have_true_pose = true;
 
   ClearCostmaps(5.0);
 
