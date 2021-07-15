@@ -233,9 +233,9 @@ void SmExcavator::stateInitialize()
   Stop(0.1);
   Brake(100.0);
 
-  RoverStatic(true);
-  GetTruePose();
-  RoverStatic(false);
+  // RoverStatic(true);
+  // GetTruePose();
+  // RoverStatic(false);
 
   ClearCostmaps(5.0);
 

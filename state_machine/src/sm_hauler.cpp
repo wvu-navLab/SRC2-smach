@@ -240,7 +240,12 @@ void SmHauler::stateInitialize()
   Brake(100.0);
 
   RoverStatic(true);
-  GetTruePose();
+  bool initialize_other_robot_attitude = false;
+  if (robot_id_ == 1)
+  {
+    initialize_other_robot_attitude = true;
+  }
+  GetTruePose(initialize_other_robot_attitude);
   RoverStatic(false);
 
   ClearCostmaps(5.0);
@@ -1183,11 +1188,12 @@ void SmHauler::ClearCostmaps(double wait_time)
   Brake(0.0);
 }
 
-void SmHauler::GetTruePose()
+void SmHauler::GetTruePose(bool initialize_other_robot_attitude)
 {
   // Update SF with True Pose
   sensor_fusion::GetTruePose srv_sf_true_pose;
   srv_sf_true_pose.request.start = true;
+  srv_sf_true_pose.request.initialize = initialize_other_robot_attitude;
   if (clt_sf_true_pose.call(srv_sf_true_pose))
   {
     ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Called service TruePose");

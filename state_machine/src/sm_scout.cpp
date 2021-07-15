@@ -924,6 +924,7 @@ void SmScout::GetTruePose()
 {
   sensor_fusion::GetTruePose srv_sf_true_pose;
   srv_sf_true_pose.request.start = true;
+  srv_sf_true_pose.request.initialize = false;
   if (clt_sf_true_pose.call(srv_sf_true_pose))
   {
     ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Called service TruePose");
