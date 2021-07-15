@@ -175,9 +175,24 @@ void SmScout::stateInitialize()
   Stop(0.1);
   Brake(100.0);
 
-  RoverStatic(true);
-  GetTruePose();
-  RoverStatic(false);
+  // RoverStatic(true);
+  // GetTruePose();
+  // RoverStatic(false);
+  // ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Waiting for initial attitude");
+  // geometry_msgs::Quaternion att;
+  // try
+  // {
+  //   ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Got initial attitude");
+  //   att  = *(ros::topic::waitForMessage<geometry_msgs::Quaternion>("/initial_attitude",ros::Duration(30)));
+  //   flag_have_true_pose = true;
+  // }
+  // catch(...)
+  // {
+  //   ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Failed to get initial attitude. Proceeding anyway.");
+  //   flag_have_true_pose = true;
+  // }
+
+  flag_have_true_pose = true;
 
   ClearCostmaps(5.0);
 
@@ -924,6 +939,7 @@ void SmScout::GetTruePose()
 {
   sensor_fusion::GetTruePose srv_sf_true_pose;
   srv_sf_true_pose.request.start = true;
+  srv_sf_true_pose.request.initialize = false;
   if (clt_sf_true_pose.call(srv_sf_true_pose))
   {
     ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Called service TruePose");

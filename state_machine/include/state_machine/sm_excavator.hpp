@@ -52,6 +52,7 @@
 #include <move_excavator/AfterScoop.h>
 #include <move_excavator/ExtendArm.h>
 #include <move_excavator/DropVolatile.h>
+#include <move_excavator/RetractArm.h>
 #include <move_excavator/ExcavatorFK.h>
 #include <move_excavator/GoToPose.h>
 #include <move_excavator/ControlInvJac.h>
@@ -84,7 +85,8 @@
 #define SCOOP_MODE 3
 #define EXTEND_MODE 4
 #define DROP_MODE 5
-#define CANCEL 6
+#define RETRACT_MODE 6
+#define CANCEL 7
 #define DISABLE 9
 
 #define EXCAVATION_ENABLED 0
@@ -174,6 +176,7 @@ public:
   ros::ServiceClient clt_lower_arm;
   ros::ServiceClient clt_scoop;
   ros::ServiceClient clt_after_scoop;
+  ros::ServiceClient clt_retract_arm;
   ros::ServiceClient clt_drop_volatile;
   ros::ServiceClient clt_forward_kin;
   ros::ServiceClient clt_go_to_pose;
@@ -244,6 +247,7 @@ public:
   void ExecuteAfterScoop(double duration, double wait_time);
   void ExecuteExtendArm(double duration, double wait_time);
   void ExecuteDrop(double duration, double wait_time, int type);
+  void ExecuteRetractArm(double duration, double wait_time);
   void ExecuteGoToPose(double duration, double wait_time, const geometry_msgs::PointStamped &point);
   bool ExecuteSearch();
   bool FindHauler(double timeout);
@@ -328,6 +332,7 @@ public:
   geometry_msgs::Point partner_hauler_location_;
   state_machine::HaulerStatus partner_hauler_status_;
   geometry_msgs::Pose hauler_parking_pose_;
+  geometry_msgs::PointStamped bucket_safe_point_;
 
   int relative_side_ = 1;
   double relative_heading_ = 0;
@@ -341,6 +346,7 @@ public:
 
   const int MAX_EXCAVATION_COUNTER = 5;
   int excavation_counter_ = 0;
+  int volatiles_attempted_ = 0;
 
   double volatile_heading_ = 0;
 
