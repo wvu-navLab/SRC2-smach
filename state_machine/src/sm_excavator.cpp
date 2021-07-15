@@ -236,6 +236,19 @@ void SmExcavator::stateInitialize()
   // RoverStatic(true);
   // GetTruePose();
   // RoverStatic(false);
+  ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Waiting for initial attitude");
+  geometry_msgs::Quaternion att;
+  try
+  {
+    ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Got initial attitude");
+    att  = *(ros::topic::waitForMessage<geometry_msgs::Quaternion>("/initial_attitude",ros::Duration(30)));
+    flag_have_true_pose = true;
+  }
+  catch(...)
+  {
+    ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Failed to get initial attitude. Proceeding anyway.");
+    flag_have_true_pose = true;
+  }
 
   ClearCostmaps(5.0);
 
@@ -1175,6 +1188,7 @@ void SmExcavator::GetTruePose()
 {
   sensor_fusion::GetTruePose srv_sf_true_pose;
   srv_sf_true_pose.request.start = true;
+  srv_sf_true_pose.request.initialize = false;
   if (clt_sf_true_pose.call(srv_sf_true_pose))
   {
     ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Called service TruePose");
@@ -1953,10 +1967,10 @@ void SmExcavator::ExcavationStateMachine()
           ros::Duration(1.0).sleep();
           ros::spinOnce();
         }
-        manipulation_timer += (ros::Time::now() - waiting_hauler);
-        ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Excavation. Time was added to Excavation State Machine. Remaining time: " 
-                            << (ros::Time::now() - manipulation_timer).toSec() << "/"
-                            << ros::Duration(840).toSec() << "s.");
+        // manipulation_timer += (ros::Time::now() - waiting_hauler);
+        // ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Excavation. Time was added to Excavation State Machine. Remaining time: " 
+        //                     << (ros::Time::now() - manipulation_timer).toSec() << "/"
+        //                     << ros::Duration(840).toSec() << "s.");
       }
     }
     break;
