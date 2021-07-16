@@ -41,11 +41,11 @@
     <include file="$(find range_to_base)/launch/homing_service.launch"/>
     <include file="$(find sensor_fusion)/launch/homing.launch"/>
 
-    <!-- ranging services -->
-    <include file="$(find range_to_base)/launch/range_to_base_service.launch"/>
-
    <!-- approach services -->
     <include file="$(find src2_approach_services)/launch/approach_charging_station.launch"/>
+
+    <!-- ranging services -->
+    <include file="$(find range_to_base)/launch/range_to_base_service.launch"/>
 
     <!-- waypoint checker -->
     <include file="$(find waypoint_checker)/launch/waypoint_checker.launch"/>

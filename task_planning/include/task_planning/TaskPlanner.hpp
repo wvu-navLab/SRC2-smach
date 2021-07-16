@@ -61,6 +61,7 @@ namespace mac {
 
 const int SCOUT_PLANNER_DEFAULT = 0;
 const int EXC_HAUL_PLANNER_DEFAULT = 1;
+const int EXC_HAUL_PLANNER_DEFAULT_ADV = 1;
 const int EXC_HAUL_FORWARD_SEARCH = 2;
 
 class TaskPlanner {
@@ -143,6 +144,7 @@ class TaskPlanner {
     void scout_plan_default(int type, int id);
     /** \brief  */
     void exc_haul_plan_default();
+    void exc_haul_plan_default_adv();
     /** \brief */
     void populate_prior_plan();
 

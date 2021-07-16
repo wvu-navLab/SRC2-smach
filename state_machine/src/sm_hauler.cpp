@@ -97,6 +97,8 @@ move_base_state_(actionlib::SimpleClientGoalState::PREEMPTED)
     small_excavators_odom_.push_back(temp_small_excavator_odom);
     small_excavators_status_.push_back(temp_small_excavator_status);
   }
+
+  partner_excavator_id_ == robot_id_;
 }
 
 void SmHauler::run()
@@ -1763,7 +1765,7 @@ void SmHauler::Plan()
     goal_pose_.position = srv_plan.response.objective.point;
     geometry_msgs::Quaternion quat;
     goal_pose_.orientation = quat;
-    partner_excavator_id_ = 1; //TODO: Tell Jared's we need partner ID
+    // partner_excavator_id_ = srv_plan.response.id;
     no_objective = false;
   }
   else

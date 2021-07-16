@@ -6,7 +6,6 @@
     <!-- static transform from odom to map-->
     <node pkg="tf" type="static_transform_publisher" name="map_to_odom" args="0 0 0 0 0 0 map small_scout_1_odom 100" />
 
-
     <!-- pcl_obstacle_avoidance launch file -->
     <include file="$(find pcl_obstacle_detection)/launch/pcl_homing.launch"/>
 

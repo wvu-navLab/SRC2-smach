@@ -45,6 +45,7 @@
     <include file="$(find sensor_fusion)/launch/homing.launch"/>
 
     <!-- ranging services -->
+    <include file="$(find range_to_base)/launch/location_of_excavator_service.launch"/>
     <include file="$(find range_to_base)/launch/location_of_bin_service.launch"/>
     <include file="$(find range_to_base)/launch/range_to_base_service.launch"/>
 
@@ -56,6 +57,9 @@
     <!-- waypoint checker -->
     <include file="$(find waypoint_checker)/launch/waypoint_checker.launch"/>
 
+    <!-- waypoint nav -->
+    <include file="$(find waypoint_nav)/launch/waypoint_nav.launch"/>
+    
     <!-- state machine for hauler -->
     <include file="$(find state_machine)/launch/hauler_state_machine.launch"/>
   </group>

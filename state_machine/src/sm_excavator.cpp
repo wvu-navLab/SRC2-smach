@@ -104,6 +104,8 @@ move_base_state_(actionlib::SimpleClientGoalState::PREEMPTED)
   bucket_safe_point_.point.x = 1.4;
   bucket_safe_point_.point.y = 0.0;
   bucket_safe_point_.point.z = 1.8;
+
+  partner_hauler_id_ == robot_id_;
 }
 
 void SmExcavator::run()
@@ -2131,7 +2133,7 @@ void SmExcavator::Plan()
     goal_pose_.position = srv_plan.response.objective.point;
     geometry_msgs::Quaternion quat;
     goal_pose_.orientation = quat;
-    partner_hauler_id_ = 1; //TODO: Tell Jareds we need partner ID
+    // partner_excavator_id_ = srv_plan.response.id;
     goal_vol_index_ = srv_plan.response.volatile_index.data;
     no_objective = false;
     ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Task Planner: Goal volatile pos: "<< srv_plan.response.objective.point);
