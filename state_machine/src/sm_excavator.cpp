@@ -417,6 +417,8 @@ void SmExcavator::stateVolatileHandler()
     BrakeRamp(100, 1, 0);
     Brake(0.0);
 
+    ExecuteHomeArm(2,0);
+    
     SetPowerMode(false);
     SetHaulerParkingLocation();
     SetPowerMode(true);

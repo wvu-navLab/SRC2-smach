@@ -517,31 +517,31 @@ void SmHauler::stateVolatileHandler()
       Stop (0.1);
       BrakeRamp(100, 1, 0);
       Brake(0.0);
+    }
 
-      if(!partner_excavation_status_.failed_to_find_hauler.data || flag_full_bin)
-      {
-        ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Excavation. Full bin! Going to Dump State.");
-        PublishHaulerStatus();
+    if(flag_full_bin)
+    {
+      ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Excavation. Full bin! Going to Dump State.");
+      PublishHaulerStatus();
 
-        // RESET ALL VOL HANDLING FLAGS
-        flag_approaching_side = false;
-        flag_approached_side = false;
-        flag_approached_excavator = false;
-        flag_located_excavator = false;
-        flag_parked_hauler = false;
+      // RESET ALL VOL HANDLING FLAGS
+      flag_approaching_side = false;
+      flag_approached_side = false;
+      flag_approached_excavator = false;
+      flag_located_excavator = false;
+      flag_parked_hauler = false;
 
-        // SET SMACH FLAGS TO DUMPING
-        flag_interrupt_plan = false;
-        flag_recovering_localization = false;
-        flag_localizing_volatile = false;
-        flag_arrived_at_waypoint = false;
-        flag_dumping = true;
+      // SET SMACH FLAGS TO DUMPING
+      flag_interrupt_plan = false;
+      flag_recovering_localization = false;
+      flag_localizing_volatile = false;
+      flag_arrived_at_waypoint = false;
+      flag_dumping = true;
 
-        goal_pose_.position = proc_plant_bin_location_;
-        SetMoveBaseGoal();
+      goal_pose_.position = proc_plant_bin_location_;
+      SetMoveBaseGoal();
 
-        progress = 1.0;
-      }
+      progress = 1.0;
     }
   }
 
@@ -654,7 +654,7 @@ void SmHauler::stateDump()
 
     Brake(0.0);
 
-    DriveCmdVel(-0.5,0.0,0.0,5);
+    DriveCmdVel(-0.5,0.0,0.0,10);
     Stop(0.1);
     BrakeRamp(100, 1, 0);
     Brake(0.0);
