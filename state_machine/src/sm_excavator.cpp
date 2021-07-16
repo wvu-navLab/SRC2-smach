@@ -286,8 +286,9 @@ void SmExcavator::statePlanning()
     goal_yaw_ = atan2(goal_pose_.position.y - current_pose_.position.y, goal_pose_.position.x - current_pose_.position.x);
 
     Brake (0.0);
-
+    SetPowerMode(false);
     RotateToHeading(goal_yaw_);
+    SetPowerMode(true);
     BrakeRamp(100, 1, 0);
     Brake(0.0);
 
@@ -297,7 +298,7 @@ void SmExcavator::statePlanning()
 
     if(flag_localizing_volatile)
     {
-      ros::Duration(15).sleep();
+      ros::Duration(3).sleep();
     }
 
     SetMoveBaseGoal();
@@ -326,7 +327,7 @@ void SmExcavator::stateTraverse()
   SetPowerMode(false);
 
   move_base_state_ = ac.getState();
-  ROS_WARN_STREAM("[" << robot_name_ << "] " <<"MoveBase status: "<< (std::string) move_base_state_.toString());
+  ROS_WARN_STREAM("[" << robot_name_ << "] " <<"MoveBase status: "<< (std::string) move_base_state_.toString() << ".");
 
   double distance_to_goal = std::hypot(goal_pose_.position.y - current_pose_.position.y, goal_pose_.position.x - current_pose_.position.x);
   if (distance_to_goal < 2.0)

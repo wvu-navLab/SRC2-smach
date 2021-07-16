@@ -300,10 +300,13 @@ void SmHauler::statePlanning()
     // CheckWaypoint(3); // TODO: Check if they needed
 
     ClearCostmaps(5.0);
-
+    double dx = goal_pose_.position.x - current_pose_.position.x;
+    double dy = goal_pose_.position.y - current_pose_.position.y; 
+    double D = hypot(dx,dy);
+    double dt = 87.5*(D/90);
     if(flag_localizing_volatile)
     {
-      ros::Duration(30).sleep();
+      ros::Duration(dt+3).sleep();
     }
 
     SetMoveBaseGoal();
