@@ -98,7 +98,7 @@ move_base_state_(actionlib::SimpleClientGoalState::PREEMPTED)
     small_excavators_status_.push_back(temp_small_excavator_status);
   }
 
-  partner_excavator_id_ == robot_id_;
+  partner_excavator_id_ = robot_id_;
 }
 
 void SmHauler::run()
@@ -120,7 +120,7 @@ void SmHauler::run()
     state_to_exec.clear();
     state_to_exec.resize(num_states,0);
 
-    if(!flag_have_true_pose)
+    if(!flag_have_true_pose || !flag_spread_out)
     {
       state_to_exec.at(_initialize) = 1;
     }
@@ -241,7 +241,6 @@ void SmHauler::stateInitialize()
 
   Stop(0.1);
   Brake(100.0);
-
   RoverStatic(true);
   bool initialize_other_robot_attitude = false;
   if (robot_id_ == 1)
@@ -250,9 +249,24 @@ void SmHauler::stateInitialize()
   }
   GetTruePose(initialize_other_robot_attitude);
   RoverStatic(false);
-
-  ClearCostmaps(5.0);
-
+  if (flag_have_true_pose && !flag_spread_out)
+  {
+    Brake(0.0);
+    ros::spinOnce();
+    if (robot_id_ == 1)
+    {
+      RotateToHeading(5.0);
+    }
+    else
+    {
+      RotateToHeading(1.4);
+    }
+    DriveCmdVel(HAULER_MAX_SPEED,0,0,12);
+    Stop(0.1);
+    Brake(100.0);
+    flag_spread_out = true;
+    ClearCostmaps(5.0);
+  }
   Brake(0.0);
 
   progress = 1.0;
@@ -889,9 +903,9 @@ void SmHauler::excavationStatusCallback(const ros::MessageEvent<state_machine::E
 
   small_excavators_status_[msg_excavator_id-1] = *msg;
 
-  if (partner_excavator_id_ == msg->excavator_id.data)
+  if (partner_excavator_id_ == msg_excavator_id)
   {
-    ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Got new excavation status.");
+    ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Got new partner status.");
     partner_excavation_status_ = *msg;
 
     if(partner_excavation_status_.counter.data == -1)
@@ -916,7 +930,6 @@ void SmHauler::excavatorOdomCallback(const ros::MessageEvent<nav_msgs::Odometry 
   {
     partner_excavator_location_ = msg->pose.pose.position;
   }
-  // ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Got small_excavator_2 odometry.");
 }
 
 void SmHauler::activeCallback()

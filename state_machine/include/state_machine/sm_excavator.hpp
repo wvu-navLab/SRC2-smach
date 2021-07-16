@@ -106,6 +106,7 @@ public:
   // State transition flag declarations
   bool flag_interrupt_plan = false;
   bool flag_have_true_pose = false;
+  bool flag_spread_out = false;
   bool flag_emergency = false;
   bool flag_arrived_at_waypoint = true;
   bool flag_localizing_volatile = false;

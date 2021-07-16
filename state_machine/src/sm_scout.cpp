@@ -76,7 +76,7 @@ void SmScout::run()
     // State machine truth table ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     state_to_exec.clear();
     state_to_exec.resize(num_states,0);
-    if(!flag_have_true_pose)
+    if(!flag_have_true_pose || !flag_spread_out)
     {
       state_to_exec.at(_initialize) = 1;
     }
@@ -170,14 +170,28 @@ void SmScout::stateInitialize()
   }
 
   double progress = 0;
-
   Lights(20);
 
   Stop(0.1);
   Brake(100.0);
-
-  ClearCostmaps(5.0);
-
+  if (flag_have_true_pose && !flag_spread_out)
+  {
+    Brake(0.0);
+    ros::spinOnce();
+    if (robot_id_ == 1)
+    {
+      RotateToHeading(5.0);
+    }
+    else
+    {
+      RotateToHeading(1.4);
+    }
+    DriveCmdVel(SCOUT_MAX_SPEED,0,0,1);
+    Stop(0.1);
+    Brake(100.0);
+    flag_spread_out = true;
+    ClearCostmaps(5.0);
+  }
   Brake(0.0);
 
   progress = 1.0;
@@ -253,6 +267,26 @@ void SmScout::stateTraverse()
       flag_localizing_volatile = false;
 
       // ClearCostmaps(5.0); // TODO: Check if they needed
+
+      Stop (0.1);
+      BrakeRamp(100, 1, 0);
+      Brake(0.0);
+    }
+
+    if(move_base_state_ == actionlib::SimpleClientGoalState::PREEMPTED)
+    {
+      ROS_WARN_STREAM_THROTTLE(5,"[" << robot_name_ << "] " <<"MoveBase status: "<< move_base_state_.toString());
+      ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"MoveBase has failed to make itself useful.");
+
+      // // Send the same goal again
+      // int direction = (rand() % 3)-1;
+      // RotateToHeading(yaw_ + direction * M_PI_2);
+      // SetMoveBaseGoal();
+
+      // Puts rover in planning
+      flag_arrived_at_waypoint = true;
+      flag_recovering_localization = false;
+      flag_localizing_volatile = false;
 
       Stop (0.1);
       BrakeRamp(100, 1, 0);

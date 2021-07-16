@@ -105,7 +105,7 @@ move_base_state_(actionlib::SimpleClientGoalState::PREEMPTED)
   bucket_safe_point_.point.y = 0.0;
   bucket_safe_point_.point.z = 1.8;
 
-  partner_hauler_id_ == robot_id_;
+  partner_hauler_id_ = robot_id_;
 }
 
 void SmExcavator::run()
@@ -125,7 +125,7 @@ void SmExcavator::run()
     // State machine truth table ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     state_to_exec.clear();
     state_to_exec.resize(num_states,0);
-    if(!flag_have_true_pose)
+    if(!flag_have_true_pose || !flag_spread_out)
     {
       state_to_exec.at(_initialize) = 1;
     }
@@ -233,13 +233,28 @@ void SmExcavator::stateInitialize()
   Lights(20);
 
   ExecuteHomeArm(2,0);
-  ExecuteRetractArm(2,0);
+  // ExecuteRetractArm(2,0);
 
   Stop(0.1);
   Brake(100.0);
-
-  ClearCostmaps(5.0);
-
+  if (flag_have_true_pose && !flag_spread_out)
+  {
+    Brake(0.0);
+    ros::spinOnce();
+    if (robot_id_ == 1)
+    {
+      RotateToHeading(5.0);
+    }
+    else
+    {
+      RotateToHeading(1.4);
+    }
+    DriveCmdVel(EXCAVATOR_MAX_SPEED,0,0,12);
+    Stop(0.1);
+    Brake(100.0);
+    flag_spread_out = true;
+    ClearCostmaps(5.0);
+  }
   Brake(0.0);
 
   // flag_manipulation_interrupt = true; // TODO: Remove this later
@@ -476,7 +491,7 @@ void SmExcavator::stateLost()
   }
 
   ExecuteHomeArm(2,0);
-  ExecuteRetractArm(2,0);
+  // ExecuteRetractArm(2,0);
 
   Brake(0.0);
 
@@ -2043,7 +2058,7 @@ void SmExcavator::CancelExcavation(bool success)
 
   // Put arm in Retract position
   ExecuteHomeArm(2,0);
-  ExecuteRetractArm(2,0);
+  // ExecuteRetractArm(2,0);
 
   // Reset all important variables
   volatile_heading_ = 0.0;
