@@ -104,6 +104,7 @@ public:
   ros::Subscriber driving_mode_sub;
   ros::Subscriber laser_scan_sub;
   ros::Subscriber planner_interrupt_sub;
+  ros::Subscriber init_attitude_sub; 
   std::vector<ros::Subscriber> excavator_odom_subs;
   std::vector<ros::Subscriber> excavation_status_subs;
 
@@ -155,6 +156,7 @@ public:
   void feedbackCallback(const move_base_msgs::MoveBaseFeedbackConstPtr& feedback);
   void activeCallback();
   void plannerInterruptCallback(const std_msgs::Bool::ConstPtr &msg);
+  void initialAttitudeCallback(const geometry_msgs::QuaternionConstPtr& msg);
   void excavatorOdomCallback(const ros::MessageEvent<nav_msgs::Odometry const>& event);
   void excavationStatusCallback(const ros::MessageEvent<state_machine::ExcavationStatus const>& event);
 

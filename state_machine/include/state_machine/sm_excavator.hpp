@@ -152,6 +152,7 @@ public:
   ros::Subscriber goal_volatile_sub;
   ros::Subscriber manipulation_cmd_sub;
   ros::Subscriber planner_interrupt_sub;
+  ros::Subscriber init_attitude_sub; 
   std::vector<ros::Subscriber> hauler_odom_subs;
   std::vector<ros::Subscriber> hauler_status_subs;
 
@@ -215,6 +216,7 @@ public:
   void activeCallback();
   void plannerInterruptCallback(const std_msgs::Bool::ConstPtr &msg);
   void haulerOdomCallback(const ros::MessageEvent<nav_msgs::Odometry const>& event);
+  void initialAttitudeCallback(const geometry_msgs::QuaternionConstPtr& msg);
   void haulerStatusCallback(const ros::MessageEvent<state_machine::HaulerStatus const>& event);
 
   // Methods

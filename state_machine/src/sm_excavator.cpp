@@ -45,6 +45,7 @@ move_base_state_(actionlib::SimpleClientGoalState::PREEMPTED)
   goal_volatile_sub = nh.subscribe("manipulation/volatile_pose", 1, &SmExcavator::goalVolatileCallback, this);
   manipulation_cmd_sub = nh.subscribe("manipulation/cmd", 1, &SmExcavator::manipulationCmdCallback, this);
   planner_interrupt_sub = nh.subscribe("/planner_interrupt", 1, &SmExcavator::plannerInterruptCallback, this);
+  init_attitude_sub =nh.subscribe("/initial_attitude",1, &SmExcavator::initialAttitudeCallback, this);
   for (int i=0; i<num_haulers_; i++)
   {
     std::string hauler_odom_topic;
@@ -234,25 +235,6 @@ void SmExcavator::stateInitialize()
 
   Stop(0.1);
   Brake(100.0);
-
-  // RoverStatic(true);
-  // GetTruePose();
-  // RoverStatic(false);
-  // ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Waiting for initial attitude");
-  // geometry_msgs::Quaternion att;
-  // try
-  // {
-  //   ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Got initial attitude");
-  //   att  = *(ros::topic::waitForMessage<geometry_msgs::Quaternion>("/initial_attitude",ros::Duration(30)));
-  //   flag_have_true_pose = true;
-  // }
-  // catch(...)
-  // {
-  //   ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Failed to get initial attitude. Proceeding anyway.");
-  //   flag_have_true_pose = true;
-  // }
-
-  flag_have_true_pose = true;
 
   ClearCostmaps(5.0);
 
@@ -927,6 +909,14 @@ void SmExcavator::plannerInterruptCallback(const std_msgs::Bool::ConstPtr &msg)
   else
   {
     flag_interrupt_plan = false;
+  }
+}
+
+void SmExcavator::initialAttitudeCallback(const geometry_msgs::QuaternionConstPtr& msg)
+{
+  if(!flag_have_true_pose)
+  {
+    flag_have_true_pose = true;
   }
 }
 

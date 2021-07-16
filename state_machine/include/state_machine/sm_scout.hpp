@@ -106,6 +106,7 @@ public:
   ros::Subscriber laser_scan_sub;
   ros::Subscriber planner_interrupt_sub;
   ros::Subscriber system_monitor_sub; 
+  ros::Subscriber init_attitude_sub; 
 
   // Services
   ros::ServiceClient clt_sf_true_pose;
@@ -152,6 +153,7 @@ public:
   void laserCallback(const sensor_msgs::LaserScan::ConstPtr& msg);
   void doneCallback(const actionlib::SimpleClientGoalState& state, const move_base_msgs::MoveBaseResultConstPtr& result);
   void feedbackCallback(const move_base_msgs::MoveBaseFeedbackConstPtr& feedback);
+  void initialAttitudeCallback(const geometry_msgs::QuaternionConstPtr& msg);
   void activeCallback();
   void plannerInterruptCallback(const std_msgs::Bool::ConstPtr &msg);
 

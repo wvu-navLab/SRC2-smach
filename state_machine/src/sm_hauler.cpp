@@ -43,6 +43,7 @@ move_base_state_(actionlib::SimpleClientGoalState::PREEMPTED)
   driving_mode_sub = nh.subscribe("driving/driving_mode",1, &SmHauler::drivingModeCallback, this);
   laser_scan_sub = nh.subscribe("laser/scan",1, &SmHauler::laserCallback, this);
   planner_interrupt_sub = nh.subscribe("/planner_interrupt", 1, &SmHauler::plannerInterruptCallback, this);
+  init_attitude_sub =nh.subscribe("/initial_attitude",1, &SmHauler::initialAttitudeCallback, this);
   for (int i=0; i<num_excavators_; i++)
   {
     std::string excavator_odom_topic;
@@ -957,6 +958,14 @@ void SmHauler::plannerInterruptCallback(const std_msgs::Bool::ConstPtr &msg)
   else
   {
     flag_interrupt_plan = false;
+  }
+}
+
+void SmHauler::initialAttitudeCallback(const geometry_msgs::QuaternionConstPtr& msg)
+{
+  if(!flag_have_true_pose)
+  {
+    flag_have_true_pose = true;
   }
 }
 
