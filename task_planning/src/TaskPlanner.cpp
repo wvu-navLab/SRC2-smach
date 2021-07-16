@@ -78,8 +78,8 @@ namespace mac
     for (int i = 0; i < volatile_map_.vol.size(); ++i)
     {
       ROS_ERROR_STREAM("[TASK PLANNER] [" << plan_call_counter << "] Started Checking Volatiles");
-      
-      if(volatile_map_.vol[i].attempted)
+
+      if(volatile_map_.vol[i].attempted || !volatile_map_.vol[i].honed)
       {
         continue;
       }
@@ -198,7 +198,7 @@ namespace mac
     std::vector<int> temp_volatile_indices;
     for (auto & vol: volatile_map_.vol)
     {
-      if(vol.attempted)
+      if(vol.attempted || !vol.honed)
       {
         continue;
       }
@@ -218,7 +218,7 @@ namespace mac
           {
             x = robot.odom.pose.pose.position.x;
             y = robot.odom.pose.pose.position.y;
-          } 
+          }
           else
           {
             x = robot.plan[robot.plan.size()-1].point.x;
