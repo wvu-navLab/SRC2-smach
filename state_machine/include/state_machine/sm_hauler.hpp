@@ -49,6 +49,7 @@
 #include <state_machine/ExcavationStatus.h>
 #include <waypoint_nav/GoToGoal.h>
 #include <move_excavator/FindExcavator.h>
+#include <src2_object_detection/FindObject.h>
 
 typedef actionlib::SimpleActionClient<move_base_msgs::MoveBaseAction> MoveBaseClient;
 
@@ -130,6 +131,7 @@ public:
   ros::ServiceClient clt_find_excavator;
   ros::ServiceClient clt_set_goal;
   ros::ServiceClient clt_go_to_goal;
+  ros::ServiceClient clt_find_object;
 
 
   MoveBaseClient ac;

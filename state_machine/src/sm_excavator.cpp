@@ -85,6 +85,7 @@ move_base_state_(actionlib::SimpleClientGoalState::PREEMPTED)
   clt_where_hauler = nh.serviceClient<src2_object_detection::WhereToParkHauler>("where_to_park_hauler");
   clt_task_planning = nh.serviceClient<task_planning::PlanInfo>("/task_planner_exc_haul");
   clt_vol_mark = nh.serviceClient<volatile_map::MarkCollected>("/volatile_map_mark_collected");
+  clt_find_object = nh.serviceClient<src2_object_detection::FindObject>("/find_object");
 
   map_timer = ros::Time::now();
   wp_checker_timer = ros::Time::now();
@@ -206,11 +207,6 @@ void SmExcavator::stateInitialize()
       ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Waiting for Lights");
   }
 
-  while (!clt_approach_base.waitForExistence())
-  {
-    ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Waiting for ApproachChargingStation service");
-  }
-
   while (!clt_home_arm.waitForExistence())
   {
     ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Waiting for HomeArm service");
@@ -225,6 +221,16 @@ void SmExcavator::stateInitialize()
   {
     ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Waiting for WhereToParkHauler service");
   }
+
+  // while (!clt_approach_base.waitForExistence())
+  // {
+  //   ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Waiting for ApproachChargingStation service");
+  // }
+
+  // while (!clt_find_object.waitForExistence())
+  // {
+  //   ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Waiting for FindObject service");
+  // }
 
   double progress = 0;
 

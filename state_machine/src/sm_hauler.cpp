@@ -75,6 +75,7 @@ move_base_state_(actionlib::SimpleClientGoalState::PREEMPTED)
   clt_location_of_excavator = nh.serviceClient<range_to_base::LocationOfExcavator>("location_of_excavator_service");
   clt_find_excavator = nh.serviceClient<move_excavator::FindExcavator>("manipulation/find_excavator");
   clt_go_to_goal = nh.serviceClient<waypoint_nav::GoToGoal>("navigation/go_to_goal");
+  clt_find_object = nh.serviceClient<src2_object_detection::FindObject>("/find_object");
 
   map_timer = ros::Time::now();
   wp_checker_timer=  ros::Time::now();
@@ -210,30 +211,35 @@ void SmHauler::stateInitialize()
     ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Waiting for Lights");
   }
 
-  while (!clt_approach_base.waitForExistence())
-  {
-    ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Waiting for ApproachChargingStation service");
-  }
-
   while (!clt_sf_true_pose.waitForExistence())
   {
     ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Waiting for TruePose service");
   }
 
-  while (!clt_approach_excavator.waitForExistence())
-  {
-    ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Waiting for ApproachExacavator service");
-  }
+  // while (!clt_approach_excavator.waitForExistence())
+  // {
+  //   ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Waiting for ApproachExacavator service");
+  // }
 
-  while (!clt_approach_bin.waitForExistence())
-  {
-    ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Waiting for ApproachExacavator service");
-  }
+  // while (!clt_approach_base.waitForExistence())
+  // {
+  //   ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Waiting for ApproachChargingStation service");
+  // }
 
-  while (!clt_location_of_excavator.waitForExistence())
-  {
-    ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Waiting for LocateExcavator service");
-  }
+  // while (!clt_approach_bin.waitForExistence())
+  // {
+  //   ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Waiting for ApproachExacavator service");
+  // }
+
+  // while (!clt_location_of_excavator.waitForExistence())
+  // {
+  //   ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Waiting for LocateExcavator service");
+  // }
+
+  // while (!clt_find_object.waitForExistence())
+  // {
+  //   ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Waiting for FindObject service");
+  // }
 
   double progress = 0;
 

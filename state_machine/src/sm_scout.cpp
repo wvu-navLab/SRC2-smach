@@ -39,6 +39,7 @@ move_base_state_(actionlib::SimpleClientGoalState::PREEMPTED)
   clt_waypoint_checker = nh.serviceClient<waypoint_checker::CheckCollision>("waypoint_checker");
   clt_srcp2_brake_rover = nh.serviceClient<srcp2_msgs::BrakeRoverSrv>("brake_rover");
   clt_task_planning = nh.serviceClient<task_planning::PlanInfo>("/task_planner_scout");
+  clt_find_object = nh.serviceClient<src2_object_detection::FindObject>("/find_object");
 
   map_timer = ros::Time::now();
   wp_checker_timer =  ros::Time::now();
@@ -159,15 +160,20 @@ void SmScout::stateInitialize()
       ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Waiting for Lights");
   }
 
-  while (!clt_approach_base.waitForExistence())
-  {
-    ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Waiting for ApproachChargingStation service");
-  }
-
   while (!clt_sf_true_pose.waitForExistence())
   {
     ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Waiting for TruePose service");
   }
+
+  // while (!clt_approach_base.waitForExistence())
+  // {
+  //   ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Waiting for ApproachChargingStation service");
+  // }
+
+  // while (!clt_find_object.waitForExistence())
+  // {
+  //   ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Waiting for FindObject service");
+  // }
 
   double progress = 0;
   Lights(20);

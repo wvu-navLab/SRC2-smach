@@ -63,6 +63,7 @@
 #include <state_machine/HaulerStatus.h>
 #include <state_machine/ExcavationStatus.h>
 #include <src2_object_detection/WhereToParkHauler.h>
+#include <src2_object_detection/FindObject.h>
 #include <volatile_map/MarkCollected.h>
 
 
@@ -186,6 +187,7 @@ public:
   ros::ServiceClient clt_find_hauler;
   ros::ServiceClient clt_task_planning;
   ros::ServiceClient clt_vol_mark;
+  ros::ServiceClient clt_find_object;
 
   MoveBaseClient ac;
   actionlib::SimpleClientGoalState move_base_state_;

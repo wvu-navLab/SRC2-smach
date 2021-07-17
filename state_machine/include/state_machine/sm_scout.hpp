@@ -53,6 +53,7 @@
 #include <task_planning/PlanInfo.h>
 #include <task_planning/Types.hpp>
 #include <state_machine/RobotStatus.h>
+#include <src2_object_detection/FindObject.h>
 
 typedef actionlib::SimpleActionClient<move_base_msgs::MoveBaseAction> MoveBaseClient;
 
@@ -126,6 +127,7 @@ public:
   ros::ServiceClient clt_waypoint_checker;
   ros::ServiceClient clt_srcp2_brake_rover;
   ros::ServiceClient clt_task_planning;
+  ros::ServiceClient clt_find_object;
   MoveBaseClient ac;
 
   // Clients
