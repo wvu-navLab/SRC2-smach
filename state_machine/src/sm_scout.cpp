@@ -418,12 +418,13 @@ void SmScout::stateLost()
 
   Brake(0.0);
 
-  DriveCmdVel(-0.5,0.0,0.0,5);
+  DriveCmdVel(-0.5,0.0,0.0,6);
   Stop(0.1);
   BrakeRamp(100, 1, 0);
   Brake(0.0);
 
-  RotateInPlace(0.2, 3);
+  ros::spinOnce();
+  RotateToHeading(yaw_+M_PI);
   Stop(0.1);
   BrakeRamp(100, 1, 0);
   Brake(0.0);

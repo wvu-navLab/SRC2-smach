@@ -95,7 +95,7 @@ move_base_state_(actionlib::SimpleClientGoalState::PREEMPTED)
     proc_plant_bin_location_.y = 12.00;
     proc_plant_bin_location_.z = 1.65;
   }
-  
+
   // Local copy of the charging station location
   charging_station_location_.x = 1.25;
   charging_station_location_.y = 9.00;
@@ -931,6 +931,7 @@ void SmHauler::excavationStatusCallback(const ros::MessageEvent<state_machine::E
     if(partner_excavation_status_.counter.data == -1)
     {
       flag_full_bin = true;
+      CommandCamera(0.0,0.0,1.0);
     }
   }
 }
