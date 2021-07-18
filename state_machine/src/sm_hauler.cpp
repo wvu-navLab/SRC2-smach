@@ -86,14 +86,14 @@ move_base_state_(actionlib::SimpleClientGoalState::PREEMPTED)
     // Local copy of the processing plant location
     proc_plant_bin_location_.x = 8.00;
     proc_plant_bin_location_.y = 8.00;
-    proc_plant_bin_location_.z = 1.65;
+    proc_plant_bin_location_.z = 3.00;
   }
   else
   {
     // Local copy of the processing plant location
     proc_plant_bin_location_.x = 8.00;
     proc_plant_bin_location_.y = 12.00;
-    proc_plant_bin_location_.z = 1.65;
+    proc_plant_bin_location_.z = 3.60;
   }
 
   // Local copy of the charging station location
@@ -361,6 +361,11 @@ void SmHauler::stateTraverse()
     {
       flag_approached_side = true;
       flag_approaching_side = false;
+    }
+
+    if(flag_dumping)
+    {
+      RotateToHeading(proc_plant_bin_location_.z);
     }
 
     flag_arrived_at_waypoint = true;
