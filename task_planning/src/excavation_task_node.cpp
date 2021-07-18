@@ -89,7 +89,7 @@ int main(int argc, char** argv)
 		planning_params.max_depth = max_depth;
 
 		planning_params.type = mac::EXC_HAUL_PLANNER_DEFAULT;
-		//planning_params.type = mac::EXC_HAUL_FORWARD_SEARCH;
+		//planning_params.type = mac::EXC_HAUL_FORWARD_SEARCH; // uncomment this to turn the fwd planner on
 		// planning_params.plan = plan;
 
 		mac::TaskPlanner tp(cf,robots, planning_params);

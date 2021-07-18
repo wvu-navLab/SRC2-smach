@@ -4,7 +4,7 @@
     <param name="robot_id" value="1" />
 
     <!-- static transform from odom to map-->
-    <node pkg="tf" type="static_transform_publisher" name="map_to_odom" args="0 0 0 0 0 0 map small_excavator_1_odom 100" />
+    <node pkg="tf" type="static_transform_publisher" name="map_to_odom" args="0 0 0 0 0 0 map small_excavator_1_odom 10" />
 
     <!-- pcl_obstacle_avoidance launch file -->
     <include file="$(find pcl_obstacle_detection)/launch/pcl_homing.launch"/>
@@ -53,7 +53,7 @@
     <!-- ranging services -->
     <include file="$(find range_to_base)/launch/range_to_base_service.launch"/>
 
-   <!-- approach services -->
+    <!-- approach services -->
     <include file="$(find src2_approach_services)/launch/approach_charging_station.launch"/>
 
     <!-- waypoint checker -->
@@ -62,9 +62,5 @@
     <!-- state machine for excavator -->
     <include file="$(find state_machine)/launch/excavator_state_machine.launch"/>
   </group>
-
-
-    <!-- <include file="$(find mobility_checker)/launch/scout_mobility_checker.launch"/> -->
-
 
 </launch>

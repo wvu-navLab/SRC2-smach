@@ -336,7 +336,8 @@ void SmHauler::stateTraverse()
   ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Traverse State\n");
 
   move_base_state_ = ac.getState();
-  ROS_INFO_STREAM("[" << robot_name_ << "] " <<"MoveBase status: "<< move_base_state_.toString());
+  ROS_INFO_STREAM("[" << robot_name_ << "] " <<"MoveBase status: "<< move_base_state_.toString() 
+                      << ". Goal: (" << goal_pose_.position.x << "," << goal_pose_.position.y <<").");
 
   double progress = 0;
 
