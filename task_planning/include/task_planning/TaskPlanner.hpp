@@ -145,6 +145,8 @@ class TaskPlanner {
     /** \brief  */
     void exc_haul_plan_default();
     void exc_haul_plan_default_adv();
+
+    void exc_haul_plan_fs(mac::State s);
     /** \brief */
     void populate_prior_plan();
 

@@ -59,8 +59,8 @@ namespace mac
     int id;
     int type;
     std::vector<int> volatile_indices;
-    int volatile_index;
-    double time_remaining; //0 = not start, 1 = full, -1 = failed
+    int volatile_index = -1;
+    double time_remaining = 0.0; //0 = not start, 1 = full, -1 = failed
     int current_task = -1;
     double bucket_contents; //0 = empty, 1 = full
     nav_msgs::Odometry odom;
@@ -99,16 +99,16 @@ namespace mac
     std::vector<std::vector<double>> plan;
     // Environment
     double wait_time = 30;  //seconds
-    double max_v_scout;     // m/s
-    double max_v_excavator; // m/s
-    double max_v_hauler;    // m/s
-    double vol_handling_time_scout;
-    double vol_handling_time_excavator;
-    double vol_handling_time_hauler;
-    double homing_time_scout;
-    double homing_time_excavator;
-    double homing_time_hauler;
-    double dumping_time;
+    double max_v_scout = 0.2;     // m/s
+    double max_v_excavator = 0.2; // m/s
+    double max_v_hauler = 0.2;    // m/s
+    double vol_handling_time_scout = 5;
+    double vol_handling_time_excavator = 150;
+    double vol_handling_time_hauler = 160;
+    double homing_time_scout = 5;
+    double homing_time_excavator = 5;
+    double homing_time_hauler = 5;
+    double dumping_time = 5;
     std::vector<double> planning_scout_power_weights;
     std::vector<double> vol_handle_scout_power_weights;
     std::vector<double> lost_scout_power_weights;

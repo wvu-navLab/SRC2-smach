@@ -79,7 +79,7 @@ namespace mac
     {
       ROS_ERROR_STREAM("[TASK PLANNER] [" << plan_call_counter << "] Started Checking Volatiles");
 
-      if(volatile_map_.vol[i].attempted || !volatile_map_.vol[i].honed)
+      if (volatile_map_.vol[i].attempted || !volatile_map_.vol[i].honed)
       {
         continue;
       }
@@ -172,11 +172,11 @@ namespace mac
       }
       if (vol_pose[0] != 0 || vol_pose[1] != 0)
       {
-        double dx = vol_pose[0]  - current_pose[0];
-        double dy = vol_pose[1]  - current_pose[1];
-        double D = hypot(dx,dy);
-        temp.point.x = vol_pose[0]  - dx/D * 10.0; // TODO: OFFSET FOR HAULER
-        temp.point.y = vol_pose[1]  - dy/D * 10.0;
+        double dx = vol_pose[0] - current_pose[0];
+        double dy = vol_pose[1] - current_pose[1];
+        double D = hypot(dx, dy);
+        temp.point.x = vol_pose[0] - dx / D * 10.0; // TODO: OFFSET FOR HAULER
+        temp.point.y = vol_pose[1] - dy / D * 10.0;
         // temp.point.x = vol_pose[0];
         // temp.point.y = vol_pose[1];
         robots_[nearest_ind].volatile_indices.push_back(volatile_map_.vol[i].vol_index);
@@ -196,9 +196,9 @@ namespace mac
 
     volatile_map::VolatileMap temp_map;
     std::vector<int> temp_volatile_indices;
-    for (auto & vol: volatile_map_.vol)
+    for (auto &vol : volatile_map_.vol)
     {
-      if(vol.attempted || !vol.honed)
+      if (vol.attempted || !vol.honed)
       {
         continue;
       }
@@ -208,7 +208,7 @@ namespace mac
 
     while (temp_map.vol.size() > 0)
     {
-      for (auto & robot: robots_)
+      for (auto &robot : robots_)
       {
         double x;
         double y;
@@ -221,13 +221,13 @@ namespace mac
           }
           else
           {
-            x = robot.plan[robot.plan.size()-1].point.x;
-            y = robot.plan[robot.plan.size()-1].point.y;
+            x = robot.plan[robot.plan.size() - 1].point.x;
+            y = robot.plan[robot.plan.size() - 1].point.y;
           }
           double min_D = 500;
           double min_ind = 0;
           int vol_ind = 0;
-          for (auto & vol: temp_map.vol)
+          for (auto &vol : temp_map.vol)
           {
             double dx = vol.position.point.x - x;
             double dy = vol.position.point.y - y;
@@ -279,6 +279,30 @@ namespace mac
         }
       }
     }
+  }
+
+  void TaskPlanner::exc_haul_plan_fs(mac::State s)
+  {
+    for (auto &robot : robots_)
+    {
+      robot.plan.clear();
+      robot.volatile_indices.clear();
+    }
+
+    std::vector<mac::Action> joint_act = this->forward_search_.plan(s);
+
+    for (auto &act : joint_act)
+    {
+      int robot_ind = get_robot_index(act.robot_type, act.id);
+      robots_[robot_ind].volatile_indices.clear();
+      robots_[robot_ind].volatile_indices.push_back(act.volatile_index);
+      geometry_msgs::PointStamped temp;
+      temp.point.x = act.objective.first;
+      temp.point.y = act.objective.second;
+      robots_[robot_ind].plan.push_back(temp);
+      robots_[robot_ind].current_task = act.code;
+    }
+
   }
 
   /////////////////////////////////////////////////////////////////////
@@ -396,11 +420,12 @@ namespace mac
         this->exc_haul_plan_default_adv();
         break;
       case EXC_HAUL_FORWARD_SEARCH:
-
+      ROS_WARN_STREAM("[TASK PLANNER] [" << plan_call_counter << "] EXC HAUL FORWARD SEARCH");
         s.robots = robots_;
         s.volatile_map = volatile_map_;
         s.time = time_;
-        this->forward_search_.plan(s);
+
+        this->exc_haul_plan_fs(s);
         break;
       default:
         ROS_ERROR_STREAM("[TASK PLANNER] [" << plan_call_counter << "] Task Planner type invalid!");

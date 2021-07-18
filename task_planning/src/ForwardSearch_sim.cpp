@@ -24,7 +24,7 @@ namespace mac
     //get robot
     int robot_ind = get_robot_index(s, a.robot_type, a.id);
     Robot robot = s.robots[robot_ind];
-    double traverse_time, handling_time, homing_time, dumping_time;
+    double traverse_time, handling_time, homing_time, dumping_time, rand_time;
 
     if (robot.type == SCOUT)
     {
@@ -36,7 +36,11 @@ namespace mac
       case (int)ACTION_SCOUT_T::_volatile_handler:
         traverse_time = get_traverse_time(robot);
         handling_time = get_handling_time(robot);
-        return traverse_time + handling_time + 5 * unif_(rng_);
+        rand_time = 5 * unif_(rng_);
+        // std::cout << "TravT: " << traverse_time << std::endl;
+        // std::cout << "HandT: " << handling_time << std::endl;
+        // std::cout << "RandT: " << rand_time << std::endl;
+        return traverse_time + handling_time + rand_time;
         break;
       case (int)ACTION_SCOUT_T::_lost:
         traverse_time = get_traverse_time(robot);
@@ -59,13 +63,13 @@ namespace mac
         return planning_params_.wait_time + 5 * unif_(rng_);
         break;
       case (int)ACTION_EXCAVATOR_T::_volatile_handler:
-        //std::cout << "action_to_time: exc vol: trav" << std::endl;
-
-        traverse_time = get_traverse_time(robot) + 5 * unif_(rng_);
-        //  std::cout << "action_to_time: handle" << std::endl;
-
-        handling_time = get_handling_time(robot) + 5 * unif_(rng_);
-        return traverse_time + handling_time;
+        traverse_time = get_traverse_time(robot);
+        handling_time = get_handling_time(robot);
+        rand_time = 5 * unif_(rng_);
+        // std::cout << "TravT: " << traverse_time << std::endl;
+        // std::cout << "HandT: " << handling_time << std::endl;
+        // std::cout << "RandT: " << rand_time << std::endl;
+        return traverse_time + handling_time + rand_time;
         break;
       case (int)ACTION_EXCAVATOR_T::_lost:
         // std::cout << "action_to_time: exc lost: trav" << std::endl;
@@ -201,11 +205,17 @@ namespace mac
     robot.time_remaining = robot.time_remaining - time;
     if (robot.time_remaining < 0)
       robot.time_remaining = 0;
+
+    // std::cout << "T: " << time << std::endl;
+    // std::cout << "TR: " << robot.time_remaining << std::endl;
     // std::cout << "simulate_time_step: time remaining" << std::endl;
     // simulate power
     // this->time_to_power(robot, time);
     // // simulate position and uncertainty
-    this->time_to_motion(robot, time);
+    if (robot.plan.size() > 0)
+    {
+      this->time_to_motion(robot, time);
+    }
     // std::cout << "simulate_time_step: after time to motion" << std::endl;
   }
 

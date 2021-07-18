@@ -60,7 +60,7 @@ namespace mac
           //std::cout << "plan: creating vertex " << layer.size() << " at layer " << tree_.size() << std::endl;
           // if (tree_.size() == 4)
           // {
-          
+
           // exit(1);
           // }
           // if ( depth > 0 && tree_[depth - 1].size() > 5000)
@@ -80,7 +80,7 @@ namespace mac
           v_new.children.clear();
           layer.push_back(v_new);
         }
-        
+
         // std::cout << "plan: end layer push back" << std::endl;
       }
 
@@ -91,7 +91,7 @@ namespace mac
       accum_time = accum_time + time_diff;
       //std::cout << "plan: accum_time = " << accum_time << std::endl;
 
-      if (accum_time + 2*time_diff > planning_params_.max_time)
+      if (accum_time + 2 * time_diff > planning_params_.max_time)
       {
         std::cout << "plan: time exceeded. Terminating constructing tree." << std::endl;
         break;
@@ -111,9 +111,8 @@ namespace mac
       layer.clear();
       ++depth;
       for (auto &layer : tree_)
-            std::cout << layer.size() << std::endl;
+        std::cout << layer.size() << std::endl;
     }
-    
 
     return get_policy();
   }
@@ -151,18 +150,18 @@ namespace mac
     }
     // std::cout << "WAIII" << std::endl;
 
-    //std::cout << "propagate: actions added" << std::endl;
+    // std::cout << "propagate: actions added" << std::endl;
     std::vector<double> time_remaining_vec;
     for (auto &robot : s_copy.robots)
       time_remaining_vec.push_back(robot.time_remaining);
 
     // Find time remaining for each robot's task
     // = actions_to_time(s_copy, joint_action);
-    //std::cout << "propagate: sorting action timesteps" << std::endl;
+    // std::cout << "propagate: sorting action timesteps" << std::endl;
 
     // Find min time remaining
     //int t_min_idx = std::min_element(time_remaining_vec.begin(), time_remaining_vec.end()) - time_remaining_vec.begin();
-
+    print_state(s_copy);
     double t_min = 1e9;
     double t_min_idx = -1;
     int t_counter = 0;
@@ -195,7 +194,7 @@ namespace mac
     // Update volatile completion if necessary
     int temp_vol_ind = s_copy.robots[t_min_idx].volatile_index;
 
-    //std::cout << "propagate: propagating time step" << std::endl;
+    // std::cout << "propagate: propagating time step" << std::endl;
 
     // Need to come back and change this to hauler dumping... For now we are only handling "Excavation"
 
@@ -214,7 +213,7 @@ namespace mac
           }
         }
       }
-      if (1)//is_there_hauler)
+      if (1) //is_there_hauler)
       {
         s_copy.volatile_map.vol[temp_vol_ind].collected = true;
         s_copy.robots[t_min_idx].volatile_index = -1;
@@ -230,7 +229,7 @@ namespace mac
     if (s_copy.robots[t_min_idx].type == mac::HAULER && s_copy.robots[t_min_idx].current_task == (int)ACTION_HAULER_T::_volatile_handler)
     {
       //s_copy.robots[t_min_idx].bucket_contents = 0;
-      //std::cout << "s_copy.robots[t_min_idx].volatile_index = " << s_copy.robots[t_min_idx].volatile_index << std::endl;
+      // std::cout << "s_copy.robots[t_min_idx].volatile_index = " << s_copy.robots[t_min_idx].volatile_index << std::endl;
       if (s_copy.robots[t_min_idx].volatile_index == -1)
       {
         std::cout << "Error! propagate:Invalid volatile index for hauler volatile_handling!" << std::endl;
@@ -243,19 +242,19 @@ namespace mac
       s_copy.robots[t_min_idx].odom.pose.pose.position.y = 0;
     }
 
-    if (s_copy.robots[t_min_idx].current_task ==(int)ACTION_SCOUT_T::_volatile_handler ||
-        s_copy.robots[t_min_idx].current_task ==(int)ACTION_EXCAVATOR_T::_volatile_handler ||
-        s_copy.robots[t_min_idx].current_task ==(int)ACTION_HAULER_T::_volatile_handler)
+    if (s_copy.robots[t_min_idx].current_task == (int)ACTION_SCOUT_T::_volatile_handler ||
+        s_copy.robots[t_min_idx].current_task == (int)ACTION_EXCAVATOR_T::_volatile_handler ||
+        s_copy.robots[t_min_idx].current_task == (int)ACTION_HAULER_T::_volatile_handler)
     {
-        s_copy.robots[t_min_idx].power = 100;
-        s_copy.robots[t_min_idx].odom.pose.covariance = {0,0,0,0,0,0,
-                                                         0,0,0,0,0,0,
-                                                         0,0,0,0,0,0,
-                                                         0,0,0,0,0,0,
-                                                         0,0,0,0,0,0,
-                                                         0,0,0,0,0,0};
+      s_copy.robots[t_min_idx].power = 100;
+      s_copy.robots[t_min_idx].odom.pose.covariance = {0, 0, 0, 0, 0, 0,
+                                                       0, 0, 0, 0, 0, 0,
+                                                       0, 0, 0, 0, 0, 0,
+                                                       0, 0, 0, 0, 0, 0,
+                                                       0, 0, 0, 0, 0, 0,
+                                                       0, 0, 0, 0, 0, 0};
     }
-
+    // std::cout << "n_robots" << s_copy.robots.size() << std::endl;
     for (auto &robot : s_copy.robots)
     {
       simulate_time_step(robot, t_min);
@@ -340,11 +339,11 @@ namespace mac
     // print_sequence_of_joint_actions(best_seq_of_joint_actions);
 
     std::vector<Action> new_joint_action = optimal_joint_action;
-    for (auto & act: optimal_joint_action)
+    for (auto &act : optimal_joint_action)
     {
       if (act.robot_type == EXCAVATOR)
       {
-        for (auto & robot:tree_[0][0].state.robots)
+        for (auto &robot : tree_[0][0].state.robots)
         {
           if (robot.type == HAULER && robot.id == act.id)
           {
@@ -354,12 +353,23 @@ namespace mac
               temp_a = act;
               temp_a.robot_type = HAULER;
               temp_a.code = (int)ACTION_HAULER_T::_volatile_handler;
+              double dx = temp_a.objective.first - robot.odom.pose.pose.position.x;
+              double dy = temp_a.objective.second - robot.odom.pose.pose.position.y;
+              double D = hypot(dx, dy);
+              geometry_msgs::PointStamped temp;
+              temp.point.x = temp_a.objective.first - dx / D * 10.0; // TODO: OFFSET FOR HAULER
+              temp.point.y = temp_a.objective.second - dy / D * 10.0;
+              temp_a.objective.first = temp.point.x;
+              temp_a.objective.second = temp.point.y;
+
               new_joint_action.push_back(temp_a);
             }
           }
         }
-      }    
+      }
     }
+    std::cout << "FS POLICY" << std::endl;
+    print_joint_action(new_joint_action);
 
     return new_joint_action;
   }
