@@ -165,15 +165,15 @@ void SmScout::stateInitialize()
     ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Waiting for TruePose service");
   }
 
-  // while (!clt_approach_base.waitForExistence())
-  // {
-  //   ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Waiting for ApproachChargingStation service");
-  // }
+  while (!clt_approach_base.waitForExistence())
+  {
+    ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Waiting for ApproachChargingStation service");
+  }
 
-  // while (!clt_find_object.waitForExistence())
-  // {
-  //   ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Waiting for FindObject service");
-  // }
+  while (!clt_find_object.waitForExistence())
+  {
+    ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Waiting for FindObject service");
+  }
 
   double progress = 0;
   Lights(20);
