@@ -1433,7 +1433,7 @@ void SmHauler::ExecuteShakeBin(double time)
   bin_pitch.data = 0.05;
   cmd_bin_pub.publish(bin_pitch);
   bin_pitch.data = 0.0;
-  ros::Duration(time);
+  ros::Duration(time).sleep();
   cmd_bin_pub.publish(bin_pitch);
 }
 
