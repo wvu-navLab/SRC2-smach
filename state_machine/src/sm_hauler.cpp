@@ -529,9 +529,9 @@ void SmHauler::stateVolatileHandler()
       while(!flag_full_bin)
       {
         ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Excavation. Bin is not full yet.");
-
         ros::spinOnce();
-        ros::Duration(1.0).sleep();
+        ExecuteShakeBin(0.5);
+        ros::Duration(0.5).sleep();
 
         if(parking_recovery_counter_ > 2)
         {
@@ -1427,18 +1427,14 @@ void SmHauler::ExecuteShakeBin(double time)
 {
   std_msgs::Float64 bin_pitch;
 
-  ros::Time start_time = ros::Time::now();
-  ros::Duration timeout(time); // Timeout of 20 seconds
+  
   ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Shaking the bin!");
-  while (ros::Time::now() - start_time < timeout)
-  {
-    bin_pitch.data = 0.05;
-    ros::Duration(0.1);
-    cmd_bin_pub.publish(bin_pitch);
-    bin_pitch.data = 0.0;
-    ros::Duration(0.1);
-    cmd_bin_pub.publish(bin_pitch);
-  }
+  
+  bin_pitch.data = 0.05;
+  cmd_bin_pub.publish(bin_pitch);
+  bin_pitch.data = 0.0;
+  ros::Duration(time);
+  cmd_bin_pub.publish(bin_pitch);
 }
 
 void SmHauler::RoverStatic(bool flag)
