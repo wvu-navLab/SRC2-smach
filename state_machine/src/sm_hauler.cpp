@@ -216,30 +216,30 @@ void SmHauler::stateInitialize()
     ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Waiting for TruePose service");
   }
 
-  // while (!clt_approach_excavator.waitForExistence())
-  // {
-  //   ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Waiting for ApproachExacavator service");
-  // }
+  while (!clt_approach_excavator.waitForExistence())
+  {
+    ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Waiting for ApproachExacavator service");
+  }
 
-  // while (!clt_approach_base.waitForExistence())
-  // {
-  //   ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Waiting for ApproachChargingStation service");
-  // }
+  while (!clt_approach_base.waitForExistence())
+  {
+    ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Waiting for ApproachChargingStation service");
+  }
 
-  // while (!clt_approach_bin.waitForExistence())
-  // {
-  //   ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Waiting for ApproachExacavator service");
-  // }
+  while (!clt_approach_bin.waitForExistence())
+  {
+    ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Waiting for ApproachExacavator service");
+  }
 
-  // while (!clt_location_of_excavator.waitForExistence())
-  // {
-  //   ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Waiting for LocateExcavator service");
-  // }
+  while (!clt_location_of_excavator.waitForExistence())
+  {
+    ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Waiting for LocateExcavator service");
+  }
 
-  // while (!clt_find_object.waitForExistence())
-  // {
-  //   ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Waiting for FindObject service");
-  // }
+  while (!clt_find_object.waitForExistence())
+  {
+    ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Waiting for FindObject service");
+  }
 
   double progress = 0;
 
@@ -494,7 +494,7 @@ void SmHauler::stateVolatileHandler()
         else
         {
           ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Obtained goal from Bucket detection");
-          flag_parked_hauler = GoToWaypoint(1.0, -0.3);
+          flag_parked_hauler = GoToWaypoint(1.25, -0.3);
         }
         PublishHaulerStatus();
       }

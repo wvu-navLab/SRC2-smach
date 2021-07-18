@@ -222,15 +222,15 @@ void SmExcavator::stateInitialize()
     ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Waiting for WhereToParkHauler service");
   }
 
-  // while (!clt_approach_base.waitForExistence())
-  // {
-  //   ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Waiting for ApproachChargingStation service");
-  // }
+  while (!clt_approach_base.waitForExistence())
+  {
+    ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Waiting for ApproachChargingStation service");
+  }
 
-  // while (!clt_find_object.waitForExistence())
-  // {
-  //   ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Waiting for FindObject service");
-  // }
+  while (!clt_find_object.waitForExistence())
+  {
+    ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Waiting for FindObject service");
+  }
 
   double progress = 0;
 
@@ -926,7 +926,7 @@ void SmExcavator::plannerInterruptCallback(const std_msgs::Bool::ConstPtr &msg)
 
   if(!(prev_srv_plan.response.objective.point.x == srv_plan.response.objective.point.x &&
   prev_srv_plan.response.objective.point.y == srv_plan.response.objective.point.y &&
-  prev_srv_plan.response.code == srv_plan.response.code))
+  prev_srv_plan.response.code == srv_plan.response.code) && (!flag_localizing_volatile))
   {
     flag_interrupt_plan = true;
   }
