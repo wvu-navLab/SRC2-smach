@@ -81,12 +81,22 @@ move_base_state_(actionlib::SimpleClientGoalState::PREEMPTED)
   wp_checker_timer=  ros::Time::now();
   laser_collision_timer = ros::Time::now();
 
-  // Local copy of the processing plant location
-  proc_plant_bin_location_.x = 13.50;
-  proc_plant_bin_location_.y = 9.00;
-  proc_plant_bin_location_.z = 1.65;
-
-    // Local copy of the charging station location
+  if(robot_id_ == 1)
+  {
+    // Local copy of the processing plant location
+    proc_plant_bin_location_.x = 8.00;
+    proc_plant_bin_location_.y = 8.00;
+    proc_plant_bin_location_.z = 1.65;
+  }
+  else
+  {
+    // Local copy of the processing plant location
+    proc_plant_bin_location_.x = 8.00;
+    proc_plant_bin_location_.y = 12.00;
+    proc_plant_bin_location_.z = 1.65;
+  }
+  
+  // Local copy of the charging station location
   charging_station_location_.x = 1.25;
   charging_station_location_.y = 9.00;
   charging_station_location_.z = 1.65;
@@ -495,7 +505,7 @@ void SmHauler::stateVolatileHandler()
         else
         {
           ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Obtained goal from Bucket detection");
-          flag_parked_hauler = GoToWaypoint(1.25, -0.3);
+          flag_parked_hauler = GoToWaypoint(1.0, -0.3);
         }
         PublishHaulerStatus();
       }
