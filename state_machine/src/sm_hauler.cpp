@@ -734,6 +734,14 @@ void SmHauler::stateDump()
   flag_dumping = false;
 
   goal_pose_.position = charging_station_location_;
+  goal_yaw_ = atan2(goal_pose_.position.y - current_pose_.position.y, goal_pose_.position.x - current_pose_.position.x);
+
+  RotateToHeading(goal_yaw_);
+  BrakeRamp(100, 1, 0);
+  Brake(0.0);
+
+  ClearCostmaps(5.0);
+
   SetMoveBaseGoal();
 
   state_machine::RobotStatus status_msg;
