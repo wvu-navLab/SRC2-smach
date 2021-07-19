@@ -505,7 +505,7 @@ void SmHauler::stateVolatileHandler()
         if(!goal_from_bucket)
         {
           ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Obtained goal from LaserScan");
-          flag_parked_hauler = GoToWaypoint(1.5, 1.0);
+          flag_parked_hauler = GoToWaypoint(1.5, 1.2);
         }
         else
         {
