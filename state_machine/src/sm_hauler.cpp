@@ -481,7 +481,7 @@ void SmHauler::stateVolatileHandler()
       RotateToHeading(yaw);
       ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Rotated to yaw: " << yaw_);
 
-      flag_approached_excavator = ApproachExcavator(3, 4.0);
+      flag_approached_excavator = ApproachExcavator(3, 3.0);
       flag_located_excavator = false;
       flag_parked_hauler = false;
       PublishHaulerStatus();
