@@ -1724,8 +1724,6 @@ bool SmExcavator::ExecuteSearch()
       Brake(100.0);
     }
 
-  }
-
   ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Excavation. Did not find volatile!");
 
   return false;
@@ -2033,17 +2031,6 @@ void SmExcavator::ExcavationStateMachine()
 
       ExecuteLowerArm(5,0,volatile_heading_);
 
-      ros::spinOnce();
-      if (!flag_has_volatile)
-      {
-        ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Excavation. Didn't find volatile anymore.");
-        
-        CancelExcavation(true); // If the excavator fails to find more volatile, this will cancel excavation
-        excavation_state_ = HOME_MODE;
-
-        break;
-      }
-
       if(!flag_found_hauler)
       {
         ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Excavation. Starting to look for Hauler.");
@@ -2054,6 +2041,19 @@ void SmExcavator::ExcavationStateMachine()
       }
 
       PublishExcavationStatus();
+
+      ExecuteScoop(5,0,volatile_heading_);
+
+      ros::spinOnce();
+      if (!flag_has_volatile)
+      {
+        ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Excavation. Didn't find volatile anymore.");
+        
+        CancelExcavation(true); // If the excavator fails to find more volatile, this will cancel excavation
+        excavation_state_ = HOME_MODE;
+
+        break;
+      }
 
       if (flag_found_hauler)
       {
