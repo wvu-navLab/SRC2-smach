@@ -249,7 +249,7 @@ public:
   void CheckWaypoint(int max_count);
   bool ApproachChargingStation(int max_count);
   void ExecuteHomeArm(double duration, double wait_time);
-  void ExecuteLowerArm(double duration, double wait_time);
+  void ExecuteLowerArm(double duration, double wait_time, double heading);
   void ExecuteScoop(double duration, double wait_time, double heading);
   void ExecuteAfterScoop(double duration, double wait_time);
   void ExecuteExtendArm(double duration, double wait_time);

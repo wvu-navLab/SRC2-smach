@@ -253,7 +253,7 @@ namespace mac
       {
         for (auto &robot : robots_)
         {
-          if((robots_[exc1_ind].plan.size() != robots_[exc2_ind].plan.size()) && (robots_[exc1_ind].plan.size() == 1))
+          if((robots_[exc2_ind].plan.size() == 0) && (robots_[exc1_ind].plan.size() == 1))
           {
             continue;
           }

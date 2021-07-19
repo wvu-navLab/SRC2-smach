@@ -264,4 +264,6 @@ public:
   int partner_excavator_id_;
   geometry_msgs::Point partner_excavator_location_;
   state_machine::ExcavationStatus partner_excavation_status_;
+
+  int previous_scoop_counter = 0;
 };

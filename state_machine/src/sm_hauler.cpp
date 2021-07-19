@@ -493,7 +493,7 @@ void SmHauler::stateVolatileHandler()
 
       bool goal_from_bucket = false;
       // Trying with computer vision
-      flag_located_excavator = FindExcavator(30);
+      flag_located_excavator = FindExcavator(15);
       goal_from_bucket = flag_located_excavator;
       if(!flag_located_excavator)
       {
@@ -530,8 +530,7 @@ void SmHauler::stateVolatileHandler()
       {
         ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Excavation. Bin is not full yet.");
         ros::spinOnce();
-        ExecuteShakeBin(0.5);
-        ros::Duration(0.5).sleep();
+        ros::Duration(1.0).sleep();
 
         if(parking_recovery_counter_ > 2)
         {
@@ -933,9 +932,15 @@ void SmHauler::excavationStatusCallback(const ros::MessageEvent<state_machine::E
     ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Got new partner status.");
     partner_excavation_status_ = *msg;
 
+    if(partner_excavation_status_.counter.data > previous_scoop_counter)
+    {
+      ExecuteShakeBin(1.0);
+    }
+
     if(partner_excavation_status_.counter.data == -1)
     {
       flag_full_bin = true;
+      previous_scoop_counter = 0;
       CommandCamera(0.0,0.0,1.0);
     }
   }
@@ -1430,11 +1435,14 @@ void SmHauler::ExecuteShakeBin(double time)
   
   ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Shaking the bin!");
   
-  bin_pitch.data = 0.05;
-  cmd_bin_pub.publish(bin_pitch);
-  bin_pitch.data = 0.0;
-  ros::Duration(time).sleep();
-  cmd_bin_pub.publish(bin_pitch);
+  for (int i = 0; i < 5; i++)
+  {
+    bin_pitch.data = 0.05;
+    cmd_bin_pub.publish(bin_pitch);
+    bin_pitch.data = 0.0;
+    ros::Duration(time/5.0).sleep();
+    cmd_bin_pub.publish(bin_pitch);
+  }
 }
 
 void SmHauler::RoverStatic(bool flag)

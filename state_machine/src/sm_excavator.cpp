@@ -481,7 +481,7 @@ void SmExcavator::stateLost()
 
   if(approachSuccess)
   {
-    ExecuteLowerArm(2,0);
+    ExecuteLowerArm(2,0,0);
     bool homingSuccess = HomingUpdate(flag_need_init_landmark);
     if (homingSuccess)
     {
@@ -824,7 +824,7 @@ void SmExcavator::manipulationCmdCallback(const std_msgs::Int64::ConstPtr &msg)
     case SEARCH_MODE:
     {
       ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"ExcavationCMD: Searching.");
-      ExecuteLowerArm(2,0);
+      ExecuteLowerArm(2,0,0);
       flag_found_volatile = ExecuteSearch();
     }
     break;
@@ -832,7 +832,7 @@ void SmExcavator::manipulationCmdCallback(const std_msgs::Int64::ConstPtr &msg)
     case LOWER_MODE:
     {
       ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"ExcavationCMD: Lowering Arm.");
-      ExecuteLowerArm(2,0);
+      ExecuteLowerArm(2,0,0);
     }
     break;
 
@@ -1455,11 +1455,11 @@ void SmExcavator::ExecuteHomeArm(double duration, double wait_time)
   }
 
 }
-void SmExcavator::ExecuteLowerArm(double duration, double wait_time)
+void SmExcavator::ExecuteLowerArm(double duration, double wait_time, double heading)
 {
   move_excavator::LowerArm srv;
 
-  srv.request.heading = volatile_heading_;
+  srv.request.heading = heading;
   srv.request.timeLimit = duration;
 
   if (clt_lower_arm.call(srv))
@@ -1591,19 +1591,47 @@ bool SmExcavator::ExecuteSearch()
   double multiplier = 1.0; // motion speed
   double t = 3;   // time of motion
 
-  std::vector<double> q1s {0.0, M_PI/3,  -M_PI/3}; // Search angles
+  // Previous search
+  // std::vector<double> q1s {0.0, M_PI/3,  -M_PI/3}; // Search angles
+  // std::vector<double> directions {0.0, 1.0, 1.0, -1.0, -1.0}; // Directions
+  // std::vector<bool> wheelOrientations {false, false, true, true, false}; // True turns wheels sideways
 
-  std::vector<double> directions {0.0, 1.0, 1.0, -1.0, -1.0}; // Directions
-  std::vector<bool> wheelOrientations {false, false, true, true, false}; // True turns wheels sideways
+  std::vector<double> q1s {0.0}; // Search angles
+  std::vector<double> directions {0.0, 1.0, 1.0, 1.0, 1.0, -1.0, -1.0, -1.0, -1.0}; // Directions
+  std::vector<int> wheelOrientations {0, 0, 1, 2, 3, 3, 2, 1, 0}; // True turns wheels sideways
+  // Wheel orientations
+  // 0 - deg
+  // 1/2 - 45/-45 deg
+  // 3 - 90deg
 
   for (int j = 0; j < directions.size(); j++)
   {
-
-    if (!wheelOrientations[j])
+    if (wheelOrientations[j] == 0)
     {
       Brake(0.0);
       SetPowerMode(false);
-      DriveCmdVel(multiplier * EXCAVATOR_MAX_SPEED * directions[j], 0, 0, fabs(directions[j]) * t);
+      double speed = multiplier * EXCAVATOR_MAX_SPEED * directions[j];
+      DriveCmdVel(speed, 0, 0, fabs(directions[j]) * t);
+      SetPowerMode(true);
+      Stop(0.1);
+      Brake(100.0);
+    }
+    else if (wheelOrientations[j] == 1)
+    {
+      Brake(0.0);
+      SetPowerMode(false);
+      double speed = multiplier * EXCAVATOR_MAX_SPEED * directions[j];
+      DriveCmdVel(speed/sqrt(2), speed/sqrt(2), 0, fabs(directions[j]) * t * sqrt(2));
+      SetPowerMode(true);
+      Stop(0.1);
+      Brake(100.0);
+    }
+    else if (wheelOrientations[j] == 2)
+    {
+      Brake(0.0);
+      SetPowerMode(false);
+      double speed = multiplier * EXCAVATOR_MAX_SPEED * directions[j];
+      DriveCmdVel(speed/sqrt(2), -speed/sqrt(2), 0, fabs(directions[j]) * t * sqrt(2));
       SetPowerMode(true);
       Stop(0.1);
       Brake(100.0);
@@ -1612,8 +1640,8 @@ bool SmExcavator::ExecuteSearch()
     {
       Brake(0.0);
       SetPowerMode(false);
-      TurnWheelsSideways(true, 1);
-      MoveSideways(multiplier * directions[j], fabs(directions[j]) * t);
+      double speed = multiplier * directions[j];
+      MoveSideways(speed, fabs(directions[j]) * t);
       SetPowerMode(true);
       Stop(0.1);
       Brake(100.0);
@@ -1637,7 +1665,6 @@ bool SmExcavator::ExecuteSearch()
         ExecuteHomeArm(5,0);
         ros::spinOnce();
 
-
         return true;
       }
       else // did not find volatile
@@ -1646,7 +1673,7 @@ bool SmExcavator::ExecuteSearch()
         ExecuteDrop(2,3,0);
         ros::spinOnce();
 
-        ExecuteAfterScoop(2,7); // This is to remove from the ground
+        ExecuteAfterScoop(2,2); // This is to remove from the ground
         // ros::Duration(2.0).sleep();
         ExecuteHomeArm(2,2);
         ros::spinOnce();
@@ -1655,11 +1682,32 @@ bool SmExcavator::ExecuteSearch()
 
     //ExecuteHomeArm(2,2);
 
-    if (!wheelOrientations[j])
+    if (wheelOrientations[j] == 0)
     {
       Brake(0.0);
       SetPowerMode(false);
-      DriveCmdVel(-multiplier * EXCAVATOR_MAX_SPEED * directions[j], 0, 0, fabs(directions[j]) * t);
+      double speed = - multiplier * EXCAVATOR_MAX_SPEED * directions[j];
+      DriveCmdVel(speed, 0, 0, fabs(directions[j]) * t);
+      SetPowerMode(true);
+      Stop(0.1);
+      Brake(100.0);
+    }
+    else if (wheelOrientations[j] == 1)
+    {
+      Brake(0.0);
+      SetPowerMode(false);
+      double speed = - multiplier * EXCAVATOR_MAX_SPEED * directions[j];
+      DriveCmdVel(speed/sqrt(2), speed/sqrt(2), 0, fabs(directions[j]) * t * sqrt(2));
+      SetPowerMode(true);
+      Stop(0.1);
+      Brake(100.0);
+    }
+    else if (wheelOrientations[j] == 2)
+    {
+      Brake(0.0);
+      SetPowerMode(false);
+      double speed = - multiplier * EXCAVATOR_MAX_SPEED * directions[j];
+      DriveCmdVel(speed/sqrt(2), -speed/sqrt(2), 0, fabs(directions[j]) * t * sqrt(2));
       SetPowerMode(true);
       Stop(0.1);
       Brake(100.0);
@@ -1669,7 +1717,8 @@ bool SmExcavator::ExecuteSearch()
       Brake(0.0);
       SetPowerMode(false);
       TurnWheelsSideways(true, 1);
-      MoveSideways(-multiplier * directions[j], fabs(directions[j]) * t);
+      double speed = - multiplier * directions[j];
+      MoveSideways(speed, fabs(directions[j]) * t);
       SetPowerMode(true);
       Stop(0.1);
       Brake(100.0);
@@ -1930,7 +1979,6 @@ void SmExcavator::ExcavationStateMachine()
         if (flag_found_volatile)
         {
           ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Excavation. Going to Scoop.");
-          ExecuteLowerArm(5,0);
           excavation_state_ = SCOOP_MODE;
         }
         else
@@ -1945,7 +1993,7 @@ void SmExcavator::ExcavationStateMachine()
     {
       ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Excavation. Searching.");
 
-      ExecuteLowerArm(5,0);
+      ExecuteLowerArm(5,0,0);
       flag_found_volatile = ExecuteSearch();
 
       if(flag_found_volatile)
@@ -1975,7 +2023,7 @@ void SmExcavator::ExcavationStateMachine()
     {
       ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Excavation. Lowering Arm.");
 
-      ExecuteLowerArm(5,0);
+      ExecuteLowerArm(5,0,volatile_heading_);
       excavation_state_ = SEARCH_MODE;
     }
     break;
@@ -1983,7 +2031,7 @@ void SmExcavator::ExcavationStateMachine()
     {
       ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Excavation. Scooping.");
 
-      ExecuteScoop(5,0,volatile_heading_);
+      ExecuteLowerArm(5,0,volatile_heading_);
 
       ros::spinOnce();
       if (!flag_has_volatile)
@@ -2010,7 +2058,7 @@ void SmExcavator::ExcavationStateMachine()
       if (flag_found_hauler)
       {
         ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Excavation. Found Hauler.");
-        
+        ExecuteScoop(5,0,volatile_heading_);
         ExecuteAfterScoop(5,0); // If the hauler was found with the service, it will scoop material and go to Home
         excavation_state_ = HOME_MODE;
       }
