@@ -519,7 +519,7 @@ void SmHauler::stateVolatileHandler()
       if(!flag_located_excavator)
       {
         ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Other methods failed, trying Approach again.");
-        flag_located_excavator = ApproachExcavator(3, 1.5);
+        flag_located_excavator = ApproachExcavator(3, 1.0);
         flag_parked_hauler = true;
         PublishHaulerStatus();
       }

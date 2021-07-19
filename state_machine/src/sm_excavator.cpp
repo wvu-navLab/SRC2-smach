@@ -240,7 +240,7 @@ void SmExcavator::stateInitialize()
   Lights(20);
 
   ExecuteHomeArm(2,0);
-  // ExecuteRetractArm(2,0);
+  ExecuteRetractArm(2,0);
 
   Stop(0.1);
   Brake(100.0);
@@ -500,7 +500,7 @@ void SmExcavator::stateLost()
   }
 
   ExecuteHomeArm(2,0);
-  // ExecuteRetractArm(2,0);
+  ExecuteRetractArm(2,0);
 
   Brake(0.0);
 
@@ -2085,7 +2085,7 @@ void SmExcavator::CancelExcavation(bool success)
 
   // Put arm in Retract position
   ExecuteHomeArm(2,0);
-  // ExecuteRetractArm(2,0);
+  ExecuteRetractArm(2,0);
 
   // Reset all important variables
   volatile_heading_ = 0.0;
