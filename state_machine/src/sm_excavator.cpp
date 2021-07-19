@@ -84,7 +84,8 @@ move_base_state_(actionlib::SimpleClientGoalState::PREEMPTED)
   clt_find_hauler = nh.serviceClient<move_excavator::FindHauler>("manipulation/find_hauler");
   clt_where_hauler = nh.serviceClient<src2_object_detection::WhereToParkHauler>("where_to_park_hauler");
   clt_task_planning = nh.serviceClient<task_planning::PlanInfo>("/task_planner_exc_haul");
-  clt_vol_mark = nh.serviceClient<volatile_map::MarkCollected>("/volatile_map_mark_collected");
+  clt_vol_mark_collected = nh.serviceClient<volatile_map::MarkCollected>("/volatile_map/mark_collected");
+  clt_vol_mark_assigned = nh.serviceClient<volatile_map::MarkAssigned>("/volatile_map/mark_assigned");
   clt_find_object = nh.serviceClient<src2_object_detection::FindObject>("/find_object");
 
   map_timer = ros::Time::now();
@@ -1867,15 +1868,15 @@ void SmExcavator::SetHaulerParkingLocation()
   }
 }
 
-void SmExcavator::MarkCollectedVolatile(bool success)
+void SmExcavator::MarkVolatileCollected(bool success)
 {
-  volatile_map::MarkCollected srv_vol_mark;
+  volatile_map::MarkCollected srv_vol_mark_collected;
 
-  srv_vol_mark.request.collected = success;
-  srv_vol_mark.request.attempted = true;
-  srv_vol_mark.request.vol_index = goal_vol_index_;
+  srv_vol_mark_collected.request.collected = success;
+  srv_vol_mark_collected.request.attempted = true;
+  srv_vol_mark_collected.request.vol_index = goal_vol_index_;
 
-  if (clt_vol_mark.call(srv_vol_mark))
+  if (clt_vol_mark_collected.call(srv_vol_mark_collected))
   {
     ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Called service MarkCollected.");
     ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Success? " << (int) success);
@@ -1887,6 +1888,24 @@ void SmExcavator::MarkCollectedVolatile(bool success)
   }
 }
 
+void SmExcavator::MarkVolatileAssigned()
+{
+  volatile_map::MarkAssigned srv_vol_mark_assigned;
+
+  srv_vol_mark_assigned.request.robot_id_assigned = robot_id_;
+  srv_vol_mark_assigned.request.vol_index = goal_vol_index_;
+
+  if (clt_vol_mark_assigned.call(srv_vol_mark_assigned))
+  {
+    ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Called service MarkAssigned.");
+    ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Marked assigned with ID: " << robot_id_);
+    ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Which index? " << goal_vol_index_);
+  }
+  else
+  {
+    ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Failed to call service MarkAssigned.");
+  }
+}
 
 void SmExcavator::ExcavationStateMachine()
 {
@@ -2084,7 +2103,7 @@ void SmExcavator::CancelExcavation(bool success)
   flag_manipulation_enabled = false;
   flag_localizing_volatile = false;
 
-  MarkCollectedVolatile(success);
+  MarkVolatileCollected(success);
 
   if(success)
   {
@@ -2161,6 +2180,10 @@ void SmExcavator::Plan()
     no_objective = false;
     ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Task Planner: Goal volatile pos: "<< srv_plan.response.objective.point);
     ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Task Planner: Goal volatile index: "<< srv_plan.response.volatile_index);
+    if(srv_plan.response.code.data == 3)
+    {
+      MarkVolatileAssigned();
+    }
   }
   else
   {

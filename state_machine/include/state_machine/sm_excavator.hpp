@@ -65,6 +65,7 @@
 #include <src2_object_detection/WhereToParkHauler.h>
 #include <src2_object_detection/FindObject.h>
 #include <volatile_map/MarkCollected.h>
+#include <volatile_map/MarkAssigned.h>
 
 
 #define PI 3.141592653589793
@@ -186,7 +187,8 @@ public:
   ros::ServiceClient clt_where_hauler;
   ros::ServiceClient clt_find_hauler;
   ros::ServiceClient clt_task_planning;
-  ros::ServiceClient clt_vol_mark;
+  ros::ServiceClient clt_vol_mark_collected;
+  ros::ServiceClient clt_vol_mark_assigned;
   ros::ServiceClient clt_find_object;
 
   MoveBaseClient ac;
@@ -263,7 +265,8 @@ public:
   void CancelExcavation(bool success);
   bool HomingUpdate(bool init_landmark);
   void Plan();
-  void MarkCollectedVolatile(bool success);
+  void MarkVolatileCollected(bool success);
+  void MarkVolatileAssigned();
   
   const int SCOUT_STR_LOC = 13; //index ~SHOULD BE~ at 14th position
   const int EXCAVATOR_STR_LOC = 17; //index ~SHOULD BE~ at 18th position
