@@ -194,10 +194,8 @@ namespace mac
       robot.volatile_indices.clear();
     }
 
-    
-     for (auto &robot : robots_)
-     {
-
+    for (auto &robot : robots_)
+    {
       for (auto &vol : volatile_map_.vol)
       {
         if(robot.type == mac::EXCAVATOR && vol.robot_id_assigned == robot.id && !vol.attempted )
@@ -205,68 +203,102 @@ namespace mac
           robot.plan.push_back(vol.position);
           robot.volatile_indices.push_back(vol.vol_index);
         }
-
       }   
-     }
-    
-    volatile_map::VolatileMap temp_map;
-    std::vector<int> temp_volatile_indices;
-    for (auto &vol : volatile_map_.vol)
-    {
-
-      if (vol.attempted || !vol.honed || vol.robot_id_assigned)
-      {
-        continue;
-      }
-      temp_map.vol.push_back(vol);
-      temp_volatile_indices.push_back(vol.vol_index);
     }
-
-    while (temp_map.vol.size() > 0)
+    
+    if (volatile_map_.vol.size() == 1)
     {
+      double x;
+      double y;
+      double min_D = 500;
+      int min_ind = 0;
       for (auto &robot : robots_)
       {
-        double x;
-        double y;
         if (robot.type == mac::EXCAVATOR)
         {
-          if (robot.plan.empty())
+          x = robot.odom.pose.pose.position.x;
+          y = robot.odom.pose.pose.position.y;
+          double dx = volatile_map_.vol[0].position.point.x - x;
+          double dy = volatile_map_.vol[0].position.point.y - y;
+          double D = hypot(dx, dy);
+          if (D < min_D)
           {
-            x = robot.odom.pose.pose.position.x;
-            y = robot.odom.pose.pose.position.y;
+            min_D = D;
+            min_ind = robot.id;
           }
-          else
-          {
-            x = robot.plan[robot.plan.size() - 1].point.x;
-            y = robot.plan[robot.plan.size() - 1].point.y;
-          }
-          double min_D = 500;
-          double min_ind = 0;
-          int vol_ind = 0;
-          for (auto &vol : temp_map.vol)
-          {
-            double dx = vol.position.point.x - x;
-            double dy = vol.position.point.y - y;
-            double D = hypot(dx, dy);
-            if (D < min_D)
-            {
-              min_D = D;
-              min_ind = vol_ind;
-            }
-            ++vol_ind;
-          }
-          geometry_msgs::PointStamped temp;
-          temp.point.x = temp_map.vol[min_ind].position.point.x;
-          temp.point.y = temp_map.vol[min_ind].position.point.y;
-          robot.plan.push_back(temp);
-
-          robot.volatile_indices.push_back(temp_volatile_indices[min_ind]);
-          temp_map.vol.erase(temp_map.vol.begin() + min_ind);
-          temp_volatile_indices.erase(temp_volatile_indices.begin() + min_ind);
         }
-        if (temp_map.vol.empty())
+      }
+      int exc_ind = get_robot_index(mac::EXCAVATOR, min_ind);
+      robots_[exc_ind].plan.push_back(volatile_map_.vol[0].position);
+      robots_[exc_ind].volatile_indices.push_back(volatile_map_.vol[0].vol_index);
+    }
+    else
+    {
+      volatile_map::VolatileMap temp_map;
+      std::vector<int> temp_volatile_indices;
+      for (auto &vol : volatile_map_.vol)
+      {
+        if (vol.attempted || !vol.honed || vol.robot_id_assigned)
         {
-          break;
+          continue;
+        }
+        temp_map.vol.push_back(vol);
+        temp_volatile_indices.push_back(vol.vol_index);
+      }
+
+      int exc1_ind = get_robot_index(mac::EXCAVATOR, 1);
+      int exc2_ind = get_robot_index(mac::EXCAVATOR, 2);
+
+      while (temp_map.vol.size() > 0)
+      {
+        for (auto &robot : robots_)
+        {
+          if((robots_[exc1_ind].plan.size() != robots_[exc2_ind].plan.size()) && (robots_[exc1_ind].plan.size() == 1))
+          {
+            continue;
+          }
+          double x;
+          double y;
+          if (robot.type == mac::EXCAVATOR)
+          {
+            if (robot.plan.empty())
+            {
+              x = robot.odom.pose.pose.position.x;
+              y = robot.odom.pose.pose.position.y;
+            }
+            else
+            {
+              x = robot.plan[robot.plan.size() - 1].point.x;
+              y = robot.plan[robot.plan.size() - 1].point.y;
+            }
+            double min_D = 500;
+            double min_ind = 0;
+            int vol_ind = 0;
+            for (auto &vol : temp_map.vol)
+            {
+              double dx = vol.position.point.x - x;
+              double dy = vol.position.point.y - y;
+              double D = hypot(dx, dy);
+              if (D < min_D)
+              {
+                min_D = D;
+                min_ind = vol_ind;
+              }
+              ++vol_ind;
+            }
+            geometry_msgs::PointStamped temp;
+            temp.point.x = temp_map.vol[min_ind].position.point.x;
+            temp.point.y = temp_map.vol[min_ind].position.point.y;
+            robot.plan.push_back(temp);
+
+            robot.volatile_indices.push_back(temp_volatile_indices[min_ind]);
+            temp_map.vol.erase(temp_map.vol.begin() + min_ind);
+            temp_volatile_indices.erase(temp_volatile_indices.begin() + min_ind);
+          }
+          if (temp_map.vol.empty())
+          {
+            break;
+          }
         }
       }
     }
