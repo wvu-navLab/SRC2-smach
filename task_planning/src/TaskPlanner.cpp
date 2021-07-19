@@ -194,11 +194,27 @@ namespace mac
       robot.volatile_indices.clear();
     }
 
+    
+     for (auto &robot : robots_)
+     {
+
+      for (auto &vol : volatile_map_.vol)
+      {
+        if(robot.type == mac::EXCAVATOR && vol.robot_id_assigned == robot.id && !vol.attempted )
+        {
+          robot.plan.push_back(vol.position);
+          robot.volatile_indices.push_back(vol.vol_index);
+        }
+
+      }   
+     }
+    
     volatile_map::VolatileMap temp_map;
     std::vector<int> temp_volatile_indices;
     for (auto &vol : volatile_map_.vol)
     {
-      if (vol.attempted || !vol.honed)
+
+      if (vol.attempted || !vol.honed || vol.robot_id_assigned)
       {
         continue;
       }
