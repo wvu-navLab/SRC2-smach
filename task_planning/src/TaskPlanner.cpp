@@ -188,6 +188,8 @@ namespace mac
 
   void TaskPlanner::exc_haul_plan_default_adv()
   {
+    ros::spinOnce();
+    
     for (auto &robot : robots_)
     {
       robot.plan.clear();
@@ -248,13 +250,15 @@ namespace mac
 
       int exc1_ind = get_robot_index(mac::EXCAVATOR, 1);
       int exc2_ind = get_robot_index(mac::EXCAVATOR, 2);
+      int counter = 0;
 
       while (temp_map.vol.size() > 0)
       {
         for (auto &robot : robots_)
         {
-          if((robots_[exc2_ind].plan.size() == 0) && (robots_[exc1_ind].plan.size() == 1))
+          if(robot.type == mac::EXCAVATOR && counter == 0 && (robots_[exc2_ind].plan.size() == 0) && (robots_[exc1_ind].plan.size() == 1))
           {
+            counter++;
             continue;
           }
           double x;
