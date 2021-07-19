@@ -1724,6 +1724,8 @@ bool SmExcavator::ExecuteSearch()
       Brake(100.0);
     }
 
+  }
+
   ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Excavation. Did not find volatile!");
 
   return false;
@@ -2022,14 +2024,14 @@ void SmExcavator::ExcavationStateMachine()
       ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Excavation. Lowering Arm.");
 
       ExecuteLowerArm(5,0,volatile_heading_);
-      excavation_state_ = SEARCH_MODE;
+      excavation_state_ = SCOOP_MODE;
     }
     break;
     case SCOOP_MODE:
     {
       ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Excavation. Scooping.");
 
-      ExecuteLowerArm(5,0,volatile_heading_);
+      ExecuteLowerArm(2,0,volatile_heading_);
 
       if(!flag_found_hauler)
       {
@@ -2039,8 +2041,6 @@ void SmExcavator::ExcavationStateMachine()
         flag_failed_to_find_hauler = !flag_found_hauler;
         SetPowerMode(true);
       }
-
-      PublishExcavationStatus();
 
       ExecuteScoop(5,0,volatile_heading_);
 
@@ -2054,6 +2054,8 @@ void SmExcavator::ExcavationStateMachine()
 
         break;
       }
+
+      PublishExcavationStatus();
 
       if (flag_found_hauler)
       {
