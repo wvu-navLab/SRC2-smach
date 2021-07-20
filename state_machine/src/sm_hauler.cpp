@@ -272,10 +272,12 @@ void SmHauler::stateInitialize()
     if (robot_id_ == 1)
     {
       RotateToHeading(5.0);
+      Stop(0.1);
     }
     else
     {
       RotateToHeading(1.4);
+      Stop(0.1);
     }
     DriveCmdVel(HAULER_MAX_SPEED,0,0,12);
     Stop(0.1);
@@ -310,6 +312,7 @@ void SmHauler::statePlanning()
 
     Brake (0.0);
     RotateToHeading(goal_yaw_);
+    Stop(0.1);
     BrakeRamp(100, 1, 0);
     Brake(0.0);
 
@@ -324,7 +327,8 @@ void SmHauler::statePlanning()
     {
       ros::Duration(dt+3).sleep();
     }
-
+    
+    map_timer =ros::Time::now();
     SetMoveBaseGoal();
 
     progress = 1.0;
@@ -352,7 +356,7 @@ void SmHauler::stateTraverse()
   double progress = 0;
 
   double distance_to_goal = std::hypot(goal_pose_.position.y - current_pose_.position.y, goal_pose_.position.x - current_pose_.position.x);
-  if (distance_to_goal < 1.0)
+  if (distance_to_goal < 1.5)
   {
 
     CancelMoveBaseGoal();
@@ -366,6 +370,7 @@ void SmHauler::stateTraverse()
     if(flag_dumping)
     {
       RotateToHeading(proc_plant_bin_location_.z);
+      Stop(0.1);
     }
 
     flag_arrived_at_waypoint = true;
@@ -398,6 +403,11 @@ void SmHauler::stateTraverse()
       ros::Duration timeoutMap(5.0);
       if (ros::Time::now() - map_timer > timeoutMap)
       {
+        CancelMoveBaseGoal(); 
+        int direction = (rand() % 2)>0? 1: -1;
+        ros::spinOnce();
+        RotateToHeading(yaw_ + direction * M_PI_4);
+        Stop(0.1);
         ClearCostmaps(5.0);
         map_timer =ros::Time::now();
         SetMoveBaseGoal();
@@ -457,7 +467,11 @@ void SmHauler::stateVolatileHandler()
     flag_arrived_at_waypoint = false;
     flag_localizing_volatile = true;
 
-    parking_recovery_counter_ = 0;
+    parking_recovery_counter_ = 0;    
+    
+    PublishHaulerStatus();
+
+    return;
   }
 
   PublishHaulerStatus();
@@ -479,9 +493,11 @@ void SmHauler::stateVolatileHandler()
 
       ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Rotating in the direction of the excavator. Goal yaw: " << yaw);
       RotateToHeading(yaw);
+      Stop(0.1);
       ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Rotated to yaw: " << yaw_);
 
       flag_approached_excavator = ApproachExcavator(3, 3.0);
+      Stop(0.1);
       flag_located_excavator = false;
       flag_parked_hauler = false;
       PublishHaulerStatus();
@@ -506,11 +522,13 @@ void SmHauler::stateVolatileHandler()
         {
           ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Obtained goal from LaserScan");
           flag_parked_hauler = GoToWaypoint(1.5, 1.0);
+          Stop(0.1);
         }
         else
         {
           ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Obtained goal from Bucket detection");
           flag_parked_hauler = GoToWaypoint(1.3, -0.3);
+          Stop(0.1);
         }
         PublishHaulerStatus();
       }
@@ -519,7 +537,8 @@ void SmHauler::stateVolatileHandler()
       if(!flag_located_excavator)
       {
         ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Other methods failed, trying Approach again.");
-        flag_located_excavator = ApproachExcavator(3, 1.0);
+        flag_located_excavator = ApproachExcavator(1, 1.0);
+        Stop(0.1);
         flag_parked_hauler = true;
         PublishHaulerStatus();
       }
@@ -654,6 +673,7 @@ void SmHauler::stateEmergency()
   CancelMoveBaseGoal();
 
   RotateToHeading(M_PI_2);
+  Stop(0.1);
 
   SetPowerMode(true);
 
@@ -737,6 +757,7 @@ void SmHauler::stateDump()
   goal_yaw_ = atan2(goal_pose_.position.y - current_pose_.position.y, goal_pose_.position.x - current_pose_.position.x);
 
   RotateToHeading(goal_yaw_);
+  Stop(0.1);
   BrakeRamp(100, 1, 0);
   Brake(0.0);
 
@@ -1167,7 +1188,6 @@ void SmHauler::RotateToHeading(double desired_yaw)
     ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Recovery action initiated in yaw control.");
 
     Stop(0.1);
-
     DriveCmdVel (-0.5, 0.0, 0.0, 4.0);
     Stop(0.1);
     BrakeRamp(100, 1, 0);
@@ -1177,7 +1197,7 @@ void SmHauler::RotateToHeading(double desired_yaw)
   }
   else
   {
-    Stop(0.0);
+    Stop(0.1);
   }
 }
 

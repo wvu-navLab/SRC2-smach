@@ -251,10 +251,12 @@ void SmExcavator::stateInitialize()
     if (robot_id_ == 1)
     {
       RotateToHeading(5.0);
+      Stop(0.1);
     }
     else
     {
       RotateToHeading(1.4);
+      Stop(0.1);
     }
     DriveCmdVel(EXCAVATOR_MAX_SPEED,0,0,12);
     Stop(0.1);
@@ -295,6 +297,7 @@ void SmExcavator::statePlanning()
     Brake (0.0);
     SetPowerMode(false);
     RotateToHeading(goal_yaw_);
+    Stop(0.1);
     SetPowerMode(true);
     BrakeRamp(100, 1, 0);
     Brake(0.0);
@@ -307,7 +310,8 @@ void SmExcavator::statePlanning()
     {
       ros::Duration(3).sleep();
     }
-
+    
+    map_timer =ros::Time::now();
     SetMoveBaseGoal();
 
     progress = 1.0;
@@ -338,7 +342,7 @@ void SmExcavator::stateTraverse()
                       << ". Goal: (" << goal_pose_.position.x << "," << goal_pose_.position.y <<").");
 
   double distance_to_goal = std::hypot(goal_pose_.position.y - current_pose_.position.y, goal_pose_.position.x - current_pose_.position.x);
-  if (distance_to_goal < 2.0)
+  if (distance_to_goal < 1.5)
   {
     CancelMoveBaseGoal();
     ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Close to goal, getting new waypoint.");
@@ -366,6 +370,11 @@ void SmExcavator::stateTraverse()
       ros::Duration timeoutMap(5.0);
       if (ros::Time::now() - map_timer > timeoutMap)
       {
+        CancelMoveBaseGoal(); 
+        int direction = (rand() % 2)>0? 1: -1;
+        ros::spinOnce();
+        RotateToHeading(yaw_ + direction * M_PI_4);
+        Stop(0.1);
         ClearCostmaps(5.0);
         map_timer =ros::Time::now();
         SetMoveBaseGoal();
@@ -535,6 +544,7 @@ void SmExcavator::stateEmergency()
   SetPowerMode(true);
 
   RotateToHeading(M_PI_2);
+  Stop(0.1);
 
   progress = power_level_/50;
 
@@ -1138,7 +1148,7 @@ void SmExcavator::RotateToHeading(double desired_yaw)
   }
   else
   {
-    Stop(0.0);
+    Stop(0.1);
   }
 }
 
@@ -2060,8 +2070,7 @@ void SmExcavator::ExcavationStateMachine()
       if (flag_found_hauler)
       {
         ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Excavation. Found Hauler.");
-        ExecuteScoop(5,0,volatile_heading_);
-        ExecuteAfterScoop(5,0); // If the hauler was found with the service, it will scoop material and go to Home
+        ExecuteAfterScoop(7,0); // If the hauler was found with the service, it will scoop material and go to Home
         excavation_state_ = HOME_MODE;
       }
       else

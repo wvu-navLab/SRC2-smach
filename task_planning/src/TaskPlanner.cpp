@@ -229,27 +229,30 @@ namespace mac
 
     if (volatile_map_.vol.size() == 1)
     {
-      min_D = 500;
-      min_ind = 0;
-      for (auto &robot : robots_)
+      if(volatile_map_.vol[0].honed)
       {
-        if (robot.type == mac::EXCAVATOR)
+        min_D = 500;
+        min_ind = 0;
+        for (auto &robot : robots_)
         {
-          x = robot.odom.pose.pose.position.x;
-          y = robot.odom.pose.pose.position.y;
-          dx = volatile_map_.vol[0].position.point.x - x;
-          dy = volatile_map_.vol[0].position.point.y - y;
-          D = hypot(dx, dy);
-          if (D < min_D)
+          if (robot.type == mac::EXCAVATOR)
           {
-            min_D = D;
-            min_ind = robot.id;
+            x = robot.odom.pose.pose.position.x;
+            y = robot.odom.pose.pose.position.y;
+            dx = volatile_map_.vol[0].position.point.x - x;
+            dy = volatile_map_.vol[0].position.point.y - y;
+            D = hypot(dx, dy);
+            if (D < min_D)
+            {
+              min_D = D;
+              min_ind = robot.id;
+            }
           }
         }
+        first_exc_ind = get_robot_index(mac::EXCAVATOR, min_ind);
+        robots_[first_exc_ind].plan.push_back(volatile_map_.vol[0].position);
+        robots_[first_exc_ind].volatile_indices.push_back(volatile_map_.vol[0].vol_index);
       }
-      first_exc_ind = get_robot_index(mac::EXCAVATOR, min_ind);
-      robots_[first_exc_ind].plan.push_back(volatile_map_.vol[0].position);
-      robots_[first_exc_ind].volatile_indices.push_back(volatile_map_.vol[0].vol_index);
     }
     else if  (temp_map.vol.size() > 0)
     {

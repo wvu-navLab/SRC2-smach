@@ -54,6 +54,8 @@
 #include <task_planning/Types.hpp>
 #include <state_machine/RobotStatus.h>
 #include <src2_object_detection/FindObject.h>
+#include <volatile_map/VolCmd.h>
+#include <volatile_map/MarkHoned.h>
 
 typedef actionlib::SimpleActionClient<move_base_msgs::MoveBaseAction> MoveBaseClient;
 
@@ -98,7 +100,6 @@ public:
   ros::Publisher cmd_sensor_yaw_pub; 
   ros::Publisher cmd_sensor_pitch_pub;
 
-
   // Subscribers
   ros::Subscriber localized_base_sub;
   ros::Subscriber volatile_sensor_sub;
@@ -128,6 +129,7 @@ public:
   ros::ServiceClient clt_srcp2_brake_rover;
   ros::ServiceClient clt_task_planning;
   ros::ServiceClient clt_find_object;
+  ros::ServiceClient clt_vol_mark_honed;
   MoveBaseClient ac;
 
   // Clients
@@ -151,7 +153,7 @@ public:
   void systemMonitorCallback(const srcp2_msgs::SystemMonitorMsg::ConstPtr& msg);
   void localizationCallback(const nav_msgs::Odometry::ConstPtr& msg);
   void drivingModeCallback(const std_msgs::Int64::ConstPtr& msg);
-  void volatileCmdCallback(const std_msgs::Int64::ConstPtr& msg);
+  void volatileCmdCallback(const volatile_map::VolCmd::ConstPtr& msg);
   void volatileSensorCallback(const srcp2_msgs::VolSensorMsg::ConstPtr& msg);
   void laserCallback(const sensor_msgs::LaserScan::ConstPtr& msg);
   void doneCallback(const actionlib::SimpleClientGoalState& state, const move_base_msgs::MoveBaseResultConstPtr& result);
@@ -186,11 +188,11 @@ public:
   bool ApproachChargingStation(int max_count);
   bool HomingUpdate(bool init_landmark);
   void Plan();
+  void MarkVolatileHoned();
   
   const int SCOUT_STR_LOC = 13; //index ~SHOULD BE~ at 14th position
   const int EXCAVATOR_STR_LOC = 17; //index ~SHOULD BE~ at 18th position
   const int HAULER_STR_LOC = 14; //index ~SHOULD BE~ at 15th position
-
 
   // Parameters
   std::string node_name_;
@@ -227,6 +229,10 @@ public:
 
   const double VOL_FOUND_THRESH = 0.3;
   int honing_direction_ = 1;
+  
+  //Volatile Detection
+
+  int detected_vol_index_;
 
   // Planning
   task_planning::PlanInfo prev_srv_plan;
