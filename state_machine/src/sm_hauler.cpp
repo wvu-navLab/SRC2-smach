@@ -497,6 +497,7 @@ void SmHauler::stateVolatileHandler()
       ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Rotated to yaw: " << yaw_);
 
       flag_approached_excavator = ApproachExcavator(3, 3.0);
+      Stop(0.1);
       flag_located_excavator = false;
       flag_parked_hauler = false;
       PublishHaulerStatus();
@@ -521,11 +522,13 @@ void SmHauler::stateVolatileHandler()
         {
           ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Obtained goal from LaserScan");
           flag_parked_hauler = GoToWaypoint(1.5, 1.0);
+          Stop(0.1);
         }
         else
         {
           ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Obtained goal from Bucket detection");
           flag_parked_hauler = GoToWaypoint(1.3, -0.3);
+          Stop(0.1);
         }
         PublishHaulerStatus();
       }
@@ -535,6 +538,7 @@ void SmHauler::stateVolatileHandler()
       {
         ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Other methods failed, trying Approach again.");
         flag_located_excavator = ApproachExcavator(1, 1.0);
+        Stop(0.1);
         flag_parked_hauler = true;
         PublishHaulerStatus();
       }
