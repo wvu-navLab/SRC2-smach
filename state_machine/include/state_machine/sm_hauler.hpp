@@ -36,6 +36,7 @@
 #include <range_to_base/LocationOfExcavator.h>
 #include <sensor_fusion/RoverStatic.h>
 #include <sensor_fusion/GetTruePose.h>
+#include <sensor_fusion/ResetPosition.h>
 #include <sensor_fusion/HomingUpdate.h>
 #include <actionlib/client/simple_action_client.h>
 #include <actionlib/client/simple_client_goal_state.h>
@@ -82,6 +83,7 @@ public:
   bool flag_located_excavator = false;
   bool flag_parked_hauler = false;
   bool flag_dumped = false;
+  bool flag_called_get_true_pose = false;
 
   ros::Time wp_checker_timer,laser_collision_timer, map_timer, waypoint_timer;
 
@@ -123,6 +125,7 @@ public:
   ros::ServiceClient clt_approach_bin;
   ros::ServiceClient clt_approach_excavator;
   ros::ServiceClient clt_rover_static;
+  ros::ServiceClient clt_reset_position;
   ros::ServiceClient clt_waypoint_checker;
   ros::ServiceClient clt_srcp2_brake_rover;
   ros::ServiceClient clt_task_planning;
@@ -132,7 +135,6 @@ public:
   ros::ServiceClient clt_set_goal;
   ros::ServiceClient clt_go_to_goal;
   ros::ServiceClient clt_find_object;
-
 
   MoveBaseClient ac;
   actionlib::SimpleClientGoalState move_base_state_;
@@ -195,6 +197,7 @@ public:
   bool FindExcavator(double timeout);
   void PublishHaulerStatus();
   void CheckForCollision();
+  void ResetPosition();
   void Plan();
 
   const int SCOUT_STR_LOC = 13; //index ~SHOULD BE~ at 14th position
@@ -211,10 +214,10 @@ public:
   int driving_mode = 0;
 
   geometry_msgs::Pose current_pose_, goal_pose_;
+  geometry_msgs::Point last_known_position_;
   geometry_msgs::Point base_location_;
   geometry_msgs::Point proc_plant_bin_location_;
   geometry_msgs::Point charging_station_location_;
-
 
   double x_proc_plant_ = -6;
   double y_proc_plant_ = -6;

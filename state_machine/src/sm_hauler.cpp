@@ -64,6 +64,7 @@ move_base_state_(actionlib::SimpleClientGoalState::PREEMPTED)
   clt_brake = nh.serviceClient<srcp2_msgs::BrakeRoverSrv>("brake_rover");
   clt_approach_base = nh.serviceClient<src2_approach_services::ApproachChargingStation>("approach_charging_station_service");
   clt_rover_static = nh.serviceClient<sensor_fusion::RoverStatic>("sensor_fusion/toggle_rover_static");
+  clt_reset_position = nh.serviceClient<sensor_fusion::ResetPosition>("sensor_fusion/reset_position");
   clt_homing = nh.serviceClient<sensor_fusion::HomingUpdate>("homing");
   clt_sf_true_pose = nh.serviceClient<sensor_fusion::GetTruePose>("true_pose");
   clt_waypoint_checker = nh.serviceClient<waypoint_checker::CheckCollision>("waypoint_checker");
@@ -260,10 +261,10 @@ void SmHauler::stateInitialize()
   RoverStatic(true);
   bool initialize_other_robot_attitude = false;
   if (robot_id_ == 1)
-  {
+  {      
     initialize_other_robot_attitude = true;
+    GetTruePose(initialize_other_robot_attitude);
   }
-  GetTruePose(initialize_other_robot_attitude);
   RoverStatic(false);
   if (flag_have_true_pose && !flag_spread_out)
   {
@@ -666,7 +667,18 @@ void SmHauler::stateLost()
       // Hauler 2 still has a true pose call
       if (robot_id_==2)
       {
-        GetTruePose(false);
+        if (!flag_called_get_true_pose)
+        {
+          GetTruePose(false);
+        }
+        else
+        {
+          ResetPosition();
+        }
+      }
+      if (robot_id_==2)
+      {
+        ResetPosition();
       }
     }
     BrakeRamp(100, 1, 0);
@@ -1302,6 +1314,7 @@ void SmHauler::GetTruePose(bool initialize_other_robot_attitude)
     ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Called service TruePose");
     ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Status of SF True Pose: "<< (int) srv_sf_true_pose.response.success);
     flag_have_true_pose = true;
+    flag_called_get_true_pose = true;
   }
   else
   {
@@ -1714,12 +1727,32 @@ void SmHauler::CheckForCollision()
 
   if (flag_collision_proc_plant || flag_collision_repair_station)
   {
+    
     flag_interrupt_plan = false;
     flag_emergency = false;
     flag_arrived_at_waypoint = true;
     flag_recovering_localization = true;
     flag_localizing_volatile = false;
     flag_dumping = false;
+  }
+}
+
+void SmHauler::ResetPosition()
+{
+  sensor_fusion::ResetPosition srv_reset_position;
+  geometry_msgs::Point reset_position;
+  reset_position.x = 0.0;
+  reset_position.y = 0.0;
+  reset_position.z = 0.0;
+  srv_reset_position.request.new_position = reset_position;
+
+  if (clt_reset_position.call(srv_reset_position))
+  {
+    ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Called service FindExcavator.");
+  }
+  else
+  {
+    ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Failed to call ResetPosition Service.");
   }
 }
 
