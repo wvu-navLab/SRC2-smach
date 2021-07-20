@@ -188,10 +188,12 @@ void SmScout::stateInitialize()
     if (robot_id_ == 1)
     {
       RotateToHeading(5.0);
+      Stop(0.1);
     }
     else
     {
       RotateToHeading(1.4);
+      Stop(0.1);
     }
     DriveCmdVel(SCOUT_MAX_SPEED,0,0,1);
     Stop(0.1);
@@ -226,6 +228,7 @@ void SmScout::statePlanning()
     Brake (0.0);
 
     RotateToHeading(goal_yaw_);
+    Stop(0.1);
     BrakeRamp(100, 1, 0);
     Brake(0.0);
 
@@ -448,6 +451,7 @@ void SmScout::stateEmergency()
   CancelMoveBaseGoal();
 
   RotateToHeading(M_PI_2);
+  Stop(0.1);
 
   SetPowerMode(true);
 

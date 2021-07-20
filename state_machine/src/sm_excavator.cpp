@@ -251,10 +251,12 @@ void SmExcavator::stateInitialize()
     if (robot_id_ == 1)
     {
       RotateToHeading(5.0);
+      Stop(0.1);
     }
     else
     {
       RotateToHeading(1.4);
+      Stop(0.1);
     }
     DriveCmdVel(EXCAVATOR_MAX_SPEED,0,0,12);
     Stop(0.1);
@@ -295,6 +297,7 @@ void SmExcavator::statePlanning()
     Brake (0.0);
     SetPowerMode(false);
     RotateToHeading(goal_yaw_);
+    Stop(0.1);
     SetPowerMode(true);
     BrakeRamp(100, 1, 0);
     Brake(0.0);
@@ -339,7 +342,7 @@ void SmExcavator::stateTraverse()
                       << ". Goal: (" << goal_pose_.position.x << "," << goal_pose_.position.y <<").");
 
   double distance_to_goal = std::hypot(goal_pose_.position.y - current_pose_.position.y, goal_pose_.position.x - current_pose_.position.x);
-  if (distance_to_goal < 2.0)
+  if (distance_to_goal < 1.5)
   {
     CancelMoveBaseGoal();
     ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Close to goal, getting new waypoint.");
@@ -541,6 +544,7 @@ void SmExcavator::stateEmergency()
   SetPowerMode(true);
 
   RotateToHeading(M_PI_2);
+  Stop(0.1);
 
   progress = power_level_/50;
 
@@ -1144,7 +1148,7 @@ void SmExcavator::RotateToHeading(double desired_yaw)
   }
   else
   {
-    Stop(0.0);
+    Stop(0.1);
   }
 }
 

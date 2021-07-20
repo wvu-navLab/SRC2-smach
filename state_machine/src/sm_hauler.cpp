@@ -272,10 +272,12 @@ void SmHauler::stateInitialize()
     if (robot_id_ == 1)
     {
       RotateToHeading(5.0);
+      Stop(0.1);
     }
     else
     {
       RotateToHeading(1.4);
+      Stop(0.1);
     }
     DriveCmdVel(HAULER_MAX_SPEED,0,0,12);
     Stop(0.1);
@@ -310,6 +312,7 @@ void SmHauler::statePlanning()
 
     Brake (0.0);
     RotateToHeading(goal_yaw_);
+    Stop(0.1);
     BrakeRamp(100, 1, 0);
     Brake(0.0);
 
@@ -353,7 +356,7 @@ void SmHauler::stateTraverse()
   double progress = 0;
 
   double distance_to_goal = std::hypot(goal_pose_.position.y - current_pose_.position.y, goal_pose_.position.x - current_pose_.position.x);
-  if (distance_to_goal < 1.0)
+  if (distance_to_goal < 1.5)
   {
 
     CancelMoveBaseGoal();
@@ -367,6 +370,7 @@ void SmHauler::stateTraverse()
     if(flag_dumping)
     {
       RotateToHeading(proc_plant_bin_location_.z);
+      Stop(0.1);
     }
 
     flag_arrived_at_waypoint = true;
@@ -489,6 +493,7 @@ void SmHauler::stateVolatileHandler()
 
       ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Rotating in the direction of the excavator. Goal yaw: " << yaw);
       RotateToHeading(yaw);
+      Stop(0.1);
       ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Rotated to yaw: " << yaw_);
 
       flag_approached_excavator = ApproachExcavator(3, 3.0);
@@ -664,6 +669,7 @@ void SmHauler::stateEmergency()
   CancelMoveBaseGoal();
 
   RotateToHeading(M_PI_2);
+  Stop(0.1);
 
   SetPowerMode(true);
 
@@ -747,6 +753,7 @@ void SmHauler::stateDump()
   goal_yaw_ = atan2(goal_pose_.position.y - current_pose_.position.y, goal_pose_.position.x - current_pose_.position.x);
 
   RotateToHeading(goal_yaw_);
+  Stop(0.1);
   BrakeRamp(100, 1, 0);
   Brake(0.0);
 
@@ -1177,7 +1184,6 @@ void SmHauler::RotateToHeading(double desired_yaw)
     ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Recovery action initiated in yaw control.");
 
     Stop(0.1);
-
     DriveCmdVel (-0.5, 0.0, 0.0, 4.0);
     Stop(0.1);
     BrakeRamp(100, 1, 0);
@@ -1187,7 +1193,7 @@ void SmHauler::RotateToHeading(double desired_yaw)
   }
   else
   {
-    Stop(0.0);
+    Stop(0.1);
   }
 }
 
