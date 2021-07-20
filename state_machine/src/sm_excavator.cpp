@@ -307,7 +307,8 @@ void SmExcavator::statePlanning()
     {
       ros::Duration(3).sleep();
     }
-
+    
+    map_timer =ros::Time::now();
     SetMoveBaseGoal();
 
     progress = 1.0;
@@ -366,6 +367,11 @@ void SmExcavator::stateTraverse()
       ros::Duration timeoutMap(5.0);
       if (ros::Time::now() - map_timer > timeoutMap)
       {
+        CancelMoveBaseGoal(); 
+        int direction = (rand() % 2)>0? 1: -1;
+        ros::spinOnce();
+        RotateToHeading(yaw_ + direction * M_PI_4);
+        Stop(0.1);
         ClearCostmaps(5.0);
         map_timer =ros::Time::now();
         SetMoveBaseGoal();
@@ -2060,8 +2066,7 @@ void SmExcavator::ExcavationStateMachine()
       if (flag_found_hauler)
       {
         ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Excavation. Found Hauler.");
-        ExecuteScoop(5,0,volatile_heading_);
-        ExecuteAfterScoop(5,0); // If the hauler was found with the service, it will scoop material and go to Home
+        ExecuteAfterScoop(7,0); // If the hauler was found with the service, it will scoop material and go to Home
         excavation_state_ = HOME_MODE;
       }
       else

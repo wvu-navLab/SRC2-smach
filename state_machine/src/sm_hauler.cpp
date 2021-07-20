@@ -324,7 +324,8 @@ void SmHauler::statePlanning()
     {
       ros::Duration(dt+3).sleep();
     }
-
+    
+    map_timer =ros::Time::now();
     SetMoveBaseGoal();
 
     progress = 1.0;
@@ -398,6 +399,11 @@ void SmHauler::stateTraverse()
       ros::Duration timeoutMap(5.0);
       if (ros::Time::now() - map_timer > timeoutMap)
       {
+        CancelMoveBaseGoal(); 
+        int direction = (rand() % 2)>0? 1: -1;
+        ros::spinOnce();
+        RotateToHeading(yaw_ + direction * M_PI_4);
+        Stop(0.1);
         ClearCostmaps(5.0);
         map_timer =ros::Time::now();
         SetMoveBaseGoal();
@@ -457,7 +463,11 @@ void SmHauler::stateVolatileHandler()
     flag_arrived_at_waypoint = false;
     flag_localizing_volatile = true;
 
-    parking_recovery_counter_ = 0;
+    parking_recovery_counter_ = 0;    
+    
+    PublishHaulerStatus();
+
+    return;
   }
 
   PublishHaulerStatus();
@@ -519,7 +529,7 @@ void SmHauler::stateVolatileHandler()
       if(!flag_located_excavator)
       {
         ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Other methods failed, trying Approach again.");
-        flag_located_excavator = ApproachExcavator(3, 1.0);
+        flag_located_excavator = ApproachExcavator(1, 1.0);
         flag_parked_hauler = true;
         PublishHaulerStatus();
       }
