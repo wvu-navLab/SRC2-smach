@@ -40,6 +40,7 @@ move_base_state_(actionlib::SimpleClientGoalState::PREEMPTED)
   clt_srcp2_brake_rover = nh.serviceClient<srcp2_msgs::BrakeRoverSrv>("brake_rover");
   clt_task_planning = nh.serviceClient<task_planning::PlanInfo>("/task_planner_scout");
   clt_find_object = nh.serviceClient<src2_object_detection::FindObject>("/find_object");
+  clt_vol_mark_honed = nh.serviceClient<volatile_map::MarkHoned>("/volatile_map/mark_honed");
 
   map_timer = ros::Time::now();
   wp_checker_timer =  ros::Time::now();
@@ -370,6 +371,7 @@ void SmScout::stateVolatileHandler()
     Brake(0.0);
 
     SetMoveBaseSpeed(SCOUT_MAX_SPEED);
+    MarkVolatileHoned();
 
     flag_volatile_honed = false;
     flag_localizing_volatile = false;
@@ -522,15 +524,15 @@ void SmScout::volatileSensorCallback(const srcp2_msgs::VolSensorMsg::ConstPtr& m
 
 }
 
-void SmScout::volatileCmdCallback(const std_msgs::Int64::ConstPtr& msg)
+void SmScout::volatileCmdCallback(const volatile_map::VolCmd::ConstPtr& msg)
 {
   SetMoveBaseSpeed(0.1);
-
   // Update move_base max speed
-  if (msg->data == 2)
+  if (msg->cmd == 2)
   {
     ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Minimum trajectory distance detected.");
     flag_localizing_volatile = true;
+    detected_vol_index_ = msg->vol_index;
   }
   else
   {
@@ -1195,6 +1197,21 @@ void SmScout::RoverStatic(bool flag)
     ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Failed to call service RoverStatic");
   }
 
+}
+
+void SmScout::MarkVolatileHoned()
+{
+  volatile_map::MarkHoned srv_vol_mark_honed;
+  srv_vol_mark_honed.vol_index = detected_vol_index_;
+  srv_vol_mark_honed.honed = flag_volatile_honed;
+  if (clt_vol_mark_honed.call(srv_vol_mark_honed))
+  {
+    ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Called service MarkHoned. Vol ID? " << detected_vol_index_ <<", Honed? " << (int) flag_volatile_honed);
+  }
+  else
+  {
+    ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Failed to call service MarkHoned");
+  }
 }
 
 void SmScout::CheckWaypoint(int max_count)
