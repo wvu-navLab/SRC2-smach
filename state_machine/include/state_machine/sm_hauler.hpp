@@ -194,6 +194,7 @@ public:
   bool LocateExcavator();
   bool FindExcavator(double timeout);
   void PublishHaulerStatus();
+  void CheckForCollision();
   void Plan();
 
   const int SCOUT_STR_LOC = 13; //index ~SHOULD BE~ at 14th position
@@ -213,6 +214,12 @@ public:
   geometry_msgs::Point base_location_;
   geometry_msgs::Point proc_plant_bin_location_;
   geometry_msgs::Point charging_station_location_;
+
+
+  double x_proc_plant_ = -6;
+  double y_proc_plant_ = -6;
+  double x_repair_station_ = -6;
+  double y_repair_station_ = 7;
 
   double power_rate_ = 0.0;
   double power_level_ = 100.0;
@@ -253,6 +260,7 @@ public:
   int move_base_fail_counter = 0;
 
   int parking_recovery_counter_ = 0;
+  int lost_recovery_counter_ = 0;
 
   // Planning
   task_planning::PlanInfo prev_srv_plan;

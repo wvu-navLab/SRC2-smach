@@ -537,7 +537,7 @@ void SmHauler::stateVolatileHandler()
       if(!flag_located_excavator)
       {
         ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Other methods failed, trying Approach again.");
-        flag_located_excavator = ApproachExcavator(1, 1.0);
+        flag_located_excavator = ApproachExcavator(1, 1.5);
         Stop(0.1);
         flag_parked_hauler = true;
         PublishHaulerStatus();
@@ -637,28 +637,49 @@ void SmHauler::stateLost()
     {
       progress = -1.0;
     }
+
+    Brake(0.0);
+
+    DriveCmdVel(-0.5,0.0,0.0,5);
+    Stop(0.1);
+    BrakeRamp(100, 1, 0);
+    Brake(0.0);
+
+    RotateToHeading(5.08);
+    Stop(0.1);
+    BrakeRamp(100, 1, 0);
+    Brake(0.0);
+
+    DriveCmdVel(0.5,0.0,0.0,5);
+    Stop(0.1);
+    BrakeRamp(100, 1, 0);
+    Brake(0.0);
+
+    ClearCostmaps(5.0);      
+    if(lost_recovery_counter_ == 0)
+    {
+      CheckForCollision();
+      lost_recovery_counter_++;
+    }
+    else
+    {
+      // Hauler 2 still has a true pose call
+      if (robot_id_==2)
+      {
+        GetTruePose(false);
+      }
+    }
+    BrakeRamp(100, 1, 0);
+    Brake(0.0);
   }
   else
-  {
+  {    
+    ClearCostmaps(5.0);
+    BrakeRamp(100, 1, 0);
+    Brake(0.0);
+
     progress = -1.0;
-    // TODO: SOMETHING
   }
-
-  Brake(0.0);
-
-  DriveCmdVel(-0.5,0.0,0.0,5);
-  Stop(0.1);
-  BrakeRamp(100, 1, 0);
-  Brake(0.0);
-
-  RotateInPlace(0.2, 3);
-  Stop(0.1);
-  BrakeRamp(100, 1, 0);
-  Brake(0.0);
-
-  ClearCostmaps(5.0);
-  BrakeRamp(100, 1, 0);
-  Brake(0.0);
 
   state_machine::RobotStatus status_msg;
   status_msg.progress.data = progress;
@@ -702,17 +723,13 @@ void SmHauler::stateDump()
 
   double progress = 0.0;
 
-  flag_dumped = ApproachBin(3);
+  flag_dumped = ApproachBin(3); 
+  // TODO: Approach Bin return false it's not the bin in front
+  // TODO: Approach Bin return false it's not the bin in front
 
   // localize bin after approaching bin
   if (flag_dumped)
   {
-    bool success = LocateBin();
-    if (success)
-    {
-      //TODO: REFRESH LOCALIZATION?
-    }
-
     Brake(0.0);
 
     DriveCmdVel(-0.5,0.0,0.0,10);
@@ -725,45 +742,48 @@ void SmHauler::stateDump()
     BrakeRamp(100, 1, 0);
     Brake(0.0);
 
+    DriveCmdVel(0.5,0.0,0.0,5);
+    Stop(0.1);
+    BrakeRamp(100, 1, 0);
+    Brake(0.0);
+
     ClearCostmaps(5.0);
     BrakeRamp(100, 1, 0);
     Brake(0.0);
 
     progress = 1.0;
+    
+    PublishHaulerStatus();
+    
+    // RESET ALL VOL HANDLING FLAGS
+    flag_approaching_side = false;
+    flag_approached_side = false;
+    flag_approached_excavator = false;
+    flag_located_excavator = false;
+    flag_parked_hauler = false;
+    flag_full_bin = false;
+
+    // SET SMACH FLAGS TO LOST
+    flag_interrupt_plan = false;
+    flag_recovering_localization = true;
+    flag_localizing_volatile = false;
+    flag_arrived_at_waypoint = true;
+    flag_dumping = false;
   }
   else
   {    
     progress = -1.0;
   }
 
-  PublishHaulerStatus();
-  
-  // RESET ALL VOL HANDLING FLAGS
-  flag_approaching_side = false;
-  flag_approached_side = false;
-  flag_approached_excavator = false;
-  flag_located_excavator = false;
-  flag_parked_hauler = false;
-  flag_full_bin = false;
+  // goal_pose_.position = charging_station_location_;
+  // goal_yaw_ = atan2(goal_pose_.position.y - current_pose_.position.y, goal_pose_.position.x - current_pose_.position.x);
 
-  // SET SMACH FLAGS TO LOST
-  flag_interrupt_plan = false;
-  flag_recovering_localization = true;
-  flag_localizing_volatile = false;
-  flag_arrived_at_waypoint = false;
-  flag_dumping = false;
+  // RotateToHeading(goal_yaw_);
+  // Stop(0.1);
+  // BrakeRamp(100, 1, 0);
+  // Brake(0.0);
 
-  goal_pose_.position = charging_station_location_;
-  goal_yaw_ = atan2(goal_pose_.position.y - current_pose_.position.y, goal_pose_.position.x - current_pose_.position.x);
-
-  RotateToHeading(goal_yaw_);
-  Stop(0.1);
-  BrakeRamp(100, 1, 0);
-  Brake(0.0);
-
-  ClearCostmaps(5.0);
-
-  SetMoveBaseGoal();
+  // SetMoveBaseGoal();
 
   state_machine::RobotStatus status_msg;
   status_msg.progress.data = progress;
@@ -1683,6 +1703,26 @@ bool SmHauler::LocateExcavator()
   return success;
 }
 
+void SmHauler::CheckForCollision()
+{
+  ros::spinOnce();
+  double D_proc_plant = hypot(x_proc_plant_ - current_pose_.position.x, y_proc_plant_ - current_pose_.position.y);
+  bool flag_collision_proc_plant = D_proc_plant < 4.2;
+
+  double D_repair_station = hypot(x_repair_station_ - current_pose_.position.x, y_repair_station_ - current_pose_.position.y);
+  bool flag_collision_repair_station = D_repair_station < 4.2;
+
+  if (flag_collision_proc_plant || flag_collision_repair_station)
+  {
+    flag_interrupt_plan = false;
+    flag_emergency = false;
+    flag_arrived_at_waypoint = true;
+    flag_recovering_localization = true;
+    flag_localizing_volatile = false;
+    flag_dumping = false;
+  }
+}
+
 bool SmHauler::FindExcavator(double timeout)
 {
   move_excavator::FindExcavator srv_find;
@@ -1836,6 +1876,7 @@ void SmHauler::Plan()
     goal_pose_.position = srv_plan.response.objective.point;
     geometry_msgs::Quaternion quat;
     goal_pose_.orientation = quat;
+    lost_recovery_counter_ = 0;
     // partner_excavator_id_ = srv_plan.response.id;
     no_objective = false;
   }
