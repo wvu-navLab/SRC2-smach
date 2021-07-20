@@ -208,21 +208,38 @@ namespace mac
       }   
     }
     
+    volatile_map::VolatileMap temp_map;
+    std::vector<int> temp_volatile_indices;
+    for (auto &vol : volatile_map_.vol)
+    {
+      if (vol.attempted || !vol.honed || vol.robot_id_assigned)
+      {
+        continue;
+      }
+      temp_map.vol.push_back(vol);
+      temp_volatile_indices.push_back(vol.vol_index);
+    }
+
+    double x, dx;
+    double y, dy;
+    double D, min_D, min_D1, min_D2;
+    int exc1_ind, exc2_ind, first_exc_ind;
+    bool flag_exc1_has_plan, flag_exc2_has_plan;
+    int min_ind, min_ind1, min_ind2, vol_ind;
+
     if (volatile_map_.vol.size() == 1)
     {
-      double x;
-      double y;
-      double min_D = 500;
-      int min_ind = 0;
+      min_D = 500;
+      min_ind = 0;
       for (auto &robot : robots_)
       {
         if (robot.type == mac::EXCAVATOR)
         {
           x = robot.odom.pose.pose.position.x;
           y = robot.odom.pose.pose.position.y;
-          double dx = volatile_map_.vol[0].position.point.x - x;
-          double dy = volatile_map_.vol[0].position.point.y - y;
-          double D = hypot(dx, dy);
+          dx = volatile_map_.vol[0].position.point.x - x;
+          dy = volatile_map_.vol[0].position.point.y - y;
+          D = hypot(dx, dy);
           if (D < min_D)
           {
             min_D = D;
@@ -230,81 +247,258 @@ namespace mac
           }
         }
       }
-      int exc_ind = get_robot_index(mac::EXCAVATOR, min_ind);
-      robots_[exc_ind].plan.push_back(volatile_map_.vol[0].position);
-      robots_[exc_ind].volatile_indices.push_back(volatile_map_.vol[0].vol_index);
+      first_exc_ind = get_robot_index(mac::EXCAVATOR, min_ind);
+      robots_[first_exc_ind].plan.push_back(volatile_map_.vol[0].position);
+      robots_[first_exc_ind].volatile_indices.push_back(volatile_map_.vol[0].vol_index);
     }
-    else
+    else if  (temp_map.vol.size() > 0)
     {
-      volatile_map::VolatileMap temp_map;
-      std::vector<int> temp_volatile_indices;
-      for (auto &vol : volatile_map_.vol)
-      {
-        if (vol.attempted || !vol.honed || vol.robot_id_assigned)
-        {
-          continue;
-        }
-        temp_map.vol.push_back(vol);
-        temp_volatile_indices.push_back(vol.vol_index);
-      }
+      exc1_ind = get_robot_index(mac::EXCAVATOR, 1);
+      exc2_ind = get_robot_index(mac::EXCAVATOR, 2);
+      
+      flag_exc1_has_plan = (robots_[exc1_ind].plan.size()>0);
+      flag_exc2_has_plan = (robots_[exc2_ind].plan.size()>0);
 
-      int exc1_ind = get_robot_index(mac::EXCAVATOR, 1);
-      int exc2_ind = get_robot_index(mac::EXCAVATOR, 2);
-      int counter = 0;
-
-      while (temp_map.vol.size() > 0)
+      if(!flag_exc1_has_plan && !flag_exc2_has_plan)
       {
-        for (auto &robot : robots_)
+        // Calculate closest vol to excavator 1
+        x = robots_[exc1_ind].odom.pose.pose.position.x;
+        y = robots_[exc1_ind].odom.pose.pose.position.y;
+        for (auto &vol : temp_map.vol)
         {
-          if(robot.type == mac::EXCAVATOR && counter == 0 && (robots_[exc2_ind].plan.size() == 0) && (robots_[exc1_ind].plan.size() == 1))
+          min_D = 500;
+          min_ind = 0;
+          vol_ind = 0;
+          dx = vol.position.point.x - x;
+          dy = vol.position.point.y - y;
+          D = hypot(dx, dy);
+          if (D < min_D)
           {
-            counter++;
-            continue;
+            min_D = D;
+            min_ind = vol_ind;
           }
-          double x;
-          double y;
-          if (robot.type == mac::EXCAVATOR)
+          ++vol_ind;
+        }
+        min_D1 = min_D;
+        min_ind1 = min_ind;
+
+        // Calculate closest vol to excavator 2
+        x = robots_[exc2_ind].odom.pose.pose.position.x;
+        y = robots_[exc2_ind].odom.pose.pose.position.y;
+        for (auto &vol : temp_map.vol)
+        {
+          min_D = 500;
+          min_ind = 0;
+          vol_ind = 0;
+          dx = vol.position.point.x - x;
+          dy = vol.position.point.y - y;
+          D = hypot(dx, dy);
+          if (D < min_D)
           {
-            if (robot.plan.empty())
+            min_D = D;
+            min_ind = vol_ind;
+          }
+          ++vol_ind;
+        }
+        min_D2 = min_D;
+        min_ind2 = min_ind;
+        // If both have the same volatile as the closest
+        if(min_ind2 == min_ind1)
+        {
+          if(min_D1<min_D2)
+          {
+            // If its closer to excavator 1
+            // Give excavator 1 the closest to both
+            robots_[exc1_ind].plan.push_back(temp_map.vol[min_ind1].position);
+            robots_[exc1_ind].volatile_indices.push_back(temp_volatile_indices[min_ind1]);
+            
+            temp_map.vol.erase(temp_map.vol.begin() + min_ind1);
+            temp_volatile_indices.erase(temp_volatile_indices.begin() + min_ind1);
+
+            if(temp_map.vol.size()>0)
             {
-              x = robot.odom.pose.pose.position.x;
-              y = robot.odom.pose.pose.position.y;
-            }
-            else
-            {
-              x = robot.plan[robot.plan.size() - 1].point.x;
-              y = robot.plan[robot.plan.size() - 1].point.y;
-            }
-            double min_D = 500;
-            double min_ind = 0;
-            int vol_ind = 0;
-            for (auto &vol : temp_map.vol)
-            {
-              double dx = vol.position.point.x - x;
-              double dy = vol.position.point.y - y;
-              double D = hypot(dx, dy);
-              if (D < min_D)
+              // Give excavator 2 its second closest
+              x = robots_[exc2_ind].odom.pose.pose.position.x;
+              y = robots_[exc2_ind].odom.pose.pose.position.y;
+              for (auto &vol : temp_map.vol)
               {
-                min_D = D;
-                min_ind = vol_ind;
+                min_D = 500;
+                min_ind = 0;
+                vol_ind = 0;
+                dx = vol.position.point.x - x;
+                dy = vol.position.point.y - y;
+                D = hypot(dx, dy);
+                if (D < min_D)
+                {
+                  min_D = D;
+                  min_ind = vol_ind;
+                }
+                ++vol_ind;
               }
-              ++vol_ind;
+              robots_[exc2_ind].plan.push_back(temp_map.vol[min_ind].position);
+              robots_[exc2_ind].volatile_indices.push_back(temp_volatile_indices[min_ind]);
             }
-            geometry_msgs::PointStamped temp;
-            temp.point.x = temp_map.vol[min_ind].position.point.x;
-            temp.point.y = temp_map.vol[min_ind].position.point.y;
-            robot.plan.push_back(temp);
-
-            robot.volatile_indices.push_back(temp_volatile_indices[min_ind]);
-            temp_map.vol.erase(temp_map.vol.begin() + min_ind);
-            temp_volatile_indices.erase(temp_volatile_indices.begin() + min_ind);
           }
-          if (temp_map.vol.empty())
+          else
           {
-            break;
+            // If its closer to excavator 2
+            // Give excavator 2 the closest to both
+            robots_[exc2_ind].plan.push_back(temp_map.vol[min_ind2].position);
+            robots_[exc2_ind].volatile_indices.push_back(temp_volatile_indices[min_ind2]);
+
+            temp_map.vol.erase(temp_map.vol.begin() + min_ind2);
+            temp_volatile_indices.erase(temp_volatile_indices.begin() + min_ind2);
+
+            if(temp_map.vol.size()>0)
+            {
+              // Give excavator 1 its second closest
+              x = robots_[exc1_ind].odom.pose.pose.position.x;
+              y = robots_[exc1_ind].odom.pose.pose.position.y;
+              for (auto &vol : temp_map.vol)
+              {
+                min_D = 500;
+                min_ind = 0;
+                vol_ind = 0;
+                dx = vol.position.point.x - x;
+                dy = vol.position.point.y - y;
+                D = hypot(dx, dy);
+                if (D < min_D)
+                {
+                  min_D = D;
+                  min_ind = vol_ind;
+                }
+                ++vol_ind;
+              }
+              robots_[exc1_ind].plan.push_back(temp_map.vol[min_ind].position);
+              robots_[exc1_ind].volatile_indices.push_back(temp_volatile_indices[min_ind]);
+            }
           }
         }
+        else
+        {
+          // Give excavator 1 its closest
+          robots_[exc1_ind].plan.push_back(temp_map.vol[min_ind1].position);
+          robots_[exc1_ind].volatile_indices.push_back(temp_volatile_indices[min_ind1]);
+          // Give excavator 2 its closest
+          robots_[exc2_ind].plan.push_back(temp_map.vol[min_ind2].position);
+          robots_[exc2_ind].volatile_indices.push_back(temp_volatile_indices[min_ind2]);
+        }
       }
+      else if (!flag_exc1_has_plan && flag_exc2_has_plan)
+      {
+        // Calculate closest vol to excavator 1
+        x = robots_[exc1_ind].odom.pose.pose.position.x;
+        y = robots_[exc1_ind].odom.pose.pose.position.y;
+        for (auto &vol : temp_map.vol)
+        {
+          min_D = 500;
+          min_ind = 0;
+          vol_ind = 0;
+          dx = vol.position.point.x - x;
+          dy = vol.position.point.y - y;
+          D = hypot(dx, dy);
+          if (D < min_D)
+          {
+            min_D = D;
+            min_ind = vol_ind;
+          }
+          ++vol_ind;
+        }
+        robots_[exc1_ind].plan.push_back(temp_map.vol[min_ind].position);
+        robots_[exc1_ind].volatile_indices.push_back(temp_volatile_indices[min_ind]);
+      }
+      else if (flag_exc1_has_plan && !flag_exc2_has_plan)
+      {
+        // Calculate closest vol to excavator 2
+        x = robots_[exc2_ind].odom.pose.pose.position.x;
+        y = robots_[exc2_ind].odom.pose.pose.position.y;
+        for (auto &vol : temp_map.vol)
+        {
+          min_D = 500;
+          min_ind = 0;
+          vol_ind = 0;
+          dx = vol.position.point.x - x;
+          dy = vol.position.point.y - y;
+          D = hypot(dx, dy);
+          if (D < min_D)
+          {
+            min_D = D;
+            min_ind = vol_ind;
+          }
+          ++vol_ind;
+        }
+        robots_[exc2_ind].plan.push_back(temp_map.vol[min_ind].position);
+        robots_[exc2_ind].volatile_indices.push_back(temp_volatile_indices[min_ind]);
+      }
+
+      // volatile_map::VolatileMap temp_map;
+      // std::vector<int> temp_volatile_indices;
+      // for (auto &vol : volatile_map_.vol)
+      // {
+      //   if (vol.attempted || !vol.honed || vol.robot_id_assigned)
+      //   {
+      //     continue;
+      //   }
+      //   temp_map.vol.push_back(vol);
+      //   temp_volatile_indices.push_back(vol.vol_index);
+      // }
+
+      // int exc1_ind = get_robot_index(mac::EXCAVATOR, 1);
+      // int exc2_ind = get_robot_index(mac::EXCAVATOR, 2);
+      // int counter = 0;
+
+      // while (temp_map.vol.size() > 0)
+      // {
+      //   for (auto &robot : robots_)
+      //   {
+      //     if(robot.type == mac::EXCAVATOR && counter == 0 && (robots_[exc2_ind].plan.size() == 0) && (robots_[exc1_ind].plan.size() == 1))
+      //     {
+      //       counter++;
+      //       continue;
+      //     }
+      //     double x;
+      //     double y;
+      //     if (robot.type == mac::EXCAVATOR)
+      //     {
+      //       if (robot.plan.empty())
+      //       {
+      //         x = robot.odom.pose.pose.position.x;
+      //         y = robot.odom.pose.pose.position.y;
+      //       }
+      //       else
+      //       {
+      //         x = robot.plan[robot.plan.size() - 1].point.x;
+      //         y = robot.plan[robot.plan.size() - 1].point.y;
+      //       }
+      //       double min_D = 500;
+      //       double min_ind = 0;
+      //       int vol_ind = 0;
+      //       for (auto &vol : temp_map.vol)
+      //       {
+      //         double dx = vol.position.point.x - x;
+      //         double dy = vol.position.point.y - y;
+      //         double D = hypot(dx, dy);
+      //         if (D < min_D)
+      //         {
+      //           min_D = D;
+      //           min_ind = vol_ind;
+      //         }
+      //         ++vol_ind;
+      //       }
+      //       geometry_msgs::PointStamped temp;
+      //       temp.point.x = temp_map.vol[min_ind].position.point.x;
+      //       temp.point.y = temp_map.vol[min_ind].position.point.y;
+      //       robot.plan.push_back(temp);
+      //       robot.volatile_indices.push_back(temp_volatile_indices[min_ind]);
+      //       temp_map.vol.erase(temp_map.vol.begin() + min_ind);
+      //       temp_volatile_indices.erase(temp_volatile_indices.begin() + min_ind);
+      //     }
+      //     if (temp_map.vol.empty())
+      //     {
+      //       break;
+      //     }
+      //   }
+      // }
     }
 
     for (auto &robot : robots_)
