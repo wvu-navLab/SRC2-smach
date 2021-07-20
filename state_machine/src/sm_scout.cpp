@@ -253,7 +253,7 @@ void SmScout::stateTraverse()
 {
   ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Traverse State\n");
   move_base_state_ = ac.getState();
-  ROS_WARN_STREAM("[" << robot_name_ << "] " <<"MoveBase status: "<< move_base_state_.toString() 
+  ROS_WARN_STREAM("[" << robot_name_ << "] " <<"MoveBase status: "<< move_base_state_.toString()
                       << ". Goal: (" << goal_pose_.position.x << "," << goal_pose_.position.y <<").");
 
   double distance_to_goal = std::hypot(goal_pose_.position.y - current_pose_.position.y, goal_pose_.position.x - current_pose_.position.x);
@@ -1202,8 +1202,8 @@ void SmScout::RoverStatic(bool flag)
 void SmScout::MarkVolatileHoned()
 {
   volatile_map::MarkHoned srv_vol_mark_honed;
-  srv_vol_mark_honed.vol_index = detected_vol_index_;
-  srv_vol_mark_honed.honed = flag_volatile_honed;
+  srv_vol_mark_honed.request.vol_index = detected_vol_index_;
+  srv_vol_mark_honed.request.honed = flag_volatile_honed;
   if (clt_vol_mark_honed.call(srv_vol_mark_honed))
   {
     ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Called service MarkHoned. Vol ID? " << detected_vol_index_ <<", Honed? " << (int) flag_volatile_honed);
