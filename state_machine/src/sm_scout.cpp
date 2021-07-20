@@ -583,7 +583,7 @@ void SmScout::localizationCallback(const nav_msgs::Odometry::ConstPtr& msg)
       ROS_ERROR_STREAM("[" << robot_name_ << "] " << "Commanding IMMOBILITY.");
 
       CancelMoveBaseGoal();
-      Stop(0.0);
+      Stop(0.1);
       Brake(100.0);
       Brake(0.0);
 
