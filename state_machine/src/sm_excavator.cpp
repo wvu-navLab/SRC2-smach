@@ -654,7 +654,7 @@ void SmExcavator::localizationCallback(const nav_msgs::Odometry::ConstPtr& msg)
         flag_recovering_localization = true;
         flag_localizing_volatile = false;
       }
-      
+
       ClearCostmaps(5.0);
       SetMoveBaseGoal();
     }
@@ -2152,9 +2152,9 @@ void SmExcavator::ExcavationStateMachine()
       ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Excavation. Scoop counter: " << excavation_counter_);
 
       excavation_state_ = HOME_MODE;
-      if (excavation_counter_ > 15)
+      if (excavation_counter_ > 11)
       {
-        CancelExcavation(true); // If the excavator digs more than 9 times, this will cancel excavation
+        CancelExcavation(true); // If the excavator digs 12 times, this will cancel excavation
         break;
       }
     }
