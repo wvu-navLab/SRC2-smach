@@ -1910,15 +1910,15 @@ void SmHauler::PublishHaulerStatus()
   hauler_status_pub.publish(msg);
 
   ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Excavation. Publishing Hauler Status.");
-  ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Hauler Status. hauler_id :" << msg.hauler_id.data
-                                              << ", approaching_side:" << msg.approaching_side.data
-                                              << ", approached_side:" << msg.approached_side.data
-                                              << ", approached_excavator:" << msg.approached_excavator.data
-                                              << ", \n located_excavator:" << msg.located_excavator.data
-                                              << ", parked_hauler:" << msg.parked_hauler.data
-                                              << ", bin_full:" << msg.bin_full.data
-                                              << ", parking_recovery_counter:" << msg.parking_recovery_counter.data
-                                              << ", dumped:" << msg.dumped.data);
+  ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Hauler Status. hauler_id :" << (int) msg.hauler_id.data
+                                              << ", approaching_side:" << (int) msg.approaching_side.data
+                                              << ", approached_side:" << (int) msg.approached_side.data
+                                              << ", approached_excavator:" << (int) msg.approached_excavator.data
+                                              << ", \n located_excavator:" << (int) msg.located_excavator.data
+                                              << ", parked_hauler:" << (int) msg.parked_hauler.data
+                                              << ", bin_full:" << (int) msg.bin_full.data
+                                              << ", parking_recovery_counter:" << (int) msg.parking_recovery_counter.data
+                                              << ", dumped:" << (int) msg.dumped.data);
 }
 
 void SmHauler::Plan()

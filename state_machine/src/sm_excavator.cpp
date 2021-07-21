@@ -2213,18 +2213,18 @@ void SmExcavator::PublishExcavationStatus()
   excavation_status_pub.publish(msg);
 
   ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Excavation. Publishing Excavation State Machine Status.");  
-  ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Excavation Status. excavator_id :" << msg.excavator_id.data
-                                              << ", state:" << msg.state.data
-                                              << ", bucket_full:" << msg.bucket_full.data
-                                              << ", found_parking_site:" << msg.found_parking_site.data
+  ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Excavation Status. excavator_id :" << (int) msg.excavator_id.data
+                                              << ", state:" << (int) msg.state.data
+                                              << ", bucket_full:" << (int) msg.bucket_full.data
+                                              << ", found_parking_site:" << (int) msg.found_parking_site.data
                                               << ", parking_pose (x,y): (" << msg.parking_pose.position.x 
                                               << "," << msg.parking_pose.position.y <<")"
-                                              << ", \n parking_side:" << msg.parking_side.data
-                                              << ", found_volatile:" << msg.found_volatile.data
-                                              << ", found_hauler:" << msg.found_hauler.data
-                                              << ", failed_to_find_hauler:" << msg.failed_to_find_hauler.data
-                                              << ", counter:" << msg.counter.data
-                                              << ", progress:" << msg.progress.data);
+                                              << ", \n parking_side:" << (int) msg.parking_side.data
+                                              << ", found_volatile:" << (int) msg.found_volatile.data
+                                              << ", found_hauler:" << (int) msg.found_hauler.data
+                                              << ", failed_to_find_hauler:" << (int) msg.failed_to_find_hauler.data
+                                              << ", counter:" << (int) msg.counter.data
+                                              << ", progress:" << (int) msg.progress.data);
 }
 
 void SmExcavator::Plan()
