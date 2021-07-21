@@ -570,28 +570,23 @@ void SmScout::localizationCallback(const nav_msgs::Odometry::ConstPtr& msg)
 
   double radius = hypot(current_pose_.position.x, current_pose_.position.y);
 
-  if(radius > CRATER_RADIUS)
-  {
-    // flag_interrupt_plan = true;
-  }
-
   if (abs(pitch_ * 180 / M_PI) > 10)
   {
-    ROS_WARN_STREAM_THROTTLE(10, "Robot Climbing Up! Pitch: " << pitch_ * 180 / M_PI);
+    ROS_WARN_STREAM_THROTTLE(10, "Robot Climbing Up/Down! Pitch: " << pitch_ * 180 / M_PI);
     if (curr_max_speed_ != SCOUT_MAX_SPEED/2)
     {
       SetMoveBaseSpeed(SCOUT_MAX_SPEED/2);
       curr_max_speed_ = SCOUT_MAX_SPEED/2;
     }
 
-    if (abs(pitch_ * 180 / M_PI) > 27)
+    if ((pitch_ * 180 / M_PI) < -27)
     {
       ROS_ERROR_STREAM("[" << robot_name_ << "] " << "Robot Cant Climb! Pitch: " << pitch_ * 180 / M_PI);
       ROS_ERROR_STREAM("[" << robot_name_ << "] " << "Commanding IMMOBILITY.");
 
       CancelMoveBaseGoal();
-      Stop(0.1);
-      Brake(100.0);
+      Stop(0.05);
+      Brake(1000.0);
       Brake(0.0);
 
       DriveCmdVel(-0.4,0.0,0.0,3);
@@ -599,14 +594,24 @@ void SmScout::localizationCallback(const nav_msgs::Odometry::ConstPtr& msg)
       Brake(100.0);
       Brake(0.0);
 
-      RotateInPlace(0.2, 6);
+      int direction = (rand() % 2)>0? 1: -1;
+      RotateToHeading(yaw_ + direction * M_PI_4);
       Stop(0.1);
       Brake(100.0);
       Brake(0.0);
 
+      if(radius > CRATER_RADIUS)
+      {
+        goal_pose_.position.x = 0;
+        goal_pose_.position.y = 0;
+        flag_interrupt_plan = false;
+        flag_emergency = false;
+        flag_arrived_at_waypoint = false;
+        flag_recovering_localization = true;
+        flag_localizing_volatile = false;
+      }
+
       SetMoveBaseGoal();
-      // ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Canceling goal, getting new waypoint.");
-      // flag_arrived_at_waypoint = true;
     }
   }
   else
@@ -633,8 +638,8 @@ void SmScout::localizationCallback(const nav_msgs::Odometry::ConstPtr& msg)
       ROS_ERROR_STREAM("[" << robot_name_ << "] " << "Commanding IMMOBILITY.");
 
       CancelMoveBaseGoal();
-      Stop(0.1);
-      Brake(100.0);
+      Stop(0.05);
+      Brake(1000.0);
       Brake(0.0);
 
       DriveCmdVel(-0.4,0.0,0.0,3);
@@ -642,7 +647,8 @@ void SmScout::localizationCallback(const nav_msgs::Odometry::ConstPtr& msg)
       Brake(100.0);
       Brake(0.0);
 
-      RotateInPlace(0.2, 6);
+      int direction = (rand() % 2)>0? 1: -1;
+      RotateToHeading(yaw_ + direction * M_PI_4);
       Stop(0.1);
       Brake(100.0);
       Brake(0.0);
