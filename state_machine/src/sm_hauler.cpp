@@ -719,7 +719,8 @@ void SmHauler::stateLost()
     Brake(0.0);
 
     progress = -1.0;
-  }
+  }    
+  Brake(0.0);
 
   state_machine::RobotStatus status_msg;
   status_msg.progress.data = progress;
@@ -811,7 +812,8 @@ void SmHauler::stateDump()
     flag_dumping = false;
   }
   else
-  {    
+  {     
+    Brake(0.0);
     progress = -1.0;
   }
 
@@ -1120,7 +1122,9 @@ void SmHauler::SetMoveBaseGoal()
   move_base_msgs::MoveBaseGoal move_base_goal;
   ac.waitForServer();
   SetPoseGoal(move_base_goal, goal_pose_.position.x, goal_pose_.position.y, goal_yaw_);
-  ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Sending goal to MoveBase: " << move_base_goal);
+  ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Sending goal to MoveBase: (x,y): (" 
+                                      << move_base_goal.target_pose.pose.position.x << ","
+                                      << move_base_goal.target_pose.pose.position.y << ").");
   waypoint_timer = ros::Time::now();
   ac.sendGoal(move_base_goal, boost::bind(&SmHauler::doneCallback, this,_1,_2), boost::bind(&SmHauler::activeCallback, this), boost::bind(&SmHauler::feedbackCallback, this,_1));
   ac.waitForResult(ros::Duration(0.25));
