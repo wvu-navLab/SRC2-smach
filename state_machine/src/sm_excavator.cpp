@@ -116,12 +116,20 @@ void SmExcavator::run()
   while(ros::ok())
   {
     // Debug prints +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-    ROS_INFO_STREAM("[" << robot_name_ << "] " <<"flag_have_true_pose: " << (int)flag_have_true_pose);
-    ROS_INFO_STREAM("[" << robot_name_ << "] " <<"flag_interrupt_plan: " << (int)flag_interrupt_plan);
-    ROS_INFO_STREAM("[" << robot_name_ << "] " <<"flag_arrived_at_waypoint: " << (int)flag_arrived_at_waypoint);
-    ROS_INFO_STREAM("[" << robot_name_ << "] " <<"flag_localizing_volatile: " << (int)flag_localizing_volatile);
-    ROS_INFO_STREAM("[" << robot_name_ << "] " <<"flag_recovering_localization: " << (int)flag_recovering_localization);
-    ROS_INFO_STREAM("[" << robot_name_ << "] " <<"flag_brake_engaged: " << (int)flag_brake_engaged);
+    // ROS_INFO_STREAM("[" << robot_name_ << "] " <<"flag_have_true_pose: " << (int)flag_have_true_pose);
+    // ROS_INFO_STREAM("[" << robot_name_ << "] " <<"flag_interrupt_plan: " << (int)flag_interrupt_plan);
+    // ROS_INFO_STREAM("[" << robot_name_ << "] " <<"flag_arrived_at_waypoint: " << (int)flag_arrived_at_waypoint);
+    // ROS_INFO_STREAM("[" << robot_name_ << "] " <<"flag_localizing_volatile: " << (int)flag_localizing_volatile);
+    // ROS_INFO_STREAM("[" << robot_name_ << "] " <<"flag_recovering_localization: " << (int)flag_recovering_localization);
+    // ROS_INFO_STREAM("[" << robot_name_ << "] " <<"flag_brake_engaged: " << (int)flag_brake_engaged);
+    ROS_INFO_STREAM("[" << robot_name_ << "] Flags: T,I,A,L,R,B");
+    ROS_INFO_STREAM("[" << robot_name_ << "] Bools: " << (int)flag_have_true_pose << ","
+                                                      << (int)flag_interrupt_plan << ","
+                                                      << (int)flag_arrived_at_waypoint << ","
+                                                      << (int)flag_localizing_volatile << ","
+                                                      << (int)flag_recovering_localization << ","
+                                                      << (int)flag_brake_engaged << ",");
+    //-------------------------------------------------------------------------------------------
     //---------------------------------------------------------------------------------------------------------------------
 
     // State machine truth table ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -201,7 +209,7 @@ void SmExcavator::run()
 // State function definitions ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 void SmExcavator::stateInitialize()
 {
-  ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Initialization State!\n");
+  ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Initialization State!");
 
   while (!clt_lights.waitForExistence())
   {
@@ -279,7 +287,7 @@ void SmExcavator::stateInitialize()
 
 void SmExcavator::statePlanning()
 {
-  ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Planning!\n");
+  ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Planning!");
 
   double progress = 0;
 
@@ -331,7 +339,7 @@ void SmExcavator::statePlanning()
 
 void SmExcavator::stateTraverse()
 {
-  ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Traverse State\n");
+  ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Traverse State");
 
   double progress = 0;
 
@@ -474,7 +482,7 @@ void SmExcavator::stateVolatileHandler()
 
 void SmExcavator::stateLost()
 {
-  ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"LOST STATE!\n");
+  ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"LOST STATE!");
 
   double progress = 0.0;
 
@@ -535,7 +543,7 @@ void SmExcavator::stateLost()
 
 void SmExcavator::stateEmergency()
 {
-  ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Emergency Charging State!\n");
+  ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Emergency Charging State!");
 
   double progress = 0;
 
@@ -1309,7 +1317,7 @@ void SmExcavator::Stop(double time)
   cmd_vel.angular.z = 0.0;
   ros::Time start_time = ros::Time::now();
   ros::Duration timeout(time); // Timeout of 20 seconds
-  ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Drive Cmd Vel publisher.");
+  ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Stopping.");
   while (ros::Time::now() - start_time < timeout)
   {
     cmd_vel_pub.publish(cmd_vel);
@@ -1369,7 +1377,7 @@ void SmExcavator::BrakeRamp(double max_intensity, double time, int aggressivity)
   }
   else
   {
-    ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Brake FULL.");
+    ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Brake full.");
     Brake(max_intensity);
     ros::Duration(time).sleep();
   }
@@ -1412,7 +1420,7 @@ void SmExcavator::DriveCmdVel(double vx, double vy, double wz, double time)
   cmd_vel.angular.z = wz;
   ros::Time start_time = ros::Time::now();
   ros::Duration timeout(time); // Timeout of 20 seconds
-  ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Drive Cmd Vel publisher.");
+  ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Driving (DriveCmdVel).");
   while (ros::Time::now() - start_time < timeout)
   {
     cmd_vel_pub.publish(cmd_vel);
@@ -1956,9 +1964,9 @@ void SmExcavator::MarkVolatileAssigned()
 
   if (clt_vol_mark_assigned.call(srv_vol_mark_assigned))
   {
-    ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Called service MarkAssigned.");
-    ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Marked assigned with ID: " << robot_id_);
-    ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Which index? " << goal_vol_index_);
+    ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Excavation. Called service MarkAssigned.");
+    ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Excavation. Marked assigned with ID: " << robot_id_);
+    ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Excavation. Which index? " << goal_vol_index_);
   }
   else
   {
@@ -2018,7 +2026,7 @@ void SmExcavator::ExcavationStateMachine()
           ros::spinOnce();
         }
         manipulation_timer += (ros::Time::now() - waiting_hauler);
-        ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Excavation. Time was added to Excavation State Machine. Remaining time: " 
+        ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Excavation. Time was added to Excavation State Machine. Excavation time: " 
                             << (ros::Time::now() - manipulation_timer).toSec() << "/"
                             << ros::Duration(840).toSec() << "s.");
       }
@@ -2122,7 +2130,7 @@ void SmExcavator::ExcavationStateMachine()
       ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Excavation. Scoop counter: " << excavation_counter_);
 
       excavation_state_ = HOME_MODE;
-      if (excavation_counter_ > 9)
+      if (excavation_counter_ > 18)
       {
         CancelExcavation(true); // If the excavator digs more than 9 times, this will cancel excavation
         break;
@@ -2134,7 +2142,7 @@ void SmExcavator::ExcavationStateMachine()
 
 void SmExcavator::CancelExcavation(bool success)
 {
-  ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Canceling excavation:" << (int) success);
+  ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Excavation. Canceling excavation:" << (int) success);
 
   excavation_counter_ = -1;
   PublishExcavationStatus();
@@ -2202,7 +2210,7 @@ void SmExcavator::PublishExcavationStatus()
 
   excavation_status_pub.publish(msg);
 
-  ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Publishing Excavation State Machine Status." << msg);
+  ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Excavation. Publishing Excavation State Machine Status." << msg);
 }
 
 void SmExcavator::Plan()
@@ -2218,7 +2226,7 @@ void SmExcavator::Plan()
   }
   srv_plan.request.type.data = (uint8_t) mac::EXCAVATOR;
   srv_plan.request.id.data = (uint8_t) robot_id_;
-  ROS_WARN_STREAM("[" << robot_name_ << "] " << "SMACH, PLAN: " <<  (int) srv_plan.request.type.data << " id " << (int) srv_plan.request.id.data );
+  // ROS_WARN_STREAM("[" << robot_name_ << "] " << "SMACH, PLAN: " <<  (int) srv_plan.request.type.data << " id " << (int) srv_plan.request.id.data );
 
   if (clt_task_planning.call(srv_plan))
   {
@@ -2305,7 +2313,7 @@ void SmExcavator::Plan()
       break;
 
     default:
-      ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Task Planner: No idea what Im doing");
+      ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Task Planner: Nothing to do");
       flag_interrupt_plan = true;
       flag_emergency = false;
       flag_arrived_at_waypoint = true;

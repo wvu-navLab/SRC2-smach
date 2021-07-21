@@ -72,7 +72,14 @@ void SmScout::run()
     // ROS_INFO_STREAM("[" << robot_name_ << "] " <<"flag_arrived_at_waypoint: " << (int)flag_arrived_at_waypoint);
     // ROS_INFO_STREAM("[" << robot_name_ << "] " <<"flag_localizing_volatile: " << (int)flag_localizing_volatile);
     // ROS_INFO_STREAM("[" << robot_name_ << "] " <<"flag_recovering_localization: " << (int)flag_recovering_localization);
-    // ROS_INFO_STREAM("[" << robot_name_ << "] " <<"flag_brake_engaged: " << (int)flag_brake_engaged);
+    // ROS_INFO_STREAM("[" << robot_name_ << "] " <<"flag_brake_engaged: " << (int)flag_brake_engaged);    
+    ROS_INFO_STREAM("[" << robot_name_ << "] Flags: T,I,A,L,R,B");
+    ROS_INFO_STREAM("[" << robot_name_ << "] Bools: " << (int)flag_have_true_pose << ","
+                                                      << (int)flag_interrupt_plan << ","
+                                                      << (int)flag_arrived_at_waypoint << ","
+                                                      << (int)flag_localizing_volatile << ","
+                                                      << (int)flag_recovering_localization << ","
+                                                      << (int)flag_brake_engaged << ",");
     //---------------------------------------------------------------------------------------------------------------------
 
     // State machine truth table ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -154,7 +161,7 @@ void SmScout::run()
 // State function definitions ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 void SmScout::stateInitialize()
 {
-  ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Initialization State!\n");
+  ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Initialization State!");
 
   while (!clt_lights.waitForExistence())
   {
@@ -212,7 +219,7 @@ void SmScout::stateInitialize()
 
 void SmScout::statePlanning()
 {
-  ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Planning!\n");
+  ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Planning!");
 
   double progress = 0.0;
 
@@ -254,7 +261,7 @@ void SmScout::statePlanning()
 
 void SmScout::stateTraverse()
 {
-  ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Traverse State\n");
+  ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Traverse State");
   move_base_state_ = ac.getState();
   ROS_WARN_STREAM("[" << robot_name_ << "] " <<"MoveBase status: "<< move_base_state_.toString()
                       << ". Goal: (" << goal_pose_.position.x << "," << goal_pose_.position.y <<").");
@@ -338,7 +345,7 @@ void SmScout::stateTraverse()
 
 void SmScout::stateVolatileHandler()
 {
-  ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"VOLATILE HANDLING STATE!\n");
+  ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Volatile Handling State!");
 
   CancelMoveBaseGoal();
 
@@ -390,7 +397,7 @@ void SmScout::stateVolatileHandler()
 
 void SmScout::stateLost()
 {
-  ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"LOST STATE!\n");
+  ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Lost State!");
 
   double progress = 0.0;
 
@@ -446,7 +453,7 @@ void SmScout::stateLost()
 
 void SmScout::stateEmergency()
 {
-  ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Emergency Charging State!\n");
+  ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Emergency Charging State!");
 
   CancelMoveBaseGoal();
 
@@ -1058,7 +1065,7 @@ void SmScout::Stop(double time)
   cmd_vel.angular.z = 0.0;
   ros::Time start_time = ros::Time::now();
   ros::Duration timeout(time); // Timeout of 20 seconds
-  ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Drive Cmd Vel publisher.");
+  ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Stopping.");
   while (ros::Time::now() - start_time < timeout)
   {
     cmd_vel_pub.publish(cmd_vel);
@@ -1118,7 +1125,7 @@ void SmScout::BrakeRamp(double max_intensity, double time, int aggressivity)
   }
   else
   {
-    ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Brake FULL.");
+    ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Brake full.");
     Brake(max_intensity);
     ros::Duration(time).sleep();
   }
@@ -1167,7 +1174,7 @@ void SmScout::DriveCmdVel(double vx, double vy, double wz, double time)
   cmd_vel.angular.z = wz;
   ros::Time start_time = ros::Time::now();
   ros::Duration timeout(time); // Timeout of 20 seconds
-  ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Drive Cmd Vel publisher.");
+  ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Driving (DriveCmdVel).");
   while (ros::Time::now() - start_time < timeout)
   {
     cmd_vel_pub.publish(cmd_vel);
@@ -1309,7 +1316,7 @@ bool SmScout::HomingUpdate(bool init_landmark)
     }
     else
     {
-      ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Homing NOT SUCCESSFUL.");
+      ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Homing NOT successful.");
     }
   }
   else
@@ -1332,7 +1339,7 @@ void SmScout::Plan()
   }
   srv_plan.request.type.data = (uint8_t) mac::SCOUT;
   srv_plan.request.id.data = (uint8_t) robot_id_;
-  ROS_WARN_STREAM("[" << robot_name_ << "] " << "SMACH, PLAN: " <<  (int) srv_plan.request.type.data << " id " << (int) srv_plan.request.id.data );
+  // ROS_WARN_STREAM("[" << robot_name_ << "] " << "SMACH, PLAN: " <<  (int) srv_plan.request.type.data << " id " << (int) srv_plan.request.id.data );
 
   if (clt_task_planning.call(srv_plan))
   {
@@ -1411,7 +1418,7 @@ void SmScout::Plan()
       break;
 
     default:
-      ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Task Planner: No idea what Im doing");
+      ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Task Planner: Nothing to do");
       flag_interrupt_plan = true;
       flag_emergency = false;
       flag_arrived_at_waypoint = true;

@@ -34,15 +34,15 @@ namespace mac
         geometry_msgs::PointStamped temp;
         for (int j = 0; j < robots_.size(); ++j)
         {
-          ROS_INFO_STREAM("[TASK PLANNER] [" << plan_call_counter << "] Type current:" << robots_[j].type << " ||| plan" << planning_params_.plan[0][i]);
-          ROS_INFO_STREAM("[TASK PLANNER] [" << plan_call_counter << "] ID current:" << robots_[j].id << " ||| plan" << planning_params_.plan[1][i]);
+          // ROS_INFO_STREAM("[TASK PLANNER] [" << plan_call_counter << "] Type current:" << robots_[j].type << " ||| plan" << planning_params_.plan[0][i]);
+          // ROS_INFO_STREAM("[TASK PLANNER] [" << plan_call_counter << "] ID current:" << robots_[j].id << " ||| plan" << planning_params_.plan[1][i]);
           if (robots_[j].type == planning_params_.plan[0][i] && robots_[j].id == planning_params_.plan[1][i])
           {
             temp.point.x = planning_params_.plan[2][i];
             temp.point.y = planning_params_.plan[3][i];
             temp.point.z = planning_params_.plan[4][i];
             robots_[j].plan.push_back(temp);
-            ROS_INFO_STREAM("[TASK PLANNER] [" << plan_call_counter << "] Plan: (" << temp.point.x << ", " << temp.point.y << ")");
+            // ROS_INFO_STREAM("[TASK PLANNER] [" << plan_call_counter << "] Plan: (" << temp.point.x << ", " << temp.point.y << ")");
           }
         }
       }
@@ -55,9 +55,9 @@ namespace mac
     {
       if (type == robot.type && id == robot.id)
       {
-        ROS_INFO_STREAM("[TASK PLANNER] [" << plan_call_counter << "] Plan " << robot.plan[0]);
+        // ROS_INFO_STREAM("[TASK PLANNER] [" << plan_call_counter << "] Plan " << robot.plan[0]);
         robot.plan.erase(robot.plan.begin());
-        ROS_INFO_STREAM("[TASK PLANNER] [" << plan_call_counter << "] Plan " << robot.plan[0]);
+        // ROS_INFO_STREAM("[TASK PLANNER] [" << plan_call_counter << "] Plan " << robot.plan[0]);
       }
     }
   }
@@ -74,10 +74,10 @@ namespace mac
     std::vector<double> pose_min, vol_pose, default_pose, current_pose;
     default_pose.push_back(0);
     default_pose.push_back(0);
-    ROS_ERROR_STREAM("[TASK PLANNER] [" << plan_call_counter << "] Volatile Map Size: " << volatile_map_.vol.size());
+    // ROS_ERROR_STREAM("[TASK PLANNER] [" << plan_call_counter << "] Volatile Map Size: " << volatile_map_.vol.size());
     for (int i = 0; i < volatile_map_.vol.size(); ++i)
     {
-      ROS_ERROR_STREAM("[TASK PLANNER] [" << plan_call_counter << "] Started Checking Volatiles");
+      // ROS_ERROR_STREAM("[TASK PLANNER] [" << plan_call_counter << "] Started Checking Volatiles");
 
       if (volatile_map_.vol[i].attempted || !volatile_map_.vol[i].honed)
       {
@@ -93,7 +93,7 @@ namespace mac
       vol_pose[0] = volatile_map_.vol[i].position.point.x;
       vol_pose[1] = volatile_map_.vol[i].position.point.y;
 
-      ROS_ERROR_STREAM("[TASK PLANNER] [" << plan_call_counter << "] Volatile pose " << vol_pose[0] << "," << vol_pose[1]);
+      // ROS_ERROR_STREAM("[TASK PLANNER] [" << plan_call_counter << "] Volatile pose " << vol_pose[0] << "," << vol_pose[1]);
       // std::cout << "robots_.size() = " << robots_.size() << std::endl;
       for (int j = 0; j < robots_.size(); ++j)
       {
@@ -103,7 +103,7 @@ namespace mac
           {
             current_pose[0] = robots_[j].odom.pose.pose.position.x;
             current_pose[1] = robots_[j].odom.pose.pose.position.y; // robot of nearest in pose
-            ROS_ERROR_STREAM("[TASK PLANNER] [" << plan_call_counter << "] Excavator pose " << current_pose[0] << "," << current_pose[1]);
+            // ROS_ERROR_STREAM("[TASK PLANNER] [" << plan_call_counter << "] Excavator pose " << current_pose[0] << "," << current_pose[1]);
 
             // robot of current in pose
             double distance = TaskPlanner::dist(current_pose, vol_pose);
@@ -120,7 +120,7 @@ namespace mac
 
             pose_min[0] = robots_[j].odom.pose.pose.position.x;
             pose_min[1] = robots_[j].odom.pose.pose.position.y;
-            ROS_ERROR_STREAM("[TASK PLANNER] [" << plan_call_counter << "] Excavator pose min " << pose_min[0] << "," << pose_min[1]);
+            // ROS_ERROR_STREAM("[TASK PLANNER] [" << plan_call_counter << "] Excavator pose min " << pose_min[0] << "," << pose_min[1]);
           }
         }
       }
@@ -141,7 +141,7 @@ namespace mac
       pose_min = default_pose;
       vol_pose[0] = volatile_map_.vol[i].position.point.x;
       vol_pose[1] = volatile_map_.vol[i].position.point.y;
-      ROS_ERROR_STREAM("[TASK PLANNER] [" << plan_call_counter << "] Volatile pose " << vol_pose[0] << "," << vol_pose[1]);
+      // ROS_ERROR_STREAM("[TASK PLANNER] [" << plan_call_counter << "] Volatile pose " << vol_pose[0] << "," << vol_pose[1]);
       for (int j = 0; j < robots_.size(); ++j)
       {
         if (robots_[j].type == mac::HAULER)
@@ -150,7 +150,7 @@ namespace mac
           {
             current_pose[0] = robots_[j].odom.pose.pose.position.x;
             current_pose[1] = robots_[j].odom.pose.pose.position.y; // robot of nearest in pose
-            ROS_ERROR_STREAM("[TASK PLANNER] [" << plan_call_counter << "] Hauler pose " << current_pose[0] << "," << current_pose[1]);
+            // ROS_ERROR_STREAM("[TASK PLANNER] [" << plan_call_counter << "] Hauler pose " << current_pose[0] << "," << current_pose[1]);
 
             // robot of current in pose
             double distance = TaskPlanner::dist(current_pose, vol_pose);
@@ -166,7 +166,7 @@ namespace mac
             nearest_ind = j;
             pose_min[0] = robots_[j].odom.pose.pose.position.x;
             pose_min[1] = robots_[j].odom.pose.pose.position.y;
-            ROS_ERROR_STREAM("[TASK PLANNER] [" << plan_call_counter << "] Hauler pose min " << pose_min[0] << "," << pose_min[1]);
+            // ROS_ERROR_STREAM("[TASK PLANNER] [" << plan_call_counter << "] Hauler pose min " << pose_min[0] << "," << pose_min[1]);
           }
         }
       }
@@ -652,24 +652,24 @@ namespace mac
 
   bool TaskPlanner::taskPlanService(task_planning::PlanInfo::Request &req, task_planning::PlanInfo::Response &res)
   {
-    ROS_ERROR_STREAM("[TASK PLANNER] [" << plan_call_counter << "] Planning started.");
+    // ROS_ERROR_STREAM("[TASK PLANNER] [" << plan_call_counter << "] Planning started.");
     State s;
     if (req.replan.data)
     {
-      ROS_ERROR_STREAM("[TASK PLANNER] [" << plan_call_counter << "] Planning started.");
+      // ROS_ERROR_STREAM("[TASK PLANNER] [" << plan_call_counter << "] Planning started.");
       //perform planning type
       switch (planning_params_.type)
       {
       case SCOUT_PLANNER_DEFAULT:
-        ROS_WARN_STREAM("[TASK PLANNER] [" << plan_call_counter << "] SCOUT PLANNER");
+        // ROS_WARN_STREAM("[TASK PLANNER] [" << plan_call_counter << "] SCOUT PLANNER. Planning started.");
         this->scout_plan_default(req.type.data, req.id.data);
         break;
       case EXC_HAUL_PLANNER_DEFAULT:
-        ROS_WARN_STREAM("[TASK PLANNER] [" << plan_call_counter << "] EXC HAUL PLANNER");
+        // ROS_WARN_STREAM("[TASK PLANNER] [" << plan_call_counter << "] EXC HAUL PLANNER. Planning started.");
         this->exc_haul_plan_default_adv();
         break;
       case EXC_HAUL_FORWARD_SEARCH:
-      ROS_WARN_STREAM("[TASK PLANNER] [" << plan_call_counter << "] EXC HAUL FORWARD SEARCH");
+        // ROS_WARN_STREAM("[TASK PLANNER] [" << plan_call_counter << "] EXC HAUL FORWARD SEARCH. Planning started.");
         s.robots = robots_;
         s.volatile_map = volatile_map_;
         s.time = time_;
@@ -677,7 +677,7 @@ namespace mac
         this->exc_haul_plan_fs(s);
         break;
       default:
-        ROS_ERROR_STREAM("[TASK PLANNER] [" << plan_call_counter << "] Task Planner type invalid!");
+        // ROS_ERROR_STREAM("[TASK PLANNER] [" << plan_call_counter << "] Task Planner type invalid!");
         break;
       }
       std_msgs::Bool msg;
@@ -688,10 +688,10 @@ namespace mac
     switch (planning_params_.type)
     {
     case SCOUT_PLANNER_DEFAULT:
-      ROS_WARN_STREAM("[TASK PLANNER] [" << plan_call_counter << "] SCOUT PLANNER");
+      ROS_WARN_STREAM("[TASK PLANNER] [" << plan_call_counter << "] SCOUT PLANNER. Planning started.");
       break;
     case EXC_HAUL_PLANNER_DEFAULT:
-      ROS_WARN_STREAM("[TASK PLANNER] [" << plan_call_counter << "] EXC_HAUL PLANNER");
+      ROS_WARN_STREAM("[TASK PLANNER] [" << plan_call_counter << "] EXC_HAUL PLANNER. Planning started.");
       break;
     default:
       break;
@@ -703,11 +703,11 @@ namespace mac
 
     for (auto &robot : robots_)
     {
-      ROS_INFO_STREAM("[TASK PLANNER] [" << plan_call_counter << "] Checking robot.type " << robot.type << ", robot.id" << robot.id);
+      // ROS_INFO_STREAM("[TASK PLANNER] [" << plan_call_counter << "] Checking robot.type " << robot.type << ", robot.id" << robot.id);
 
       if (!robot.plan.empty())
       {
-        ROS_WARN_STREAM("[TASK PLANNER] [" << plan_call_counter << "] Checking plan: (" << robot.plan[0].point.x << ", " << robot.plan[0].point.y << ", " << robot.plan[0].point.z << ")");
+        // ROS_WARN_STREAM("[TASK PLANNER] [" << plan_call_counter << "] Checking plan: (" << robot.plan[0].point.x << ", " << robot.plan[0].point.y << ", " << robot.plan[0].point.z << ")");
       }
 
       if (req.type.data == robot.type && req.id.data == robot.id)
@@ -723,7 +723,7 @@ namespace mac
           {
             res.code.data = 3;
             res.volatile_index.data = robot.volatile_indices[0];
-            ROS_WARN_STREAM("[TASK PLANNER] [" << plan_call_counter << "] Volatile index sent " << robot.volatile_indices[0]);
+            // ROS_WARN_STREAM("[TASK PLANNER] [" << plan_call_counter << "] Volatile index sent " << robot.volatile_indices[0]);
           }
           //--------------------------------------------
           // if (robot.type == mac::HAULER && robot.current_task == (int)ACTION_HAULER_T::_volatile_handler)
@@ -738,7 +738,7 @@ namespace mac
           //   robot.plan[0].point.y = temp.point.y;
           // }
           //--------------------------------------------
-          ROS_WARN_STREAM("[TASK PLANNER] [" << plan_call_counter << "] Objective sent " << robot.plan[0]);
+          ROS_WARN_STREAM("[TASK PLANNER] [" << plan_call_counter << "] Objective sent. x: " << robot.plan[0].point.x << ", y: " << robot.plan[0].point.y);
           res.objective = robot.plan[0];
           res.objective.point.z = 0;
         }
@@ -747,11 +747,10 @@ namespace mac
           ROS_ERROR_STREAM("[TASK PLANNER] [" << plan_call_counter << "] No objective.");
         }
       }
-
-      ROS_WARN_STREAM("[TASK PLANNER] [" << plan_call_counter << "] Code sent " << (int)res.code.data);
+      ROS_WARN_STREAM("[TASK PLANNER] [" << plan_call_counter << "] Planning ended. Code sent " << (int)res.code.data);
     }
 
-    ROS_ERROR_STREAM("[TASK PLANNER] [" << plan_call_counter << "] Planning ended.");
+    // ROS_ERROR_STREAM("[TASK PLANNER] [" << plan_call_counter << "] Planning ended.");
 
     plan_call_counter++;
 
