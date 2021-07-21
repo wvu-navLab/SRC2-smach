@@ -220,9 +220,9 @@ public:
   geometry_msgs::Point charging_station_location_;
 
   double x_proc_plant_ = -6;
-  double y_proc_plant_ = -6;
+  double y_proc_plant_ = 7;
   double x_repair_station_ = -6;
-  double y_repair_station_ = 7;
+  double y_repair_station_ = -6;
 
   double power_rate_ = 0.0;
   double power_level_ = 100.0;
@@ -256,7 +256,7 @@ public:
   const int LASER_SET_SIZE = 20;
   const int LASER_COUNTER_THRESH = 20;
 
-  double CRATER_RADIUS = 85.0;
+  double CRATER_RADIUS = 80.0;
   double HAULER_MAX_SPEED = 0.80;
   double curr_max_speed_= 0.80;
 
