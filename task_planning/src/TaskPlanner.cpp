@@ -697,7 +697,7 @@ namespace mac
       break;
     }
 
-    ROS_WARN_STREAM("[TASK PLANNER] [" << plan_call_counter << "] REQUEST robot.type " << (int)req.type.data << ", robot.id " << (int)req.id.data);
+    ROS_INFO_STREAM("[TASK PLANNER] [" << plan_call_counter << "] REQUEST robot.type " << (int)req.type.data << ", robot.id " << (int)req.id.data);
 
     res.code.data = 255;
 
@@ -738,7 +738,7 @@ namespace mac
           //   robot.plan[0].point.y = temp.point.y;
           // }
           //--------------------------------------------
-          ROS_WARN_STREAM("[TASK PLANNER] [" << plan_call_counter << "] Objective sent. x: " << robot.plan[0].point.x << ", y: " << robot.plan[0].point.y);
+          ROS_INFO_STREAM("[TASK PLANNER] [" << plan_call_counter << "] Objective sent. x: " << robot.plan[0].point.x << ", y: " << robot.plan[0].point.y);
           res.objective = robot.plan[0];
           res.objective.point.z = 0;
         }
@@ -747,8 +747,8 @@ namespace mac
           ROS_ERROR_STREAM("[TASK PLANNER] [" << plan_call_counter << "] No objective.");
         }
       }
-      ROS_WARN_STREAM("[TASK PLANNER] [" << plan_call_counter << "] Planning ended. Code sent " << (int)res.code.data);
     }
+    ROS_INFO_STREAM("[TASK PLANNER] [" << plan_call_counter << "] Planning ended. Code sent " << (int)res.code.data);
 
     // ROS_ERROR_STREAM("[TASK PLANNER] [" << plan_call_counter << "] Planning ended.");
 
