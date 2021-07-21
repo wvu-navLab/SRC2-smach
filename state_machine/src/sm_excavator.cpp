@@ -1788,6 +1788,13 @@ bool SmExcavator::FindHauler(double timeout)
     relative_range_ = hypot(bin_point_.point.x-0.7, bin_point_.point.y);
     relative_heading_ = atan2(bin_point_.point.y, bin_point_.point.x-0.7);
 
+    if(relative_range_ > 1.8)
+    {
+      ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Excavation. Hauler bin is too far.");
+      CommandCamera(0,0,2);
+      return false;
+    }
+
     ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Excavation. Target bin updated. Point:" << bin_point_);
 
     CommandCamera(0,0,2);
