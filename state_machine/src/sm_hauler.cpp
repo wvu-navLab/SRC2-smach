@@ -270,7 +270,7 @@ void SmHauler::stateInitialize()
   RoverStatic(true);
   bool initialize_other_robot_attitude = false;
   if (robot_id_ == 1)
-  {      
+  {
     initialize_other_robot_attitude = true;
     GetTruePose(initialize_other_robot_attitude);
   }
@@ -330,14 +330,14 @@ void SmHauler::statePlanning()
 
     ClearCostmaps(5.0);
     double dx = goal_pose_.position.x - current_pose_.position.x;
-    double dy = goal_pose_.position.y - current_pose_.position.y; 
+    double dy = goal_pose_.position.y - current_pose_.position.y;
     double D = hypot(dx,dy);
     double dt = 87.5*(D/90);
     if(flag_localizing_volatile)
     {
       ros::Duration(dt+3).sleep();
     }
-    
+
     map_timer =ros::Time::now();
     SetMoveBaseGoal();
 
@@ -360,7 +360,7 @@ void SmHauler::stateTraverse()
   ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Traverse State");
 
   move_base_state_ = ac.getState();
-  ROS_INFO_STREAM("[" << robot_name_ << "] " <<"MoveBase status: "<< move_base_state_.toString() 
+  ROS_INFO_STREAM("[" << robot_name_ << "] " <<"MoveBase status: "<< move_base_state_.toString()
                       << ". Goal: (" << goal_pose_.position.x << "," << goal_pose_.position.y <<").");
 
   double progress = 0;
@@ -413,7 +413,7 @@ void SmHauler::stateTraverse()
       ros::Duration timeoutMap(5.0);
       if (ros::Time::now() - map_timer > timeoutMap)
       {
-        CancelMoveBaseGoal(); 
+        CancelMoveBaseGoal();
         int direction = (rand() % 2)>0? 1: -1;
         ros::spinOnce();
         RotateToHeading(yaw_ + direction * M_PI_4);
@@ -477,8 +477,8 @@ void SmHauler::stateVolatileHandler()
     flag_arrived_at_waypoint = false;
     flag_localizing_volatile = true;
 
-    parking_recovery_counter_ = 0;    
-    
+    parking_recovery_counter_ = 0;
+
     PublishHaulerStatus();
 
     return;
@@ -489,7 +489,7 @@ void SmHauler::stateVolatileHandler()
   if(!flag_full_bin && flag_approached_side)
   {
     if(!flag_approached_excavator && partner_excavation_status_.found_volatile.data)
-    {    
+    {
       ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Excavation. Approaching the Excavator!");
 
       tf2::Quaternion q(partner_excavation_status_.parking_pose.orientation.x,
@@ -579,7 +579,7 @@ void SmHauler::stateVolatileHandler()
           break;
         }
       }
-      
+
       ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Excavation. Backing maneuver.");
       Brake(0.0);
 
@@ -602,7 +602,7 @@ void SmHauler::stateVolatileHandler()
     flag_located_excavator = false;
     flag_parked_hauler = false;
 
-    // SET SMACH FLAGS TO DUMPING 
+    // SET SMACH FLAGS TO DUMPING
     flag_interrupt_plan = false;
     flag_recovering_localization = false;
     flag_localizing_volatile = false;
@@ -689,13 +689,13 @@ void SmHauler::stateLost()
     Brake(0.0);
   }
   else
-  {    
+  {
     ClearCostmaps(5.0);
     BrakeRamp(100, 1, 0);
     Brake(0.0);
 
     progress = -1.0;
-  }    
+  }
   Brake(0.0);
 
   state_machine::RobotStatus status_msg;
@@ -740,7 +740,7 @@ void SmHauler::stateDump()
 
   double progress = 0.0;
 
-  flag_dumped = ApproachBin(3); 
+  flag_dumped = ApproachBin(3);
   // TODO: Approach Bin return false it's not the bin in front
   // TODO: Approach Bin return false it's not the bin in front
 
@@ -769,9 +769,9 @@ void SmHauler::stateDump()
     Brake(0.0);
 
     progress = 1.0;
-    
+
     PublishHaulerStatus();
-    
+
     // RESET ALL VOL HANDLING FLAGS
     flag_approaching_side = false;
     flag_approached_side = false;
@@ -788,7 +788,7 @@ void SmHauler::stateDump()
     flag_dumping = false;
   }
   else
-  {     
+  {
     Brake(0.0);
     progress = -1.0;
   }
@@ -857,7 +857,7 @@ void SmHauler::localizationCallback(const nav_msgs::Odometry::ConstPtr& msg)
   tf2::Matrix3x3(q).getRPY(roll_, pitch_, yaw_);
 
   double radius = hypot(current_pose_.position.x, current_pose_.position.y);
-  
+
   if (abs(pitch_ * 180 / M_PI) > 10)
   {
     ROS_WARN_STREAM_THROTTLE(10, "Robot Climbing Up/Down! Pitch: " << pitch_ * 180 / M_PI);
@@ -898,7 +898,8 @@ void SmHauler::localizationCallback(const nav_msgs::Odometry::ConstPtr& msg)
         flag_recovering_localization = true;
         flag_localizing_volatile = false;
       }
-
+    
+      ClearCostmaps(5.0);
       SetMoveBaseGoal();
     }
   }
@@ -1106,7 +1107,7 @@ void SmHauler::SetMoveBaseGoal()
   move_base_msgs::MoveBaseGoal move_base_goal;
   ac.waitForServer();
   SetPoseGoal(move_base_goal, goal_pose_.position.x, goal_pose_.position.y, goal_yaw_);
-  ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Sending goal to MoveBase: (x,y): (" 
+  ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Sending goal to MoveBase: (x,y): ("
                                       << move_base_goal.target_pose.pose.position.x << ","
                                       << move_base_goal.target_pose.pose.position.y << ").");
   waypoint_timer = ros::Time::now();
@@ -1509,9 +1510,9 @@ void SmHauler::ExecuteShakeBin(double time)
 {
   std_msgs::Float64 bin_pitch;
 
-  
+
   ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Shaking the bin!");
-  
+
   for (int i = 0; i < 5; i++)
   {
     bin_pitch.data = 0.05;

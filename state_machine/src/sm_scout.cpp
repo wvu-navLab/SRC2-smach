@@ -72,7 +72,7 @@ void SmScout::run()
     // ROS_INFO_STREAM("[" << robot_name_ << "] " <<"flag_arrived_at_waypoint: " << (int)flag_arrived_at_waypoint);
     // ROS_INFO_STREAM("[" << robot_name_ << "] " <<"flag_localizing_volatile: " << (int)flag_localizing_volatile);
     // ROS_INFO_STREAM("[" << robot_name_ << "] " <<"flag_recovering_localization: " << (int)flag_recovering_localization);
-    // ROS_INFO_STREAM("[" << robot_name_ << "] " <<"flag_brake_engaged: " << (int)flag_brake_engaged);    
+    // ROS_INFO_STREAM("[" << robot_name_ << "] " <<"flag_brake_engaged: " << (int)flag_brake_engaged);
     ROS_INFO_STREAM("[" << robot_name_ << "] Flags: T,I,A,L,R,B");
     ROS_INFO_STREAM("[" << robot_name_ << "] Bools: " << (int)flag_have_true_pose << ","
                                                       << (int)flag_interrupt_plan << ","
@@ -610,7 +610,7 @@ void SmScout::localizationCallback(const nav_msgs::Odometry::ConstPtr& msg)
         flag_recovering_localization = true;
         flag_localizing_volatile = false;
       }
-
+      ClearCostmaps(5.0);
       SetMoveBaseGoal();
     }
   }
@@ -774,7 +774,7 @@ void SmScout::SetMoveBaseGoal()
   move_base_msgs::MoveBaseGoal move_base_goal;
   ac.waitForServer();
   SetPoseGoal(move_base_goal, goal_pose_.position.x, goal_pose_.position.y, goal_yaw_);
-  ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Sending goal to MoveBase: (x,y): (" 
+  ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Sending goal to MoveBase: (x,y): ("
                                       << move_base_goal.target_pose.pose.position.x << ","
                                       << move_base_goal.target_pose.pose.position.y << ").");
   waypoint_timer = ros::Time::now();

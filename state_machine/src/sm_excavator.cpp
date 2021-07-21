@@ -318,7 +318,7 @@ void SmExcavator::statePlanning()
     {
       ros::Duration(3).sleep();
     }
-    
+
     map_timer =ros::Time::now();
     SetMoveBaseGoal();
 
@@ -346,7 +346,7 @@ void SmExcavator::stateTraverse()
   SetPowerMode(false);
 
   move_base_state_ = ac.getState();
-  ROS_WARN_STREAM("[" << robot_name_ << "] " <<"MoveBase status: "<< (std::string) move_base_state_.toString() 
+  ROS_WARN_STREAM("[" << robot_name_ << "] " <<"MoveBase status: "<< (std::string) move_base_state_.toString()
                       << ". Goal: (" << goal_pose_.position.x << "," << goal_pose_.position.y <<").");
 
   double distance_to_goal = std::hypot(goal_pose_.position.y - current_pose_.position.y, goal_pose_.position.x - current_pose_.position.x);
@@ -378,7 +378,7 @@ void SmExcavator::stateTraverse()
       ros::Duration timeoutMap(5.0);
       if (ros::Time::now() - map_timer > timeoutMap)
       {
-        CancelMoveBaseGoal(); 
+        CancelMoveBaseGoal();
         int direction = (rand() % 2)>0? 1: -1;
         ros::spinOnce();
         RotateToHeading(yaw_ + direction * M_PI_4);
@@ -437,13 +437,13 @@ void SmExcavator::stateVolatileHandler()
     manipulation_timer = ros::Time::now();
     flag_manipulation_enabled = true;
     excavation_counter_ = 0;
-    
+
     Stop(0.1);
     BrakeRamp(100, 1, 0);
     Brake(0.0);
 
     ExecuteHomeArm(2,0);
-    
+
     SetPowerMode(false);
     SetHaulerParkingLocation();
     SetPowerMode(true);
@@ -454,7 +454,7 @@ void SmExcavator::stateVolatileHandler()
   // Then  the manipulation state-machine keeps being called unless timeout is reached or it is finished
   if (flag_manipulation_enabled && (ros::Time::now() - manipulation_timer) < ros::Duration(840))
   {
-    ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Excavation State Machine enabled. Remaining time: " 
+    ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Excavation State Machine enabled. Remaining time: "
                         << (ros::Time::now() - manipulation_timer).toSec() << "/"
                         << ros::Duration(840).toSec() << "s.");
     ExcavationStateMachine();
@@ -654,7 +654,8 @@ void SmExcavator::localizationCallback(const nav_msgs::Odometry::ConstPtr& msg)
         flag_recovering_localization = true;
         flag_localizing_volatile = false;
       }
-
+      
+      ClearCostmaps(5.0);
       SetMoveBaseGoal();
     }
   }
@@ -1026,7 +1027,7 @@ void SmExcavator::SetMoveBaseGoal()
   move_base_msgs::MoveBaseGoal move_base_goal;
   ac.waitForServer();
   SetPoseGoal(move_base_goal, goal_pose_.position.x, goal_pose_.position.y, goal_yaw_);
-  ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Sending goal to MoveBase: (x,y): (" 
+  ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Sending goal to MoveBase: (x,y): ("
                                       << move_base_goal.target_pose.pose.position.x << ","
                                       << move_base_goal.target_pose.pose.position.y << ").");
   waypoint_timer = ros::Time::now();
@@ -1626,7 +1627,7 @@ bool SmExcavator::ExecuteSearch()
 
   std::vector<double> q1s {0.0}; // Search angles
   std::vector<double> directions     {0.0, 1.0, 1.0, 1.0, 1.0, -1.0, -1.0, -1.0, -1.0}; // Directions
-  std::vector<int> wheelOrientations {  0,   0,   1,   2,   3,    3,    2,    1,    0}; 
+  std::vector<int> wheelOrientations {  0,   0,   1,   2,   3,    3,    2,    1,    0};
   //std::vector<double> directions     {0.0, 1.0, 1.0, -1.0 }; // Directions
   //std::vector<int> wheelOrientations {  0,    3,  0,  3 };
   // Wheel orientations
@@ -2040,7 +2041,7 @@ void SmExcavator::ExcavationStateMachine()
           ros::spinOnce();
         }
         manipulation_timer += (ros::Time::now() - waiting_hauler);
-        ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Excavation. Time was added to Excavation State Machine. Excavation time: " 
+        ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Excavation. Time was added to Excavation State Machine. Excavation time: "
                             << (ros::Time::now() - manipulation_timer).toSec() << "/"
                             << ros::Duration(840).toSec() << "s.");
       }
@@ -2080,7 +2081,7 @@ void SmExcavator::ExcavationStateMachine()
       if (!flag_has_volatile)
       {
         ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Excavation. Didn't find volatile anymore.");
-        
+
         CancelExcavation(true); // If the excavator fails to find more volatile, this will cancel excavation
         excavation_state_ = HOME_MODE;
 
@@ -2098,7 +2099,7 @@ void SmExcavator::ExcavationStateMachine()
       else
       {
         ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Excavation. Didn't find Hauler.");
-        
+
         ExecuteDrop(5,0,0); // If not it will drop the material below the terrain and ask Hauler to approach
         ExecuteHomeArm(2,0);
 
@@ -2114,7 +2115,7 @@ void SmExcavator::ExcavationStateMachine()
           ros::spinOnce();
         }
         // manipulation_timer += (ros::Time::now() - waiting_hauler);
-        // ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Excavation. Time was added to Excavation State Machine. Remaining time: " 
+        // ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Excavation. Time was added to Excavation State Machine. Remaining time: "
         //                     << (ros::Time::now() - manipulation_timer).toSec() << "/"
         //                     << ros::Duration(840).toSec() << "s.");
       }
@@ -2224,12 +2225,12 @@ void SmExcavator::PublishExcavationStatus()
 
   excavation_status_pub.publish(msg);
 
-  ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Excavation. Publishing Excavation State Machine Status.");  
+  ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Excavation. Publishing Excavation State Machine Status.");
   ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Excavation Status. excavator_id :" << (int) msg.excavator_id.data
                                               << ", state:" << (int) msg.state.data
                                               << ", bucket_full:" << (int) msg.bucket_full.data
                                               << ", found_parking_site:" << (int) msg.found_parking_site.data
-                                              << ", parking_pose (x,y): (" << msg.parking_pose.position.x 
+                                              << ", parking_pose (x,y): (" << msg.parking_pose.position.x
                                               << "," << msg.parking_pose.position.y <<")"
                                               << ", parking_side:" << (int) msg.parking_side.data
                                               << ", found_volatile:" << (int) msg.found_volatile.data
