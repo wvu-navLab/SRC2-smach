@@ -79,7 +79,7 @@ void SmScout::run()
                                                       << (int)flag_arrived_at_waypoint << ","
                                                       << (int)flag_localizing_volatile << ","
                                                       << (int)flag_recovering_localization << ","
-                                                      << (int)flag_brake_engaged << ",");
+                                                      << (int)flag_brake_engaged);
     //---------------------------------------------------------------------------------------------------------------------
 
     // State machine truth table ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
