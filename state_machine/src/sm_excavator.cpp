@@ -850,7 +850,7 @@ void SmExcavator::manipulationCmdCallback(const std_msgs::Int64::ConstPtr &msg)
     case SEARCH_MODE:
     {
       ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"ExcavationCMD: Searching.");
-      ExecuteLowerArm(2,0,0);
+      //ExecuteLowerArm(2,0,0);
       flag_found_volatile = ExecuteSearch();
     }
     break;
@@ -1625,11 +1625,14 @@ bool SmExcavator::ExecuteSearch()
   // std::vector<bool> wheelOrientations {false, false, true, true, false}; // True turns wheels sideways
 
   std::vector<double> q1s {0.0}; // Search angles
-  std::vector<double> directions {0.0, 1.0, 1.0, 1.0, 1.0, -1.0, -1.0, -1.0, -1.0}; // Directions
-  std::vector<int> wheelOrientations {0, 0, 1, 2, 3, 3, 2, 1, 0}; // True turns wheels sideways
+  std::vector<double> directions     {0.0, 1.0, 1.0, 1.0, 1.0, -1.0, -1.0, -1.0, -1.0}; // Directions
+  std::vector<int> wheelOrientations {  0,   0,   1,   2,   3,    3,    2,    1,    0}; 
+  //std::vector<double> directions     {0.0, 1.0, 1.0, -1.0 }; // Directions
+  //std::vector<int> wheelOrientations {  0,    3,  0,  3 };
   // Wheel orientations
-  // 0 - deg
-  // 1/2 - 45/-45 deg
+  // 0 - 0 deg
+  // 1 - -45 deg
+  // 2 - 45 deg
   // 3 - 90deg
 
   for (int j = 0; j < directions.size(); j++)
@@ -1664,10 +1667,11 @@ bool SmExcavator::ExecuteSearch()
       Stop(0.1);
       Brake(100.0);
     }
-    else
+    else if (wheelOrientations[j] == 3)
     {
       Brake(0.0);
       SetPowerMode(false);
+      TurnWheelsSideways(true, 1);
       double speed = multiplier * directions[j];
       MoveSideways(speed, fabs(directions[j]) * t);
       SetPowerMode(true);
@@ -1680,7 +1684,7 @@ bool SmExcavator::ExecuteSearch()
       // srv_scoop.request.heading = q1s[i];
       //ROS_INFO(" i: %d q1s[i]: %f", i, srv_scoop.request.heading);
 
-      ExecuteScoop(5,3, q1s[i]);
+      ExecuteScoop(5,0, q1s[i]);
       ros::spinOnce();
 
       if (flag_has_volatile)
@@ -1689,7 +1693,7 @@ bool SmExcavator::ExecuteSearch()
 
         volatile_heading_ = q1s[i];
 
-        ExecuteDrop(2,3,0);
+        ExecuteDrop(2,2,0);
         ExecuteHomeArm(5,0);
         ros::spinOnce();
 
@@ -1698,12 +1702,12 @@ bool SmExcavator::ExecuteSearch()
       else // did not find volatile
       {
 
-        ExecuteDrop(2,3,0);
+        ExecuteDrop(2,2,0);
         ros::spinOnce();
 
-        ExecuteAfterScoop(2,2); // This is to remove from the ground
+        ExecuteAfterScoop(1,0); // This is to remove from the ground
         // ros::Duration(2.0).sleep();
-        ExecuteHomeArm(2,2);
+        ExecuteHomeArm(2,0);
         ros::spinOnce();
       }
     }
@@ -1740,7 +1744,7 @@ bool SmExcavator::ExecuteSearch()
       Stop(0.1);
       Brake(100.0);
     }
-    else
+    else if (wheelOrientations[j] == 3)
     {
       Brake(0.0);
       SetPowerMode(false);
