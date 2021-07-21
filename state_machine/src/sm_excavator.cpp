@@ -379,9 +379,8 @@ void SmExcavator::stateTraverse()
       if (ros::Time::now() - map_timer > timeoutMap)
       {
         CancelMoveBaseGoal();
-        int direction = (rand() % 2)>0? 1: -1;
         ros::spinOnce();
-        RotateToHeading(yaw_ + direction * M_PI_4);
+        RotateToHeading(yaw_ + M_PI_4);
         Stop(0.1);
         ClearCostmaps(5.0);
         map_timer =ros::Time::now();
