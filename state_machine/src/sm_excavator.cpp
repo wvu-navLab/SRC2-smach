@@ -2219,7 +2219,7 @@ void SmExcavator::PublishExcavationStatus()
                                               << ", found_parking_site:" << (int) msg.found_parking_site.data
                                               << ", parking_pose (x,y): (" << msg.parking_pose.position.x 
                                               << "," << msg.parking_pose.position.y <<")"
-                                              << ", \n parking_side:" << (int) msg.parking_side.data
+                                              << ", parking_side:" << (int) msg.parking_side.data
                                               << ", found_volatile:" << (int) msg.found_volatile.data
                                               << ", found_hauler:" << (int) msg.found_hauler.data
                                               << ", failed_to_find_hauler:" << (int) msg.failed_to_find_hauler.data
@@ -2230,14 +2230,14 @@ void SmExcavator::PublishExcavationStatus()
 void SmExcavator::Plan()
 {
   task_planning::PlanInfo srv_plan;
-  if (!flag_interrupt_plan)
-  {
+  // if (!flag_interrupt_plan)
+  // {
     srv_plan.request.replan.data = true;
-  }
-  else
-  {
-    srv_plan.request.replan.data = false;
-  }
+  // }
+  // else
+  // {
+  //   srv_plan.request.replan.data = false;
+  // }
   srv_plan.request.type.data = (uint8_t) mac::EXCAVATOR;
   srv_plan.request.id.data = (uint8_t) robot_id_;
   // ROS_WARN_STREAM("[" << robot_name_ << "] " << "SMACH, PLAN: " <<  (int) srv_plan.request.type.data << " id " << (int) srv_plan.request.id.data );

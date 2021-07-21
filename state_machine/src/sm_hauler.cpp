@@ -1914,7 +1914,7 @@ void SmHauler::PublishHaulerStatus()
                                               << ", approaching_side:" << (int) msg.approaching_side.data
                                               << ", approached_side:" << (int) msg.approached_side.data
                                               << ", approached_excavator:" << (int) msg.approached_excavator.data
-                                              << ", \n located_excavator:" << (int) msg.located_excavator.data
+                                              << ", located_excavator:" << (int) msg.located_excavator.data
                                               << ", parked_hauler:" << (int) msg.parked_hauler.data
                                               << ", bin_full:" << (int) msg.bin_full.data
                                               << ", parking_recovery_counter:" << (int) msg.parking_recovery_counter.data
@@ -1924,14 +1924,14 @@ void SmHauler::PublishHaulerStatus()
 void SmHauler::Plan()
 {
   task_planning::PlanInfo srv_plan;
-  if (!flag_interrupt_plan)
-  {
+  // if (!flag_interrupt_plan)
+  // {
     srv_plan.request.replan.data = true;
-  }
-  else
-  {
-    srv_plan.request.replan.data = false;
-  }
+  // }
+  // else
+  // {
+  //   srv_plan.request.replan.data = false;
+  // }
   srv_plan.request.type.data = (uint8_t) mac::HAULER;
   srv_plan.request.id.data = (uint8_t) robot_id_;
   // ROS_WARN_STREAM("[" << robot_name_ << "] " << "Planning. robot type: " <<  (int) srv_plan.request.type.data << ", id " << (int) srv_plan.request.id.data );
