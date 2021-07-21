@@ -684,31 +684,7 @@ void SmHauler::stateLost()
       Brake(0.0);
     }
 
-    ClearCostmaps(5.0);      
-    if(lost_recovery_counter_ == 0)
-    {
-      CheckForCollision();
-      lost_recovery_counter_++;
-    }
-    else
-    {
-      // Hauler 2 still has a true pose call
-      if (robot_id_==2)
-      {
-        if (!flag_called_get_true_pose)
-        {
-          GetTruePose(false);
-        }
-        else
-        {
-          ResetPosition();
-        }
-      }
-      if (robot_id_==2)
-      {
-        ResetPosition();
-      }
-    }
+    ClearCostmaps(5.0);
     BrakeRamp(100, 1, 0);
     Brake(0.0);
   }

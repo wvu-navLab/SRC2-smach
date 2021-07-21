@@ -220,9 +220,9 @@ public:
   geometry_msgs::Point charging_station_location_;
 
   double x_proc_plant_ = -6;
-  double y_proc_plant_ = -6;
+  double y_proc_plant_ = 7;
   double x_repair_station_ = -6;
-  double y_repair_station_ = 7;
+  double y_repair_station_ = -6;
 
   double power_rate_ = 0.0;
   double power_level_ = 100.0;
