@@ -2091,7 +2091,7 @@ void SmExcavator::ExcavationStateMachine()
         SetPowerMode(true);
       }
 
-      ExecuteScoop(5,0,volatile_heading_);
+      ExecuteScoop(6,1,volatile_heading_);
 
       ros::spinOnce();
       if (!flag_has_volatile)
