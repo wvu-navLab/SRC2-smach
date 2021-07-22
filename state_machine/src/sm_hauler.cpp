@@ -126,9 +126,10 @@ void SmHauler::run()
     // ROS_INFO_STREAM("[" << robot_name_ << "] " <<"flag_dumping: " << (int)flag_dumping);
     // ROS_INFO_STREAM("[" << robot_name_ << "] " <<"flag_recovering_localization: " << (int)flag_recovering_localization);
     // ROS_INFO_STREAM("[" << robot_name_ << "] " <<"flag_brake_engaged: " << (int)flag_brake_engaged);
-    ROS_INFO_STREAM("[" << robot_name_ << "] Flags: T,I,A,L,D,R,B");
+    ROS_INFO_STREAM("[" << robot_name_ << "] Flags: T,I,E,A,L,D,R,B");
     ROS_INFO_STREAM("[" << robot_name_ << "] State: " << (int)flag_have_true_pose << ","
                                                       << (int)flag_interrupt_plan << ","
+                                                      << (int)flag_emergency << ","
                                                       << (int)flag_arrived_at_waypoint << ","
                                                       << (int)flag_localizing_volatile << ","
                                                       << (int)flag_dumping << ","
@@ -335,7 +336,15 @@ void SmHauler::statePlanning()
     double dt = 87.5*(D/90);
     if(flag_localizing_volatile)
     {
-      ros::Duration(dt+3).sleep();
+      if(flag_first_volatile)
+      {
+        ros::Duration(dt+3).sleep();
+        flag_first_volatile = false;
+      }
+      else
+      {
+        ros::Duration(3).sleep();
+      }
     }
 
     map_timer =ros::Time::now();
@@ -415,7 +424,7 @@ void SmHauler::stateTraverse()
       {
         CancelMoveBaseGoal();
         ros::spinOnce();
-        RotateToHeading(yaw_ + M_PI_4);
+        RotateToHeading(yaw_ + M_PI_2);
         Stop(0.1);
         ClearCostmaps(5.0);
         map_timer =ros::Time::now();
@@ -552,7 +561,7 @@ void SmHauler::stateVolatileHandler()
         PublishHaulerStatus();
       }
 
-      Brake(100.0);
+      Brake(500.0);
       ros::spinOnce();
       while(!flag_full_bin)
       {
@@ -650,34 +659,34 @@ void SmHauler::stateLost()
     Brake(0.0);
     if(robot_id_ == 1)
     {
-      DriveCmdVel(-0.5,0.0,0.0,4);
+      DriveCmdVel(-0.5,0.0,0.0,3);
       Stop(0.1);
       BrakeRamp(100, 1, 0);
       Brake(0.0);
 
-      RotateToHeading(5.08);
+      RotateToHeading(5.5);
       Stop(0.1);
       BrakeRamp(100, 1, 0);
       Brake(0.0);
 
-      DriveCmdVel(0.5,0.0,0.0,5);
+      DriveCmdVel(0.5,0.0,0.0,10);
       Stop(0.1);
       BrakeRamp(100, 1, 0);
       Brake(0.0);
     }
     else
     {
-      DriveCmdVel(-0.5,0.0,0.0,7);
+      DriveCmdVel(-0.5,0.0,0.0,5);
       Stop(0.1);
       BrakeRamp(100, 1, 0);
       Brake(0.0);
 
-      RotateToHeading(5.08);
+      RotateToHeading(5.5);
       Stop(0.1);
       BrakeRamp(100, 1, 0);
       Brake(0.0);
 
-      DriveCmdVel(0.5,0.0,0.0,5);
+      DriveCmdVel(0.5,0.0,0.0,10);
       Stop(0.1);
       BrakeRamp(100, 1, 0);
       Brake(0.0);
@@ -866,14 +875,14 @@ void SmHauler::localizationCallback(const nav_msgs::Odometry::ConstPtr& msg)
       curr_max_speed_ = HAULER_MAX_SPEED*3/4;
     }
 
-    if ((pitch_ * 180 / M_PI) < -27)
+    if (abs(pitch_ * 180 / M_PI) > 27)
     {
       ROS_ERROR_STREAM("[" << robot_name_ << "] " << "Robot Cant Climb! Pitch: " << pitch_ * 180 / M_PI);
       ROS_ERROR_STREAM("[" << robot_name_ << "] " << "Commanding IMMOBILITY.");
 
       CancelMoveBaseGoal();
       Stop(0.05);
-      Brake(1000.0);
+      Brake(200.0);
       Brake(0.0);
 
       DriveCmdVel(-0.3,0.0,0.0,3);

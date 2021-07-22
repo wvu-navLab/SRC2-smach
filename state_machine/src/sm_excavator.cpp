@@ -122,9 +122,10 @@ void SmExcavator::run()
     // ROS_INFO_STREAM("[" << robot_name_ << "] " <<"flag_localizing_volatile: " << (int)flag_localizing_volatile);
     // ROS_INFO_STREAM("[" << robot_name_ << "] " <<"flag_recovering_localization: " << (int)flag_recovering_localization);
     // ROS_INFO_STREAM("[" << robot_name_ << "] " <<"flag_brake_engaged: " << (int)flag_brake_engaged);
-    ROS_INFO_STREAM("[" << robot_name_ << "] Flags: T,I,A,L,R,B");
+    ROS_INFO_STREAM("[" << robot_name_ << "] Flags: T,I,E,A,L,R,B");
     ROS_INFO_STREAM("[" << robot_name_ << "] Bools: " << (int)flag_have_true_pose << ","
                                                       << (int)flag_interrupt_plan << ","
+                                                      << (int)flag_emergency << ","
                                                       << (int)flag_arrived_at_waypoint << ","
                                                       << (int)flag_localizing_volatile << ","
                                                       << (int)flag_recovering_localization << ","
@@ -380,7 +381,7 @@ void SmExcavator::stateTraverse()
       {
         CancelMoveBaseGoal();
         ros::spinOnce();
-        RotateToHeading(yaw_ + M_PI_4);
+        RotateToHeading(yaw_ + M_PI_2);
         Stop(0.1);
         ClearCostmaps(5.0);
         map_timer =ros::Time::now();
@@ -448,7 +449,7 @@ void SmExcavator::stateVolatileHandler()
     SetPowerMode(true);
   }
 
-  Brake(100.0);
+  Brake(500.0);
 
   // Then  the manipulation state-machine keeps being called unless timeout is reached or it is finished
   if (flag_manipulation_enabled && (ros::Time::now() - manipulation_timer) < ros::Duration(840))
@@ -622,14 +623,14 @@ void SmExcavator::localizationCallback(const nav_msgs::Odometry::ConstPtr& msg)
       curr_max_speed_ = EXCAVATOR_MAX_SPEED;
     }
 
-    if ((pitch_ * 180 / M_PI) < -27)
+    if (abs(pitch_ * 180 / M_PI) > 27)
     {
       ROS_ERROR_STREAM("[" << robot_name_ << "] " << "Robot Cant Climb! Pitch: " << pitch_ * 180 / M_PI);
       ROS_ERROR_STREAM("[" << robot_name_ << "] " << "Commanding IMMOBILITY.");
 
       CancelMoveBaseGoal();
       Stop(0.05);
-      Brake(1000.0);
+      Brake(200.0);
       Brake(0.0);
 
       DriveCmdVel(-0.2,0.0,0.0,3);
@@ -1722,7 +1723,7 @@ bool SmExcavator::ExecuteSearch()
       DriveCmdVel(speed, 0, 0, fabs(directions[j]) * t);
       SetPowerMode(true);
       Stop(0.1);
-      Brake(100.0);
+      Brake(500.0);
     }
     else if (wheelOrientations[j] == 1)
     {
@@ -1732,7 +1733,7 @@ bool SmExcavator::ExecuteSearch()
       DriveCmdVel(speed/sqrt(2), speed/sqrt(2), 0, fabs(directions[j]) * t * sqrt(2));
       SetPowerMode(true);
       Stop(0.1);
-      Brake(100.0);
+      Brake(500.0);
     }
     else if (wheelOrientations[j] == 2)
     {
@@ -1742,7 +1743,7 @@ bool SmExcavator::ExecuteSearch()
       DriveCmdVel(speed/sqrt(2), -speed/sqrt(2), 0, fabs(directions[j]) * t * sqrt(2));
       SetPowerMode(true);
       Stop(0.1);
-      Brake(100.0);
+      Brake(500.0);
     }
     else if (wheelOrientations[j] == 3)
     {
@@ -1753,7 +1754,7 @@ bool SmExcavator::ExecuteSearch()
       MoveSideways(speed, fabs(directions[j]) * t);
       SetPowerMode(true);
       Stop(0.1);
-      Brake(100.0);
+      Brake(500.0);
     }
 
   }
@@ -2076,7 +2077,7 @@ void SmExcavator::ExcavationStateMachine()
       {
         ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Excavation. Starting to look for Hauler.");
         SetPowerMode(false);
-        flag_found_hauler = FindHauler(120);
+        flag_found_hauler = FindHauler(60);
         flag_failed_to_find_hauler = !flag_found_hauler;
         SetPowerMode(true);
       }

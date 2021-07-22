@@ -56,7 +56,10 @@ namespace mac
       if (type == robot.type && id == robot.id)
       {
         // ROS_INFO_STREAM("[TASK PLANNER] [" << plan_call_counter << "] Plan " << robot.plan[0]);
+        geometry_msgs::PointStamped temp;
+        temp = robot.plan[0];
         robot.plan.erase(robot.plan.begin());
+        robot.plan.push_back(temp);
         // ROS_INFO_STREAM("[TASK PLANNER] [" << plan_call_counter << "] Plan " << robot.plan[0]);
       }
     }

@@ -84,6 +84,7 @@ public:
   bool flag_parked_hauler = false;
   bool flag_dumped = false;
   bool flag_called_get_true_pose = false;
+  bool flag_first_volatile = true;
 
   ros::Time wp_checker_timer,laser_collision_timer, map_timer, waypoint_timer;
 

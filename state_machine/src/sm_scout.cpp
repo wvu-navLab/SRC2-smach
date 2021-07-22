@@ -73,9 +73,10 @@ void SmScout::run()
     // ROS_INFO_STREAM("[" << robot_name_ << "] " <<"flag_localizing_volatile: " << (int)flag_localizing_volatile);
     // ROS_INFO_STREAM("[" << robot_name_ << "] " <<"flag_recovering_localization: " << (int)flag_recovering_localization);
     // ROS_INFO_STREAM("[" << robot_name_ << "] " <<"flag_brake_engaged: " << (int)flag_brake_engaged);
-    ROS_INFO_STREAM("[" << robot_name_ << "] Flags: T,I,A,L,R,B");
+    ROS_INFO_STREAM("[" << robot_name_ << "] Flags: T,I,E,A,L,R,B");
     ROS_INFO_STREAM("[" << robot_name_ << "] Bools: " << (int)flag_have_true_pose << ","
                                                       << (int)flag_interrupt_plan << ","
+                                                      << (int)flag_emergency << ","
                                                       << (int)flag_arrived_at_waypoint << ","
                                                       << (int)flag_localizing_volatile << ","
                                                       << (int)flag_recovering_localization << ","
@@ -375,7 +376,7 @@ void SmScout::stateVolatileHandler()
   {
     Stop(0.1);
 
-    DriveCmdVel(1, 0, 0, 3);
+    DriveCmdVel(0.5, 0, 0, 6);
     Stop(0.1);
     BrakeRamp(100, 1.0, 0);
     Brake(0.0);
@@ -579,14 +580,14 @@ void SmScout::localizationCallback(const nav_msgs::Odometry::ConstPtr& msg)
       curr_max_speed_ = SCOUT_MAX_SPEED/2;
     }
 
-    if ((pitch_ * 180 / M_PI) < -27)
+    if (abs(pitch_ * 180 / M_PI) > 27)
     {
       ROS_ERROR_STREAM("[" << robot_name_ << "] " << "Robot Cant Climb! Pitch: " << pitch_ * 180 / M_PI);
       ROS_ERROR_STREAM("[" << robot_name_ << "] " << "Commanding IMMOBILITY.");
 
       CancelMoveBaseGoal();
       Stop(0.05);
-      Brake(1000.0);
+      Brake(200.0);
       Brake(0.0);
 
       DriveCmdVel(-0.4,0.0,0.0,3);
