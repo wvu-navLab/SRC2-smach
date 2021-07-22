@@ -60,7 +60,7 @@
     <include file="$(find waypoint_checker)/launch/waypoint_checker.launch"/>
 
     <!-- state machine for excavator -->
-    <!-- <include file="$(find state_machine)/launch/excavator_state_machine.launch"/> -->
+    <include file="$(find state_machine)/launch/excavator_state_machine.launch"/>
   </group>
 
 </launch>
