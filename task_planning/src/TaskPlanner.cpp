@@ -777,7 +777,7 @@ namespace mac
     std::string localization_topic;
     if (planning_params.demo)
     {
-      localization_topic = "/localization/odometry/truth";
+      localization_topic = "/localization/odometry/sensor_fusion";
     }
     else
     {
