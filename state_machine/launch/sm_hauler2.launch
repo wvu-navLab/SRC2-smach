@@ -61,7 +61,7 @@
     <include file="$(find waypoint_nav)/launch/waypoint_nav.launch"/>
     
     <!-- state machine for hauler -->
-    <include file="$(find state_machine)/launch/hauler_state_machine.launch"/>
+    <!-- <include file="$(find state_machine)/launch/hauler_state_machine.launch"/> -->
   </group>
 
 </launch>

@@ -1565,6 +1565,8 @@ void SmExcavator::ExecuteDrop(double duration, double wait_time, int type)
   move_excavator::DropVolatile srv;
 
   srv.request.type = type;
+  srv.request.range = relative_range_;
+  srv.request.heading = relative_heading_;
   srv.request.timeLimit = duration;
 
   if (clt_drop_volatile.call(srv))
@@ -1796,6 +1798,13 @@ bool SmExcavator::FindHauler(double timeout)
     if(relative_range_ > 1.8)
     {
       ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Excavation. Hauler bin is too far.");
+      CommandCamera(0,0,2);
+      return false;
+    }
+
+    if(relative_range_ > 1.3 && relative_heading_ > 1.8 && relative_heading_ < 2.4)
+    {
+      ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Excavation. Hauler bin can't be reached. Collision with camera.");
       CommandCamera(0,0,2);
       return false;
     }
