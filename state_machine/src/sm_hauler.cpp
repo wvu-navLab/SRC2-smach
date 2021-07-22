@@ -43,6 +43,7 @@ move_base_state_(actionlib::SimpleClientGoalState::PREEMPTED)
   driving_mode_sub = nh.subscribe("driving/driving_mode",1, &SmHauler::drivingModeCallback, this);
   laser_scan_sub = nh.subscribe("laser/scan",1, &SmHauler::laserCallback, this);
   planner_interrupt_sub = nh.subscribe("/planner_interrupt", 1, &SmHauler::plannerInterruptCallback, this);
+  system_monitor_sub =nh.subscribe("system_monitor",1, &SmHauler::systemMonitorCallback, this);
   init_attitude_sub =nh.subscribe("/initial_attitude",1, &SmHauler::initialAttitudeCallback, this);
   for (int i=0; i<num_excavators_; i++)
   {
@@ -339,7 +340,6 @@ void SmHauler::statePlanning()
       if(flag_first_volatile)
       {
         ros::Duration(dt+3).sleep();
-        flag_first_volatile = false;
       }
       else
       {
@@ -470,6 +470,8 @@ void SmHauler::stateVolatileHandler()
   double progress = 0;
 
   CancelMoveBaseGoal();
+  
+  flag_first_volatile = false;
 
   if(!flag_approached_side && partner_excavation_status_.found_parking_site.data)
   {
@@ -730,7 +732,6 @@ void SmHauler::stateEmergency()
   if(power_level_ > 50)
   {
     flag_emergency = false;
-    flag_arrived_at_waypoint = true;
     SetPowerMode(false);
   }
 
@@ -757,7 +758,7 @@ void SmHauler::stateDump()
   {
     Brake(0.0);
 
-    DriveCmdVel(-0.5,0.0,0.0,10);
+    DriveCmdVel(-0.5,0.0,0.0,8);
     Stop(0.1);
     BrakeRamp(100, 1, 0);
     Brake(0.0);

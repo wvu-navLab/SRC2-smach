@@ -45,6 +45,7 @@ move_base_state_(actionlib::SimpleClientGoalState::PREEMPTED)
   goal_volatile_sub = nh.subscribe("manipulation/volatile_pose", 1, &SmExcavator::goalVolatileCallback, this);
   manipulation_cmd_sub = nh.subscribe("manipulation/cmd", 1, &SmExcavator::manipulationCmdCallback, this);
   planner_interrupt_sub = nh.subscribe("/planner_interrupt", 1, &SmExcavator::plannerInterruptCallback, this);
+  system_monitor_sub =nh.subscribe("system_monitor",1, &SmExcavator::systemMonitorCallback, this);
   init_attitude_sub =nh.subscribe("/initial_attitude",1, &SmExcavator::initialAttitudeCallback, this);
   for (int i=0; i<num_haulers_; i++)
   {
@@ -559,7 +560,7 @@ void SmExcavator::stateEmergency()
   if(power_level_ > 50)
   {
     flag_emergency = false;
-    flag_arrived_at_waypoint = true;
+    SetPowerMode(false);
   }
 
   state_machine::RobotStatus status_msg;
@@ -1766,6 +1767,27 @@ bool SmExcavator::ExecuteSearch()
   return false;
 }
 
+bool SmExcavator::ExecuteSearchAgain()
+{
+  std::vector<double> q1s {-0.3, 0.3}; // Search angles
+  if(excavation_counter_ < 4)
+  {
+    for (int i = 0; i < q1s.size(); i++) // Change the angle of arm to search
+    {
+      ExecuteDrop(2,2,0);
+      ExecuteAfterScoop(1,0);
+      ExecuteScoop(5,0, q1s[i]);
+      ros::spinOnce();
+      if (flag_has_volatile)
+      {
+        ROS_ERROR_STREAM("[" << robot_name_ << "] " << "Excavation. Found volatile!");
+        volatile_heading_ = q1s[i];
+        return true;
+      }
+    }
+  }
+  return false;
+}
 
 bool SmExcavator::FindHauler(double timeout)
 {
@@ -2091,17 +2113,19 @@ void SmExcavator::ExcavationStateMachine()
         SetPowerMode(true);
       }
 
-      ExecuteScoop(6,1,volatile_heading_);
+      ExecuteScoop(6,0,volatile_heading_);
 
       ros::spinOnce();
       if (!flag_has_volatile)
       {
         ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Excavation. Didn't find volatile anymore.");
-
-        CancelExcavation(true); // If the excavator fails to find more volatile, this will cancel excavation
-        excavation_state_ = HOME_MODE;
-
-        break;
+        bool flag_found_volatile_again = ExecuteSearchAgain();
+        if (!flag_found_volatile_again)
+        {
+          CancelExcavation(true); // If the excavator fails to find more volatile, this will cancel excavation
+          excavation_state_ = HOME_MODE;
+          break;
+        }
       }
 
       PublishExcavationStatus();

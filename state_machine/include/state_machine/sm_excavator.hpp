@@ -155,7 +155,8 @@ public:
   ros::Subscriber goal_volatile_sub;
   ros::Subscriber manipulation_cmd_sub;
   ros::Subscriber planner_interrupt_sub;
-  ros::Subscriber init_attitude_sub; 
+  ros::Subscriber init_attitude_sub;
+  ros::Subscriber system_monitor_sub;
   std::vector<ros::Subscriber> hauler_odom_subs;
   std::vector<ros::Subscriber> hauler_status_subs;
 
@@ -257,6 +258,7 @@ public:
   void ExecuteRetractArm(double duration, double wait_time);
   void ExecuteGoToPose(double duration, double wait_time, const geometry_msgs::PointStamped &point);
   bool ExecuteSearch();
+  bool ExecuteSearchAgain();
   bool FindHauler(double timeout);
   void GetForwardKinematics(double timeout);
   void ExcavationStateMachine();
