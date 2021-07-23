@@ -447,6 +447,7 @@ void SmExcavator::stateVolatileHandler()
 
     SetPowerMode(false);
     SetHaulerParkingLocation();
+    CommandCamera(0.0,0.0);
     SetPowerMode(true);
   }
 

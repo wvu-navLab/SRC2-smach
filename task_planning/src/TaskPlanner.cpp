@@ -270,11 +270,11 @@ namespace mac
         // Calculate closest vol to excavator 1
         x = robots_[exc1_ind].odom.pose.pose.position.x;
         y = robots_[exc1_ind].odom.pose.pose.position.y;
+        min_D = 500;
+        min_ind = 0;
+        vol_ind = 0;
         for (auto &vol : temp_map.vol)
         {
-          min_D = 500;
-          min_ind = 0;
-          vol_ind = 0;
           dx = vol.position.point.x - x;
           dy = vol.position.point.y - y;
           D = hypot(dx, dy);
@@ -291,11 +291,11 @@ namespace mac
         // Calculate closest vol to excavator 2
         x = robots_[exc2_ind].odom.pose.pose.position.x;
         y = robots_[exc2_ind].odom.pose.pose.position.y;
+        min_D = 500;
+        min_ind = 0;
+        vol_ind = 0;
         for (auto &vol : temp_map.vol)
         {
-          min_D = 500;
-          min_ind = 0;
-          vol_ind = 0;
           dx = vol.position.point.x - x;
           dy = vol.position.point.y - y;
           D = hypot(dx, dy);
@@ -326,11 +326,11 @@ namespace mac
               // Give excavator 2 its second closest
               x = robots_[exc2_ind].odom.pose.pose.position.x;
               y = robots_[exc2_ind].odom.pose.pose.position.y;
+              min_D = 500;
+              min_ind = 0;
+              vol_ind = 0;
               for (auto &vol : temp_map.vol)
               {
-                min_D = 500;
-                min_ind = 0;
-                vol_ind = 0;
                 dx = vol.position.point.x - x;
                 dy = vol.position.point.y - y;
                 D = hypot(dx, dy);
@@ -360,11 +360,11 @@ namespace mac
               // Give excavator 1 its second closest
               x = robots_[exc1_ind].odom.pose.pose.position.x;
               y = robots_[exc1_ind].odom.pose.pose.position.y;
+              min_D = 500;
+              min_ind = 0;
+              vol_ind = 0;
               for (auto &vol : temp_map.vol)
               {
-                min_D = 500;
-                min_ind = 0;
-                vol_ind = 0;
                 dx = vol.position.point.x - x;
                 dy = vol.position.point.y - y;
                 D = hypot(dx, dy);
@@ -395,11 +395,11 @@ namespace mac
         // Calculate closest vol to excavator 1
         x = robots_[exc1_ind].odom.pose.pose.position.x;
         y = robots_[exc1_ind].odom.pose.pose.position.y;
+        min_D = 500;
+        min_ind = 0;
+        vol_ind = 0;
         for (auto &vol : temp_map.vol)
         {
-          min_D = 500;
-          min_ind = 0;
-          vol_ind = 0;
           dx = vol.position.point.x - x;
           dy = vol.position.point.y - y;
           D = hypot(dx, dy);
@@ -418,11 +418,11 @@ namespace mac
         // Calculate closest vol to excavator 2
         x = robots_[exc2_ind].odom.pose.pose.position.x;
         y = robots_[exc2_ind].odom.pose.pose.position.y;
+        min_D = 500;
+        min_ind = 0;
+        vol_ind = 0;
         for (auto &vol : temp_map.vol)
         {
-          min_D = 500;
-          min_ind = 0;
-          vol_ind = 0;
           dx = vol.position.point.x - x;
           dy = vol.position.point.y - y;
           D = hypot(dx, dy);
