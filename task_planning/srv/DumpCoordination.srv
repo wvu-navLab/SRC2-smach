@@ -1,0 +1,3 @@
+bool dump_request
+---
+bool request_accepted

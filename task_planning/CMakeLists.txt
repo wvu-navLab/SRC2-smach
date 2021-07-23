@@ -59,6 +59,7 @@ find_package(catkin REQUIRED roscpp rospy roslib
  add_service_files(
    FILES
    PlanInfo.srv
+   DumpCoordination.srv
 #   Service2.srv
 )
 
@@ -136,7 +137,7 @@ target_link_libraries(CostFunctionLib
 )
 add_dependencies(CostFunctionLib task_planning_generate_messages_cpp ${catkin_EXPORTED_TARGETS})
 
-add_library(ForwardSearchLib 
+add_library(ForwardSearchLib
   src/ForwardSearch_act.cpp
   src/ForwardSearch_alg.cpp
   src/ForwardSearch_sim.cpp

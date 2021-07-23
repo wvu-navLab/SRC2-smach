@@ -22,6 +22,7 @@
 #include <task_planning/CostFunction.hpp>
 // #include <state_machine/RobotStatus.h>
 #include <task_planning/PlanInfo.h>
+#include <task_planning/DumpCoordination.h>
 #include <task_planning/ForwardSearch.hpp>
 #include <volatile_map/VolatileMap.h>
 #include <geometry_msgs/PointStamped.h>
@@ -70,7 +71,7 @@ class TaskPlanner {
 
     /** \brief  */
     TaskPlanner(const CostFunction            & cost_function,
-                const std::vector<mac::Robot> & robots, 
+                const std::vector<mac::Robot> & robots,
                 const PlanningParams          & planning_params);
 
   protected:
@@ -107,6 +108,8 @@ class TaskPlanner {
     /** brief */
     ros::ServiceServer server_task_planner;
 
+    ros::ServiceServer server_dump_request;
+
     /** \brief  */
     ForwardSearch forward_search_;
 
@@ -124,6 +127,9 @@ class TaskPlanner {
     /** \brief */
     bool taskPlanService(task_planning::PlanInfo::Request &req, task_planning::PlanInfo::Response &res);
 
+
+    bool dumpRequestService(task_planning::DumpCoordination::Request &req, task_planning::DumpCoordination::Response &res);
+
     //maybe track internal state of robots or something along the lines of that
       // how full is hauler
       // was task successful
@@ -133,6 +139,7 @@ class TaskPlanner {
 
 
   private:
+    bool hauler_dumping = false;
     const int SCOUT_STR_LOC = 13; //index ~SHOULD BE~ at 14th position
     const int EXCAVATOR_STR_LOC = 17; //index ~SHOULD BE~ at 18th position
     const int HAULER_STR_LOC = 14; //index ~SHOULD BE~ at 15th position

@@ -192,7 +192,7 @@ namespace mac
   void TaskPlanner::exc_haul_plan_default_adv()
   {
     ros::spinOnce();
-    
+
     for (auto &robot : robots_)
     {
       robot.plan.clear();
@@ -208,9 +208,9 @@ namespace mac
           robot.plan.push_back(vol.position);
           robot.volatile_indices.push_back(vol.vol_index);
         }
-      }   
+      }
     }
-    
+
     volatile_map::VolatileMap temp_map;
     std::vector<int> temp_volatile_indices;
     for (auto &vol : volatile_map_.vol)
@@ -261,7 +261,7 @@ namespace mac
     {
       exc1_ind = get_robot_index(mac::EXCAVATOR, 1);
       exc2_ind = get_robot_index(mac::EXCAVATOR, 2);
-      
+
       flag_exc1_has_plan = (robots_[exc1_ind].plan.size()>0);
       flag_exc2_has_plan = (robots_[exc2_ind].plan.size()>0);
 
@@ -317,7 +317,7 @@ namespace mac
             // Give excavator 1 the closest to both
             robots_[exc1_ind].plan.push_back(temp_map.vol[min_ind1].position);
             robots_[exc1_ind].volatile_indices.push_back(temp_volatile_indices[min_ind1]);
-            
+
             temp_map.vol.erase(temp_map.vol.begin() + min_ind1);
             temp_volatile_indices.erase(temp_volatile_indices.begin() + min_ind1);
 
@@ -652,7 +652,32 @@ namespace mac
   //ROS_DEBUG("%d",msg->data);
 
 }*/
+bool TaskPlanner::dumpRequestService(task_planning::DumpCoordination::Request &req, task_planning::DumpCoordination::Response &res)
+{
+  // a hauler wants to dump, and the other hauler has not set the flag
+  // accept the request and set the hauler dumping true
+  if(req.dump_request && !hauler_dumping)
+  {
+    hauler_dumping = true;
+    res.request_accepted = true;
 
+  }
+  // a hauler wants to dump, but the flag that the other hauler is set is already true_pose
+  // deny the request
+  else if(req.dump_request && hauler_dumping)
+  {
+    res.request_accepted = false;
+
+  }
+  // any hauler can change the status to no longer dumping anytime they want
+  else if(!req.dump_request)
+  {
+    hauler_dumping = false;
+    res.request_accepted = true;
+  }
+
+  return true;
+ }
   bool TaskPlanner::taskPlanService(task_planning::PlanInfo::Request &req, task_planning::PlanInfo::Response &res)
   {
     // ROS_ERROR_STREAM("[TASK PLANNER] [" << plan_call_counter << "] Planning started.");
@@ -857,6 +882,8 @@ namespace mac
 
     forward_search_.set_cost_function(cost_function);
     forward_search_.set_planning_params(planning_params);
+
+    server_dump_request = nh_.advertiseService("/hauler_dump_request",&TaskPlanner::dumpRequestService,this);
   }
 
   /////////////////////////////////////////////////////////////////////
