@@ -44,6 +44,7 @@
 #include <dynamic_reconfigure/Reconfigure.h>
 #include <dynamic_reconfigure/Config.h>
 #include <task_planning/PlanInfo.h>
+#include <task_planning/DumpCoordination.h>
 #include <task_planning/Types.hpp>
 #include <state_machine/RobotStatus.h>
 #include <state_machine/HaulerStatus.h>
@@ -85,6 +86,7 @@ public:
   bool flag_dumped = false;
   bool flag_called_get_true_pose = false;
   bool flag_first_volatile = true;
+  bool flag_allowed_to_dump = false;
 
   ros::Time wp_checker_timer,laser_collision_timer, map_timer, waypoint_timer;
 
@@ -137,6 +139,7 @@ public:
   ros::ServiceClient clt_set_goal;
   ros::ServiceClient clt_go_to_goal;
   ros::ServiceClient clt_find_object;
+  ros::ServiceClient clt_dump_coordination;
 
   MoveBaseClient ac;
   actionlib::SimpleClientGoalState move_base_state_;
@@ -196,6 +199,7 @@ public:
   bool LocateBin();
   void ExecuteShakeBin(double time);
   bool LocateExcavator();
+  bool RequestDumping(bool dump_request);
   bool FindExcavator(double timeout);
   void PublishHaulerStatus();
   void CheckForCollision();

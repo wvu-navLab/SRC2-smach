@@ -84,7 +84,7 @@ move_base_state_(actionlib::SimpleClientGoalState::PREEMPTED)
   clt_go_to_pose = nh.serviceClient<move_excavator::GoToPose>("manipulation/go_to_pose");
   clt_find_hauler = nh.serviceClient<move_excavator::FindHauler>("manipulation/find_hauler");
   clt_where_hauler = nh.serviceClient<src2_object_detection::WhereToParkHauler>("where_to_park_hauler");
-  clt_task_planning = nh.serviceClient<task_planning::PlanInfo>("/task_planner_exc_haul");
+  clt_task_planning = nh.serviceClient<task_planning::PlanInfo>("/task_planner/exc_haul");
   clt_vol_mark_collected = nh.serviceClient<volatile_map::MarkCollected>("/volatile_map/mark_collected");
   clt_vol_mark_assigned = nh.serviceClient<volatile_map::MarkAssigned>("/volatile_map/mark_assigned");
   clt_find_object = nh.serviceClient<src2_object_detection::FindObject>("/find_object");
@@ -1330,7 +1330,7 @@ void SmExcavator::Stop(double time)
   cmd_vel.angular.z = 0.0;
   ros::Time start_time = ros::Time::now();
   ros::Duration timeout(time); // Timeout of 20 seconds
-  ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Stopping.");
+  ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Commanded Stop.");
   while (ros::Time::now() - start_time < timeout)
   {
     cmd_vel_pub.publish(cmd_vel);
@@ -1813,10 +1813,17 @@ bool SmExcavator::FindHauler(double timeout)
     camera_link_to_arm_mount = tf_buffer.lookupTransform(robot_name_+"_arm_mount", robot_name_+"_left_camera_optical", ros::Time(0), ros::Duration(1.0));
     tf2::doTransform(bin_point, bin_point_, camera_link_to_arm_mount);
 
-    bin_point_.point.z += 0.6;
+    bin_point_.point.z += offset_hauler_bin_to_bucket_center;
 
-    relative_range_ = hypot(bin_point_.point.x-0.7, bin_point_.point.y);
-    relative_heading_ = atan2(bin_point_.point.y, bin_point_.point.x-0.7);
+    relative_range_ = hypot(bin_point_.point.x-offset_arm_mount_to_arm_shoulder, bin_point_.point.y);
+    relative_heading_ = atan2(bin_point_.point.y, bin_point_.point.x-offset_arm_mount_to_arm_shoulder);
+
+    if(relative_range_ < 0.3)
+    {
+      ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Excavation. Hauler bin is too far.");
+      CommandCamera(0,0,2);
+      return false;
+    }
 
     if(relative_range_ > 1.8)
     {
@@ -1832,9 +1839,18 @@ bool SmExcavator::FindHauler(double timeout)
       return false;
     }
 
-    ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Excavation. Target bin updated. Point:" << bin_point_);
+    double offset_heading = atan2(offset_bucket_to_bucket_center, relative_range_);
+    relative_heading_ += offset_heading;
 
-    CommandCamera(0,0,2);
+    ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Excavation. Target bin updated. Point (x,y,z): (" 
+                                               << bin_point_.point.x << ","
+                                               << bin_point_.point.y << ","
+                                               << bin_point_.point.z << ")");
+
+    ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Excavation. Target bin updated. Range: " << relative_range_
+                                               << ", heading: " << relative_heading_);
+
+    // CommandCamera(0,0,2); // Testing continuous FindHauler 
     return true;
   }
   else
@@ -2105,14 +2121,14 @@ void SmExcavator::ExcavationStateMachine()
 
       ExecuteLowerArm(2,0,volatile_heading_);
 
-      if(!flag_found_hauler)
-      {
+      // if(!flag_found_hauler) // Testing continuous FindHauler 
+      // { 
         ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Excavation. Starting to look for Hauler.");
         SetPowerMode(false);
         flag_found_hauler = FindHauler(60);
         flag_failed_to_find_hauler = !flag_found_hauler;
         SetPowerMode(true);
-      }
+      // }
 
       ExecuteScoop(6,0,volatile_heading_);
 
@@ -2202,6 +2218,8 @@ void SmExcavator::CancelExcavation(bool success)
 
   excavation_counter_ = -1;
   PublishExcavationStatus();
+
+  CommandCamera(0,0,0.1); // Testing continuous FindHauler 
 
   // Put arm in Home position
   ExecuteDrop(2,0,0);

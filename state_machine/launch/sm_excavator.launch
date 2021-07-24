@@ -36,6 +36,9 @@
     <!-- sensor_fusion launch file -->
     <include file="$(find sensor_fusion)/launch/sensor_fusion.launch"/>
 
+    <!-- localization_watchdog launch file -->
+    <include file="$(find localization_watchdog)/launch/localization_watchdog.launch"/>
+
     <!-- find_hauler launch file -->
     <include file="$(find move_excavator)/launch/find_hauler.launch"/>
 

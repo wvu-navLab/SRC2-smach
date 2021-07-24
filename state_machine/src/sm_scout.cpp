@@ -38,7 +38,7 @@ move_base_state_(actionlib::SimpleClientGoalState::PREEMPTED)
   clt_sf_true_pose = nh.serviceClient<sensor_fusion::GetTruePose>("true_pose");
   clt_waypoint_checker = nh.serviceClient<waypoint_checker::CheckCollision>("waypoint_checker");
   clt_srcp2_brake_rover = nh.serviceClient<srcp2_msgs::BrakeRoverSrv>("brake_rover");
-  clt_task_planning = nh.serviceClient<task_planning::PlanInfo>("/task_planner_scout");
+  clt_task_planning = nh.serviceClient<task_planning::PlanInfo>("/task_planner/scout");
   clt_find_object = nh.serviceClient<src2_object_detection::FindObject>("/find_object");
   clt_vol_mark_honed = nh.serviceClient<volatile_map::MarkHoned>("/volatile_map/mark_honed");
 
@@ -1074,7 +1074,7 @@ void SmScout::Stop(double time)
   cmd_vel.angular.z = 0.0;
   ros::Time start_time = ros::Time::now();
   ros::Duration timeout(time); // Timeout of 20 seconds
-  ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Stopping.");
+  ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Commanded Stop.");
   while (ros::Time::now() - start_time < timeout)
   {
     cmd_vel_pub.publish(cmd_vel);

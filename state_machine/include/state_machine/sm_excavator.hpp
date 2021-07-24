@@ -349,6 +349,10 @@ public:
   double relative_range_ = 1.0;
   int goal_vol_index_ = 0;
 
+  const double offset_arm_mount_to_arm_shoulder = 0.7;
+  const double offset_bucket_to_bucket_center = 0.05;
+  const double offset_hauler_bin_to_bucket_center = 0.6;
+
   double q1_pos_ = 0.0;
   double q2_pos_ = 0.0;
   double q3_pos_ = 0.0;

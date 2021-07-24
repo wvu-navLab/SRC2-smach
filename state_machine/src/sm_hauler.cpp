@@ -70,7 +70,7 @@ move_base_state_(actionlib::SimpleClientGoalState::PREEMPTED)
   clt_sf_true_pose = nh.serviceClient<sensor_fusion::GetTruePose>("true_pose");
   clt_waypoint_checker = nh.serviceClient<waypoint_checker::CheckCollision>("waypoint_checker");
   clt_srcp2_brake_rover= nh.serviceClient<srcp2_msgs::BrakeRoverSrv>("brake_rover");
-  clt_task_planning = nh.serviceClient<task_planning::PlanInfo>("/task_planner_exc_haul");
+  clt_task_planning = nh.serviceClient<task_planning::PlanInfo>("/task_planner/exc_haul");
   clt_approach_excavator = nh.serviceClient<src2_approach_services::ApproachExcavator>("approach_excavator_service");
   clt_approach_bin = nh.serviceClient<src2_approach_services::ApproachBin>("approach_bin_service");
   clt_location_of_bin = nh.serviceClient<range_to_base::LocationOfBin>("location_of_bin_service");
@@ -78,6 +78,7 @@ move_base_state_(actionlib::SimpleClientGoalState::PREEMPTED)
   clt_find_excavator = nh.serviceClient<move_excavator::FindExcavator>("manipulation/find_excavator");
   clt_go_to_goal = nh.serviceClient<waypoint_nav::GoToGoal>("navigation/go_to_goal");
   clt_find_object = nh.serviceClient<src2_object_detection::FindObject>("/find_object");
+  clt_dump_coordination = nh.serviceClient<task_planning::PlanInfo>("/task_planner/dump_coordination");
 
   map_timer = ros::Time::now();
   wp_checker_timer=  ros::Time::now();
@@ -749,69 +750,68 @@ void SmHauler::stateDump()
 
   double progress = 0.0;
 
-  flag_dumped = ApproachBin(3);
-  // TODO: Approach Bin return false it's not the bin in front
-  // TODO: Approach Bin return false it's not the bin in front
-
-  // localize bin after approaching bin
-  if (flag_dumped)
+  if(!flag_allowed_to_dump)
   {
-    Brake(0.0);
-
-    DriveCmdVel(-0.5,0.0,0.0,8);
-    Stop(0.1);
-    BrakeRamp(100, 1, 0);
-    Brake(0.0);
-
-    RotateToHeading(4.2);
-    Stop(0.1);
-    BrakeRamp(100, 1, 0);
-    Brake(0.0);
-
-    DriveCmdVel(0.5,0.0,0.0,5);
-    Stop(0.1);
-    BrakeRamp(100, 1, 0);
-    Brake(0.0);
-
-    ClearCostmaps(5.0);
-    BrakeRamp(100, 1, 0);
-    Brake(0.0);
-
-    progress = 1.0;
-
-    PublishHaulerStatus();
-
-    // RESET ALL VOL HANDLING FLAGS
-    flag_approaching_side = false;
-    flag_approached_side = false;
-    flag_approached_excavator = false;
-    flag_located_excavator = false;
-    flag_parked_hauler = false;
-    flag_full_bin = false;
-
-    // SET SMACH FLAGS TO LOST
-    flag_interrupt_plan = false;
-    flag_recovering_localization = true;
-    flag_localizing_volatile = false;
-    flag_arrived_at_waypoint = true;
-    flag_dumping = false;
-  }
-  else
-  {
-    Brake(0.0);
-    progress = -1.0;
+    flag_allowed_to_dump = RequestDumping(true);
   }
 
-  // goal_pose_.position = charging_station_location_;
-  // goal_yaw_ = atan2(goal_pose_.position.y - current_pose_.position.y, goal_pose_.position.x - current_pose_.position.x);
+  if(flag_allowed_to_dump)
+  {
+    // TODO: Approach Bin return false it's not the bin in front
+    flag_dumped = ApproachBin(3);
 
-  // RotateToHeading(goal_yaw_);
-  // Stop(0.1);
-  // BrakeRamp(100, 1, 0);
-  // Brake(0.0);
+    // localize bin after approaching bin
+    if (flag_dumped)
+    {
+      Brake(0.0);
 
-  // SetMoveBaseGoal();
+      DriveCmdVel(-0.5,0.0,0.0,8);
+      Stop(0.1);
+      BrakeRamp(100, 1, 0);
+      Brake(0.0);
 
+      RotateToHeading(4.2);
+      Stop(0.1);
+      BrakeRamp(100, 1, 0);
+      Brake(0.0);
+
+      DriveCmdVel(0.5,0.0,0.0,5);
+      Stop(0.1);
+      BrakeRamp(100, 1, 0);
+      Brake(0.0);
+
+      ClearCostmaps(5.0);
+      BrakeRamp(100, 1, 0);
+      Brake(0.0);
+
+      progress = 1.0;
+
+      PublishHaulerStatus();
+
+      RequestDumping(false);
+
+      // RESET ALL VOL HANDLING FLAGS
+      flag_approaching_side = false;
+      flag_approached_side = false;
+      flag_approached_excavator = false;
+      flag_located_excavator = false;
+      flag_parked_hauler = false;
+      flag_full_bin = false;
+
+      // SET SMACH FLAGS TO LOST
+      flag_interrupt_plan = false;
+      flag_recovering_localization = true;
+      flag_localizing_volatile = false;
+      flag_arrived_at_waypoint = true;
+      flag_dumping = false;
+    }
+    else
+    {
+      Brake(0.0);
+      progress = -1.0;
+    }
+  }
+  
   state_machine::RobotStatus status_msg;
   status_msg.progress.data = progress;
   status_msg.state.data = (uint8_t) _hauler_dumping;
@@ -1780,6 +1780,41 @@ void SmHauler::ResetPosition()
   {
     ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Failed to call ResetPosition Service.");
   }
+}
+
+bool SmHauler::RequestDumping(bool dump_request)
+{
+  task_planning::DumpCoordination srv_dump_coordination;
+  srv_dump_coordination.request.dump_request = dump_request;
+
+  if (dump_request)
+  {
+    ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Requesting to start Dumping.");
+  }
+  else
+  {
+    ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Marking Dumping as complete.");
+  }
+
+  if (clt_dump_coordination.call(srv_dump_coordination))
+  {
+    ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Called service DumpCoordination.");
+
+    if (srv_dump_coordination.response.request_accepted)
+    {
+      ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Request ACCEPTED. Starting to Dump.");
+      return true;
+    }
+    else
+    {
+      ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Request -Wait for it- DENIED.");
+    }
+  }
+  else
+  {
+    ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Failed to call DumpCoordination Service.");
+  }
+  return false;
 }
 
 bool SmHauler::FindExcavator(double timeout)

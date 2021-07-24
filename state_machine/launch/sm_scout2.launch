@@ -30,6 +30,9 @@
     <!-- sensor_fusion launch file -->
     <include file="$(find sensor_fusion)/launch/sensor_fusion.launch"/>
 
+    <!-- localization_watchdog launch file -->
+    <include file="$(find localization_watchdog)/launch/localization_watchdog.launch"/>
+
     <!-- scout_move_base launch files -->
     <include file="$(find src2_move_base)/launch/scout2_map_server.launch"/>
     <include file="$(find src2_move_base)/launch/scout2_move_base.launch"/>

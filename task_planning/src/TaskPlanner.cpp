@@ -203,7 +203,7 @@ namespace mac
     {
       for (auto &vol : volatile_map_.vol)
       {
-        if(robot.type == mac::EXCAVATOR && vol.robot_id_assigned == robot.id && !vol.attempted )
+        if (robot.type == mac::EXCAVATOR && vol.robot_id_assigned == robot.id && !vol.attempted)
         {
           robot.plan.push_back(vol.position);
           robot.volatile_indices.push_back(vol.vol_index);
@@ -232,7 +232,7 @@ namespace mac
 
     if (volatile_map_.vol.size() == 1)
     {
-      if(volatile_map_.vol[0].honed)
+      if (volatile_map_.vol[0].honed)
       {
         min_D = 500;
         min_ind = 0;
@@ -257,15 +257,15 @@ namespace mac
         robots_[first_exc_ind].volatile_indices.push_back(volatile_map_.vol[0].vol_index);
       }
     }
-    else if  (temp_map.vol.size() > 0)
+    else if (temp_map.vol.size() > 0)
     {
       exc1_ind = get_robot_index(mac::EXCAVATOR, 1);
       exc2_ind = get_robot_index(mac::EXCAVATOR, 2);
 
-      flag_exc1_has_plan = (robots_[exc1_ind].plan.size()>0);
-      flag_exc2_has_plan = (robots_[exc2_ind].plan.size()>0);
+      flag_exc1_has_plan = (robots_[exc1_ind].plan.size() > 0);
+      flag_exc2_has_plan = (robots_[exc2_ind].plan.size() > 0);
 
-      if(!flag_exc1_has_plan && !flag_exc2_has_plan)
+      if (!flag_exc1_has_plan && !flag_exc2_has_plan)
       {
         // Calculate closest vol to excavator 1
         x = robots_[exc1_ind].odom.pose.pose.position.x;
@@ -309,9 +309,9 @@ namespace mac
         min_D2 = min_D;
         min_ind2 = min_ind;
         // If both have the same volatile as the closest
-        if(min_ind2 == min_ind1)
+        if (min_ind2 == min_ind1)
         {
-          if(min_D1<min_D2)
+          if (min_D1 < min_D2)
           {
             // If its closer to excavator 1
             // Give excavator 1 the closest to both
@@ -321,7 +321,7 @@ namespace mac
             temp_map.vol.erase(temp_map.vol.begin() + min_ind1);
             temp_volatile_indices.erase(temp_volatile_indices.begin() + min_ind1);
 
-            if(temp_map.vol.size()>0)
+            if (temp_map.vol.size() > 0)
             {
               // Give excavator 2 its second closest
               x = robots_[exc2_ind].odom.pose.pose.position.x;
@@ -355,7 +355,7 @@ namespace mac
             temp_map.vol.erase(temp_map.vol.begin() + min_ind2);
             temp_volatile_indices.erase(temp_volatile_indices.begin() + min_ind2);
 
-            if(temp_map.vol.size()>0)
+            if (temp_map.vol.size() > 0)
             {
               // Give excavator 1 its second closest
               x = robots_[exc1_ind].odom.pose.pose.position.x;
@@ -554,7 +554,6 @@ namespace mac
       robots_[robot_ind].plan.push_back(temp);
       robots_[robot_ind].current_task = act.code;
     }
-
   }
 
   /////////////////////////////////////////////////////////////////////
@@ -652,32 +651,31 @@ namespace mac
   //ROS_DEBUG("%d",msg->data);
 
 }*/
-bool TaskPlanner::dumpRequestService(task_planning::DumpCoordination::Request &req, task_planning::DumpCoordination::Response &res)
-{
-  // a hauler wants to dump, and the other hauler has not set the flag
-  // accept the request and set the hauler dumping true
-  if(req.dump_request && !hauler_dumping)
+  bool TaskPlanner::dumpRequestService(task_planning::DumpCoordination::Request &req, task_planning::DumpCoordination::Response &res)
   {
-    hauler_dumping = true;
-    res.request_accepted = true;
+    // a hauler wants to dump, and the other hauler has not set the flag
+    // accept the request and set the hauler dumping true
+    if (req.dump_request && !hauler_dumping)
+    {
+      hauler_dumping = true;
+      res.request_accepted = true;
+    }
+    // a hauler wants to dump, but the flag that the other hauler is set is already true_pose
+    // deny the request
+    else if (req.dump_request && hauler_dumping)
+    {
+      res.request_accepted = false;
+    }
+    // any hauler can change the status to no longer dumping anytime they want
+    else if (!req.dump_request)
+    {
+      hauler_dumping = false;
+      res.request_accepted = true;
+    }
 
+    return true;
   }
-  // a hauler wants to dump, but the flag that the other hauler is set is already true_pose
-  // deny the request
-  else if(req.dump_request && hauler_dumping)
-  {
-    res.request_accepted = false;
-
-  }
-  // any hauler can change the status to no longer dumping anytime they want
-  else if(!req.dump_request)
-  {
-    hauler_dumping = false;
-    res.request_accepted = true;
-  }
-
-  return true;
- }
+  
   bool TaskPlanner::taskPlanService(task_planning::PlanInfo::Request &req, task_planning::PlanInfo::Response &res)
   {
     // ROS_ERROR_STREAM("[TASK PLANNER] [" << plan_call_counter << "] Planning started.");
@@ -869,11 +867,11 @@ bool TaskPlanner::dumpRequestService(task_planning::DumpCoordination::Request &r
 
     if (index_pub_scout != 1)
     {
-      this->server_task_planner = nh_.advertiseService("/task_planner_scout", &TaskPlanner::taskPlanService, this);
+      this->server_task_planner = nh_.advertiseService("/task_planner/scout", &TaskPlanner::taskPlanService, this);
     }
     else
     {
-      this->server_task_planner = nh_.advertiseService("/task_planner_exc_haul", &TaskPlanner::taskPlanService, this);
+      this->server_task_planner = nh_.advertiseService("/task_planner/exc_haul", &TaskPlanner::taskPlanService, this);
     }
 
     pub_interrupt = nh_.advertise<std_msgs::Bool>("planner_interrupt", 1);
@@ -883,7 +881,7 @@ bool TaskPlanner::dumpRequestService(task_planning::DumpCoordination::Request &r
     forward_search_.set_cost_function(cost_function);
     forward_search_.set_planning_params(planning_params);
 
-    server_dump_request = nh_.advertiseService("/hauler_dump_request",&TaskPlanner::dumpRequestService,this);
+    server_dump_request = nh_.advertiseService("/task_planner/dump_coordination", &TaskPlanner::dumpRequestService, this);
   }
 
   /////////////////////////////////////////////////////////////////////
