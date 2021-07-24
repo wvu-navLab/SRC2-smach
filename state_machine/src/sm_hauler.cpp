@@ -42,7 +42,7 @@ move_base_state_(actionlib::SimpleClientGoalState::PREEMPTED)
   localization_sub  = nh.subscribe("localization/odometry/sensor_fusion", 1, &SmHauler::localizationCallback, this);
   driving_mode_sub = nh.subscribe("driving/driving_mode",1, &SmHauler::drivingModeCallback, this);
   laser_scan_sub = nh.subscribe("laser/scan",1, &SmHauler::laserCallback, this);
-  planner_interrupt_sub = nh.subscribe("/planner_interrupt", 1, &SmHauler::plannerInterruptCallback, this);
+  planner_interrupt_sub = nh.subscribe("/task_planner/interrupt", 1, &SmHauler::plannerInterruptCallback, this);
   system_monitor_sub =nh.subscribe("system_monitor",1, &SmHauler::systemMonitorCallback, this);
   init_attitude_sub =nh.subscribe("/initial_attitude",1, &SmHauler::initialAttitudeCallback, this);
   for (int i=0; i<num_excavators_; i++)
@@ -78,7 +78,7 @@ move_base_state_(actionlib::SimpleClientGoalState::PREEMPTED)
   clt_find_excavator = nh.serviceClient<move_excavator::FindExcavator>("manipulation/find_excavator");
   clt_go_to_goal = nh.serviceClient<waypoint_nav::GoToGoal>("navigation/go_to_goal");
   clt_find_object = nh.serviceClient<src2_object_detection::FindObject>("/find_object");
-  clt_dump_coordination = nh.serviceClient<task_planning::PlanInfo>("/task_planner/dump_coordination");
+  clt_dump_coordination = nh.serviceClient<task_planning::DumpCoordination>("/task_planner/dump_coordination");
 
   map_timer = ros::Time::now();
   wp_checker_timer=  ros::Time::now();

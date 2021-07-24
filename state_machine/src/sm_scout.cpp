@@ -17,9 +17,9 @@ move_base_state_(actionlib::SimpleClientGoalState::PREEMPTED)
   volatile_sensor_sub = nh.subscribe("volatile_sensor", 1, &SmScout::volatileSensorCallback, this);
   volatile_cmd_sub = nh.subscribe("volatile_map/cmd", 1, &SmScout::volatileCmdCallback, this);
   localization_sub  = nh.subscribe("localization/odometry/sensor_fusion", 1, &SmScout::localizationCallback, this);
-  driving_mode_sub =nh.subscribe("driving/driving_mode_",1, &SmScout::drivingModeCallback, this);
+  driving_mode_sub =nh.subscribe("driving/driving_mode",1, &SmScout::drivingModeCallback, this);
   laser_scan_sub =nh.subscribe("laser/scan",1, &SmScout::laserCallback, this);
-  planner_interrupt_sub = nh.subscribe("/planner_interrupt", 1, &SmScout::plannerInterruptCallback, this);
+  planner_interrupt_sub = nh.subscribe("/task_planner/interrupt", 1, &SmScout::plannerInterruptCallback, this);
   system_monitor_sub =nh.subscribe("system_monitor",1, &SmScout::systemMonitorCallback, this);
   init_attitude_sub =nh.subscribe("/initial_attitude",1, &SmScout::initialAttitudeCallback, this);
 

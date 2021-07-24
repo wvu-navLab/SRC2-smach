@@ -44,7 +44,7 @@ move_base_state_(actionlib::SimpleClientGoalState::PREEMPTED)
   bucket_info_sub = nh.subscribe("scoop_info", 1, &SmExcavator::bucketCallback, this);
   goal_volatile_sub = nh.subscribe("manipulation/volatile_pose", 1, &SmExcavator::goalVolatileCallback, this);
   manipulation_cmd_sub = nh.subscribe("manipulation/cmd", 1, &SmExcavator::manipulationCmdCallback, this);
-  planner_interrupt_sub = nh.subscribe("/planner_interrupt", 1, &SmExcavator::plannerInterruptCallback, this);
+  planner_interrupt_sub = nh.subscribe("/task_planner/interrupt", 1, &SmExcavator::plannerInterruptCallback, this);
   system_monitor_sub =nh.subscribe("system_monitor",1, &SmExcavator::systemMonitorCallback, this);
   init_attitude_sub =nh.subscribe("/initial_attitude",1, &SmExcavator::initialAttitudeCallback, this);
   for (int i=0; i<num_haulers_; i++)

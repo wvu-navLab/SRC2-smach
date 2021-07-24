@@ -874,7 +874,7 @@ namespace mac
       this->server_task_planner = nh_.advertiseService("/task_planner/exc_haul", &TaskPlanner::taskPlanService, this);
     }
 
-    pub_interrupt = nh_.advertise<std_msgs::Bool>("planner_interrupt", 1);
+    pub_interrupt = nh_.advertise<std_msgs::Bool>("/task_planner/interrupt", 1);
 
     this->populate_prior_plan();
 
