@@ -54,7 +54,7 @@
     <include file="$(find waypoint_checker)/launch/waypoint_checker.launch"/>
 
     <!-- state machine for scout -->
-    <include file="$(find state_machine)/launch/scout_state_machine.launch"/>
+    <!-- <include file="$(find state_machine)/launch/scout_state_machine.launch"/> -->
   </group>
 
 </launch>
