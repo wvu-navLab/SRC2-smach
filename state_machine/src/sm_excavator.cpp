@@ -321,7 +321,6 @@ void SmExcavator::statePlanning()
       ros::Duration(3).sleep();
     }
 
-    map_timer =ros::Time::now();
     SetMoveBaseGoal();
 
     progress = 1.0;
@@ -385,7 +384,17 @@ void SmExcavator::stateTraverse()
         RotateToHeading(yaw_ + M_PI_2);
         Stop(0.1);
         ClearCostmaps(5.0);
-        map_timer =ros::Time::now();
+        SetMoveBaseGoal();
+      }
+
+      ros::Duration timeoutWaypoint(480.0);
+      if(move_base_state_ == actionlib::SimpleClientGoalState::PREEMPTED && ros::Time::now() - waypoint_timer > timeoutWaypoint)
+      {
+        CancelMoveBaseGoal();
+        ros::spinOnce();
+        RotateToHeading(yaw_ + M_PI_2);
+        Stop(0.1);
+        ClearCostmaps(5.0);
         SetMoveBaseGoal();
       }
     }
@@ -1026,13 +1035,14 @@ void SmExcavator::CancelMoveBaseGoal()
 
 void SmExcavator::SetMoveBaseGoal()
 {
+  map_timer =ros::Time::now();
+  waypoint_timer =ros::Time::now();
   move_base_msgs::MoveBaseGoal move_base_goal;
   ac.waitForServer();
   SetPoseGoal(move_base_goal, goal_pose_.position.x, goal_pose_.position.y, goal_yaw_);
   ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Sending goal to MoveBase: (x,y): ("
                                       << move_base_goal.target_pose.pose.position.x << ","
                                       << move_base_goal.target_pose.pose.position.y << ").");
-  waypoint_timer = ros::Time::now();
   ac.sendGoal(move_base_goal, boost::bind(&SmExcavator::doneCallback, this,_1,_2), boost::bind(&SmExcavator::activeCallback, this), boost::bind(&SmExcavator::feedbackCallback, this,_1));
   ac.waitForResult(ros::Duration(0.25));
 }

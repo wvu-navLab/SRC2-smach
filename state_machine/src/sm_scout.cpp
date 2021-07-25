@@ -772,13 +772,14 @@ void SmScout::CancelMoveBaseGoal()
 
 void SmScout::SetMoveBaseGoal()
 {
+  map_timer =ros::Time::now();
+  waypoint_timer =ros::Time::now();
   move_base_msgs::MoveBaseGoal move_base_goal;
   ac.waitForServer();
   SetPoseGoal(move_base_goal, goal_pose_.position.x, goal_pose_.position.y, goal_yaw_);
   ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Sending goal to MoveBase: (x,y): ("
                                       << move_base_goal.target_pose.pose.position.x << ","
                                       << move_base_goal.target_pose.pose.position.y << ").");
-  waypoint_timer = ros::Time::now();
   ac.sendGoal(move_base_goal, boost::bind(&SmScout::doneCallback, this,_1,_2), boost::bind(&SmScout::activeCallback, this), boost::bind(&SmScout::feedbackCallback, this,_1));
   ac.waitForResult(ros::Duration(0.25));
 }
