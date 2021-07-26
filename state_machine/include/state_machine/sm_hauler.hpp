@@ -290,4 +290,5 @@ public:
   state_machine::ExcavationStatus partner_excavation_status_;
 
   int previous_scoop_counter = 0;
+  double parking_left_offset = 0.0;
 };

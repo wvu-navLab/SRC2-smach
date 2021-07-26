@@ -676,14 +676,13 @@ void SmScout::localizationCallback(const nav_msgs::Odometry::ConstPtr& msg)
 
 void SmScout::activeCallback()
 {
-
 }
 
 
 void SmScout::watchdogCallback(const localization_watchdog::WatchdogStatus::ConstPtr& msg)
 {
-  flag_wasted = msg->wasted;
-  flag_immobile = msg->immobile;
+  flag_wasted = msg->wasted.data;
+  flag_immobile = msg->immobile.data;
 }
 
 void SmScout::laserCallback(const sensor_msgs::LaserScan::ConstPtr& msg)

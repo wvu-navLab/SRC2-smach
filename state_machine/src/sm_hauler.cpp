@@ -497,6 +497,14 @@ void SmHauler::stateVolatileHandler()
     ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Excavation. Approaching the Excavator side are!");
 
     goal_pose_.position = partner_excavation_status_.parking_pose.position;
+    if(partner_excavation_status_.parking_side == -1)
+    { 
+      parking_left_offset = 0.0;
+    }
+    else
+    {
+      parking_left_offset = 0.4;
+    }
 
     ClearCostmaps(5.0);
 
@@ -567,14 +575,14 @@ void SmHauler::stateVolatileHandler()
         {
           ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Excavation. Obtained goal from LaserScan");
           SetPowerMode(false);
-          flag_parked_hauler = GoToWaypoint(1.5, 1.0);
+          flag_parked_hauler = GoToWaypoint(1.5 + parking_left_offset, 1.0);
           SetPowerMode(true);
           Stop(0.1);
         }
         else
         {
           ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Excavation. Obtained goal from Bucket detection");
-          flag_parked_hauler = GoToWaypoint(1.3, -0.3);
+          flag_parked_hauler = GoToWaypoint(1.3 + parking_left_offset, -0.3);
           Stop(0.1);
         }
         PublishHaulerStatus();
@@ -585,7 +593,7 @@ void SmHauler::stateVolatileHandler()
       {
         ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Excavation. Other methods failed, trying Approach again.");
         SetPowerMode(false);
-        flag_located_excavator = ApproachExcavator(1, 1.5);
+        flag_located_excavator = ApproachExcavator(1 + parking_left_offset, 1.5);
         SetPowerMode(true);
         CommandCamera(0,0,0.1);
         Stop(0.1);

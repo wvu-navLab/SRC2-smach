@@ -776,8 +776,8 @@ void SmExcavator::feedbackCallback(const move_base_msgs::MoveBaseFeedback::Const
 
 void SmExcavator::watchdogCallback(const localization_watchdog::WatchdogStatus::ConstPtr& msg)
 {
-  flag_wasted = msg->wasted;
-  flag_immobile = msg->immobile;
+  flag_wasted = msg->wasted.data;
+  flag_immobile = msg->immobile.data;
 }
 
 void SmExcavator::jointStateCallback(const sensor_msgs::JointState::ConstPtr &msg)
