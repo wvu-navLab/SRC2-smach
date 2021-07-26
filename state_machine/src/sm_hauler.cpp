@@ -331,12 +331,16 @@ void SmHauler::statePlanning()
   {
     ROS_WARN_STREAM("[" << robot_name_ << "] " <<"New objective.");
     goal_yaw_ = atan2(goal_pose_.position.y - current_pose_.position.y, goal_pose_.position.x - current_pose_.position.x);
+    
+    SetPowerMode(false);
 
     Brake (0.0);
     RotateToHeading(goal_yaw_);
     Stop(0.1);
     BrakeRamp(100, 1, 0);
     Brake(0.0);
+
+    SetPowerMode(true);
 
     // CheckWaypoint(3); // TODO: Check if they needed
 
@@ -514,6 +518,8 @@ void SmHauler::stateVolatileHandler()
 
     ClearCostmaps(5.0);
 
+    SetPowerMode(false);
+
     SetMoveBaseGoal();
 
     flag_approaching_side = true;
@@ -544,14 +550,17 @@ void SmHauler::stateVolatileHandler()
 
       tf2::Matrix3x3(q).getRPY(roll, pitch, yaw);
 
+      SetPowerMode(false);
+
       ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Rotating in the direction of the excavator. Goal yaw: " << yaw);
       RotateToHeading(yaw);
       Stop(0.1);
       // ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Rotated to yaw: " << yaw_);
 
-      SetPowerMode(false);
       flag_approached_excavator = ApproachExcavator(3, 3.0);
+
       SetPowerMode(true);
+
       CommandCamera(0,0,5);
 
       Stop(0.1);
@@ -588,7 +597,9 @@ void SmHauler::stateVolatileHandler()
         else
         {
           ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Excavation. Obtained goal from Bucket detection");
+          SetPowerMode(false);
           flag_parked_hauler = GoToWaypoint(1.3 + parking_left_offset, -0.3);
+          SetPowerMode(true);
           Stop(0.1);
         }
         PublishHaulerStatus();
@@ -1996,7 +2007,7 @@ bool SmHauler::HomingUpdateProcessingPlant()
 
   if (clt_homing_proc_plant.call(srv_homing_proc_plant))
   {
-    if (srv_homing.response.success)
+    if (srv_homing_proc_plant.response.success)
     {
       ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Homing [Update] successful.");
       success = true;
