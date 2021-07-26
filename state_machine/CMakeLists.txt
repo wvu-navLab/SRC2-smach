@@ -38,6 +38,7 @@ find_package(catkin REQUIRED COMPONENTS
   range_to_base
   src2_approach_services
   waypoint_nav
+  localization_watchdog
 )
 
 find_package(Eigen3 3.3 REQUIRED)
@@ -156,6 +157,7 @@ catkin_package(
   dynamic_reconfigure
   volatile_map
   task_planning
+  localization_watchdog
 #  DEPENDS system_lib
 )
 
