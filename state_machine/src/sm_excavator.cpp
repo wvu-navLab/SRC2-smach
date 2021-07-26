@@ -141,7 +141,7 @@ void SmExcavator::run()
     {
       state_to_exec.at(_initialize) = 1;
     }
-    else if(flag_emergency)
+    else if(flag_emergency || flag_wasted)
     {
       state_to_exec.at(_emergency) = 1;
     }
@@ -772,6 +772,12 @@ void SmExcavator::activeCallback()
 void SmExcavator::feedbackCallback(const move_base_msgs::MoveBaseFeedback::ConstPtr& feedback)
 {
   // ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Got feedback");
+}
+
+void SmExcavator::watchdogCallback(const localization_watchdog::WatchdogStatus::ConstPtr& msg)
+{
+  flag_wasted = msg->wasted;
+  flag_immobile = msg->immobile;
 }
 
 void SmExcavator::jointStateCallback(const sensor_msgs::JointState::ConstPtr &msg)
@@ -2101,7 +2107,8 @@ void SmExcavator::ExcavationStateMachine()
 
         waiting_hauler = ros::Time::now(); // Wait until hauler gets ready
         while(!flag_hauler_ready && (ros::Time::now() - waiting_hauler) < ros::Duration(480))
-        {
+        {        
+          PublishExcavationStatus();
           ros::Duration(1.0).sleep();
           ros::spinOnce();
         }
@@ -2177,7 +2184,8 @@ void SmExcavator::ExcavationStateMachine()
 
         waiting_hauler = ros::Time::now(); // Wait until hauler gets ready
         while(!flag_hauler_ready && (ros::Time::now() - waiting_hauler) < ros::Duration(240))
-        {
+        {        
+          PublishExcavationStatus();
           ros::Duration(1.0).sleep();
           ros::spinOnce();
         }

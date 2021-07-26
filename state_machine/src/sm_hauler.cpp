@@ -148,7 +148,7 @@ void SmHauler::run()
     {
       state_to_exec.at(_initialize) = 1;
     }
-    else if(flag_emergency)
+    else if(flag_emergency || flag_wasted)
     {
       state_to_exec.at(_emergency) = 1;
     }
@@ -315,6 +315,8 @@ void SmHauler::statePlanning()
   double progress = 0;
 
   CancelMoveBaseGoal();
+    
+  SetPowerMode(true);
 
   Plan();
 
@@ -348,6 +350,7 @@ void SmHauler::statePlanning()
       }
     }
 
+    SetPowerMode(false);
     SetMoveBaseGoal();
 
     progress = 1.0;
@@ -367,6 +370,8 @@ void SmHauler::statePlanning()
 void SmHauler::stateTraverse()
 {
   ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Traverse State");
+
+  SetPowerMode(false);
 
   move_base_state_ = ac.getState();
   ROS_INFO_STREAM("[" << robot_name_ << "] " <<"MoveBase status: "<< move_base_state_.toString()
@@ -481,6 +486,8 @@ void SmHauler::stateVolatileHandler()
   double progress = 0;
 
   CancelMoveBaseGoal();
+
+  SetPowerMode(true);
   
   flag_first_volatile = false;
 
@@ -527,7 +534,11 @@ void SmHauler::stateVolatileHandler()
       Stop(0.1);
       // ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Rotated to yaw: " << yaw_);
 
+      SetPowerMode(false);
       flag_approached_excavator = ApproachExcavator(3, 3.0);
+      SetPowerMode(true);
+      CommandCamera(0,0,5);
+
       Stop(0.1);
       flag_located_excavator = false;
       flag_parked_hauler = false;
@@ -540,19 +551,23 @@ void SmHauler::stateVolatileHandler()
 
       bool goal_from_bucket = false;
       // Trying with computer vision
-      flag_located_excavator = FindExcavator(15);
+
+      flag_located_excavator = FindExcavator(10);
       goal_from_bucket = flag_located_excavator;
       if(!flag_located_excavator)
       {
         // Trying with laser
         flag_located_excavator = LocateExcavator();
+        CommandCamera(0,0,0.1);
       }
       if(flag_located_excavator)
       {
         if(!goal_from_bucket)
         {
           ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Excavation. Obtained goal from LaserScan");
+          SetPowerMode(false);
           flag_parked_hauler = GoToWaypoint(1.5, 1.0);
+          SetPowerMode(true);
           Stop(0.1);
         }
         else
@@ -568,7 +583,10 @@ void SmHauler::stateVolatileHandler()
       if(!flag_located_excavator)
       {
         ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Excavation. Other methods failed, trying Approach again.");
+        SetPowerMode(false);
         flag_located_excavator = ApproachExcavator(1, 1.5);
+        SetPowerMode(true);
+        CommandCamera(0,0,0.1);
         Stop(0.1);
         flag_parked_hauler = true;
         PublishHaulerStatus();
@@ -604,10 +622,12 @@ void SmHauler::stateVolatileHandler()
       ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Excavation. Backing maneuver.");
       Brake(0.0);
 
+      SetPowerMode(false);
       DriveCmdVel(-0.5,0,0,3);
       Stop (0.1);
       BrakeRamp(100, 1, 0);
       Brake(0.0);
+      SetPowerMode(true);
     }
   }
 
@@ -629,6 +649,8 @@ void SmHauler::stateVolatileHandler()
     flag_localizing_volatile = false;
     flag_arrived_at_waypoint = false;
     flag_dumping = true;
+      
+    SetPowerMode(false);
 
     goal_pose_.position = proc_plant_bin_location_;
     SetMoveBaseGoal();
@@ -649,6 +671,8 @@ void SmHauler::stateLost()
   double progress = 1.0;
 
   CancelMoveBaseGoal();
+      
+  SetPowerMode(false);
 
   Stop (2.0);
 
@@ -757,6 +781,8 @@ void SmHauler::stateDump()
   ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Dumping State!");
 
   CancelMoveBaseGoal();
+      
+  SetPowerMode(true);
 
   double progress = 0.0;
 
@@ -767,6 +793,7 @@ void SmHauler::stateDump()
 
   if(flag_allowed_to_dump)
   {
+    SetPowerMode(false);
     // TODO: Approach Bin return false it's not the bin in front
     flag_dumped = ApproachBin(3);
 
@@ -799,6 +826,7 @@ void SmHauler::stateDump()
       PublishHaulerStatus();
 
       RequestDumping(false);
+      flag_allowed_to_dump = false;
 
       // RESET ALL VOL HANDLING FLAGS
       flag_approaching_side = false;
@@ -1070,6 +1098,12 @@ void SmHauler::doneCallback(const actionlib::SimpleClientGoalState& state, const
 void SmHauler::feedbackCallback(const move_base_msgs::MoveBaseFeedback::ConstPtr& feedback)
 {
   // ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Got feedback");
+}
+
+void SmHauler::watchdogCallback(const localization_watchdog::WatchdogStatus::ConstPtr& msg)
+{
+  flag_wasted = msg->wasted;
+  flag_immobile = msg->immobile;
 }
 
 void SmHauler::plannerInterruptCallback(const std_msgs::Bool::ConstPtr &msg)

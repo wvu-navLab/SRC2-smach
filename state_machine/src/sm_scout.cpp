@@ -90,7 +90,7 @@ void SmScout::run()
     {
       state_to_exec.at(_initialize) = 1;
     }
-    else if(flag_emergency)
+    else if(flag_emergency || flag_wasted)
     {
       state_to_exec.at(_emergency) = 1;
     }
@@ -224,7 +224,9 @@ void SmScout::statePlanning()
 
   double progress = 0.0;
 
-  CancelMoveBaseGoal();
+  CancelMoveBaseGoal();    
+  
+  SetPowerMode(true);
 
   Plan();
 
@@ -243,6 +245,8 @@ void SmScout::statePlanning()
     // CheckWaypoint(3); // TODO: Check if they needed
 
     ClearCostmaps(5.0);
+    
+    SetPowerMode(false);
 
     SetMoveBaseGoal();
 
@@ -672,6 +676,14 @@ void SmScout::localizationCallback(const nav_msgs::Odometry::ConstPtr& msg)
 
 void SmScout::activeCallback()
 {
+
+}
+
+
+void SmScout::watchdogCallback(const localization_watchdog::WatchdogStatus::ConstPtr& msg)
+{
+  flag_wasted = msg->wasted;
+  flag_immobile = msg->immobile;
 }
 
 void SmScout::laserCallback(const sensor_msgs::LaserScan::ConstPtr& msg)

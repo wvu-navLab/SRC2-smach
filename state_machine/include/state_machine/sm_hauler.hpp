@@ -52,6 +52,7 @@
 #include <waypoint_nav/GoToGoal.h>
 #include <move_excavator/FindExcavator.h>
 #include <src2_object_detection/FindObject.h>
+#include <localization_watchdog/WatchdogStatus.h>
 
 typedef actionlib::SimpleActionClient<move_base_msgs::MoveBaseAction> MoveBaseClient;
 
@@ -67,6 +68,7 @@ public:
   bool flag_have_true_pose = false;
   bool flag_spread_out = false;
   bool flag_emergency = false;
+  bool flag_wasted = false;
   bool flag_arrived_at_waypoint = true;
   bool flag_localizing_volatile = false;
   bool flag_recovering_localization = false;
@@ -75,6 +77,7 @@ public:
   bool flag_fallthrough_condition = false;
 
   // Secondary flag declarations
+  bool flag_immobile = false;
   bool flag_need_init_landmark = false;
   bool flag_localized_base = false;
   bool flag_full_bin = false;
@@ -164,6 +167,7 @@ public:
   void laserCallback(const sensor_msgs::LaserScan::ConstPtr& msg);
   void doneCallback(const actionlib::SimpleClientGoalState& state, const move_base_msgs::MoveBaseResultConstPtr& result);
   void feedbackCallback(const move_base_msgs::MoveBaseFeedbackConstPtr& feedback);
+  void watchdogCallback(const localization_watchdog::WatchdogStatus::ConstPtr& msg);
   void activeCallback();
   void plannerInterruptCallback(const std_msgs::Bool::ConstPtr &msg);
   void initialAttitudeCallback(const geometry_msgs::QuaternionConstPtr& msg);
