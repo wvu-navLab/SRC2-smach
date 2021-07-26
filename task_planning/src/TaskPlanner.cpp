@@ -262,7 +262,7 @@ namespace mac
       dx = volatile_map_.vol[1].position.point.x - volatile_map_.vol[0].position.point.x;
       dy = volatile_map_.vol[1].position.point.y - volatile_map_.vol[0].position.point.y;
       D = hypot(dx, dy);
-      ros::Time volatile_time = volatile_map_.vol[1].header.stamp;
+      ros::Time volatile_time = volatile_map_.vol[1].position.header.stamp;
       ros::Duration timeout(600);
       if(D > 25 || ros::Time::now() - volatile_time > timeout)
       {
