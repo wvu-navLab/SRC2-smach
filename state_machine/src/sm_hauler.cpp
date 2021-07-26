@@ -80,7 +80,7 @@ move_base_state_(actionlib::SimpleClientGoalState::PREEMPTED)
   clt_go_to_goal = nh.serviceClient<waypoint_nav::GoToGoal>("navigation/go_to_goal");
   clt_find_object = nh.serviceClient<src2_object_detection::FindObject>("/find_object");
   clt_dump_coordination = nh.serviceClient<task_planning::DumpCoordination>("/task_planner/dump_coordination");
-  clt_find_bin = nh.serviceClient<src2_approach_services::FindBin>("find_bin");
+  clt_find_bin = nh.serviceClient<src2_approach_services::FindBin>("find_bin_service");
 
   map_timer = ros::Time::now();
   wp_checker_timer =  ros::Time::now();
