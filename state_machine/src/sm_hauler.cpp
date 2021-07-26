@@ -100,7 +100,7 @@ move_base_state_(actionlib::SimpleClientGoalState::PREEMPTED)
     proc_plant_bin_location_.z = 3.60;
   }
     
-  front_of_bin_location_ = proc_plant_bin_location_
+  front_of_bin_location_ = proc_plant_bin_location_;
 
   // Local copy of the charging station location
   charging_station_location_.x = 1.25;
