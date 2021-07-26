@@ -716,8 +716,8 @@ void SmHauler::stateLost()
 
   if(approachSuccess)
   {
-    // bool homingSuccess = HomingUpdate(flag_need_init_landmark);
-    bool homingSuccess = true;
+    bool homingSuccess = HomingUpdate(flag_need_init_landmark);
+    // bool homingSuccess = true;
     if (homingSuccess)
     {
       progress = 1.0;
@@ -862,7 +862,7 @@ void SmHauler::stateDump()
     // localize bin after approaching bin
     if (flag_dumped)
     {
-      HomingUpdateProcessingPlant();
+      // HomingUpdateProcessingPlant();
 
       Brake(0.0);
 
