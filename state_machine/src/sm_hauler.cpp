@@ -1175,6 +1175,15 @@ void SmHauler::watchdogCallback(const localization_watchdog::WatchdogStatus::Con
 {
   flag_wasted = msg->wasted.data;
   flag_immobile = msg->immobile.data;
+
+  if(flag_wasted)
+  {
+    flag_emergency = true;
+  }
+  else
+  {
+    flag_emergency = false;
+  }
 }
 
 void SmHauler::plannerInterruptCallback(const std_msgs::Bool::ConstPtr &msg)

@@ -778,6 +778,15 @@ void SmExcavator::watchdogCallback(const localization_watchdog::WatchdogStatus::
 {
   flag_wasted = msg->wasted.data;
   flag_immobile = msg->immobile.data;
+  
+  if(flag_wasted)
+  {
+    flag_emergency = true;
+  }
+  else
+  {
+    flag_emergency = false;
+  }
 }
 
 void SmExcavator::jointStateCallback(const sensor_msgs::JointState::ConstPtr &msg)

@@ -685,6 +685,15 @@ void SmScout::watchdogCallback(const localization_watchdog::WatchdogStatus::Cons
   flag_wasted = msg->wasted.data;
   flag_immobile = msg->immobile.data;
 
+  if(flag_wasted)
+  {
+    flag_emergency = true;
+  }
+  else
+  {
+    flag_emergency = false;
+  }
+
   if (flag_immobile)
   {
     ROS_ERROR_STREAM("[" << robot_name_ << "] " << "Robot is stuck!");
