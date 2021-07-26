@@ -99,6 +99,8 @@ move_base_state_(actionlib::SimpleClientGoalState::PREEMPTED)
     proc_plant_bin_location_.y = 12.00;
     proc_plant_bin_location_.z = 3.60;
   }
+    
+  front_of_bin_location_ = proc_plant_bin_location_
 
   // Local copy of the charging station location
   charging_station_location_.x = 1.25;
@@ -400,6 +402,12 @@ void SmHauler::stateTraverse()
     {
       flag_approached_side = true;
       flag_approaching_side = false;
+    }
+
+    if(flag_approaching_front)
+    {
+      flag_approached_front = true;
+      flag_approaching_front = false;
     }
 
     if(flag_dumping)
@@ -812,9 +820,33 @@ void SmHauler::stateDump()
 
   CancelMoveBaseGoal();
 
-  SetPowerMode(true);
-
   double progress = 0.0;
+  
+  if(!flag_approached_front)
+  {
+    flag_approached_front = FindBin();
+
+    if(!flag_approached_front)
+    {
+      ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Dumping. Approaching the front of the processing plant bin!");
+
+      goal_pose_.position = front_of_bin_location_;
+
+      ClearCostmaps(5.0);
+
+      SetPowerMode(false);
+
+      SetMoveBaseGoal();
+
+      flag_approaching_front = true;
+      flag_arrived_at_waypoint = false;
+      flag_dumping = true;
+
+      return;
+    }
+  }
+
+  SetPowerMode(true);
 
   if(!flag_allowed_to_dump)
   {
@@ -861,6 +893,8 @@ void SmHauler::stateDump()
       flag_allowed_to_dump = false;
 
       // RESET ALL VOL HANDLING FLAGS
+      flag_approaching_front = false;
+      flag_approached_front = false;
       flag_approaching_side = false;
       flag_approached_side = false;
       flag_approached_excavator = false;
@@ -1750,6 +1784,36 @@ bool SmHauler::ApproachExcavator(int max_count, double distance_threshold)
 
   return success;
 }
+
+bool SmHauler::FindBin()
+{
+  src2_approach_services::FindBin srv_find_bin;
+  srv_find_bin.request.find_bin.data = true;
+  bool success = true;
+  if (clt_find_bin.call(srv_find_bin))
+  {
+    ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Called service FindBin.");
+    success = srv_find_bin.response.success.data;
+    if(success)
+    {
+      ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Not necessary to use an intermediate waypoint before dumping.");
+    }
+    else
+    {
+      ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Sending an intermediate waypoint before dumping.");
+    }
+    front_of_bin_location_.x = srv_find_bin.response.x.data;
+    front_of_bin_location_.y = srv_find_bin.response.y.data;
+  }
+  else
+  {
+    ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Failed to call ApproachBin service");
+  }
+
+  return success;
+}
+
+
 
 bool SmHauler::ApproachBin(int max_count)
 {

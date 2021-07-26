@@ -2166,6 +2166,7 @@ void SmExcavator::ExcavationStateMachine()
 
       if (flag_found_hauler)
       {
+        manipulation_timer += ros::Duration(30);
         ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Excavation. Found Hauler.");
         ExecuteAfterScoop(7,0); // If the hauler was found with the service, it will scoop material and go to Home
         excavation_state_ = HOME_MODE;
