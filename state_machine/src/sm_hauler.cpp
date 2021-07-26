@@ -152,7 +152,7 @@ void SmHauler::run()
     {
       state_to_exec.at(_initialize) = 1;
     }
-    else if(flag_emergency || flag_wasted)
+    else if(flag_emergency)
     {
       state_to_exec.at(_emergency) = 1;
     }
@@ -1176,7 +1176,7 @@ void SmHauler::watchdogCallback(const localization_watchdog::WatchdogStatus::Con
   flag_wasted = msg->wasted.data;
   flag_immobile = msg->immobile.data;
 
-  if(flag_wasted)
+  if(flag_wasted && flag_spread_out)
   {
     flag_emergency = true;
   }
