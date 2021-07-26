@@ -2,7 +2,7 @@
   <group ns="small_hauler_2">
     <param name="robot_name" value="small_hauler_2" />
     <param name="robot_id" value="2" />
-    
+
     <!-- static transform from odom to map-->
     <node pkg="tf" type="static_transform_publisher" name="map_to_odom" args="0 0 0 0 0 0 map small_hauler_2_odom 10" />
 
@@ -45,6 +45,7 @@
 
     <!-- homing service -->
     <include file="$(find range_to_base)/launch/homing_service.launch"/>
+    <include file="$(find range_to_base)/launch/homing_service_processing_plant.launch"/>
     <include file="$(find sensor_fusion)/launch/homing.launch"/>
 
     <!-- ranging services -->
@@ -62,7 +63,7 @@
 
     <!-- waypoint nav -->
     <include file="$(find waypoint_nav)/launch/waypoint_nav.launch"/>
-    
+
     <!-- state machine for hauler -->
     <include file="$(find state_machine)/launch/hauler_state_machine.launch"/>
   </group>
