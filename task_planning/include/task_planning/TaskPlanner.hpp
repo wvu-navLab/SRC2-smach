@@ -152,6 +152,7 @@ class TaskPlanner {
     /** \brief  */
     void exc_haul_plan_default();
     void exc_haul_plan_default_adv();
+    void closest_volatile_to_rover(volatile_map::VolatileMap &temp_map, std::vector<int> &temp_volatile_indices);
 
     void exc_haul_plan_fs(mac::State s);
     /** \brief */

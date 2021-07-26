@@ -755,16 +755,19 @@ void SmHauler::stateLost()
       BrakeRamp(100, 1, 0);
       Brake(0.0);
     }
-
+    SetPowerMode(true);
     ClearCostmaps(5.0);
     BrakeRamp(100, 1, 0);
     Brake(0.0);
+    SetPowerMode(false);
   }
   else
-  {
+  {    
+    SetPowerMode(true);
     ClearCostmaps(5.0);
     BrakeRamp(100, 1, 0);
     Brake(0.0);
+    SetPowerMode(false);
 
     progress = -1.0;
   }
