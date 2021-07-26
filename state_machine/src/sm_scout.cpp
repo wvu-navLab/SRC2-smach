@@ -587,7 +587,7 @@ void SmScout::localizationCallback(const nav_msgs::Odometry::ConstPtr& msg)
     if (abs(pitch_ * 180 / M_PI) > 27)
     {
       ROS_ERROR_STREAM("[" << robot_name_ << "] " << "Robot Cant Climb! Pitch: " << pitch_ * 180 / M_PI);
-      ROS_ERROR_STREAM("[" << robot_name_ << "] " << "Commanding IMMOBILITY.");
+      ROS_ERROR_STREAM("[" << robot_name_ << "] " << "Commanding Recovery.");
 
       CancelMoveBaseGoal();
       Stop(0.05);
@@ -640,11 +640,11 @@ void SmScout::localizationCallback(const nav_msgs::Odometry::ConstPtr& msg)
     if (abs(roll_ * 180 / M_PI) > 27)
     {
       ROS_ERROR_STREAM("[" << robot_name_ << "] " << "Robot Cant Climb! Roll: " << roll_ * 180 / M_PI);
-      ROS_ERROR_STREAM("[" << robot_name_ << "] " << "Commanding IMMOBILITY.");
+      ROS_ERROR_STREAM("[" << robot_name_ << "] " << "Commanding Recovery.");
 
       CancelMoveBaseGoal();
       Stop(0.05);
-      Brake(1000.0);
+      Brake(200.0);
       Brake(0.0);
 
       DriveCmdVel(-0.4,0.0,0.0,3);

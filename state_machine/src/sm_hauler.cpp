@@ -80,23 +80,24 @@ move_base_state_(actionlib::SimpleClientGoalState::PREEMPTED)
   clt_go_to_goal = nh.serviceClient<waypoint_nav::GoToGoal>("navigation/go_to_goal");
   clt_find_object = nh.serviceClient<src2_object_detection::FindObject>("/find_object");
   clt_dump_coordination = nh.serviceClient<task_planning::DumpCoordination>("/task_planner/dump_coordination");
+  clt_find_bin = nh.serviceClient<src2_approach_services::FindBin>("find_bin");
 
   map_timer = ros::Time::now();
-  wp_checker_timer=  ros::Time::now();
+  wp_checker_timer =  ros::Time::now();
   laser_collision_timer = ros::Time::now();
 
   if(robot_id_ == 1)
   {
     // Local copy of the processing plant location
     proc_plant_bin_location_.x = 8.00;
-    proc_plant_bin_location_.y = 8.00;
+    proc_plant_bin_location_.y = 9.00;
     proc_plant_bin_location_.z = 3.00;
   }
   else
   {
     // Local copy of the processing plant location
     proc_plant_bin_location_.x = 8.00;
-    proc_plant_bin_location_.y = 12.00;
+    proc_plant_bin_location_.y = 11.00;
     proc_plant_bin_location_.z = 3.60;
   }
     
@@ -584,20 +585,22 @@ void SmHauler::stateVolatileHandler()
       bool goal_from_bucket = false;
       // Trying with computer vision
 
+      CommandCamera(0,0,0.1);
       flag_located_excavator = FindExcavator(10);
       goal_from_bucket = flag_located_excavator;
       if(!flag_located_excavator)
       {
         // Trying with laser
-        flag_located_excavator = LocateExcavator();
         CommandCamera(0,0,0.1);
+        flag_located_excavator = LocateExcavator();
       }
       if(flag_located_excavator)
       {
         if(!goal_from_bucket)
         {
           ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Excavation. Obtained goal from LaserScan");
-          SetPowerMode(false);
+          SetPowerMode(false);   
+          CommandCamera(0,0.05,0.1);
           flag_parked_hauler = GoToWaypoint(1.5 + parking_left_offset, 1.0);
           SetPowerMode(true);
           Stop(0.1);
@@ -606,6 +609,7 @@ void SmHauler::stateVolatileHandler()
         {
           ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Excavation. Obtained goal from Bucket detection");
           SetPowerMode(false);
+          CommandCamera(0,0.05,0.1);
           flag_parked_hauler = GoToWaypoint(1.3 + parking_left_offset, -0.3);
           SetPowerMode(true);
           Stop(0.1);
