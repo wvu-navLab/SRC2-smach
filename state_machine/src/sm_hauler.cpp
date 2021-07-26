@@ -66,7 +66,8 @@ move_base_state_(actionlib::SimpleClientGoalState::PREEMPTED)
   clt_approach_base = nh.serviceClient<src2_approach_services::ApproachChargingStation>("approach_charging_station_service");
   clt_rover_static = nh.serviceClient<sensor_fusion::RoverStatic>("sensor_fusion/toggle_rover_static");
   clt_reset_position = nh.serviceClient<sensor_fusion::ResetPosition>("sensor_fusion/reset_position");
-  clt_homing = nh.serviceClient<sensor_fusion::HomingUpdate>("homing");
+  clt_homing = nh.serviceClient<sensor_fusion::HomingUpdate>("homing");  
+  clt_homing_proc_plant = nh.serviceClient<sensor_fusion::HomingUpdateProcessingPlant>("homing_processing_plant");
   clt_sf_true_pose = nh.serviceClient<sensor_fusion::GetTruePose>("true_pose");
   clt_waypoint_checker = nh.serviceClient<waypoint_checker::CheckCollision>("waypoint_checker");
   clt_srcp2_brake_rover= nh.serviceClient<srcp2_msgs::BrakeRoverSrv>("brake_rover");
@@ -682,7 +683,8 @@ void SmHauler::stateLost()
 
   if(approachSuccess)
   {
-    bool homingSuccess = HomingUpdate(flag_need_init_landmark);
+    // bool homingSuccess = HomingUpdate(flag_need_init_landmark);
+    bool homingSuccess = true;
     if (homingSuccess)
     {
       progress = 1.0;
@@ -800,6 +802,8 @@ void SmHauler::stateDump()
     // localize bin after approaching bin
     if (flag_dumped)
     {
+      HomingUpdateProcessingPlant();
+      
       Brake(0.0);
 
       DriveCmdVel(-0.5,0.0,0.0,8);
@@ -1102,8 +1106,8 @@ void SmHauler::feedbackCallback(const move_base_msgs::MoveBaseFeedback::ConstPtr
 
 void SmHauler::watchdogCallback(const localization_watchdog::WatchdogStatus::ConstPtr& msg)
 {
-  flag_wasted = msg->wasted;
-  flag_immobile = msg->immobile;
+  flag_wasted = msg->wasted.data;
+  flag_immobile = msg->immobile.data;
 }
 
 void SmHauler::plannerInterruptCallback(const std_msgs::Bool::ConstPtr &msg)
@@ -1952,6 +1956,33 @@ bool SmHauler::HomingUpdate(bool init_landmark)
       success = true;
     }
     else if (!init_landmark && srv_homing.response.success)
+    {
+      ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Homing [Update] successful.");
+      success = true;
+    }
+    else
+    {
+      ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Homing NOT successful.");
+    }
+  }
+  else
+  {
+    ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Failed to call Homing Service.");
+  }
+  return success;
+}
+
+bool SmHauler::HomingUpdateProcessingPlant()
+{
+  sensor_fusion::HomingUpdateProcessingPlant srv_homing_proc_plant;
+  srv_homing.request.angle = pitch_ - 0.4; // pitch up is negative number
+  srv_homing.request.initializeLandmark = false;
+
+  bool success = false;
+
+  if (clt_homing_proc_plant.call(srv_homing_proc_plant))
+  {
+    if (srv_homing.response.success)
     {
       ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Homing [Update] successful.");
       success = true;

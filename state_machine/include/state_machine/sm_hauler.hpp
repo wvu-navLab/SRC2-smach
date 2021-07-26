@@ -38,6 +38,7 @@
 #include <sensor_fusion/GetTruePose.h>
 #include <sensor_fusion/ResetPosition.h>
 #include <sensor_fusion/HomingUpdate.h>
+#include <sensor_fusion/HomingUpdateProcessingPlant.h>
 #include <actionlib/client/simple_action_client.h>
 #include <actionlib/client/simple_client_goal_state.h>
 #include <dynamic_reconfigure/DoubleParameter.h>
@@ -128,6 +129,7 @@ public:
   ros::ServiceClient clt_lights;
   ros::ServiceClient clt_power;
   ros::ServiceClient clt_homing;
+  ros::ServiceClient clt_homing_proc_plant;
   ros::ServiceClient clt_approach_base;
   ros::ServiceClient clt_approach_bin;
   ros::ServiceClient clt_approach_excavator;
@@ -200,6 +202,7 @@ public:
   bool ApproachExcavator(int max_count, double distance_threshold);
   bool ApproachBin(int max_count);
   bool HomingUpdate(bool init_landmark);
+  bool HomingUpdateProcessingPlant();
   bool LocateBin();
   void ExecuteShakeBin(double time);
   bool LocateExcavator();
