@@ -269,6 +269,8 @@ void SmHauler::stateInitialize()
 
   Lights(20);
 
+  SetPowerMode(true);
+
   Stop(0.1);
   Brake(100.0);
   RoverStatic(true);
@@ -281,6 +283,7 @@ void SmHauler::stateInitialize()
   RoverStatic(false);
   if (flag_have_true_pose && !flag_spread_out)
   {
+    SetPowerMode(false);
     Brake(0.0);
     ros::spinOnce();
     if (robot_id_ == 1)
@@ -296,6 +299,9 @@ void SmHauler::stateInitialize()
     DriveCmdVel(HAULER_MAX_SPEED,0,0,12);
     Stop(0.1);
     Brake(100.0);
+    
+    SetPowerMode(true);
+
     flag_spread_out = true;
     ClearCostmaps(5.0);
   }
@@ -1983,8 +1989,8 @@ bool SmHauler::HomingUpdate(bool init_landmark)
 bool SmHauler::HomingUpdateProcessingPlant()
 {
   sensor_fusion::HomingUpdateProcessingPlant srv_homing_proc_plant;
-  srv_homing.request.angle = pitch_ - 0.4; // pitch up is negative number
-  srv_homing.request.initializeLandmark = false;
+  srv_homing_proc_plant.request.angle = pitch_ - 0.4; // pitch up is negative number
+  srv_homing_proc_plant.request.initializeLandmark = false;
 
   bool success = false;
 
