@@ -117,12 +117,6 @@ void SmExcavator::run()
   while(ros::ok())
   {
     // Debug prints +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-    // ROS_INFO_STREAM("[" << robot_name_ << "] " <<"flag_have_true_pose: " << (int)flag_have_true_pose);
-    // ROS_INFO_STREAM("[" << robot_name_ << "] " <<"flag_interrupt_plan: " << (int)flag_interrupt_plan);
-    // ROS_INFO_STREAM("[" << robot_name_ << "] " <<"flag_arrived_at_waypoint: " << (int)flag_arrived_at_waypoint);
-    // ROS_INFO_STREAM("[" << robot_name_ << "] " <<"flag_localizing_volatile: " << (int)flag_localizing_volatile);
-    // ROS_INFO_STREAM("[" << robot_name_ << "] " <<"flag_recovering_localization: " << (int)flag_recovering_localization);
-    // ROS_INFO_STREAM("[" << robot_name_ << "] " <<"flag_brake_engaged: " << (int)flag_brake_engaged);
     ROS_INFO_STREAM("[" << robot_name_ << "] Flags: T,I,E,A,L,R,B");
     ROS_INFO_STREAM("[" << robot_name_ << "] Bools: " << (int)flag_have_true_pose << ","
                                                       << (int)flag_interrupt_plan << ","
@@ -364,18 +358,6 @@ void SmExcavator::stateTraverse()
       ROS_WARN_STREAM_THROTTLE(5,"[" << robot_name_ << "] " <<"MoveBase status: "<< move_base_state_.toString());
       ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"MoveBase has failed to make itself useful.");
 
-      // flag_arrived_at_waypoint = true;
-      // flag_recovering_localization = false;
-      // flag_localizing_volatile = false;
-
-      // ClearCostmaps(5.0);  // TODO: Check if they needed
-
-      // move_base_fail_counter++;
-
-      // Stop (0.1);
-      // BrakeRamp(100, 1, 0);
-      // Brake(0.0);
-
       ros::Duration timeoutMap(5.0);
       if (ros::Time::now() - map_timer > timeoutMap)
       {
@@ -386,39 +368,18 @@ void SmExcavator::stateTraverse()
         ClearCostmaps(5.0);
         SetMoveBaseGoal();
       }
-
-      ros::Duration timeoutWaypoint(480.0);
-      if(move_base_state_ == actionlib::SimpleClientGoalState::PREEMPTED && ros::Time::now() - waypoint_timer > timeoutWaypoint)
-      {
-        CancelMoveBaseGoal();
-        ros::spinOnce();
-        RotateToHeading(yaw_ + M_PI_2);
-        Stop(0.1);
-        ClearCostmaps(5.0);
-        SetMoveBaseGoal();
-      }
     }
 
-    // ros::Duration timeoutWaypointCheck(3.0);
-    // if (ros::Time::now() - wp_checker_timer > timeoutWaypointCheck)
-    // {
-    //   CheckWaypoint(3);
-    //   wp_checker_timer = ros::Time::now();
-    // }
-
-    // ros::Duration timeoutMap(90.0);
-    // if (ros::Time::now() - map_timer > timeoutMap)
-    // {
-    //   ClearCostmaps(5.0);
-    //   map_timer =ros::Time::now();
-    // }
-
-    // ros::Duration timeoutWaypoint(120);
-    // if (ros::Time::now() - waypoint_timer > timeoutWaypoint )
-    // {
-    //   ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Waypoint reached timeout.");
-    //   ClearCostmaps(5.0);
-    // }
+    ros::Duration timeoutWaypoint(480.0);
+    if(move_base_state_ == actionlib::SimpleClientGoalState::PREEMPTED && ros::Time::now() - waypoint_timer > timeoutWaypoint)
+    {
+      CancelMoveBaseGoal();
+      ros::spinOnce();
+      RotateToHeading(yaw_ + M_PI_2);
+      Stop(0.1);
+      ClearCostmaps(5.0);
+      SetMoveBaseGoal();
+    }
   }
 
   progress = distance_to_goal;
