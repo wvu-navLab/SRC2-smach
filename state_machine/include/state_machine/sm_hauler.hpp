@@ -31,6 +31,7 @@
 #include <driving_tools/RotateInPlace.h>
 #include <src2_approach_services/ApproachChargingStation.h>
 #include <src2_approach_services/ApproachBin.h>
+#include <src2_approach_services/FindBin.h>
 #include <src2_approach_services/ApproachExcavator.h>
 #include <range_to_base/LocationOfBin.h>
 #include <range_to_base/LocationOfExcavator.h>
@@ -84,6 +85,8 @@ public:
   bool flag_full_bin = false;
   bool flag_approaching_side = false;
   bool flag_approached_side = false;
+  bool flag_approaching_front = false;
+  bool flag_approached_front = false;
   bool flag_approached_excavator = false;
   bool flag_located_excavator = false;
   bool flag_parked_hauler = false;
@@ -132,6 +135,7 @@ public:
   ros::ServiceClient clt_homing_proc_plant;
   ros::ServiceClient clt_approach_base;
   ros::ServiceClient clt_approach_bin;
+  ros::ServiceClient clt_find_bin;
   ros::ServiceClient clt_approach_excavator;
   ros::ServiceClient clt_rover_static;
   ros::ServiceClient clt_reset_position;
@@ -204,6 +208,7 @@ public:
   bool HomingUpdate(bool init_landmark);
   bool HomingUpdateProcessingPlant();
   bool LocateBin();
+  bool FindBin();
   void ExecuteShakeBin(double time);
   bool LocateExcavator();
   bool RequestDumping(bool dump_request);
@@ -231,6 +236,7 @@ public:
   geometry_msgs::Point base_location_;
   geometry_msgs::Point proc_plant_bin_location_;
   geometry_msgs::Point charging_station_location_;
+  geometry_msgs::Point front_of_bin_location_;
 
   double x_proc_plant_ = -6;
   double y_proc_plant_ = 7;
