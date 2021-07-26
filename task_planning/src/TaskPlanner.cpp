@@ -257,7 +257,7 @@ namespace mac
         robots_[first_exc_ind].volatile_indices.push_back(volatile_map_.vol[0].vol_index);
       }
     }
-    else if (volatile_map_.vol.size() == 2)
+    else if (volatile_map_.vol.size() == 2 && temp_map.size() > 0)
     {
       dx = volatile_map_.vol[1].position.point.x - volatile_map_.vol[0].position.point.x;
       dy = volatile_map_.vol[1].position.point.y - volatile_map_.vol[0].position.point.y;
