@@ -264,7 +264,7 @@ namespace mac
       D = hypot(dx, dy);
       ros::Time volatile_time = volatile_map_.vol[1].header.stamp;
       ros::Duration timeout(600);
-      if(D > 25 || ros::time::Now() - volatile_time > timeout)
+      if(D > 25 || ros::Time::now() - volatile_time > timeout)
       {
         closest_volatile_to_rover(temp_map, temp_volatile_indices);
       }
@@ -285,14 +285,14 @@ namespace mac
       if(D1 > D2)
       {
         robots_[exc_ind].plan.push_back(volatile_map_.vol[1].position);
-        robots_[exc_ind].volatile_indices.push_back(volatile_indices[1]);
+        robots_[exc_ind].volatile_indices.push_back(volatile_map_.vol[1].vol_index);
       }
       else
       {
         robots_[exc_ind].plan.push_back(volatile_map_.vol[2].position);
-        robots_[exc_ind].volatile_indices.push_back(volatile_indices[2]);
+        robots_[exc_ind].volatile_indices.push_back(volatile_map_.vol[2].vol_index);
       }
-    } 
+    }
     else if (temp_map.vol.size() > 0)
     {
       closest_volatile_to_rover(temp_map, temp_volatile_indices);
@@ -654,7 +654,7 @@ namespace mac
 
     return true;
   }
-  
+
   bool TaskPlanner::taskPlanService(task_planning::PlanInfo::Request &req, task_planning::PlanInfo::Response &res)
   {
     // ROS_ERROR_STREAM("[TASK PLANNER] [" << plan_call_counter << "] Planning started.");
