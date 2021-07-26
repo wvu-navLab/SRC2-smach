@@ -1865,7 +1865,7 @@ bool SmExcavator::FindHauler(double timeout)
     }
 
     double offset_heading = atan2(offset_bucket_to_bucket_center, relative_range_);
-    relative_heading_ += offset_heading;
+    relative_heading_ -= offset_heading;
 
     ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Excavation. Target bin updated. Point (x,y,z): (" 
                                                << bin_point_.point.x << ","

@@ -522,7 +522,7 @@ void SmHauler::stateVolatileHandler()
     }
     else
     {
-      parking_left_offset = 0.4;
+      parking_left_offset = 0.2;
     }
 
     ClearCostmaps(5.0);
