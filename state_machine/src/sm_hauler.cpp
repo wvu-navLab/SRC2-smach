@@ -66,7 +66,7 @@ move_base_state_(actionlib::SimpleClientGoalState::PREEMPTED)
   clt_approach_base = nh.serviceClient<src2_approach_services::ApproachChargingStation>("approach_charging_station_service");
   clt_rover_static = nh.serviceClient<sensor_fusion::RoverStatic>("sensor_fusion/toggle_rover_static");
   clt_reset_position = nh.serviceClient<sensor_fusion::ResetPosition>("sensor_fusion/reset_position");
-  clt_homing = nh.serviceClient<sensor_fusion::HomingUpdate>("homing");  
+  clt_homing = nh.serviceClient<sensor_fusion::HomingUpdate>("homing");
   clt_homing_proc_plant = nh.serviceClient<sensor_fusion::HomingUpdateProcessingPlant>("homing_processing_plant");
   clt_sf_true_pose = nh.serviceClient<sensor_fusion::GetTruePose>("true_pose");
   clt_waypoint_checker = nh.serviceClient<waypoint_checker::CheckCollision>("waypoint_checker");
@@ -299,7 +299,7 @@ void SmHauler::stateInitialize()
     DriveCmdVel(HAULER_MAX_SPEED,0,0,12);
     Stop(0.1);
     Brake(100.0);
-    
+
     SetPowerMode(true);
 
     flag_spread_out = true;
@@ -322,7 +322,7 @@ void SmHauler::statePlanning()
   double progress = 0;
 
   CancelMoveBaseGoal();
-    
+
   SetPowerMode(true);
 
   Plan();
@@ -331,7 +331,7 @@ void SmHauler::statePlanning()
   {
     ROS_WARN_STREAM("[" << robot_name_ << "] " <<"New objective.");
     goal_yaw_ = atan2(goal_pose_.position.y - current_pose_.position.y, goal_pose_.position.x - current_pose_.position.x);
-    
+
     SetPowerMode(false);
 
     Brake (0.0);
@@ -499,7 +499,7 @@ void SmHauler::stateVolatileHandler()
   CancelMoveBaseGoal();
 
   SetPowerMode(true);
-  
+
   flag_first_volatile = false;
 
   if(!flag_approached_side && partner_excavation_status_.found_parking_site.data)
@@ -507,8 +507,8 @@ void SmHauler::stateVolatileHandler()
     ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Excavation. Approaching the Excavator side are!");
 
     goal_pose_.position = partner_excavation_status_.parking_pose.position;
-    if(partner_excavation_status_.parking_side == -1)
-    { 
+    if(partner_excavation_status_.parking_side.data == -1)
+    {
       parking_left_offset = 0.0;
     }
     else
@@ -675,7 +675,7 @@ void SmHauler::stateVolatileHandler()
     flag_localizing_volatile = false;
     flag_arrived_at_waypoint = false;
     flag_dumping = true;
-      
+
     SetPowerMode(false);
 
     goal_pose_.position = proc_plant_bin_location_;
@@ -697,7 +697,7 @@ void SmHauler::stateLost()
   double progress = 1.0;
 
   CancelMoveBaseGoal();
-      
+
   SetPowerMode(false);
 
   Stop (2.0);
@@ -808,7 +808,7 @@ void SmHauler::stateDump()
   ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Dumping State!");
 
   CancelMoveBaseGoal();
-      
+
   SetPowerMode(true);
 
   double progress = 0.0;
@@ -828,7 +828,7 @@ void SmHauler::stateDump()
     if (flag_dumped)
     {
       HomingUpdateProcessingPlant();
-      
+
       Brake(0.0);
 
       DriveCmdVel(-0.5,0.0,0.0,8);
@@ -878,7 +878,7 @@ void SmHauler::stateDump()
       progress = -1.0;
     }
   }
-  
+
   state_machine::RobotStatus status_msg;
   status_msg.progress.data = progress;
   status_msg.state.data = (uint8_t) _hauler_dumping;
@@ -974,7 +974,7 @@ void SmHauler::localizationCallback(const nav_msgs::Odometry::ConstPtr& msg)
         flag_recovering_localization = true;
         flag_localizing_volatile = false;
       }
-    
+
       ClearCostmaps(5.0);
       SetMoveBaseGoal();
     }
