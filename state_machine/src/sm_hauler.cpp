@@ -1788,7 +1788,7 @@ bool SmHauler::ApproachExcavator(int max_count, double distance_threshold)
 bool SmHauler::FindBin()
 {
   src2_approach_services::FindBin srv_find_bin;
-  srv_find_bin.request.find_bin.data = true;
+  srv_find_bin.request.data.data = true;
   bool success = true;
   if (clt_find_bin.call(srv_find_bin))
   {

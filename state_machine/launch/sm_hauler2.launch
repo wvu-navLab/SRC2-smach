@@ -44,13 +44,12 @@
     <include file="$(find laser_tools_src2)/launch/hauler2_laser_tools.launch"/>
 
     <!-- homing service -->
-    <include file="$(find range_to_base)/launch/homing_service.launch"/>
     <include file="$(find sensor_fusion)/launch/homing.launch"/>
+    <include file="$(find range_to_base)/launch/homing_service.launch"/>
 
     <!-- ranging services -->
     <include file="$(find range_to_base)/launch/location_of_excavator_service.launch"/>
     <include file="$(find range_to_base)/launch/location_of_bin_service.launch"/>
-    <include file="$(find range_to_base)/launch/location_of_processing_plant_service.launch"/>
     <include file="$(find range_to_base)/launch/range_to_base_service.launch"/>
 
    <!-- approach services -->
