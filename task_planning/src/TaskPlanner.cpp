@@ -257,14 +257,14 @@ namespace mac
         robots_[first_exc_ind].volatile_indices.push_back(volatile_map_.vol[0].vol_index);
       }
     }
-    else if (volatile_map_.vol.size() == 2)
+    else if (volatile_map_.vol.size() == 2 && temp_map.vol.size() > 0)
     {
       dx = volatile_map_.vol[1].position.point.x - volatile_map_.vol[0].position.point.x;
       dy = volatile_map_.vol[1].position.point.y - volatile_map_.vol[0].position.point.y;
       D = hypot(dx, dy);
-      ros::Time volatile_time = volatile_map_.vol[1].header.stamp;
+      ros::Time volatile_time = volatile_map_.vol[1].position.header.stamp;
       ros::Duration timeout(600);
-      if(D > 25 || ros::time::Now() - volatile_time > timeout)
+      if(D > 25 || ros::Time::now() - volatile_time > timeout)
       {
         closest_volatile_to_rover(temp_map, temp_volatile_indices);
       }
@@ -285,14 +285,14 @@ namespace mac
       if(D1 > D2)
       {
         robots_[exc_ind].plan.push_back(volatile_map_.vol[1].position);
-        robots_[exc_ind].volatile_indices.push_back(volatile_indices[1]);
+        robots_[exc_ind].volatile_indices.push_back(volatile_map_.vol[1].vol_index);
       }
       else
       {
         robots_[exc_ind].plan.push_back(volatile_map_.vol[2].position);
-        robots_[exc_ind].volatile_indices.push_back(volatile_indices[2]);
+        robots_[exc_ind].volatile_indices.push_back(volatile_map_.vol[2].vol_index);
       }
-    } 
+    }
     else if (temp_map.vol.size() > 0)
     {
       closest_volatile_to_rover(temp_map, temp_volatile_indices);
@@ -654,7 +654,7 @@ namespace mac
 
     return true;
   }
-  
+
   bool TaskPlanner::taskPlanService(task_planning::PlanInfo::Request &req, task_planning::PlanInfo::Response &res)
   {
     // ROS_ERROR_STREAM("[TASK PLANNER] [" << plan_call_counter << "] Planning started.");
