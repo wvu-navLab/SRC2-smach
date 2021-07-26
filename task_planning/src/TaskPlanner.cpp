@@ -213,8 +213,13 @@ namespace mac
 
     volatile_map::VolatileMap temp_map;
     std::vector<int> temp_volatile_indices;
+    int number_vols_assigned = 0;
     for (auto &vol : volatile_map_.vol)
     {
+      if (vol.robot_id_assigned != 0)
+      {
+        number_vols_assigned = number_vols_assigned + 1;
+      }
       if (vol.attempted || !vol.honed || vol.robot_id_assigned)
       {
         continue;
@@ -269,7 +274,7 @@ namespace mac
         closest_volatile_to_rover(temp_map, temp_volatile_indices);
       }
     }
-    else if (volatile_map_.vol.size() == 3 && temp_map.vol.size() == 2)
+    else if (volatile_map_.vol.size() == 3 && number_vols_assigned == 1)
     {
       double dx1 = volatile_map_.vol[1].position.point.x - volatile_map_.vol[0].position.point.x;
       double dy1 = volatile_map_.vol[1].position.point.y - volatile_map_.vol[0].position.point.y;
