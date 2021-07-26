@@ -215,32 +215,32 @@ void SmExcavator::stateInitialize()
 
   while (!clt_lights.waitForExistence())
   {
-      ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Waiting for Lights");
+    ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Waiting for Lights");
   }
 
   while (!clt_home_arm.waitForExistence())
   {
-    ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Waiting for HomeArm service");
+    ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Waiting for HomeArm service");
   }
 
   while (!clt_sf_true_pose.waitForExistence())
   {
-    ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Waiting for TruePose service");
+    ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Waiting for TruePose service");
   }
 
   while (!clt_where_hauler.waitForExistence())
   {
-    ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Waiting for WhereToParkHauler service");
+    ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Waiting for WhereToParkHauler service");
   }
 
   while (!clt_approach_base.waitForExistence())
   {
-    ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Waiting for ApproachChargingStation service");
+    ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Waiting for ApproachChargingStation service");
   }
 
   while (!clt_find_object.waitForExistence())
   {
-    ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Waiting for FindObject service");
+    ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Waiting for FindObject service");
   }
 
   double progress = 0;
@@ -301,7 +301,7 @@ void SmExcavator::statePlanning()
 
   if (!no_objective)
   {
-    ROS_WARN_STREAM("[" << robot_name_ << "] " <<"New objective.");
+    ROS_INFO_STREAM("[" << robot_name_ << "] " <<"New objective.");
     goal_yaw_ = atan2(goal_pose_.position.y - current_pose_.position.y, goal_pose_.position.x - current_pose_.position.x);
 
     Brake (0.0);
@@ -347,7 +347,7 @@ void SmExcavator::stateTraverse()
   SetPowerMode(false);
 
   move_base_state_ = ac.getState();
-  ROS_WARN_STREAM("[" << robot_name_ << "] " <<"MoveBase status: "<< (std::string) move_base_state_.toString()
+  ROS_INFO_STREAM("[" << robot_name_ << "] " <<"MoveBase status: "<< (std::string) move_base_state_.toString()
                       << ". Goal: (" << goal_pose_.position.x << "," << goal_pose_.position.y <<").");
 
   double distance_to_goal = std::hypot(goal_pose_.position.y - current_pose_.position.y, goal_pose_.position.x - current_pose_.position.x);
@@ -431,7 +431,7 @@ void SmExcavator::stateTraverse()
 
 void SmExcavator::stateVolatileHandler()
 {
-  ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Volatile Handling State!");
+  ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Volatile Handling State!");
 
   double progress = 0;
 
@@ -443,7 +443,7 @@ void SmExcavator::stateVolatileHandler()
   // manipulation will be enabled at first time
   if(!flag_manipulation_enabled && !flag_manipulation_interrupt)
   {
-    ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Excavation State Machine enabled.");
+    ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Excavation State Machine enabled.");
     manipulation_timer = ros::Time::now();
     flag_manipulation_enabled = true;
     excavation_counter_ = 0;
@@ -493,7 +493,7 @@ void SmExcavator::stateVolatileHandler()
 
 void SmExcavator::stateLost()
 {
-  ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"LOST STATE!");
+  ROS_WARN_STREAM("[" << robot_name_ << "] " <<"LOST STATE!");
 
   double progress = 0.0;
 
@@ -2147,6 +2147,8 @@ void SmExcavator::ExcavationStateMachine()
         SetPowerMode(true);
       // }
 
+      PublishExcavationStatus();
+
       ExecuteScoop(6,0,volatile_heading_);
 
       ros::spinOnce();
@@ -2303,7 +2305,7 @@ void SmExcavator::PublishExcavationStatus()
 
   excavation_status_pub.publish(msg);
 
-  ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Excavation. Publishing Excavation State Machine Status.");
+  ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Excavation. Publishing Excavation State Machine Status.");
   ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Excavation Status. excavator_id :" << (int) msg.excavator_id.data
                                               << ", state:" << (int) msg.state.data
                                               << ", bucket_full:" << (int) msg.bucket_full.data

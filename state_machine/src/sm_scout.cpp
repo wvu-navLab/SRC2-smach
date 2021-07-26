@@ -166,22 +166,22 @@ void SmScout::stateInitialize()
 
   while (!clt_lights.waitForExistence())
   {
-      ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Waiting for Lights");
+    ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Waiting for Lights");
   }
 
   while (!clt_sf_true_pose.waitForExistence())
   {
-    ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Waiting for TruePose service");
+    ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Waiting for TruePose service");
   }
 
   while (!clt_approach_base.waitForExistence())
   {
-    ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Waiting for ApproachChargingStation service");
+    ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Waiting for ApproachChargingStation service");
   }
 
   while (!clt_find_object.waitForExistence())
   {
-    ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Waiting for FindObject service");
+    ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Waiting for FindObject service");
   }
 
   double progress = 0;
@@ -232,7 +232,7 @@ void SmScout::statePlanning()
 
   if (!no_objective)
   {
-    ROS_WARN_STREAM("[" << robot_name_ << "] " <<"New objective.");
+    ROS_INFO_STREAM("[" << robot_name_ << "] " <<"New objective.");
     goal_yaw_ = atan2(goal_pose_.position.y - current_pose_.position.y, goal_pose_.position.x - current_pose_.position.x);
 
     Brake (0.0);
@@ -268,7 +268,7 @@ void SmScout::stateTraverse()
 {
   ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Traverse State");
   move_base_state_ = ac.getState();
-  ROS_WARN_STREAM("[" << robot_name_ << "] " <<"MoveBase status: "<< move_base_state_.toString()
+  ROS_INFO_STREAM("[" << robot_name_ << "] " <<"MoveBase status: "<< move_base_state_.toString()
                       << ". Goal: (" << goal_pose_.position.x << "," << goal_pose_.position.y <<").");
 
   double distance_to_goal = std::hypot(goal_pose_.position.y - current_pose_.position.y, goal_pose_.position.x - current_pose_.position.x);
@@ -362,16 +362,16 @@ void SmScout::stateVolatileHandler()
     BrakeRamp(100, 0.1, 0);
     Brake(0.0);
 
-    ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Turning wheels sideways.");
+    ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Turning wheels sideways.");
     TurnWheelsSideways(true, 2.0);
 
-    ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Moving sideways (Right).");
+    ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Moving sideways (Right).");
     MoveSideways(0.1, 10.0);
 
-    ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Moving sideways (Left).");
+    ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Moving sideways (Left).");
     MoveSideways(-0.1, 20.0);
 
-    ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Moving sideways (Right).");
+    ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Moving sideways (Right).");
     MoveSideways(0.1, 10.0);
 
     flag_volatile_honed = true;
@@ -387,6 +387,7 @@ void SmScout::stateVolatileHandler()
 
     SetMoveBaseSpeed(SCOUT_MAX_SPEED);
     MarkVolatileHoned();
+    ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Finished honing.");
 
     flag_volatile_honed = false;
     flag_localizing_volatile = false;
@@ -683,6 +684,27 @@ void SmScout::watchdogCallback(const localization_watchdog::WatchdogStatus::Cons
 {
   flag_wasted = msg->wasted.data;
   flag_immobile = msg->immobile.data;
+
+  if (flag_immobile)
+  {
+    ROS_ERROR_STREAM("[" << robot_name_ << "] " << "Robot is stuck!");
+    CancelMoveBaseGoal();
+    Stop(0.05);
+    Brake(100.0);
+    Brake(0.0);
+
+    ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Turning wheels sideways.");
+    TurnWheelsSideways(true, 2.0);
+
+    ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Moving sideways (Right).");
+    MoveSideways(0.1, 5.0);
+
+    flag_interrupt_plan = false;
+    flag_emergency = false;
+    flag_arrived_at_waypoint = true;
+    flag_recovering_localization = false;
+    flag_localizing_volatile = false;
+  }
 }
 
 void SmScout::laserCallback(const sensor_msgs::LaserScan::ConstPtr& msg)
