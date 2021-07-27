@@ -251,6 +251,7 @@ void SmExcavator::stateInitialize()
   if (flag_have_true_pose && !flag_spread_out)
   {
     Brake(0.0);
+    SetPowerMode(false);
     ros::spinOnce();
     if (robot_id_ == 1)
     {
