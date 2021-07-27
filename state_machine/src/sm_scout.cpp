@@ -219,8 +219,8 @@ void SmScout::statePlanning()
 
   double progress = 0.0;
 
-  CancelMoveBaseGoal();    
-  
+  CancelMoveBaseGoal();
+
   SetPowerMode(true);
 
   Plan();
@@ -240,7 +240,7 @@ void SmScout::statePlanning()
     // CheckWaypoint(3); // TODO: Check if they needed
 
     ClearCostmaps(5.0);
-    
+
     SetPowerMode(false);
 
     SetMoveBaseGoal();
@@ -701,8 +701,11 @@ void SmScout::watchdogCallback(const localization_watchdog::WatchdogStatus::Cons
     TurnWheelsSideways(true, 2.0);
 
     ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Moving sideways (Right).");
-    MoveSideways(0.2, 5.0);
-
+    MoveSideways(0.2, 8.0);
+    Stop(0.05);
+    Brake(100.0);
+    Brake(0.0);
+    ClearCostmaps(5.0);
     flag_interrupt_plan = false;
     flag_emergency = false;
     flag_arrived_at_waypoint = true;

@@ -101,7 +101,7 @@ move_base_state_(actionlib::SimpleClientGoalState::PREEMPTED)
     proc_plant_bin_location_.y = 11.00;
     proc_plant_bin_location_.z = 3.60;
   }
-    
+
   front_of_bin_location_ = proc_plant_bin_location_;
 
   // Local copy of the charging station location
@@ -554,7 +554,7 @@ void SmHauler::stateVolatileHandler()
         if(!goal_from_bucket)
         {
           ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Excavation. Obtained goal from LaserScan");
-          SetPowerMode(false);   
+          SetPowerMode(false);
           CommandCamera(0,0.05,0.1);
           flag_parked_hauler = GoToWaypoint(1.5 + parking_left_offset, 1.0);
           SetPowerMode(true);
@@ -730,7 +730,7 @@ void SmHauler::stateLost()
     SetPowerMode(false);
   }
   else
-  {    
+  {
     SetPowerMode(true);
     ClearCostmaps(5.0);
     BrakeRamp(100, 1, 0);
@@ -781,7 +781,7 @@ void SmHauler::stateDump()
   CancelMoveBaseGoal();
 
   double progress = 0.0;
-  
+
   if(!flag_approached_front)
   {
     flag_approached_front = FindBin();
@@ -1001,7 +1001,7 @@ void SmHauler::localizationCallback(const nav_msgs::Odometry::ConstPtr& msg)
 
       CancelMoveBaseGoal();
       Stop(0.05);
-      Brake(1000.0);
+      Brake(200.0);
       Brake(0.0);
 
       DriveCmdVel(-0.3,0.0,0.0,3);
@@ -1152,7 +1152,12 @@ void SmHauler::watchdogCallback(const localization_watchdog::WatchdogStatus::Con
     Brake(0.0);
 
     ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Turning wheels sideways.");
-    DriveCmdVel(0.01,0.2,0.0,5.0);
+    DriveCmdVel(0.01,0.2,0.0,8.0); //8 instead of 5?
+    Stop(0.05);
+    Brake(100.0);
+    Brake(0.0);
+    ClearCostmaps(5.0);
+
     if (flag_set_mb_back)
     {
       SetMoveBaseGoal();

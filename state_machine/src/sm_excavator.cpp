@@ -658,7 +658,7 @@ void SmExcavator::localizationCallback(const nav_msgs::Odometry::ConstPtr& msg)
 
       CancelMoveBaseGoal();
       Stop(0.05);
-      Brake(1000.0);
+      Brake(200.0);
       Brake(0.0);
 
       DriveCmdVel(-0.2,0.0,0.0,3);
@@ -750,7 +750,7 @@ void SmExcavator::watchdogCallback(const localization_watchdog::WatchdogStatus::
   {
     flag_emergency = false;
   }
-  
+
   if (flag_immobile)
   {
     ROS_ERROR_STREAM("[" << robot_name_ << "] " << "Robot is stuck!");
@@ -763,7 +763,11 @@ void SmExcavator::watchdogCallback(const localization_watchdog::WatchdogStatus::
     Brake(0.0);
 
     ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Turning wheels sideways.");
-    DriveCmdVel(0.01,0.2,0.0,5.0);
+    DriveCmdVel(0.01,0.2,0.0,8.0);
+    Stop(0.05);
+    Brake(100.0);
+    Brake(0.0);
+    ClearCostmaps(5.0);
     if (flag_set_mb_back)
     {
       SetMoveBaseGoal();
@@ -1849,7 +1853,7 @@ bool SmExcavator::FindHauler(double timeout)
     double offset_heading = atan2(offset_bucket_to_bucket_center, relative_range_);
     relative_heading_ -= offset_heading;
 
-    ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Excavation. Target bin updated. Point (x,y,z): (" 
+    ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Excavation. Target bin updated. Point (x,y,z): ("
                                                << bin_point_.point.x << ","
                                                << bin_point_.point.y << ","
                                                << bin_point_.point.z << ")");
@@ -1857,7 +1861,7 @@ bool SmExcavator::FindHauler(double timeout)
     ROS_WARN_STREAM("[" << robot_name_ << "] " <<"Excavation. Target bin updated. Range: " << relative_range_
                                                << ", heading: " << relative_heading_);
 
-    // CommandCamera(0,0,2); // Testing continuous FindHauler 
+    // CommandCamera(0,0,2); // Testing continuous FindHauler
     return true;
   }
   else
@@ -2098,7 +2102,7 @@ void SmExcavator::ExcavationStateMachine()
 
         waiting_hauler = ros::Time::now(); // Wait until hauler gets ready
         while(!flag_hauler_ready && (ros::Time::now() - waiting_hauler) < ros::Duration(480))
-        {        
+        {
           PublishExcavationStatus();
           ros::Duration(1.0).sleep();
           ros::spinOnce();
@@ -2129,8 +2133,8 @@ void SmExcavator::ExcavationStateMachine()
 
       ExecuteLowerArm(2,0,volatile_heading_);
 
-      // if(!flag_found_hauler) // Testing continuous FindHauler 
-      // { 
+      // if(!flag_found_hauler) // Testing continuous FindHauler
+      // {
         ROS_ERROR_STREAM("[" << robot_name_ << "] " <<"Excavation. Starting to look for Hauler.");
         SetPowerMode(false);
         flag_found_hauler = FindHauler(60);
@@ -2178,7 +2182,7 @@ void SmExcavator::ExcavationStateMachine()
 
         waiting_hauler = ros::Time::now(); // Wait until hauler gets ready
         while(!flag_hauler_ready && (ros::Time::now() - waiting_hauler) < ros::Duration(240))
-        {        
+        {
           PublishExcavationStatus();
           ros::Duration(1.0).sleep();
           ros::spinOnce();
@@ -2231,7 +2235,7 @@ void SmExcavator::CancelExcavation(bool success)
   excavation_counter_ = -1;
   PublishExcavationStatus();
 
-  CommandCamera(0,0,0.1); // Testing continuous FindHauler 
+  CommandCamera(0,0,0.1); // Testing continuous FindHauler
 
   // Put arm in Home position
   ExecuteDrop(2,0,0);
