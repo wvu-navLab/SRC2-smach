@@ -350,7 +350,7 @@ void SmHauler::statePlanning()
     {
       if(flag_first_volatile)
       {
-        ros::Duration(dt+3).sleep();
+        ros::Duration(dt+13).sleep();
       }
       else
       {
