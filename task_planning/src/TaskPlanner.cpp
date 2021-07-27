@@ -571,19 +571,56 @@ namespace mac
     {
     case 's': // scout
       ind = topic.c_str()[SCOUT_STR_LOC];
-      id = std::atoi(&ind);
+      // id = std::atoi(&ind);
+      if(ind == '1')
+      {
+        id = 1;
+      }
+      else if (ind == '2')
+      {
+        id = 2;
+      }
+      else
+      {
+        return;
+      }
+      
       r_type = mac::SCOUT;
 
       break;
     case 'e': // excavator
       ind = topic.c_str()[EXCAVATOR_STR_LOC];
-      id = std::atoi(&ind);
+      // id = std::atoi(&ind);
+      if(ind == '1')
+      {
+        id = 1;
+      }
+      else if (ind == '2')
+      {
+        id = 2;
+      }
+      else
+      {
+        return;
+      }
       r_type = mac::EXCAVATOR;
 
       break;
     case 'h': // hauler
       ind = topic.c_str()[HAULER_STR_LOC];
-      id = std::atoi(&ind);
+      // id = std::atoi(&ind);
+      if(ind == '1')
+      {
+        id = 1;
+      }
+      else if (ind == '2')
+      {
+        id = 2;
+      }
+      else
+      {
+        return;
+      }
       r_type = mac::HAULER;
 
       break;

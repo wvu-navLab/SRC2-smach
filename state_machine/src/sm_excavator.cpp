@@ -992,7 +992,20 @@ void SmExcavator::haulerOdomCallback(const ros::MessageEvent<nav_msgs::Odometry 
   const nav_msgs::OdometryConstPtr& msg = event.getMessage();
 
   char msg_hauler_ind = topic.c_str()[HAULER_STR_LOC];
-  int msg_hauler_id = std::atoi(&msg_hauler_ind);
+  // int msg_hauler_id = std::atoi(&msg_hauler_ind);
+  int msg_hauler_id;
+  if(msg_hauler_ind == '1')
+  {
+    msg_hauler_id = 1;
+  }
+  else if (msg_hauler_ind == '2')
+  {
+    msg_hauler_id = 2;
+  }
+  else
+  {
+    return;
+  }
 
   small_haulers_odom_[msg_hauler_id-1] = *msg;
 
@@ -1011,7 +1024,20 @@ void SmExcavator::haulerStatusCallback(const ros::MessageEvent<state_machine::Ha
   const state_machine::HaulerStatusConstPtr& msg = event.getMessage();
 
   char msg_hauler_ind = topic.c_str()[HAULER_STR_LOC];
-  int msg_hauler_id = std::atoi(&msg_hauler_ind);
+  // int msg_hauler_id = std::atoi(&msg_hauler_ind);  
+  int msg_hauler_id;
+  if(msg_hauler_ind == '1')
+  {
+    msg_hauler_id = 1;
+  }
+  else if (msg_hauler_ind == '2')
+  {
+    msg_hauler_id = 2;
+  }
+  else
+  {
+    return;
+  }
 
   small_haulers_status_[msg_hauler_id-1] = *msg;
 

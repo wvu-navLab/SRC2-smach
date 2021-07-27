@@ -350,7 +350,7 @@ void SmHauler::statePlanning()
     {
       if(flag_first_volatile)
       {
-        ros::Duration(dt+13).sleep();
+        ros::Duration(dt+18).sleep();
       }
       else
       {
@@ -870,7 +870,10 @@ void SmHauler::stateDump()
       flag_dumping = false;
     }
     else
-    {
+    {      
+      RequestDumping(false);
+      flag_allowed_to_dump = false;
+      
       Brake(0.0);
       progress = -1.0;
     }
@@ -1072,7 +1075,20 @@ void SmHauler::excavationStatusCallback(const ros::MessageEvent<state_machine::E
 
   char msg_excavator_ind = topic.c_str()[EXCAVATOR_STR_LOC];
 
-  int msg_excavator_id = std::atoi(&msg_excavator_ind);
+  // int msg_excavator_id = std::atoi(&msg_excavator_ind);
+  int msg_excavator_id;
+  if(msg_excavator_ind == '1')
+  {
+    msg_excavator_id = 1;
+  }
+  else if (msg_excavator_ind == '2')
+  {
+    msg_excavator_id = 2;
+  }
+  else
+  {
+    return;
+  }
 
   small_excavators_status_[msg_excavator_id-1] = *msg;
 
@@ -1102,7 +1118,21 @@ void SmHauler::excavatorOdomCallback(const ros::MessageEvent<nav_msgs::Odometry 
   const nav_msgs::OdometryConstPtr& msg = event.getMessage();
 
   char msg_excavator_ind = topic.c_str()[EXCAVATOR_STR_LOC];
-  int msg_excavator_id = std::atoi(&msg_excavator_ind);
+  // int msg_excavator_id = std::atoi(&msg_excavator_ind);
+
+  int msg_excavator_id;
+  if(msg_excavator_ind == '1')
+  {
+    msg_excavator_id = 1;
+  }
+  else if (msg_excavator_ind == '2')
+  {
+    msg_excavator_id = 2;
+  }
+  else
+  {
+    return;
+  }
 
   small_excavators_odom_[msg_excavator_id-1] = *msg;
 
