@@ -38,6 +38,7 @@ move_base_state_(actionlib::SimpleClientGoalState::PREEMPTED)
   // Subscribers
   localized_base_sub = nh.subscribe("state_machine/localized_base", 1, &SmExcavator::localizedBaseCallback, this);
   localization_sub  = nh.subscribe("localization/odometry/sensor_fusion", 1, &SmExcavator::localizationCallback, this);
+  watchdog_sub  = nh.subscribe("localization/watchdog", 1, &SmExcavator::watchdogCallback, this);
   driving_mode_sub =nh.subscribe("driving/driving_mode",1, &SmExcavator::drivingModeCallback, this);
   laser_scan_sub =nh.subscribe("laser/scan",1, &SmExcavator::laserCallback, this);
   joint_states_sub = nh.subscribe("joint_states", 1, &SmExcavator::jointStateCallback, this);

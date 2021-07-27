@@ -40,6 +40,7 @@ move_base_state_(actionlib::SimpleClientGoalState::PREEMPTED)
   // Subscribers
   localized_base_sub = nh.subscribe("state_machine/localized_base", 1, &SmHauler::localizedBaseCallback, this);
   localization_sub  = nh.subscribe("localization/odometry/sensor_fusion", 1, &SmHauler::localizationCallback, this);
+  watchdog_sub  = nh.subscribe("localization/watchdog", 1, &SmHauler::watchdogCallback, this);
   driving_mode_sub = nh.subscribe("driving/driving_mode",1, &SmHauler::drivingModeCallback, this);
   laser_scan_sub = nh.subscribe("laser/scan",1, &SmHauler::laserCallback, this);
   planner_interrupt_sub = nh.subscribe("/task_planner/interrupt", 1, &SmHauler::plannerInterruptCallback, this);

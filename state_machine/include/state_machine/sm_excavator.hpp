@@ -151,6 +151,7 @@ public:
   // Subscribers
   ros::Subscriber localized_base_sub;
   ros::Subscriber localization_sub;
+  ros::Subscriber watchdog_sub; 
   ros::Subscriber driving_mode_sub;
   ros::Subscriber laser_scan_sub;
   ros::Subscriber joint_states_sub;

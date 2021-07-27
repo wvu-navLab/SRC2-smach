@@ -120,6 +120,7 @@ public:
   ros::Subscriber planner_interrupt_sub;
   ros::Subscriber init_attitude_sub; 
   ros::Subscriber system_monitor_sub;
+  ros::Subscriber watchdog_sub; 
   std::vector<ros::Subscriber> excavator_odom_subs;
   std::vector<ros::Subscriber> excavation_status_subs;
 
