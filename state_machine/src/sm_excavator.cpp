@@ -755,7 +755,7 @@ void SmExcavator::watchdogCallback(const localization_watchdog::WatchdogStatus::
   {
     ROS_ERROR_STREAM("[" << robot_name_ << "] " << "Robot is stuck!");
 
-    bool flag_set_mb_back = (ac.getState() != actionlib::SimpleClientGoalState::LOST));
+    bool flag_set_mb_back = (ac.getState() != actionlib::SimpleClientGoalState::LOST);
 
     CancelMoveBaseGoal();
     Stop(0.05);
