@@ -701,7 +701,7 @@ void SmScout::watchdogCallback(const localization_watchdog::WatchdogStatus::Cons
     TurnWheelsSideways(true, 2.0);
 
     ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Moving sideways (Right).");
-    MoveSideways(0.1, 5.0);
+    MoveSideways(0.2, 5.0);
 
     flag_interrupt_plan = false;
     flag_emergency = false;
