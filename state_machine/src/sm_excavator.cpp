@@ -754,13 +754,20 @@ void SmExcavator::watchdogCallback(const localization_watchdog::WatchdogStatus::
   if (flag_immobile)
   {
     ROS_ERROR_STREAM("[" << robot_name_ << "] " << "Robot is stuck!");
-    // CancelMoveBaseGoal();
+
+    bool flag_set_mb_back = (ac.getState() != actionlib::SimpleClientGoalState::LOST));
+
+    CancelMoveBaseGoal();
     Stop(0.05);
     Brake(100.0);
     Brake(0.0);
 
-    ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Moving sideways (Right)");
+    ROS_INFO_STREAM("[" << robot_name_ << "] " <<"Turning wheels sideways.");
     DriveCmdVel(0.01,0.2,0.0,5.0);
+    if (flag_set_mb_back)
+    {
+      SetMoveBaseGoal();
+    }
   }
 }
 
