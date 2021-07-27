@@ -324,7 +324,7 @@ void SmExcavator::statePlanning()
   }
   else
   {
-    ros::Duration(20).sleep();
+    ros::Duration(5).sleep();
     ROS_WARN_STREAM("[" << robot_name_ << "] " <<"No objective. Will ask again in 20s.");
   }
 
