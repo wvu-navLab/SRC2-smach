@@ -580,7 +580,7 @@ void SmScout::localizationCallback(const nav_msgs::Odometry::ConstPtr& msg)
       curr_max_speed_ = SCOUT_MAX_SPEED/2;
     }
 
-    if (abs(pitch_ * 180 / M_PI) > 27)
+    if((pitch_ * 180 / M_PI) < -27)
     {
       ROS_ERROR_STREAM("[" << robot_name_ << "] " << "Robot Cant Climb! Pitch: " << pitch_ * 180 / M_PI);
       ROS_ERROR_STREAM("[" << robot_name_ << "] " << "Commanding Recovery.");

@@ -597,10 +597,10 @@ void SmExcavator::localizationCallback(const nav_msgs::Odometry::ConstPtr& msg)
       curr_max_speed_ = EXCAVATOR_MAX_SPEED;
     }
 
-    if (abs(pitch_ * 180 / M_PI) > 27)
+    if((pitch_ * 180 / M_PI) < -27)
     {
       ROS_ERROR_STREAM("[" << robot_name_ << "] " << "Robot Cant Climb! Pitch: " << pitch_ * 180 / M_PI);
-      ROS_ERROR_STREAM("[" << robot_name_ << "] " << "Commanding IMMOBILITY.");
+      ROS_ERROR_STREAM("[" << robot_name_ << "] " << "Commanding Recovery.");
 
       CancelMoveBaseGoal();
       Stop(0.05);
@@ -654,7 +654,7 @@ void SmExcavator::localizationCallback(const nav_msgs::Odometry::ConstPtr& msg)
     if (abs(roll_ * 180 / M_PI) > 27)
     {
       ROS_ERROR_STREAM("[" << robot_name_ << "] " << "Robot Cant Climb! Roll: " << roll_ * 180 / M_PI);
-      ROS_ERROR_STREAM("[" << robot_name_ << "] " << "Commanding IMMOBILITY.");
+      ROS_ERROR_STREAM("[" << robot_name_ << "] " << "Commanding Recovery.");
 
       CancelMoveBaseGoal();
       Stop(0.05);
