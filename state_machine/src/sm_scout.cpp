@@ -684,10 +684,6 @@ void SmScout::watchdogCallback(const localization_watchdog::WatchdogStatus::Cons
   {
     flag_emergency = true;
   }
-  else
-  {
-    flag_emergency = false;
-  }
 
   if (flag_immobile)
   {

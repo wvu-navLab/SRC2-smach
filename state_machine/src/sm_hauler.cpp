@@ -1165,10 +1165,6 @@ void SmHauler::watchdogCallback(const localization_watchdog::WatchdogStatus::Con
   {
     flag_emergency = true;
   }
-  else
-  {
-    flag_emergency = false;
-  }
 
   if (flag_immobile)
   {

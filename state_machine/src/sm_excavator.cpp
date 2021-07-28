@@ -746,10 +746,6 @@ void SmExcavator::watchdogCallback(const localization_watchdog::WatchdogStatus::
   {
     flag_emergency = true;
   }
-  else
-  {
-    flag_emergency = false;
-  }
 
   if (flag_immobile)
   {
